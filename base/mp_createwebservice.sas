@@ -7,7 +7,7 @@
 Usage:
 
     %* compile macros ;
-    filename mc url "https://raw.githubusercontent.com/macropeople/macrocore/master/mc_all.sas";
+    filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
     %inc mc;
 
     %* write some code;

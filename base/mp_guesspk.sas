@@ -11,7 +11,7 @@
 
   Usage:
 
-      filename mc url "https://raw.githubusercontent.com/macropeople/macrocore/master/mc_all.sas";
+      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
       %mp_guesspk(sashelp.class,outds=classpks)
 

@@ -6,7 +6,7 @@
 
   Usage:
 
-      filename mc url "https://raw.githubusercontent.com/macropeople/macrocore/master/mc_all.sas";
+      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
       %mp_streamfile(contenttype=csv,inloc=/some/where.txt,outname=myfile.txt)
@@ -20,7 +20,7 @@
   @param outname= the name of the file, as downloaded by the browser
 
   @author Allan Bowe
-  @source https://github.com/macropeople/macrocore
+  @source https://github.com/sasjs/core
 
 **/
 

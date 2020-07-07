@@ -1,12 +1,12 @@
 /**
   @file mm_createwebservice.sas
   @brief Create a Web Ready Stored Process
-  @details This macro creates a Type 2 Stored Process with the macropeople
-            mm_webout macro included as pre-code.
+  @details This macro creates a Type 2 Stored Process with the mm_webout macro
+    included as pre-code.
 Usage:
 
     %* compile macros ;
-    filename mc url "https://raw.githubusercontent.com/macropeople/macrocore/master/mc_all.sas";
+    filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
     %inc mc;
 
     %* parmcards lets us write to a text file from open code ;

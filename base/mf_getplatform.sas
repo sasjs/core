@@ -1,5 +1,5 @@
 /**
-  @file mf_getplatform
+  @file mf_getplatform.sas
   @brief Returns platform specific variables
   @details Enables platform specific variables to be returned
 

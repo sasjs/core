@@ -22,7 +22,8 @@
         run;
 
   If you are building web apps with SAS then you are strongly encouraged to use
-  the mX_createwebservice macros in combination with [sasjs](https://github.com/macropeople/sasjs).
+  the mX_createwebservice macros in combination with the 
+  [sasjs adapter](https://github.com/sasjs/adapter).
   For more information see https://sasjs.io
 
   @param action Valid values:
@@ -43,7 +44,7 @@
 
   @version 9.2
   @author Allan Bowe
-  @source https://github.com/macropeople/macrocore
+  @source https://github.com/sasjs/core
 
 **/
 

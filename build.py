@@ -69,17 +69,17 @@ header="""
     'included' in SAS with just 2 lines of code:
 
       filename mc url
-        "https://raw.githubusercontent.com/macropeople/macrocore/master/mc_all.sas";
+        "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
-    The `build.py` file in the https://github.com/macropeople/macrocore repo
+    The `build.py` file in the https://github.com/sasjs/core repo
     is used to create this file.
 
   @author Allan Bowe
 **/
 options noquotelenmax;
 """
-f = open('mc_all.sas', "w")             # r / r+ / rb / rb+ / w / wb
+f = open('all.sas', "w")             # r / r+ / rb / rb+ / w / wb
 f.write(header)
 folders=['base','meta','metax','viya','lua']
 for folder in folders:

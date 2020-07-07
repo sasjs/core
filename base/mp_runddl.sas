@@ -37,7 +37,7 @@
 
   @version 9.3
   @author Allan Bowe
-  @source https://github.com/macropeople/macrocore
+  @source https://github.com/sasjs/core
 
 **/
 

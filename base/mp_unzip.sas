@@ -7,7 +7,7 @@
 
     Usage:
 
-      filename mc url "https://raw.githubusercontent.com/macropeople/macrocore/master/mc_all.sas";
+      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
       %mp_unzip(ziploc="/some/file.zip",outdir=/some/folder)
@@ -21,7 +21,7 @@
 
   @version 9.4
   @author Allan Bowe
-  @source https://github.com/macropeople/macrocore
+  @source https://github.com/sasjs/core
 
 **/
 

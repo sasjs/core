@@ -41,7 +41,7 @@
 
   @version VIYA V.03.04
   @author Allan Bowe
-  @source https://github.com/macropeople/macrocore
+  @source https://github.com/sasjs/core
 
   <h4> Dependencies </h4>
   @li mp_abort.sas

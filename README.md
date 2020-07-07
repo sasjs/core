@@ -5,7 +5,7 @@ Much quality. Many standards. The **Macro Core** library exists to save time and
 You can download and compile them all in just two lines of SAS code:
 
 ```sas
-filename mc url "https://raw.githubusercontent.com/sasjs/core/master/mc_all.sas";
+filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
 %inc mc;
 ```
 
@@ -54,7 +54,7 @@ The above can be done directly in your sas program, via an autoexec, or an initi
 Alternatively - for quick access - simply run the following! This file contains all the macros.
 
 ```sas
-filename mc url "https://raw.githubusercontent.com/macropeople/macrocore/master/mc_all.sas";
+filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
 %inc mc;
 ```
 

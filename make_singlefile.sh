@@ -13,10 +13,10 @@ cat > $OUTFILE <<'EOL'
     'included' in SAS with just 2 lines of code:
 
       filename mc url
-        "https://raw.githubusercontent.com/macropeople/macrocore/master/macrocore.sas";
+        "https://raw.githubusercontent.com/sasjs/core/master/macrocore.sas";
       %inc mc;
 
-    The `build.sh` file in the https://github.com/macropeople/macrocore repo
+    The `build.sh` file in the https://github.com/sasjs/core repo
     is used to create this file.
 
   @author Allan Bowe

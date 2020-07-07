@@ -12,7 +12,7 @@
   Usage:
 
       %* compile macros;
-      filename mc url "https://raw.githubusercontent.com/macropeople/macrocore/master/mc_all.sas";
+      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
       %* specific client with just openid scope;
@@ -53,7 +53,7 @@
     
   @version VIYA V.03.04
   @author Allan Bowe
-  @source https://github.com/macropeople/macrocore
+  @source https://github.com/sasjs/core
 
   <h4> Dependencies </h4>
   @li mp_abort.sas

@@ -1,13 +1,14 @@
 /**
   @file
   @brief Retrieves properties of the SAS web app server
-  @description usage:
+  @details 
+  Usage:
 
-    %mm_getwebappsrvprops(outds= some_ds)
-    data _null_;
-      set some_ds(where=(name='webappsrv.server.url'));
-      put value=;
-    run;
+      %mm_getwebappsrvprops(outds= some_ds)
+      data _null_;
+        set some_ds(where=(name='webappsrv.server.url'));
+        put value=;
+      run;
 
   @param outds the dataset to create that contains the list of properties
 
@@ -21,7 +22,7 @@
 
   @version 9.4
   @author Allan Bowe
-  @source https://github.com/macropeople/macrocore
+  @source https://github.com/sasjs/core
 
 **/
 

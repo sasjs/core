@@ -28,8 +28,8 @@ echo "INPUT+=main.dox" >> $BUILD_FOLDER/Doxyfile
 doxygen Doxyfile
 
 # refresh github pages site
-git clone git@github.com:macropeople/macrocore.github.io.git
-cd macrocore.github.io
+git clone git@github.com:sasjs/core.github.io.git
+cd core.github.io
 git rm -r *
 mv $BUILD_FOLDER/out/doxy/* .
 echo 'core.sasjs.io' > CNAME
@@ -37,4 +37,4 @@ git add *
 git commit -m "build.sh build on $(date +%F:%H:%M:%S)"
 git push
 
-echo "check it out:  https://macropeople.github.io/macrocore.github.io/files.html"
+echo "check it out:  https://sasjs.github.io/core.github.io/files.html"

@@ -8,7 +8,7 @@
 Usage:
 
     %* import the macros (or make them available some other way);
-    filename mc url "https://raw.githubusercontent.com/macropeople/macrocore/master/mc_all.sas";
+    filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
     %inc mc;
 
     %* create sample text file as input to the macro;

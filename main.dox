@@ -1,0 +1,48 @@
+
+/** \dir .
+ *  \brief Open Source Macro Library for Developers of the SAS Language.  See: https://github.com/macropeople/macrocore
+ *  \details To use - add the subfolders to your `SASAUTOS` call path.
+ */
+
+
+/*! \dir base
+ *  \brief Regular Base SAS Macros
+ *  \details These macros have the following attributes:
+
+        * OS independent
+        * Not metadata aware
+        * No X command
+        * Prefixes:  _mf_, _mp_
+ */
+
+/*! \dir meta
+ *  \brief Metadata Aware Macros
+ *  \details These macros have the following attributes:
+
+        * OS independent
+        * Metadata aware
+        * No X command
+        * Prefixes: _mm_
+
+ */
+
+/*! \dir metax
+ *  \brief Metadata Aware Macros with X commmand
+ *  \details These macros have the following attributes:
+
+        * OS independent
+        * Metadata aware
+        * X command
+        * Prefixes: _mmx_, _mmw_, _mmu_
+
+ */
+
+/*! \dir viya
+ *  \brief Viya macros
+ *  \details These macros have the following attributes:
+
+        * OS independent
+        * No X command
+        * Prefixes: _mv_
+
+ */

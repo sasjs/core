@@ -1,0 +1,19 @@
+{
+  "name": "@sasjs/core",
+  "description": "SAS Macro Library for Application Development",
+  "license": "MIT",
+  "keywords": [
+    "SAS",
+    "Viya",
+    "SASjs"
+  ],
+  "author": "Allan Bowe <support@macropeople.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sasjs/core"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {}
+}

@@ -1,0 +1,37 @@
+ALPHABETICAL_INDEX     = NO
+DISABLE_INDEX          = YES
+ENABLE_PREPROCESSING   = NO
+EXTENSION_MAPPING      = sas=Java ddl=Java
+EXTRACT_LOCAL_CLASSES  = NO
+FILE_PATTERNS          = *.sas \
+                         *.ddl \
+                         *.dox
+GENERATE_LATEX         = NO
+GENERATE_TREEVIEW      = YES
+HIDE_FRIEND_COMPOUNDS  = YES
+HIDE_IN_BODY_DOCS      = YES
+HIDE_SCOPE_NAMES       = YES
+HIDE_UNDOC_CLASSES     = YES
+HIDE_UNDOC_MEMBERS     = YES
+HTML_OUTPUT            = doxy
+HTML_HEADER            = ./doxy/new_header.html
+HTML_FOOTER            = ./doxy/new_footer.html
+HTML_EXTRA_STYLESHEET  = ./doxy/new_stylesheet.css
+INHERIT_DOCS           = NO
+INLINE_INFO            = NO
+INPUT                  = base meta metax viya
+LAYOUT_FILE            = ./doxy/DoxygenLayout.xml
+MAX_INITIALIZER_LINES  = 0
+PROJECT_NAME           = Macro Core
+PROJECT_LOGO           = doxy/Macro_core_website_1.png
+RECURSIVE              = YES
+REPEAT_BRIEF           = NO
+SHOW_NAMESPACES        = NO
+SHOW_USED_FILES        = NO
+SOURCE_BROWSER         = YES
+SOURCE_TOOLTIPS        = NO
+STRICT_PROTO_MATCHING  = YES
+STRIP_CODE_COMMENTS    = NO
+SUBGROUPING            = NO
+TAB_SIZE               = 2
+VERBATIM_HEADERS       = NO

@@ -12,6 +12,9 @@
     "type": "git",
     "url": "https://github.com/sasjs/core"
   },
+  "release": {
+    "branches": ["main"]
+  },
   "publishConfig": {
     "access": "public"
   },

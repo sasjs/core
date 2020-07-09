@@ -6,7 +6,7 @@ name: SASjs Core Publish
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   release:

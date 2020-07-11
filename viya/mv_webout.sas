@@ -36,7 +36,8 @@
 
 **/
 %macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=Y);
-%global _webin_file_count _webin_fileuri _debug _omittextlog ;
+%global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name
+  sasjs_tables;
 %if %index("&_debug",log) %then %let _debug=131; 
 
 %local i tempds;
@@ -50,11 +51,11 @@
   %if not %symexist(_webin_fileuri1) %then %do;
     %let _webin_file_count=%eval(&_webin_file_count+0);
     %let _webin_fileuri1=&_webin_fileuri;
+    %let _webin_name1=&_webin_name;
   %end;
 
-  %if %symexist(sasjs_tables) %then %do;
-    /* small volumes of non-special data are sent as params for responsiveness */
-    /* to do - deal with escaped values  */
+  /* if the sasjs_tables param is passed, we expect param based upload */
+  %if %length(&sasjs_tables.XX)>2 %then %do;
     filename _sasjs "%sysfunc(pathname(work))/sasjs.lua";
     data _null_;
       file _sasjs;
@@ -133,6 +134,7 @@
       infile indata firstobs=2 dsd termstr=crlf ;
       input &input_statement;
     run;
+    %let sasjs_tables=&sasjs_tables &&_webin_name&i;
   %end;
 %end;
 %else %if &action=OPEN %then %do;

@@ -33,7 +33,8 @@
 
 **/
 %macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y);
-%global _webin_file_count _webin_fileref1 _webin_name1 _program _debug;
+%global _webin_file_count _webin_fileref1 _webin_name1 _program _debug 
+  sasjs_tables;
 %local i tempds;
 
 %if &action=FETCH %then %do;
@@ -60,6 +61,7 @@
         if _n_<20 then putlog _infile_;
       %end;
     run;
+    %let sasjs_tables=&sasjs_tables &&_webin_name&i;
   %end;
 %end;
 

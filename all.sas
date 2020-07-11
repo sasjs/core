@@ -6150,7 +6150,8 @@ data _null_;
   put '%end; ';
   put '%mend; ';
   put '%macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y); ';
-  put '%global _webin_file_count _webin_fileref1 _webin_name1 _program _debug; ';
+  put '%global _webin_file_count _webin_fileref1 _webin_name1 _program _debug ';
+  put '  sasjs_tables; ';
   put '%local i tempds; ';
   put ' ';
   put '%if &action=FETCH %then %do; ';
@@ -6177,6 +6178,7 @@ data _null_;
   put '        if _n_<20 then putlog _infile_; ';
   put '      %end; ';
   put '    run; ';
+  put '    %let sasjs_tables=&sasjs_tables &&_webin_name&i; ';
   put '  %end; ';
   put '%end; ';
   put ' ';
@@ -9188,7 +9190,8 @@ run;
 
 **/
 %macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y);
-%global _webin_file_count _webin_fileref1 _webin_name1 _program _debug;
+%global _webin_file_count _webin_fileref1 _webin_name1 _program _debug 
+  sasjs_tables;
 %local i tempds;
 
 %if &action=FETCH %then %do;
@@ -9215,6 +9218,7 @@ run;
         if _n_<20 then putlog _infile_;
       %end;
     run;
+    %let sasjs_tables=&sasjs_tables &&_webin_name&i;
   %end;
 %end;
 
@@ -9933,7 +9937,8 @@ data _null_;
   put '%end; ';
   put '%mend; ';
   put '%macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=Y); ';
-  put '%global _webin_file_count _webin_fileuri _debug _omittextlog ; ';
+  put '%global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name ';
+  put '  sasjs_tables; ';
   put '%if %index("&_debug",log) %then %let _debug=131; ';
   put ' ';
   put '%local i tempds; ';
@@ -9947,11 +9952,11 @@ data _null_;
   put '  %if not %symexist(_webin_fileuri1) %then %do; ';
   put '    %let _webin_file_count=%eval(&_webin_file_count+0); ';
   put '    %let _webin_fileuri1=&_webin_fileuri; ';
+  put '    %let _webin_name1=&_webin_name; ';
   put '  %end; ';
   put ' ';
-  put '  %if %symexist(sasjs_tables) %then %do; ';
-  put '    /* small volumes of non-special data are sent as params for responsiveness */ ';
-  put '    /* to do - deal with escaped values  */ ';
+  put '  /* if the sasjs_tables param is passed, we expect param based upload */ ';
+  put '  %if %length(&sasjs_tables.XX)>2 %then %do; ';
   put '    filename _sasjs "%sysfunc(pathname(work))/sasjs.lua"; ';
   put '    data _null_; ';
   put '      file _sasjs; ';
@@ -10030,6 +10035,7 @@ data _null_;
   put '      infile indata firstobs=2 dsd termstr=crlf ; ';
   put '      input &input_statement; ';
   put '    run; ';
+  put '    %let sasjs_tables=&sasjs_tables &&_webin_name&i; ';
   put '  %end; ';
   put '%end; ';
   put '%else %if &action=OPEN %then %do; ';
@@ -11954,7 +11960,8 @@ filename &fref1 clear;
 
 **/
 %macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=Y);
-%global _webin_file_count _webin_fileuri _debug _omittextlog ;
+%global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name
+  sasjs_tables;
 %if %index("&_debug",log) %then %let _debug=131; 
 
 %local i tempds;
@@ -11968,11 +11975,11 @@ filename &fref1 clear;
   %if not %symexist(_webin_fileuri1) %then %do;
     %let _webin_file_count=%eval(&_webin_file_count+0);
     %let _webin_fileuri1=&_webin_fileuri;
+    %let _webin_name1=&_webin_name;
   %end;
 
-  %if %symexist(sasjs_tables) %then %do;
-    /* small volumes of non-special data are sent as params for responsiveness */
-    /* to do - deal with escaped values  */
+  /* if the sasjs_tables param is passed, we expect param based upload */
+  %if %length(&sasjs_tables.XX)>2 %then %do;
     filename _sasjs "%sysfunc(pathname(work))/sasjs.lua";
     data _null_;
       file _sasjs;
@@ -12051,6 +12058,7 @@ filename &fref1 clear;
       infile indata firstobs=2 dsd termstr=crlf ;
       input &input_statement;
     run;
+    %let sasjs_tables=&sasjs_tables &&_webin_name&i;
   %end;
 %end;
 %else %if &action=OPEN %then %do;

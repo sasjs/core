@@ -40,7 +40,9 @@
   * PROCJSON (default)
   * DATASTEP 
 
-  @param dbg= Typically used with an _debug (numeric) option
+  @param dbg= DEPRECATED - was used to conditionally add PRETTY to
+    proc json but this can cause line truncation in large files.
+    
 
   @version 9.2
   @author Allan Bowe
@@ -66,9 +68,8 @@
     proc sql;drop table &tempds;
     data &tempds /view=&tempds;set &ds; 
     %if &fmt=N %then format _numeric_ best32.;;
-    proc json out=&jref
+    proc json out=&jref pretty
         %if &action=ARR %then nokeys ;
-        %if &dbg ge 131  %then pretty ;
         ;export &tempds / nosastags fmtnumeric;
     run;
     proc sql;drop view &tempds;

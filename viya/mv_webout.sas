@@ -37,7 +37,7 @@
 **/
 %macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=Y);
 %global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name
-  sasjs_tables;
+  sasjs_tables SYS_JES_JOB_URI;
 %if %index("&_debug",log) %then %let _debug=131; 
 
 %local i tempds;
@@ -140,8 +140,13 @@
 %else %if &action=OPEN %then %do;
   /* setup webout */
   OPTIONS NOBOMFILE;
-  filename _webout filesrvc parenturi="&SYS_JES_JOB_URI"
-    name="_webout.json" lrecl=999999 mod;
+  %if "X&SYS_JES_JOB_URI.X"="XX" %then %do;
+     filename _webout temp lrecl=999999 mod;
+  %end;
+  %else %do;
+    filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" 
+      name="_webout.json" lrecl=999999 mod; 
+  %end;
 
   /* setup temp ref */
   %if %upcase(&fref) ne _WEBOUT %then %do;
@@ -171,13 +176,13 @@
       i+1;
       call symputx('wt'!!left(i),name);
       call symputx('wtcnt',i);
-    data _null_; file &fref; put ",""WORK"":{";
+    data _null_; file &fref mod; put ",""WORK"":{";
     %do i=1 %to &wtcnt;
       %let wt=&&wt&i;
       proc contents noprint data=&wt
         out=_data_ (keep=name type length format:);
       run;%let tempds=%scan(&syslast,2,.);
-      data _null_; file &fref;
+      data _null_; file &fref mod;
         dsid=open("WORK.&wt",'is');
         nlobs=attrn(dsid,'NLOBS');
         nvars=attrn(dsid,'NVARS');
@@ -188,9 +193,9 @@
         put ',"nvars":' nvars;
       %mp_jsonout(OBJ,&tempds,jref=&fref,dslabel=colattrs,engine=DATASTEP)
       %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,engine=DATASTEP)
-      data _null_; file &fref;put "}";
+      data _null_; file &fref mod;put "}";
     %end;
-    data _null_; file &fref;put "}";run;
+    data _null_; file &fref mod;put "}";run;
   %end;
 
   /* close off json */

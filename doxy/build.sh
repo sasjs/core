@@ -30,7 +30,7 @@ doxygen Doxyfile
 # refresh github pages site
 git clone git@github.com:sasjs/core.github.io.git
 cd core.github.io
-git rm -r *
+rm -r *
 mv $BUILD_FOLDER/out/doxy/* .
 echo 'core.sasjs.io' > CNAME
 git add *

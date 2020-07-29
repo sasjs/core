@@ -1,17 +1,18 @@
 /**
-  @file
+  @file mm_adduser2group.sas
   @brief Adds a user to a group
   @details Adds a user to a metadata group.  The macro first checks whether the
     user is in that group, and if not, the user is added.
 
   Usage:
 
-    %mm_adduser2group(user=sasdemo
-      ,group=someGroup)
+      %mm_adduser2group(user=sasdemo
+        ,group=someGroup)
 
 
   @param user= the user name (not displayname)
   @param group= the group to which to add the user
+  @param mdebug= set to 1 to show debug info in log
 
   @warning the macro does not check inherited group memberships - it looks at
     direct members only

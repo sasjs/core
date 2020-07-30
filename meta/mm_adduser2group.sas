@@ -69,7 +69,7 @@ run;
   %return;
 %end;
 
-%if %length(&syscc) ge 4 %then %do;
+%if &syscc ge 4 %then %do;
   %put WARNING:  SYSCC=&syscc, exiting &sysmacroname;
   %return;
 %end;

@@ -2653,7 +2653,72 @@ run;
     run;
   %end;
 %end;
+%else %if &flavour=PGSQL %then %do;
+  /* if schema does not exist, set to be same as libref */
+  %local schemaactual;
+  proc sql noprint;
+  select sysvalue into: schemaactual
+    from dictionary.libnames
+    where libname="&libref" and engine='POSTGRES';
+  %let schema=%sysfunc(coalescec(&schemaactual,&schema,&libref));
 
+  %do x=1 %to %sysfunc(countw(&dsnlist));
+    %let curds=%scan(&dsnlist,&x);
+    data _null_;
+      file &fref mod;
+      put "/* Postgres Flavour DDL for &schema..&curds */";
+    data _null_;
+      file &fref mod;
+      set &colinfo (where=(upcase(memname)="&curds")) end=last;
+      length fmt $32;
+      if _n_=1 then do;
+        if memtype='DATA' then do;
+          put "CREATE TABLE &schema..&curds (";
+        end;
+        else do;
+          put "CREATE VIEW &schema..&curds (";
+        end;
+        put "    "@@;
+      end;
+      else put "   ,"@@;
+      format=upcase(format);
+      if 1=0 then; /* dummy if */
+      %if &applydttm=YES %then %do;
+        else if format=:'DATETIME' then fmt=' TIMESTAMP ';
+      %end;
+      else if type='num' then fmt=' DOUBLE PRECISION';
+      else fmt='VARCHAR('!!cats(length)!!')';
+      if notnull='yes' then notnul=' NOT NULL';
+      put name fmt notnul;
+    run;
+    data _null_;
+      length ds $128;
+      set &idxinfo (where=(memname="&curds"));
+      file &fref mod;
+      by idxusage indxname;
+      if unique='yes' then uniq=' unique';
+      ds=cats(libname,'.',memname);
+      if first.indxname then do;
+        if unique='yes' and nomiss='yes' then do;
+          put '  ,PRIMARY KEY ';
+        end;
+        else if unique='yes' then do;
+          /* add nonclustered in case of multiple unique indexes */
+          put '  ,UNIQUE ';
+        end;
+        put '  (' name ;
+      end;
+      else put '    ,' name ;
+      if last.indxname then do;
+        put '  )';
+      end;
+    run;
+    data _null_;
+      file &fref mod;
+      put ');';
+    run;
+  %end;
+%end;
 %if &showlog=YES %then %do;
   options ps=max;
   data _null_;
@@ -4158,19 +4223,20 @@ ods package publish archive properties
 ods package close;
 
 %mend;/**
-  @file
+  @file mm_adduser2group.sas
   @brief Adds a user to a group
   @details Adds a user to a metadata group.  The macro first checks whether the
     user is in that group, and if not, the user is added.
 
   Usage:
 
-    %mm_adduser2group(user=sasdemo
-      ,group=someGroup)
+      %mm_adduser2group(user=sasdemo
+        ,group=someGroup)
 
 
   @param user= the user name (not displayname)
   @param group= the group to which to add the user
+  @param mdebug= set to 1 to show debug info in log
 
   @warning the macro does not check inherited group memberships - it looks at
     direct members only
@@ -4227,7 +4293,7 @@ run;
   %return;
 %end;
 
-%if %length(&syscc) ge 4 %then %do;
+%if &syscc ge 4 %then %do;
   %put WARNING:  SYSCC=&syscc, exiting &sysmacroname;
   %return;
 %end;

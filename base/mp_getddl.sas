@@ -74,7 +74,7 @@ quit;
 %mp_getconstraints(lib=%upcase(&libref),ds=%upcase(&ds),outds=_data_)
 %local colconst; %let colconst=&syslast;
 
-%macro addConst;
+%macro addConst();
     data _null_;
       length ctype $11;
       set &colconst (where=(table_name="&curds" and constraint_type in ('PRIMARY','UNIQUE'))) end=last;

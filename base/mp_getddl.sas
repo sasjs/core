@@ -132,7 +132,7 @@ run;
     run;
 
     /* Extra step for data constraints */
-    %addConst
+    %addConst()
 
     data _null_;
       file &fref mod;
@@ -185,7 +185,7 @@ run;
     run;
 
     /* Extra step for data constraints */
-    %addConst
+    %addConst()
 
     data _null_;
       file &fref mod;
@@ -250,7 +250,7 @@ run;
     run;
 
     /* Extra step for data constraints */
-    %addConst
+    %addConst()
 
     data _null_;
       file &fref mod;

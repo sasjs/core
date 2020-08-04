@@ -19,7 +19,7 @@
   @li mp_getconstraints.sas
 
   @param lib libref of the library to create DDL for.  Should be assigned.
-  @param ds dataset to create ddl for
+  @param ds dataset to create ddl for (optional)
   @param fref= the fileref to which to write the DDL.  If not preassigned, will
     be assigned to TEMP.
   @param flavour= The type of DDL to create (default=SAS). Supported=TSQL
@@ -85,6 +85,10 @@ quit;
       %if &flavour=TSQL %then %do;
         column_name=catt('[',column_name,']');
         constraint_name=catt('[',constraint_name,']');
+      %end;
+      %else %if &flavour=PGSQL %then %do;
+        column_name=catt('"',column_name,'"');
+        constraint_name=catt('"',constraint_name,'"');
       %end;
       if first.constraint_name then do;
         put "   ,CONSTRAINT " constraint_name ctype "(" ;

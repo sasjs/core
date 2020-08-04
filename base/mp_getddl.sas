@@ -250,7 +250,9 @@ run;
       else if type='num' then fmt=' DOUBLE PRECISION';
       else fmt='VARCHAR('!!cats(length)!!')';
       if notnull='yes' then notnul=' NOT NULL';
-      put name fmt notnul;
+      /* quote column names in case they represent reserved words */
+      name2=quote(trim(name));
+      put name2 fmt notnul;
     run;
 
     /* Extra step for data constraints */

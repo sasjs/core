@@ -4,7 +4,9 @@
   @details Data Definition Language relates to a set of SQL instructions used
     to create tables in SAS or a database.  The macro can be used at table or
     library level.  The default behaviour is to create DDL in SAS format.
+
   Usage:
+
       data test(index=(pk=(x y)/unique /nomiss));
         x=1;
         y='blah';

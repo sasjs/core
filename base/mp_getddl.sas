@@ -12,6 +12,10 @@
       run;
       proc sql; describe table &syslast;
       %mp_getddl(work,test,flavour=tsql,showlog=YES)
+
+  <h4> Dependencies </h4>
+  @li mp_getconstraints.sas
+
   @param lib libref of the library to create DDL for.  Should be assigned.
   @param ds dataset to create ddl for
   @param fref= the fileref to which to write the DDL.  If not preassigned, will
@@ -58,7 +62,7 @@ create table _data_ as
 %local colinfo; %let colinfo=&syslast;
 
 %local dsnlist;
-select distinct upcase(memname) into: dsnlist
+  select distinct upcase(memname) into: dsnlist
   separated by ' '
   from &syslast
 ;
@@ -67,16 +71,27 @@ quit;
 /* Extract all Primary Key and Unique data constraints */
 %mp_getconstraints(lib=%upcase(&libref),ds=%upcase(&ds),outds=_data_)
 %local colconst; %let colconst=&syslast;
-data _data_ (drop=column_name);
-  set &colconst (where = (constraint_type in ('PRIMARY','UNIQUE')));
-  by libref table_name constraint_type constraint_name;
-  length column_list $ 500;
-  retain column_list;
-  if first.constraint_name then column_list='';
-  column_list = catx(', ', column_list, column_name);
-  if last.constraint_name then output;
-run;
-%local tabconst; %let tabconst=&syslast;
+
+%macro addConst;
+    data _null_;
+      length ctype $11;
+      set &colconst (where=(table_name="&curds" and constraint_type in ('PRIMARY','UNIQUE'))) end=last;
+      file &fref mod;
+      by constraint_type constraint_name;
+      if upcase(strip(constraint_type)) = 'PRIMARY' then ctype='PRIMARY KEY';
+      else ctype=strip(constraint_type);
+      %if &flavour=TSQL %then %do;
+        column_name=catt('[',column_name,']');
+        constraint_name=catt('[',constraint_name,']');
+      %end;
+      if first.constraint_name then do;
+        put "   ,CONSTRAINT " constraint_name ctype "(" ;
+        put '     ' column_name;
+      end;
+	  else put '     ,' column_name;
+	  if last.constraint_name then put "   )";
+    run;
+%mend;
 
 data _null_;
   file &fref;
@@ -115,16 +130,7 @@ run;
     run;
 
     /* Extra step for data constraints */
-    data _null_;
-      set &tabconst (where=(table_name="&curds")) end=last;
-      length ctype $11;
-      file &fref mod;
-      by constraint_type constraint_name;
-      if upcase(strip(constraint_type)) = 'PRIMARY' then ctype='PRIMARY KEY';
-      else ctype=strip(constraint_type);
-      column_list=strip(column_list);
-      put "   ,CONSTRAINT " constraint_name " " ctype "(" column_list ")";
-    run;
+    %addConst
 
     data _null_;
       file &fref mod;
@@ -173,18 +179,11 @@ run;
       else if length le 8000 then fmt='[varchar]('!!cats(length)!!')';
       else fmt=cats('[varchar](max)');
       if notnull='yes' then notnul=' NOT NULL';
-      put name fmt notnul;
+      put "[" name +(-1) "]" fmt notnul;
     run;
-    data _null_;
-      length ctype $11;
-      set &tabconst (where=(table_name="&curds")) end=last;
-      file &fref mod;
-      by constraint_type constraint_name;
-      if upcase(strip(constraint_type)) = 'PRIMARY' then ctype='PRIMARY KEY';
-      else ctype=strip(constraint_type);
-      column_list=strip(column_list);
-      put "   ,CONSTRAINT " constraint_name " " ctype "(" column_list ")";
-    run;
+
+    /* Extra step for data constraints */
+    %addConst
 
     data _null_;
       file &fref mod;
@@ -249,16 +248,7 @@ run;
     run;
 
     /* Extra step for data constraints */
-    data _null_;
-      length ctype $11;
-      set &tabconst (where=(table_name="&curds")) end=last;
-      file &fref mod;
-      by constraint_type constraint_name;
-      if upcase(strip(constraint_type)) = 'PRIMARY' then ctype='PRIMARY KEY';
-      else ctype=strip(constraint_type);
-      column_list=strip(column_list);
-      put "   ,CONSTRAINT " constraint_name " " ctype "(" column_list ")";
-    run;
+    %addConst
 
     data _null_;
       file &fref mod;

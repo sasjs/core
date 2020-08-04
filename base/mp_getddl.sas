@@ -222,7 +222,9 @@ run;
     from dictionary.libnames
     where libname="&libref" and engine='POSTGRES';
   %let schema=%sysfunc(coalescec(&schemaactual,&schema,&libref));
-
+  data _null_;
+    file &fref mod;
+    put "CREATE SCHEMA &schema;";
   %do x=1 %to %sysfunc(countw(&dsnlist));
     %let curds=%scan(&dsnlist,&x);
     data _null_;

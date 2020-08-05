@@ -19,7 +19,7 @@
   @li mp_getconstraints.sas
 
   @param lib libref of the library to create DDL for.  Should be assigned.
-  @param ds dataset to create ddl for (optional)
+  @param ds dataset to create ddl for
   @param fref= the fileref to which to write the DDL.  If not preassigned, will
     be assigned to TEMP.
   @param flavour= The type of DDL to create (default=SAS). Supported=TSQL
@@ -68,35 +68,48 @@ create table _data_ as
   separated by ' '
   from &syslast
 ;
-quit;
+
+create table _data_ as
+  select * from dictionary.indexes
+  where upcase(libname)="%upcase(&libref)"
+  %if %length(&ds)>0 %then %do;
+    and upcase(memname)="%upcase(&ds)"
+  %end;
+  order by idxusage, indxname, indxpos
+  ;
+%local idxinfo; %let idxinfo=&syslast;
 
 /* Extract all Primary Key and Unique data constraints */
 %mp_getconstraints(lib=%upcase(&libref),ds=%upcase(&ds),outds=_data_)
 %local colconst; %let colconst=&syslast;
 
 %macro addConst();
-    data _null_;
-      length ctype $11;
-      set &colconst (where=(table_name="&curds" and constraint_type in ('PRIMARY','UNIQUE'))) end=last;
-      file &fref mod;
-      by constraint_type constraint_name;
-      if upcase(strip(constraint_type)) = 'PRIMARY' then ctype='PRIMARY KEY';
-      else ctype=strip(constraint_type);
-      %if &flavour=TSQL %then %do;
-        column_name=catt('[',column_name,']');
-        constraint_name=catt('[',constraint_name,']');
-      %end;
-      %else %if &flavour=PGSQL %then %do;
-        column_name=catt('"',column_name,'"');
-        constraint_name=catt('"',constraint_name,'"');
-      %end;
-      if first.constraint_name then do;
-        put "   ,CONSTRAINT " constraint_name ctype "(" ;
-        put '     ' column_name;
-      end;
-	  else put '     ,' column_name;
-	  if last.constraint_name then put "   )";
-    run;
+  %global constraints_used;
+  data _null_;
+    length ctype $11 constraint_name_orig $256 constraints_used $5000;
+    set &colconst (where=(table_name="&curds" and constraint_type in ('PRIMARY','UNIQUE'))) end=last;
+    file &fref mod;
+    by constraint_type constraint_name;
+    retain constraints_used;
+    constraint_name_orig=constraint_name;
+    if upcase(strip(constraint_type)) = 'PRIMARY' then ctype='PRIMARY KEY';
+    else ctype=strip(constraint_type);
+    %if &flavour=TSQL %then %do;
+      column_name=catt('[',column_name,']');
+      constraint_name=catt('[',constraint_name,']');
+    %end;
+    if first.constraint_name then do;
+      constraints_used = catx(' ', constraints_used, constraint_name_orig);
+      put "   ,CONSTRAINT " constraint_name ctype "(" ;
+      put '     ' column_name;
+    end;
+  else put '     ,' column_name;
+  if last.constraint_name then do;
+    put "   )";
+    call symput('constraints_used',strip(constraints_used));
+  end;
+  run;
+  %put &=constraints_used;
 %mend;
 
 data _null_;
@@ -108,13 +121,13 @@ run;
 %if &flavour=SAS %then %do;
   data _null_;
     file &fref mod;
+    put "/* SAS Flavour DDL for %upcase(&libref).&curds */";
     put "proc sql;";
   run;
   %do x=1 %to %sysfunc(countw(&dsnlist));
     %let curds=%scan(&dsnlist,&x);
     data _null_;
       file &fref mod;
-      if _n_ eq 1 then put "/* SAS Flavour DDL for %upcase(&libref).&curds */";
       length nm lab $1024;
       set &colinfo (where=(upcase(memname)="&curds")) end=last;
 
@@ -142,6 +155,25 @@ run;
       file &fref mod;
       put ');';
     run;
+  
+    /* Create Unique Indexes, but only if they were not already defined within the Constraints section. */
+    data _null_;
+      *length ds $128;
+      set &idxinfo (where=(memname="&curds" and unique='yes' and indxname not in (%sysfunc(tranwrd("&constraints_used",%str( ),%str(","))))));
+      file &fref mod;
+      by idxusage indxname;
+/*       ds=cats(libname,'.',memname); */
+      if first.indxname then do;
+          put 'CREATE UNIQUE INDEX ' indxname "ON &libref..&curds (" ;
+          put '  ' name ;
+      end;
+      else put '  ,' name ;
+      *else put '    ,' name ;
+      if last.indxname then do;
+        put ');';
+      end;
+    run;
+
 /*
     ods output IntegrityConstraints=ic;
     proc contents data=testali out2=info;
@@ -191,6 +223,24 @@ run;
     /* Extra step for data constraints */
     %addConst()
 
+    /* Create Unique Indexes, but only if they were not already defined within the Constraints section. */
+    data _null_;
+      *length ds $128;
+      set &idxinfo (where=(memname="&curds" and unique='yes' and indxname not in (%sysfunc(tranwrd("&constraints_used",%str( ),%str(","))))));
+      file &fref mod;
+      by idxusage indxname;
+      *ds=cats(libname,'.',memname);
+      if first.indxname then do;
+        /* add nonclustered in case of multiple unique indexes */
+        put '   ,index [' indxname +(-1) '] UNIQUE NONCLUSTERED (';
+        put '     [' name +(-1) ']';
+      end;
+      else put '     ,[' name +(-1) ']';
+      if last.indxname then do;
+        put '   )';
+      end;
+    run;
+
     data _null_;
       file &fref mod;
       put ')';
@@ -222,9 +272,7 @@ run;
     from dictionary.libnames
     where libname="&libref" and engine='POSTGRES';
   %let schema=%sysfunc(coalescec(&schemaactual,&schema,&libref));
-  data _null_;
-    file &fref mod;
-    put "CREATE SCHEMA &schema;";
+
   %do x=1 %to %sysfunc(countw(&dsnlist));
     %let curds=%scan(&dsnlist,&x);
     data _null_;
@@ -252,9 +300,7 @@ run;
       else if type='num' then fmt=' DOUBLE PRECISION';
       else fmt='VARCHAR('!!cats(length)!!')';
       if notnull='yes' then notnul=' NOT NULL';
-      /* quote column names in case they represent reserved words */
-      name2=quote(trim(name));
-      put name2 fmt notnul;
+      put name fmt notnul;
     run;
 
     /* Extra step for data constraints */
@@ -263,6 +309,24 @@ run;
     data _null_;
       file &fref mod;
       put ');';
+    run;
+
+    /* Create Unique Indexes, but only if they were not already defined within the Constraints section. */
+    data _null_;
+      *length ds $128;
+      set &idxinfo (where=(memname="&curds" and unique='yes' and indxname not in (%sysfunc(tranwrd("&constraints_used",%str( ),%str(","))))));
+      file &fref mod;
+      by idxusage indxname;
+/*       ds=cats(libname,'.',memname); */
+      if first.indxname then do;
+          put 'CREATE UNIQUE INDEX ' indxname "ON &schema..&curds (" ;
+          put '  ' name ;
+      end;
+      else put '  ,' name ;
+      *else put '    ,' name ;
+      if last.indxname then do;
+        put ');';
+      end;
     run;
 
   %end;

@@ -19,7 +19,7 @@
   @li mp_getconstraints.sas
 
   @param lib libref of the library to create DDL for.  Should be assigned.
-  @param ds dataset to create ddl for
+  @param ds dataset to create ddl for (optional)
   @param fref= the fileref to which to write the DDL.  If not preassigned, will
     be assigned to TEMP.
   @param flavour= The type of DDL to create (default=SAS). Supported=TSQL
@@ -97,6 +97,10 @@ create table _data_ as
     %if &flavour=TSQL %then %do;
       column_name=catt('[',column_name,']');
       constraint_name=catt('[',constraint_name,']');
+    %end;
+    %else %if &flavour=PGSQL %then %do;
+      column_name=catt('"',column_name,'"');
+      constraint_name=catt('"',constraint_name,'"');
     %end;
     if first.constraint_name then do;
       constraints_used = catx(' ', constraints_used, constraint_name_orig);
@@ -272,7 +276,9 @@ run;
     from dictionary.libnames
     where libname="&libref" and engine='POSTGRES';
   %let schema=%sysfunc(coalescec(&schemaactual,&schema,&libref));
-
+  data _null_;
+    file &fref mod;
+    put "CREATE SCHEMA &schema;";
   %do x=1 %to %sysfunc(countw(&dsnlist));
     %let curds=%scan(&dsnlist,&x);
     data _null_;
@@ -300,7 +306,9 @@ run;
       else if type='num' then fmt=' DOUBLE PRECISION';
       else fmt='VARCHAR('!!cats(length)!!')';
       if notnull='yes' then notnul=' NOT NULL';
-      put name fmt notnul;
+      /* quote column names in case they represent reserved words */
+      name2=quote(trim(name));
+      put name2 fmt notnul;
     run;
 
     /* Extra step for data constraints */
@@ -319,10 +327,10 @@ run;
       by idxusage indxname;
 /*       ds=cats(libname,'.',memname); */
       if first.indxname then do;
-          put 'CREATE UNIQUE INDEX ' indxname "ON &schema..&curds (" ;
-          put '  ' name ;
+          put 'CREATE UNIQUE INDEX "' indxname +(-1) '" ' "ON &schema..&curds (" ;
+          put '  "' name +(-1) '"' ;
       end;
-      else put '  ,' name ;
+      else put '  ,"' name +(-1) '"';
       *else put '    ,' name ;
       if last.indxname then do;
         put ');';

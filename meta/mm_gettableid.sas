@@ -6,17 +6,17 @@
 
   Usage:
 
-    - get a table id
-    %mm_gettableid(libref=METALIB,ds=SOMETABLE,outds=iwant)
+      - get a table id
+      %mm_gettableid(libref=METALIB,ds=SOMETABLE,outds=iwant)
 
   @param libref= The libref to search
   @param ds= The input dataset to check
-  @param outds= the dataset to create that contains the `tableuri``
+  @param outds= the dataset to create that contains the `tableuri`
   @param mDebug= set to 1 to show debug messages in the log
 
   @returns outds  dataset containing `tableuri` and `tablename`
 
-  @version 9.2
+  @version 9.3
   @author Allan Bowe
 
 **/

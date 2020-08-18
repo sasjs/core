@@ -47,6 +47,7 @@
   %end;
 %end;
 %else %if &contentype=EXCEL %then %do;
+  /* suitable for XLS format */
   %if &platform=SASMETA %then %do;
     data _null_;
       rc=stpsrv_header('Content-type','application/vnd.ms-excel');
@@ -56,6 +57,19 @@
   %else %if &platform=SASVIYA %then %do;
     filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.xls'
       contenttype='application/vnd.ms-excel' 
+      contentdisp="attachment; filename=&outname";
+  %end;
+%end;
+%else %if &contentype=XLSX %then %do;
+  %if &platform=SASMETA %then %do;
+    data _null_;
+      rc=stpsrv_header('Content-type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
+    run;
+  %end;
+  %else %if &platform=SASVIYA %then %do;
+    filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.xls'
+      contenttype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
       contentdisp="attachment; filename=&outname";
   %end;
 %end;

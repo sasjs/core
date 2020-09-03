@@ -95,7 +95,7 @@ run;
 libname &libref1 JSON fileref=&fname1;
 data _null_;
   set &libref1..links;
-  if rel='members' then call symputx('mref',quote(trim(href)),'l');
+  if rel='members' then call symputx('mref',quote("&base_uri"!!trim(href)),'l');
 run;
 
 /* get the children */
@@ -117,7 +117,7 @@ libname &libref1a JSON fileref=&fname1a;
 data _null_;
   set &libref1a..items;
   if contenttype='jobDefinition' and upcase(name)="%upcase(&name)" then do;
-    call symputx('uri',uri,'l');
+    call symputx('uri',cats("&base_uri",uri),'l');
     call symputx('found',1,'l');
   end;
 run;

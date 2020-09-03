@@ -1299,7 +1299,7 @@ Usage:
 
         %put %mf_trimstr(/blah/,/); * /blah;
         %put %mf_trimstr(/blah/,h); * /blah/;
-        %put %mf_trimstr(/blah/,h/); */bla;
+        %put %mf_trimstr(/blah/,h/);* /bla;
 
   <h4> Dependencies </h4>
 

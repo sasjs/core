@@ -12,6 +12,7 @@
 
   <h4> Dependencies </h4>
   @li mf_mval.sas
+  @li mf_trimstr.sas
 
   @version 9.4 / 3.4
   @author Allan Bowe
@@ -57,6 +58,6 @@
   %else 0;
 %end;
 %else %if &switch=VIYARESTAPI %then %do;
-  %sysfunc(getoption(servicesbaseurl))
+  %mf_trimstr(%sysfunc(getoption(servicesbaseurl)),/)
 %end;
 %mend;

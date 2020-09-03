@@ -96,7 +96,7 @@ options noquotelenmax;
     data _null_;
       set &libref1..links;
       if rel='createChild' then
-        call symputx('href',quote(trim(href)),'l');
+        call symputx('href',quote("&base_uri"!!trim(href)),'l');
     run;
   %end;
   %else %if &SYS_PROCHTTP_STATUS_CODE=404 %then %do;

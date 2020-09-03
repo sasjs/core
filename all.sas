@@ -9744,7 +9744,7 @@ options noquotelenmax;
     data _null_;
       set &libref1..links;
       if rel='createChild' then
-        call symputx('href',quote(trim(href)),'l');
+        call symputx('href',quote("&base_uri"!!trim(href)),'l');
     run;
   %end;
   %else %if &SYS_PROCHTTP_STATUS_CODE=404 %then %do;
@@ -9943,7 +9943,7 @@ libname &libref1 JSON fileref=&fname1;
 
 data _null_;
   set &libref1..links;
-  if rel='members' then call symputx('membercheck',quote(trim(href)),'l');
+  if rel='members' then call symputx('membercheck',quote("&base_uri"!!trim(href)),'l');
   else if rel='self' then call symputx('parentFolderUri',href,'l');
 run;
 data _null_;
@@ -10409,7 +10409,7 @@ proc http method='POST'
     in=&fname3
     out=&fname4
     &oauth_bearer
-    url="/jobDefinitions/definitions?parentFolderUri=&parentFolderUri";
+    url="&base_uri/jobDefinitions/definitions?parentFolderUri=&parentFolderUri";
     headers 'Content-Type'='application/vnd.sas.job.definition+json'
   %if &grant_type=authorization_code %then %do;
             "Authorization"="Bearer &&&access_token_var"

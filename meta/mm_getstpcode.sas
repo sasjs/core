@@ -123,6 +123,7 @@ data _null_;
         when ('&#x0a;') rec='0A'x;
         when ('&#x0d;') rec='0D'x;
         when ('&#36;' ) rec='$'  ;
+        when ('&#x09;') rec='09'x;
         otherwise putlog "%str(WARN)ING: missing value for " entity=;
       end;
       rc =fput(fileid, substr(rec,1,1));

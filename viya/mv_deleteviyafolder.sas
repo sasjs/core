@@ -88,9 +88,9 @@ libname &libref1 JSON fileref=&fname1;
 data _null_;
   set &libref1..links;
   if rel='deleteRecursively' then
-    call symputx('href',quote(trim(href)),'l');
+    call symputx('href',quote("&base_uri"!!trim(href)),'l');
   else if rel='members' then
-    call symputx('mref',quote(cats(href,'?recursive=true')),'l');
+    call symputx('mref',quote(cats("&base_uri",href,'?recursive=true')),'l');
 run;
 
 /* before we can delete the folder, we need to delete the children */
@@ -111,7 +111,7 @@ data _null_;
   set &libref1a..items_links;
   if href=:'/folders/folders' then return;
   if rel='deleteResource' then
-    call execute('proc http method="DELETE" url='!!quote(trim(href))
+    call execute('proc http method="DELETE" url='!!quote("&base_uri"!!trim(href))
     !!'; headers "Authorization"="Bearer &&&access_token_var" '
     !!' "Accept"="*/*";run; /**/');
 run;

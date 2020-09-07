@@ -64,7 +64,7 @@ options noquotelenmax;
 %if "&root"="/" %then %do;
   /* if root just list root folders */
   proc http method='GET' out=&fname1 &oauth_bearer
-      url='%sysfunc(getoption(servicesbaseurl))/folders/rootFolders';
+      url="&base_uri/folders/rootFolders";
   %if &grant_type=authorization_code %then %do;
       headers "Authorization"="Bearer &&&access_token_var";
   %end;
@@ -87,7 +87,7 @@ options noquotelenmax;
   /* now get the followon link to list members */
   data _null_;
     set &libref1..links;
-    if rel='members' then call symputx('href',quote(trim(href)),'l');
+    if rel='members' then call symputx('href',quote("&base_uri"!!trim(href)),'l');
   run;
   %local fname2 libref2;
   %let fname2=%mf_getuniquefileref();

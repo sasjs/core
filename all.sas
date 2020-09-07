@@ -10603,7 +10603,7 @@ run;
 libname &libref1 JSON fileref=&fname1;
 data _null_;
   set &libref1..links;
-  if rel='members' then call symputx('mref',quote(trim(href)),'l');
+  if rel='members' then call symputx('mref',quote("&base_uri"!!trim(href)),'l');
 run;
 
 /* get the children */
@@ -10633,7 +10633,7 @@ run;
   %put NOTE:;%put NOTE- &sysmacroname: &path/&name NOT FOUND;%put NOTE- ;
   %return;
 %end;
-proc http method="DELETE" url="&uri" &oauth_bearer;
+proc http method="DELETE" url="&base_uri&uri" &oauth_bearer;
   headers 
 %if &grant_type=authorization_code %then %do;
       "Authorization"="Bearer &&&access_token_var"
@@ -10892,9 +10892,9 @@ libname &libref1 JSON fileref=&fname1;
 data _null_;
   set &libref1..links;
   if rel='deleteRecursively' then
-    call symputx('href',quote(trim(href)),'l');
+    call symputx('href',quote("&base_uri"!!trim(href)),'l');
   else if rel='members' then
-    call symputx('mref',quote(cats(href,'?recursive=true')),'l');
+    call symputx('mref',quote(cats("&base_uri",href,'?recursive=true')),'l');
 run;
 
 /* before we can delete the folder, we need to delete the children */
@@ -10915,7 +10915,7 @@ data _null_;
   set &libref1a..items_links;
   if href=:'/folders/folders' then return;
   if rel='deleteResource' then
-    call execute('proc http method="DELETE" url='!!quote(trim(href))
+    call execute('proc http method="DELETE" url='!!quote("&base_uri"!!trim(href))
     !!'; headers "Authorization"="Bearer &&&access_token_var" '
     !!' "Accept"="*/*";run; /**/');
 run;
@@ -11166,7 +11166,7 @@ options noquotelenmax;
 %if "&root"="/" %then %do;
   /* if root just list root folders */
   proc http method='GET' out=&fname1 &oauth_bearer
-      url='%sysfunc(getoption(servicesbaseurl))/folders/rootFolders';
+      url="&base_uri/folders/rootFolders";
   %if &grant_type=authorization_code %then %do;
       headers "Authorization"="Bearer &&&access_token_var";
   %end;
@@ -11189,7 +11189,7 @@ options noquotelenmax;
   /* now get the followon link to list members */
   data _null_;
     set &libref1..links;
-    if rel='members' then call symputx('href',quote(trim(href)),'l');
+    if rel='members' then call symputx('href',quote("&base_uri"!!trim(href)),'l');
   run;
   %local fname2 libref2;
   %let fname2=%mf_getuniquefileref();

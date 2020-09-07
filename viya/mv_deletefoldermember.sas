@@ -98,7 +98,7 @@ run;
 libname &libref1 JSON fileref=&fname1;
 data _null_;
   set &libref1..links;
-  if rel='members' then call symputx('mref',quote(trim(href)),'l');
+  if rel='members' then call symputx('mref',quote("&base_uri"!!trim(href)),'l');
 run;
 
 /* get the children */
@@ -128,7 +128,7 @@ run;
   %put NOTE:;%put NOTE- &sysmacroname: &path/&name NOT FOUND;%put NOTE- ;
   %return;
 %end;
-proc http method="DELETE" url="&uri" &oauth_bearer;
+proc http method="DELETE" url="&base_uri&uri" &oauth_bearer;
   headers 
 %if &grant_type=authorization_code %then %do;
       "Authorization"="Bearer &&&access_token_var"

@@ -38,6 +38,7 @@
   @param pass= If grant_type=password then provide the password here
   @param access_token_var= The global macro variable to contain the access token
   @param refresh_token_var= The global macro variable to contain the refresh token
+  @param base_uri= The Viya API server location
 
   @version VIYA V.03.04
   @author Allan Bowe
@@ -62,6 +63,7 @@
     ,pass=
     ,access_token_var=ACCESS_TOKEN
     ,refresh_token_var=REFRESH_TOKEN
+    ,base_uri=#NOTSET#
   );
 %global &access_token_var &refresh_token_var;
 
@@ -108,8 +110,7 @@ run;
 /**
  * Request access token
  */
-%local base_uri; /* location of rest apis */
-%let base_uri=%mf_getplatform(VIYARESTAPI);
+%if &base_uri=#NOTSET# %then %let base_uri=%mf_getplatform(VIYARESTAPI);
 
 %let fref2=%mf_getuniquefileref();
 proc http method='POST' in=&grantstring out=&fref2

@@ -1,6 +1,6 @@
 /**
-  @file mv_getgroups.sas
-  @brief Creates a dataset with a list of viya groups
+  @file mv_getclients.sas
+  @brief Get a list of Viya Clients
   @details First, be sure you have an access token (which requires an app token).
 
   Using the macros here:
@@ -20,7 +20,7 @@
 
   Now we can run the macro!
 
-      %mv_getgroups()
+      %mv_getclients()
 
   @param access_token_var= The global macro variable to contain the access token
   @param grant_type= valid values are "password" or "authorization_code" (unquoted).

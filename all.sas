@@ -11000,8 +11000,8 @@ libname &libref1 clear;
 )
 
 %mend;/**
-  @file mv_getgroups.sas
-  @brief Creates a dataset with a list of viya groups
+  @file mv_getclients.sas
+  @brief Get a list of Viya Clients
   @details First, be sure you have an access token (which requires an app token).
 
   Using the macros here:
@@ -11021,7 +11021,7 @@ libname &libref1 clear;
 
   Now we can run the macro!
 
-      %mv_getgroups()
+      %mv_getclients()
 
   @param access_token_var= The global macro variable to contain the access token
   @param grant_type= valid values are "password" or "authorization_code" (unquoted).
@@ -11941,6 +11941,7 @@ libname &libref clear;
   @param pass= If grant_type=password then provide the password here
   @param access_token_var= The global macro variable to contain the access token
   @param refresh_token_var= The global macro variable to contain the refresh token
+  @param base_uri= The Viya API server location
 
   @version VIYA V.03.04
   @author Allan Bowe
@@ -11965,6 +11966,7 @@ libname &libref clear;
     ,pass=
     ,access_token_var=ACCESS_TOKEN
     ,refresh_token_var=REFRESH_TOKEN
+    ,base_uri=#NOTSET#
   );
 %global &access_token_var &refresh_token_var;
 
@@ -12011,8 +12013,7 @@ run;
 /**
  * Request access token
  */
-%local base_uri; /* location of rest apis */
-%let base_uri=%mf_getplatform(VIYARESTAPI);
+%if &base_uri=#NOTSET# %then %let base_uri=%mf_getplatform(VIYARESTAPI);
 
 %let fref2=%mf_getuniquefileref();
 proc http method='POST' in=&grantstring out=&fref2

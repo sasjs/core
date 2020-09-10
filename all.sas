@@ -1316,13 +1316,23 @@ Usage:
 **/
 
 %macro mf_trimstr(basestr,trimstr);
-%local trimlen trimval;
+%local baselen trimlen trimval;
+
+/* return if basestr is shorter than trimstr (or 0) */
+%let baselen=%length(%superq(basestr));
 %let trimlen=%length(%superq(trimstr));
+%if &baselen < &trimlen or &baselen=0 %then %return;
+
+/* obtain the characters from the end of basestr */
 %let trimval=%qsubstr(%superq(basestr)
   ,%length(%superq(basestr))-&trimlen+1
   ,&trimlen);
 
-%if %superq(trimval)=%superq(trimstr) %then %do;
+/* compare and if matching, chop it off! */
+%if %superq(basestr)=%superq(trimstr) %then %do;
+  %return;
+%end;
+%else %if %superq(trimval)=%superq(trimstr) %then %do;
   %qsubstr(%superq(basestr),1,%length(%superq(basestr))-&trimlen)
 %end;
 %else %do;
@@ -11855,7 +11865,7 @@ run;
 %end;
 
 /* prepare url */
-%if &grant_type=authorization_code %then %do;
+%if %index(%superq(grant_type),authorization_code) %then %do;
   data _null_;
     if symexist('_baseurl') then do;
       url=symget('_baseurl');
@@ -11874,7 +11884,7 @@ run;
 %put CLIENT_SECRET=&client_secret;
 %put GRANT_TYPE=&grant_type;
 %put;
-%if &grant_type=authorization_code %then %do;
+%if %index(%superq(grant_type),authorization_code) %then %do;
   /* cannot use base_uri here as it includes the protocol which may be incorrect externally */
   %put NOTE: The developer must also register below and select 'openid' to get the grant code:;
   %put NOTE- ;

@@ -187,7 +187,7 @@ run;
 %end;
 
 /* prepare url */
-%if &grant_type=authorization_code %then %do;
+%if %index(%superq(grant_type),authorization_code) %then %do;
   data _null_;
     if symexist('_baseurl') then do;
       url=symget('_baseurl');
@@ -206,7 +206,7 @@ run;
 %put CLIENT_SECRET=&client_secret;
 %put GRANT_TYPE=&grant_type;
 %put;
-%if &grant_type=authorization_code %then %do;
+%if %index(%superq(grant_type),authorization_code) %then %do;
   /* cannot use base_uri here as it includes the protocol which may be incorrect externally */
   %put NOTE: The developer must also register below and select 'openid' to get the grant code:;
   %put NOTE- ;

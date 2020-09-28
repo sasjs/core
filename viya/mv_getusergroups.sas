@@ -1,24 +1,15 @@
 /**
   @file mv_getusergroups.sas
   @brief Creates a dataset with a list of groups for a particular user
-  @details First, be sure you have an access token (which requires an app token).
+  @details If using outside of Viya SPRE, then an access token is needed.
 
-  Using the macros here:
+  Compile the macros here:
 
       filename mc url
         "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
-  An administrator needs to set you up with an access code:
-
-      %mv_registerclient(outds=client)
-
-  Navigate to the url from the log (opting in to the groups) and paste the
-  access code below:
-
-      %mv_tokenauth(inds=client,code=wKDZYTEPK6)
-
-  Now we can run the macro!
+  Then run the macro!
 
       %mv_getusergroups(&sysuserid,outds=users)
 
@@ -55,7 +46,7 @@
     %let &access_token_var=;
 %end;
 %put &sysmacroname: grant_type=&grant_type;
-%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password 
+%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )
   ,mac=&sysmacroname
@@ -73,7 +64,7 @@ options noquotelenmax;
 
 proc http method='GET' out=&fname1 &oauth_bearer
   url="&base_uri/identities/users/&user/memberships?limit=10000";
-  headers 
+  headers
 %if &grant_type=authorization_code %then %do;
          "Authorization"="Bearer &&&access_token_var"
 %end;

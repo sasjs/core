@@ -3,7 +3,7 @@
   @brief Searches all data in a library
   @details
   Scans an entire library and creates a copy of any table
-    containing a specific string or numeric value.  Only 
+    containing a specific string OR numeric value.  Only 
     matching records are written out.
     If both a string and numval are provided, the string
     will take precedence.
@@ -44,9 +44,13 @@
   ,filter_text=%str(1=1)
 )/*/STORE SOURCE*/;
 
-%local table_list table table_num table colnum col start_tm vars type coltype;
+%local table_list table table_num table colnum col start_tm check_tm vars type coltype;
 %put process began at %sysfunc(datetime(),datetime19.);
 
+%if &syscc ge 4 %then %do;
+  %put %str(WAR)NING: SYSCC=&syscc on macro entry;
+  %return;
+%end;
 
 %if &string = %then %let type=N;
 %else %let type=C;
@@ -78,6 +82,7 @@ proc sql
     %put NO COLUMNS IN &lib..&table!  This will be skipped.;
   %end;
   %else %do;
+    %let check_tm=%sysfunc(datetime());
     /* build sql statement */
     create table mpsearch.&table as select * from &lib..&table
       where %unquote(&filter_text) and 
@@ -88,14 +93,19 @@ proc sql
       %let coltype=%mf_getvartype(&lib..&table,&col);
       %if &type=C and &coltype=C %then %do;
         /* if a char column, see if it contains the string */
-        or (&col ? "&string")
+        or ("&col"n ? "&string")
       %end;
       %else %if &type=N and &coltype=N %then %do;
         /* if numeric match exactly */
-        or (&col = &numval)
+        or ("&col"n = &numval)
       %end;
     %end;
     );
+    %put Search query for &table took %sysevalf(%sysfunc(datetime())-&check_tm) seconds;
+    %if &sqlrc ne 0 %then %do;
+      %put %str(WAR)NING: SQLRC=&sqlrc when processing &table;
+      %return;
+    %end;
     %if %mf_nobs(mpsearch.&table)=0 %then %do;
       drop table mpsearch.&table;
     %end;

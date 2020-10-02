@@ -3713,7 +3713,7 @@ proc sort; by descending sumcols memname libname; run;
   @brief Searches all data in a library
   @details
   Scans an entire library and creates a copy of any table
-    containing a specific string or numeric value.  Only 
+    containing a specific string OR numeric value.  Only 
     matching records are written out.
     If both a string and numval are provided, the string
     will take precedence.
@@ -3754,9 +3754,13 @@ proc sort; by descending sumcols memname libname; run;
   ,filter_text=%str(1=1)
 )/*/STORE SOURCE*/;
 
-%local table_list table table_num table colnum col start_tm vars type coltype;
+%local table_list table table_num table colnum col start_tm check_tm vars type coltype;
 %put process began at %sysfunc(datetime(),datetime19.);
 
+%if &syscc ge 4 %then %do;
+  %put %str(WAR)NING: SYSCC=&syscc on macro entry;
+  %return;
+%end;
 
 %if &string = %then %let type=N;
 %else %let type=C;
@@ -3788,6 +3792,7 @@ proc sql
     %put NO COLUMNS IN &lib..&table!  This will be skipped.;
   %end;
   %else %do;
+    %let check_tm=%sysfunc(datetime());
     /* build sql statement */
     create table mpsearch.&table as select * from &lib..&table
       where %unquote(&filter_text) and 
@@ -3798,14 +3803,19 @@ proc sql
       %let coltype=%mf_getvartype(&lib..&table,&col);
       %if &type=C and &coltype=C %then %do;
         /* if a char column, see if it contains the string */
-        or (&col ? "&string")
+        or ("&col"n ? "&string")
       %end;
       %else %if &type=N and &coltype=N %then %do;
         /* if numeric match exactly */
-        or (&col = &numval)
+        or ("&col"n = &numval)
       %end;
     %end;
     );
+    %put Search query for &table took %sysevalf(%sysfunc(datetime())-&check_tm) seconds;
+    %if &sqlrc ne 0 %then %do;
+      %put %str(WAR)NING: SQLRC=&sqlrc when processing &table;
+      %return;
+    %end;
     %if %mf_nobs(mpsearch.&table)=0 %then %do;
       drop table mpsearch.&table;
     %end;
@@ -11462,24 +11472,15 @@ libname &libref1 clear;
 %mend;/**
   @file mv_getusergroups.sas
   @brief Creates a dataset with a list of groups for a particular user
-  @details First, be sure you have an access token (which requires an app token).
+  @details If using outside of Viya SPRE, then an access token is needed.
 
-  Using the macros here:
+  Compile the macros here:
 
       filename mc url
         "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
-  An administrator needs to set you up with an access code:
-
-      %mv_registerclient(outds=client)
-
-  Navigate to the url from the log (opting in to the groups) and paste the
-  access code below:
-
-      %mv_tokenauth(inds=client,code=wKDZYTEPK6)
-
-  Now we can run the macro!
+  Then run the macro!
 
       %mv_getusergroups(&sysuserid,outds=users)
 
@@ -11516,7 +11517,7 @@ libname &libref1 clear;
     %let &access_token_var=;
 %end;
 %put &sysmacroname: grant_type=&grant_type;
-%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password 
+%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )
   ,mac=&sysmacroname
@@ -11534,7 +11535,7 @@ options noquotelenmax;
 
 proc http method='GET' out=&fname1 &oauth_bearer
   url="&base_uri/identities/users/&user/memberships?limit=10000";
-  headers 
+  headers
 %if &grant_type=authorization_code %then %do;
          "Authorization"="Bearer &&&access_token_var"
 %end;

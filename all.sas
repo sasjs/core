@@ -1551,8 +1551,15 @@ Usage:
     %end;
 
     %if %symexist(SYS_JES_JOB_URI) %then %do;
-      /* refer web service output to file service in one hit */
-      filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name="_webout.json";
+      /* setup webout */
+      OPTIONS NOBOMFILE;
+      %if "X&SYS_JES_JOB_URI.X"="XX" %then %do;
+          filename _webout temp lrecl=999999 mod;
+      %end;
+      %else %do;
+        filename _webout filesrvc parenturi="&SYS_JES_JOB_URI"
+          name="_webout.json" lrecl=999999 mod;
+      %end;
     %end;
 
     /* send response in SASjs JSON format */

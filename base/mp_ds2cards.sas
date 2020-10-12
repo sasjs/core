@@ -103,8 +103,7 @@ proc sql
   order by ranuni(42)
 %end;
   ;
-
-
+reset outobs=max;
 create table datalines1 as
    select name,type,length,varnum,format,label from dictionary.columns
    where libname="%upcase(%scan(&base_ds,1))"

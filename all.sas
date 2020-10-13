@@ -2656,7 +2656,7 @@ run;
       file &fref mod;
       put ');';
     run;
-  
+
     /* Create Unique Indexes, but only if they were not already defined within the Constraints section. */
     data _null_;
       *length ds $128;
@@ -2836,7 +2836,7 @@ run;
 
   %end;
 %end;
-%if &showlog=YES %then %do;
+%if %upcase(&showlog)=YES %then %do;
   options ps=max;
   data _null_;
     infile &fref;

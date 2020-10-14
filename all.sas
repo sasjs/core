@@ -2921,9 +2921,9 @@ create table &outds (rename=(
   @brief Guess the primary key of a table
   @details Tries to guess the primary key of a table based on the following logic:
 
-  * Columns with nulls are ignored
-  * Return only column combinations that provide unique results
-  * Start from one column, then move out to include composite keys of 2 to 6 columns
+      * Columns with nulls are ignored
+      * Return only column combinations that provide unique results
+      * Start from one column, then move out to include composite keys of 2 to 6 columns
 
   The library of the target should be assigned before using this macro.
 
@@ -2969,7 +2969,7 @@ create table &outds (rename=(
   /* get null count and row count */
   %let tmpvar=%mf_getuniquename();
   proc sql noprint;
-  create table _data_ as select 
+  create table _data_ as select
     count(*) as &tmpvar
   %do i=1 %to &vcnt;
     %let var=%scan(&vars,&i);
@@ -3003,10 +3003,10 @@ create table &outds (rename=(
     %put &sysmacroname: &baseds has no combination of unique records! Exiting.;
     %return;
   %end;
-  
+
   /* now check cardinality */
   proc sql noprint;
-  create table _data_ as select 
+  create table _data_ as select
   %do i=1 %to &ppkcnt;
     %let var=%scan(&posspks,&i);
     count(distinct &var) as &var
@@ -3130,7 +3130,7 @@ create table &outds (rename=(
       %end;
     %end;
   %end;
- 
+
   %if &ppkcnt=4 %then %do;
     %put &sysmacroname: No more PK guess possible;
     %return;
@@ -3146,7 +3146,7 @@ create table &outds (rename=(
         %let lev3=%scan(&posspks,&k);
         %if &lev1 ne &lev3 and &lev2 ne &lev3 %then %do l=4 %to &ppkcnt;
           %let lev4=%scan(&posspks,&l);
-          %if &lev1 ne &lev4 and &lev2 ne &lev4 and &lev3 ne &lev4 %then 
+          %if &lev1 ne &lev4 and &lev2 ne &lev4 and &lev3 ne &lev4 %then
           %do m=5 %to &ppkcnt;
             %let lev5=%scan(&posspks,&m);
             %if &lev1 ne &lev5 & &lev2 ne &lev5 & &lev3 ne &lev5 & &lev4 ne &lev5 %then %do;
@@ -3168,7 +3168,7 @@ create table &outds (rename=(
       %end;
     %end;
   %end;
- 
+
   %if &ppkcnt=5 %then %do;
     %put &sysmacroname: No more PK guess possible;
     %return;
@@ -3184,17 +3184,17 @@ create table &outds (rename=(
         %let lev3=%scan(&posspks,&k);
         %if &lev1 ne &lev3 and &lev2 ne &lev3 %then %do l=4 %to &ppkcnt;
           %let lev4=%scan(&posspks,&l);
-          %if &lev1 ne &lev4 and &lev2 ne &lev4 and &lev3 ne &lev4 %then 
+          %if &lev1 ne &lev4 and &lev2 ne &lev4 and &lev3 ne &lev4 %then
           %do m=5 %to &ppkcnt;
             %let lev5=%scan(&posspks,&m);
-            %if &lev1 ne &lev5 & &lev2 ne &lev5 & &lev3 ne &lev5 & &lev4 ne &lev5 %then 
+            %if &lev1 ne &lev5 & &lev2 ne &lev5 & &lev3 ne &lev5 & &lev4 ne &lev5 %then
             %do n=6 %to &ppkcnt;
               %let lev6=%scan(&posspks,&n);
-              %if &lev1 ne &lev6 & &lev2 ne &lev6 & &lev3 ne &lev6 
-              & &lev4 ne &lev6 & &lev5 ne &lev6 %then 
+              %if &lev1 ne &lev6 & &lev2 ne &lev6 & &lev3 ne &lev6
+              & &lev4 ne &lev6 & &lev5 ne &lev6 %then
               %do;
                 /* check for four level uniqueness */
-                proc sort data=&pkds(keep=&lev1 &lev2 &lev3 &lev4 &lev5 &lev6) 
+                proc sort data=&pkds(keep=&lev1 &lev2 &lev3 &lev4 &lev5 &lev6)
                   out=&tmpds noduprec;
                   by _all_;
                 run;
@@ -3213,7 +3213,7 @@ create table &outds (rename=(
       %end;
     %end;
   %end;
- 
+
   %if &ppkcnt=6 %then %do;
     %put &sysmacroname: No more PK guess possible;
     %return;

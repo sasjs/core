@@ -30,7 +30,6 @@
    datetime2 format or regular decimal type
   @version 9.3
   @author Allan Bowe
-  @source https://github.com/sasjs/core
 **/
 
 %macro mp_getddl(libref,ds,fref=getddl,flavour=SAS,showlog=NO,schema=

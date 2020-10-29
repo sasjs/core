@@ -85,7 +85,8 @@ data &outds (compress=no keep=file_or_folder filepath filename ext msg directory
   dnum = dnum(did);
   do i = 1 to dnum;
     filename = dread(did, i);
-    rc = filename(fref2, cats(directory,'/',filename));
+    filepath=cats(directory,'/',filename);
+    rc = filename(fref2,filepath);
     midd=dopen(fref2);
     dmsg=sysmsg();
     if did > 0 then file_or_folder='folder';
@@ -108,7 +109,6 @@ data &outds (compress=no keep=file_or_folder filepath filename ext msg directory
       ext='';
       file_or_folder='folder';
     end;
-    filepath="&path/"!!filename;
     output;
   end;
   rc = dclose(did);

@@ -3,7 +3,7 @@
   @brief Returns the engine type of a SAS library
   @details Usage:
 
-      %put %mf_getEngine(SASHELP);
+      %put %mf_getengine(SASHELP);
 
   returns:
   > V9
@@ -21,9 +21,10 @@
 
   @version 9.2
   @author Allan Bowe
-**/
 
-%macro mf_getEngine(libref
+**/ /** \cond */
+
+%macro mf_getengine(libref
 )/*/STORE SOURCE*/;
   %local dsid engnum rc engine;
 
@@ -42,3 +43,5 @@
  &engine
 
 %mend;
+
+/** \endcond */

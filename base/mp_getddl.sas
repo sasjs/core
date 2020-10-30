@@ -131,7 +131,7 @@ run;
     %let curds=%scan(&dsnlist,&x);
     data _null_;
       file &fref mod;
-      length nm lab $1024;
+      length nm lab $1024 typ $20;
       set &colinfo (where=(upcase(memname)="&curds")) end=last;
 
       if _n_=1 then do;
@@ -145,10 +145,12 @@ run;
       end;
       else put "   ,"@@;
       if length(format)>1 then fmt=" format="!!cats(format);
-      len=" length="!!cats(length);
-      lab=" label="!!quote(trim(label));
+      if length(label)>1 then lab=" label="!!quote(trim(label));
       if notnull='yes' then notnul=' not null';
-      put name type len fmt notnul lab;
+      if type='char' then typ=cats('char(',length,')');
+      else if length ne 8 then typ='num length='!!left(length);
+      else typ='num';
+      put name typ fmt notnul lab;
     run;
 
     /* Extra step for data constraints */

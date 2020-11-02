@@ -1925,7 +1925,9 @@ Usage:
 
 
   @param inref= fileref to the CSV
-  @param outds= output ds.  Could also be a view (eg `outds=myds/view=myds`)
+  @param outds= output ds (lib.ds format)
+  @param view= Set to YES or NO to determine whether the output should be
+    a view or not.  Default is NO (not a view).
   @param baseds= Template dataset on which to create the input statement.
     Is used to determine types, lengths, and any informats.
 
@@ -1939,13 +1941,18 @@ Usage:
   %let syscc=4;
   %abort;
 %end;
-%if &outds=0 %then %do;
+%if %superq(outds)=0 %then %do;
   %put %str(ERR)OR: the OUTDS variable must be provided;
   %let syscc=4;
   %return;
 %end;
 %if &baseds=0 %then %do;
   %put %str(ERR)OR: the BASEDS variable must be provided;
+  %let syscc=4;
+  %return;
+%end;
+%if %sysfunc(exist(&BASEDS)) ne 1 & %sysfunc(exist(&BASEDS,VIEW)) ne 1 %then %do;
+  %put %str(ERR)OR: the BASEDS dataset needs to be assigned, and to exist;
   %let syscc=4;
   %return;
 %end;
@@ -2004,7 +2011,12 @@ data _null_;
   end;
 run;
 
-data &outds;
+/* import the CSV */
+data &outds
+  %if %upcase(&view)=YES %then %do;
+   /view=&outds
+  %end;
+  ;
   infile &inref dsd firstobs=2;
   input &instat;
   drop &dropvars;

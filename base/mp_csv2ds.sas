@@ -99,6 +99,7 @@ data _null_;
     if type=1 then informat='best.';
     else informat=cats('$',length,'.');
   end;
+  else informat=cats(informat,'.');
   in=catx(' ',in,name,':',informat);
   if last then do;
     call symputx('instat',in,'l');

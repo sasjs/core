@@ -30,7 +30,7 @@
   @author Allan Bowe
 **/
 
-%macro mp_csv2ds(inref=0,outds=0,baseds=0);
+%macro mp_csv2ds(inref=0,outds=0,baseds=0,view=NO);
 %if &inref=0 %then %do;
   %put %str(ERR)OR: the INREF variable must be provided;
   %let syscc=4;
@@ -47,7 +47,7 @@
   %return;
 %end;
 %if %sysfunc(exist(&BASEDS)) ne 1 & %sysfunc(exist(&BASEDS,VIEW)) ne 1 %then %do;
-  %put %str(ERR)OR: the BASEDS dataset needs to be assigned, and to exist;
+  %put %str(ERR)OR: the BASEDS dataset (&baseds) needs to be assigned, and to exist;
   %let syscc=4;
   %return;
 %end;

@@ -399,7 +399,7 @@ options noquotelenmax;
   @version 9.2
   @author Allan Bowe
 
-**/ /** \cond */
+**/
 
 %macro mf_getengine(libref
 )/*/STORE SOURCE*/;
@@ -419,9 +419,7 @@ options noquotelenmax;
 
  &engine
 
-%mend;
-
-/** \endcond *//**
+%mend;/**
   @file
   @brief Returns the size of a file in bytes.
   @details Provide full path/filename.extension to the file, eg:
@@ -1933,29 +1931,50 @@ Usage:
 
   @version 9.2
   @author Allan Bowe
+
+  <h4> Dependencies </h4>
+  @li mp_abort.sas
+  @li mf_existds.sas
+
 **/
 
 %macro mp_csv2ds(inref=0,outds=0,baseds=0,view=NO);
-%if &inref=0 %then %do;
-  %put %str(ERR)OR: the INREF variable must be provided;
-  %let syscc=4;
-  %abort;
-%end;
-%if %superq(outds)=0 %then %do;
-  %put %str(ERR)OR: the OUTDS variable must be provided;
-  %let syscc=4;
-  %return;
-%end;
-%if &baseds=0 %then %do;
-  %put %str(ERR)OR: the BASEDS variable must be provided;
-  %let syscc=4;
-  %return;
-%end;
-%if %sysfunc(exist(&BASEDS)) ne 1 & %sysfunc(exist(&BASEDS,VIEW)) ne 1 %then %do;
-  %put %str(ERR)OR: the BASEDS dataset (&baseds) needs to be assigned, and to exist;
-  %let syscc=4;
-  %return;
-%end;
+
+%mp_abort(iftrue=( &inref=0 )
+  ,mac=&sysmacroname
+  ,msg=%str(the INREF variable must be provided)
+)
+%mp_abort(iftrue=( %superq(outds)=0 )
+  ,mac=&sysmacroname
+  ,msg=%str(the OUTDS variable must be provided)
+)
+%mp_abort(iftrue=( &baseds=0 )
+  ,mac=&sysmacroname
+  ,msg=%str(the BASEDS variable must be provided)
+)
+%mp_abort(iftrue=( &baseds=0 )
+  ,mac=&sysmacroname
+  ,msg=%str(the BASEDS variable must be provided)
+)
+%mp_abort(iftrue=( %mf_existds(&baseds)=0 )
+  ,mac=&sysmacroname
+  ,msg=%str(the BASEDS dataset (&baseds) needs to be assigned, and to exist)
+)
+
+/* count rows */
+%local hasheader; %let hasheader=0;
+data _null_;
+  if _N_ > 1 then do;
+     call symputx('hasheader',1,'l');
+     stop;
+  end;
+  infile &inref;
+  input;
+run;
+%mp_abort(iftrue=( &hasheader=0 )
+  ,mac=&sysmacroname
+  ,msg=%str(No header row in &inref)
+)
 
 /* get the variables in the CSV */
 data _data_;
@@ -2020,7 +2039,9 @@ data &outds
   ;
   infile &inref dsd firstobs=2;
   input &instat;
-  drop &dropvars;
+  %if %length(&dropvars)>0 %then %do;
+    drop &dropvars;
+  %end;
 run;
 
 %mend;/**

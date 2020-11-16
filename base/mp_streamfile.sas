@@ -1,5 +1,5 @@
 /**
-  @file mp_streamfile.sas
+  @file
   @brief Streams a file to _webout according to content type
   @details Will set headers using appropriate functions (SAS 9 vs Viya) and send
   content as a binary stream.
@@ -17,6 +17,7 @@
 
   @param contenttype= Either TEXT, ZIP, CSV, EXCEL (default TEXT)
   @param inloc= /path/to/file.ext to be sent
+  @param inref= fileref of file to be sent (if provided, overrides `inloc`)
   @param outname= the name of the file, as downloaded by the browser
 
   @author Allan Bowe
@@ -27,6 +28,7 @@
 %macro mp_streamfile(
   contenttype=TEXT
   ,inloc=
+  ,inref=0
   ,outname=
 )/*/STORE SOURCE*/;
 
@@ -42,7 +44,7 @@
   %end;
   %else %if &platform=SASVIYA %then %do;
     filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.zip'
-      contenttype='application/zip' 
+      contenttype='application/zip'
       contentdisp="attachment; filename=&outname";
   %end;
 %end;
@@ -56,7 +58,7 @@
   %end;
   %else %if &platform=SASVIYA %then %do;
     filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.xls'
-      contenttype='application/vnd.ms-excel' 
+      contenttype='application/vnd.ms-excel'
       contentdisp="attachment; filename=&outname";
   %end;
 %end;
@@ -69,7 +71,7 @@
   %end;
   %else %if &platform=SASVIYA %then %do;
     filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.xls'
-      contenttype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      contenttype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       contentdisp="attachment; filename=&outname";
   %end;
 %end;
@@ -102,7 +104,7 @@
 %else %if &contentype=HTML %then %do;
   %if &platform=SASVIYA %then %do;
     filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name="_webout.json"
-      contenttype="text/html"; 
+      contenttype="text/html";
   %end;
 %end;
 %else %do;
@@ -110,6 +112,11 @@
   %return;
 %end;
 
-%mp_binarycopy(inloc="&inloc",outref=_webout)
+%if &inref ne 0 %then %do;
+ %mp_binarycopy(inref=&inref,outref=_webout)
+%end;
+%else %do;
+ %mp_binarycopy(inloc="&inloc",outref=_webout)
+%end;
 
 %mend;

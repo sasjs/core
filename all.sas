@@ -2703,6 +2703,7 @@ create table &outds as
 
   <h4> SAS Macros </h4>
   @li mf_getquotedstr.sas
+  @li mp_getconstraints.sas
 
   @param liblist= Space seperated list of librefs to take as
     input (Default=SASHELP)

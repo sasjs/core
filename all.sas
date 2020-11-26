@@ -2940,7 +2940,10 @@ run;
     data &pkds.4;
       file &outref mod;
       set &pkds.2(where=(cols="&pkcols" and curds not in (&curdslist)));
-      line='Ref: "'!!"&curds"!!cats('".(',cols,')')!!' - '!!cats(quote(trim(curds)),'.(',cols,')');
+      line='Ref: "'!!"&curds"
+        !!cats('".(',"%mf_getquotedstr(&pkcols,dlm=%str(,),quote=%str( ))",')')
+        !!' - '
+        !!cats(quote(trim(curds)),'.(',"%mf_getquotedstr(&pkcols,dlm=%str(,),quote=%str( ))",')');
       put line;
     run;
 

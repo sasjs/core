@@ -21,7 +21,7 @@
 
   @version 9.2
   @author Allan Bowe
-**/
+**/  /** @cond */
 
 %macro mf_abort(mac=mf_abort.sas, type=, msg=, iftrue=%str(1=1)
 )/*/STORE SOURCE*/;
@@ -139,3 +139,5 @@
     %abort cancel;
   %end;
 %mend;
+
+/** @endcond */

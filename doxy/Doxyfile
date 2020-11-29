@@ -24,6 +24,7 @@ LAYOUT_FILE            = ./doxy/DoxygenLayout.xml
 MAX_INITIALIZER_LINES  = 0
 PROJECT_NAME           = Macro Core
 PROJECT_LOGO           = doxy/Macro_core_website_1.png
+PROJECT_BRIEF          = placeholder
 RECURSIVE              = YES
 REPEAT_BRIEF           = NO
 SHOW_NAMESPACES        = NO

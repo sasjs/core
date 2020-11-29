@@ -1,7 +1,7 @@
 /**
   @file
   @brief Retrieves properties of the SAS web app server
-  @details 
+  @details
   Usage:
 
       %mm_getwebappsrvprops(outds= some_ds)
@@ -21,8 +21,7 @@
       libname __shake clear;
 
   @version 9.4
-  @author Allan Bowe
-  @source https://github.com/sasjs/core
+  @author Allan Bowe https://github.com/sasjs/core
 
 **/
 

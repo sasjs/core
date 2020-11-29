@@ -14,7 +14,7 @@
 
 > mclib3
 
-  @prefix= first part of libref.  Remember that librefs can only be 8 characters,
+  @param prefix= first part of libref.  Remember that librefs can only be 8 characters,
     so a 7 letter prefix would mean that maxtries should be 10.
   @param maxtries= the last part of the libref.  Provide an integer value.
 

@@ -1,5 +1,5 @@
 /**
-  @file mf_existfeature.sas
+  @file
   @brief Checks whether a feature exists
   @details Check to see if a feature is supported in your environment.
     Run without arguments to see a list of detectable features.
@@ -7,10 +7,10 @@
     actual feature detection, as that is tricky / impossible to do
     without generating errors in most cases.
 
-      %put %mf_existfeature(PROCLUA);
+        %put %mf_existfeature(PROCLUA);
 
   @param feature the feature to detect.  Leave blank to list all in log.
-  
+
   @return output returns 1 or 0 (or -1 if not found)
 
   <h4> Dependencies </h4>
@@ -19,7 +19,7 @@
 
   @version 8
   @author Allan Bowe
-**/
+**/  /** @cond */
 
 %macro mf_existfeature(feature
 )/*/STORE SOURCE*/;
@@ -40,3 +40,5 @@
     %put &sysmacroname: &feature not found;
   %end;
 %mend;
+
+/** @endcond */

@@ -1,17 +1,18 @@
 /**
   @file
   @brief Assigns and returns an unused fileref
-  @details Use as follows:
+  @details
+  Use as follows:
 
-    %let fileref1=%mf_getuniquefileref();
-    %let fileref2=%mf_getuniquefileref();
-    %put &fileref1 &fileref2;
+      %let fileref1=%mf_getuniquefileref();
+      %let fileref2=%mf_getuniquefileref();
+      %put &fileref1 &fileref2;
 
   which returns:
 
 > mcref0 mcref1
 
-  @prefix= first part of fileref. Remember that filerefs can only be 8
+  @param prefix= first part of fileref. Remember that filerefs can only be 8
     characters, so a 7 letter prefix would mean that `maxtries` should be 10.
   @param maxtries= the last part of the libref.  Provide an integer value.
 

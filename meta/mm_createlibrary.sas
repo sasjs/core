@@ -9,15 +9,15 @@
 
   Usage:
 
-    %mm_createlibrary(
-       libname=My New Library
-      ,libref=mynewlib
-      ,libdesc=Super & <fine>
-      ,engine=BASE
-      ,tree=/User Folders/sasdemo
-      ,servercontext=SASApp
-      ,directory=/tmp/tests
-      ,mDebug=1)
+      %mm_createlibrary(
+        libname=My New Library
+        ,libref=mynewlib
+        ,libdesc=Super & <fine>
+        ,engine=BASE
+        ,tree=/User Folders/sasdemo
+        ,servercontext=SASApp
+        ,directory=/tmp/tests
+        ,mDebug=1)
 
   <h4> Dependencies </h4>
   @li mf_verifymacvars.sas

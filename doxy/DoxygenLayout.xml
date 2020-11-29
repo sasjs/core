@@ -101,11 +101,11 @@
   <!-- Layout definition for a directory page -->
   <directory>
     <briefdescription visible="yes"/>
+    <detaileddescription visible="yes" title=""/>
     <directorygraph visible="yes"/>
     <memberdecl>
       <dirs visible="yes"/>
       <files visible="yes"/>
     </memberdecl>
-    <detaileddescription title=""/>
   </directory>
 </doxygenlayout>

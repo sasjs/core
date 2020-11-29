@@ -39,7 +39,7 @@ options noquotelenmax;
 
   @version 9.2
   @author Allan Bowe
-**/
+**/  /** @cond */
 
 %macro mf_abort(mac=mf_abort.sas, type=, msg=, iftrue=%str(1=1)
 )/*/STORE SOURCE*/;
@@ -157,7 +157,8 @@ options noquotelenmax;
     %abort cancel;
   %end;
 %mend;
-/**
+
+/** @endcond *//**
   @file mf_existds.sas
   @brief Checks whether a dataset OR a view exists.
   @details Can be used in open code, eg as follows:
@@ -183,7 +184,7 @@ options noquotelenmax;
   %else 1;
 
 %mend;/**
-  @file mf_existfeature.sas
+  @file
   @brief Checks whether a feature exists
   @details Check to see if a feature is supported in your environment.
     Run without arguments to see a list of detectable features.
@@ -191,10 +192,10 @@ options noquotelenmax;
     actual feature detection, as that is tricky / impossible to do
     without generating errors in most cases.
 
-      %put %mf_existfeature(PROCLUA);
+        %put %mf_existfeature(PROCLUA);
 
   @param feature the feature to detect.  Leave blank to list all in log.
-  
+
   @return output returns 1 or 0 (or -1 if not found)
 
   <h4> Dependencies </h4>
@@ -203,7 +204,7 @@ options noquotelenmax;
 
   @version 8
   @author Allan Bowe
-**/
+**/  /** @cond */
 
 %macro mf_existfeature(feature
 )/*/STORE SOURCE*/;
@@ -223,7 +224,9 @@ options noquotelenmax;
     -1
     %put &sysmacroname: &feature not found;
   %end;
-%mend;/**
+%mend;
+
+/** @endcond *//**
   @file
   @brief Checks if a variable exists in a data set.
   @details Returns 0 if the variable does NOT exist, and return the position of
@@ -236,7 +239,7 @@ options noquotelenmax;
   @param var (positional) - variable name
   @version 9.2
   @author Allan Bowe
-**/
+**/  /** @cond */
 
 %macro mf_existvar(libds /* 2 part dataset name */
       , var /* variable name */
@@ -254,7 +257,9 @@ options noquotelenmax;
       %let rc=%sysfunc(close(&dsid));
   %end;
 
-%mend;/**
+%mend;
+
+/** @endcond *//**
   @file
   @brief Checks if a set of variables ALL exist in a data set.
   @details Returns 0 if ANY of the variables do not exist, or 1 if they ALL do.
@@ -399,7 +404,7 @@ options noquotelenmax;
   @version 9.2
   @author Allan Bowe
 
-**/
+**/  /** @cond */
 
 %macro mf_getengine(libref
 )/*/STORE SOURCE*/;
@@ -419,7 +424,9 @@ options noquotelenmax;
 
  &engine
 
-%mend;/**
+%mend;
+
+/** @endcond *//**
   @file
   @brief Returns the size of a file in bytes.
   @details Provide full path/filename.extension to the file, eg:
@@ -646,17 +653,18 @@ options noquotelenmax;
 /**
   @file
   @brief Assigns and returns an unused fileref
-  @details Use as follows:
+  @details
+  Use as follows:
 
-    %let fileref1=%mf_getuniquefileref();
-    %let fileref2=%mf_getuniquefileref();
-    %put &fileref1 &fileref2;
+      %let fileref1=%mf_getuniquefileref();
+      %let fileref2=%mf_getuniquefileref();
+      %put &fileref1 &fileref2;
 
   which returns:
 
 > mcref0 mcref1
 
-  @prefix= first part of fileref. Remember that filerefs can only be 8
+  @param prefix= first part of fileref. Remember that filerefs can only be 8
     characters, so a 7 letter prefix would mean that `maxtries` should be 10.
   @param maxtries= the last part of the libref.  Provide an integer value.
 
@@ -694,7 +702,7 @@ options noquotelenmax;
 
 > mclib3
 
-  @prefix= first part of libref.  Remember that librefs can only be 8 characters,
+  @param prefix= first part of libref.  Remember that librefs can only be 8 characters,
     so a 7 letter prefix would mean that maxtries should be 10.
   @param maxtries= the last part of the libref.  Provide an integer value.
 
@@ -6041,15 +6049,15 @@ run;
 
   Usage:
 
-    %mm_createlibrary(
-       libname=My New Library
-      ,libref=mynewlib
-      ,libdesc=Super & <fine>
-      ,engine=BASE
-      ,tree=/User Folders/sasdemo
-      ,servercontext=SASApp
-      ,directory=/tmp/tests
-      ,mDebug=1)
+      %mm_createlibrary(
+        libname=My New Library
+        ,libref=mynewlib
+        ,libdesc=Super & <fine>
+        ,engine=BASE
+        ,tree=/User Folders/sasdemo
+        ,servercontext=SASApp
+        ,directory=/tmp/tests
+        ,mDebug=1)
 
   <h4> Dependencies </h4>
   @li mf_verifymacvars.sas
@@ -8670,8 +8678,8 @@ filename __outdoc clear;
     combine with the <code>tree=</code> parameter.
   @param outds= the dataset to create that contains the list of stps.
   @param mDebug= set to 1 to show debug messages in the log
-  @showDesc= provide a non blank value to return stored process descriptions
-  @showUsageVersion= provide a non blank value to return the UsageVersion.  This
+  @param showDesc= provide a non blank value to return stored process descriptions
+  @param showUsageVersion= provide a non blank value to return the UsageVersion.  This
     is either 1000000 (type 1, 9.2) or 2000000 (type2, 9.3 onwards).
 
   @returns outds  dataset containing the following columns
@@ -9151,7 +9159,7 @@ libname _XML_ clear;
 /**
   @file
   @brief Retrieves properties of the SAS web app server
-  @details 
+  @details
   Usage:
 
       %mm_getwebappsrvprops(outds= some_ds)
@@ -9171,8 +9179,7 @@ libname _XML_ clear;
       libname __shake clear;
 
   @version 9.4
-  @author Allan Bowe
-  @source https://github.com/sasjs/core
+  @author Allan Bowe https://github.com/sasjs/core
 
 **/
 
@@ -11755,7 +11762,7 @@ libname &libref1 clear;
     %let &access_token_var=;
 %end;
 %put &sysmacroname: grant_type=&grant_type;
-%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password 
+%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )
   ,mac=&sysmacroname
@@ -11798,10 +11805,16 @@ options noquotelenmax;
   /*data _null_;infile &fname1;input;putlog _infile_;run;*/
   libname &libref1 JSON fileref=&fname1;
   /* now get the followon link to list members */
+  %local href;
+  %let href=0;
   data _null_;
     set &libref1..links;
     if rel='members' then call symputx('href',quote("&base_uri"!!trim(href)),'l');
   run;
+  %if &href=0 %then %do;
+    %put NOTE:;%put NOTE-  No members found in &root!!;%put NOTE-;
+    %return;
+  %end;
   %local fname2 libref2;
   %let fname2=%mf_getuniquefileref();
   %let libref2=%mf_getuniquelibref();
@@ -12267,6 +12280,146 @@ run;
 /* clear refs */
 filename &fname1 clear;
 libname &libref1 clear;
+
+%mend;/**
+  @file
+  @brief Executes a SAS Viya Job
+  @details Triggers a SAS Viya Job, with optional URL parameters, using
+  the JES web app.
+
+  First, compile the macros:
+
+      filename mc url
+      "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      %inc mc;
+
+  Then, execute the job!
+
+      %mv_jobexecute(path=/Public/folder
+        ,name=somejob
+      )
+
+
+  @param access_token_var= The global macro variable to contain the access token
+  @param grant_type= valid values:
+   * password
+   * authorization_code
+   * detect - will check if access_token exists, if not will use sas_services if
+    a SASStudioV session else authorization_code.  Default option.
+   * sas_services - will use oauth_bearer=sas_services
+
+  @param path= The SAS Drive path to the job being executed
+  @param name= The name of the job to execute
+  @param params= A macro quoted string to append to the URL
+  @param contextName= Context name with which to run the job.
+    Default = `SAS Job Execution compute context`
+
+
+  @version VIYA V.03.04
+  @author Allan Bowe, source: https://github.com/sasjs/core
+
+  <h4> Dependencies </h4>
+  @li mp_abort.sas
+  @li mf_getplatform.sas
+  @li mf_getuniquefileref.sas
+  @li mv_getfoldermembers.sas
+
+**/
+
+%macro mv_jobexecute(path=0
+    ,name=0
+    ,contextName=SAS Job Execution compute context
+    ,access_token_var=ACCESS_TOKEN
+    ,grant_type=sas_services
+  );
+%local oauth_bearer;
+%if &grant_type=detect %then %do;
+  %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
+  %else %let grant_type=sas_services;
+%end;
+%if &grant_type=sas_services %then %do;
+    %let oauth_bearer=oauth_bearer=sas_services;
+    %let &access_token_var=;
+%end;
+%put &sysmacroname: grant_type=&grant_type;
+%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
+    and &grant_type ne sas_services
+  )
+  ,mac=&sysmacroname
+  ,msg=%str(Invalid value for grant_type: &grant_type)
+)
+
+%mp_abort(iftrue=("&path"="0")
+  ,mac=&sysmacroname
+  ,msg=%str(Path not provided)
+)
+%mp_abort(iftrue=("&name"="0")
+  ,mac=&sysmacroname
+  ,msg=%str(Job Name not provided)
+)
+
+options noquotelenmax;
+
+%local base_uri; /* location of rest apis */
+%let base_uri=%mf_getplatform(VIYARESTAPI);
+
+data;run;
+%local foldermembers;
+%let foldermembers=&syslast;
+%mv_getfoldermembers(root=&path
+    ,access_token_var=&access_token_var
+    ,grant_type=&grant_type
+    ,outds=&foldermembers
+)
+
+%local joburi;
+%let joburi=0;
+data _null_;
+  set &foldermembers;
+  if name="&name" and uri=:'/jobDefinitions/definitions'
+    then call symputx('joburi',uri);
+run;
+
+%mp_abort(iftrue=("&joburi"="0")
+  ,mac=&sysmacroname
+  ,msg=%str(Job &path/&name not found)
+)
+
+/* prepare request*/
+%local fname0 fname1;
+%let fname0=%mf_getuniquefileref();
+%let fname1=%mf_getuniquefileref();
+
+data _null_;
+  file &fname0;
+  put '{"jobDefinitionUri": "'@@;
+  put "&joburi"@@;
+  put '","arguments":{"_contextName":"'@@;
+  put "&contextName"@@;
+  put '"}}';
+run;
+
+proc http method='POST' in=&fname0 out=&fname1 &oauth_bearer
+  url="&base_uri/jobExecution/jobs";
+  headers "Content-Type"="application/vnd.sas.job.execution.job.request+json"
+          "Accept"="application/vnd.sas.job.execution.job+json"
+  %if &grant_type=authorization_code %then %do;
+          "Authorization"="Bearer &&&access_token_var"
+  %end;
+  ;
+run;
+/*data _null_;infile &fname1;input;putlog _infile_;run;*/
+
+%mp_abort(iftrue=(
+    &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201
+  )
+  ,mac=&sysmacroname
+  ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
+)
+
+/* clear refs */
+filename &fname0 clear;
+filename &fname1 clear;
 
 %mend;/**
   @file mv_registerclient.sas

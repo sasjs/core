@@ -18,7 +18,7 @@
 
   Example with parameters:
 
-     %mv_jobexecute(path=/Public/folder
+      %mv_jobexecute(path=/Public/folder
         ,name=somejob
         ,paramstring=%str("macvarname":"macvarvalue","answer":42)
       )

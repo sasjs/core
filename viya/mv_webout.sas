@@ -32,13 +32,13 @@
   @li mf_getuser.sas
 
   @version Viya 3.3
-  @author Allan Bowe
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
 **/
 %macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=Y);
 %global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name
   sasjs_tables SYS_JES_JOB_URI;
-%if %index("&_debug",log) %then %let _debug=131; 
+%if %index("&_debug",log) %then %let _debug=131;
 
 %local i tempds;
 %let action=%upcase(&action);
@@ -144,8 +144,8 @@
      filename _webout temp lrecl=999999 mod;
   %end;
   %else %do;
-    filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" 
-      name="_webout.json" lrecl=999999 mod; 
+    filename _webout filesrvc parenturi="&SYS_JES_JOB_URI"
+      name="_webout.json" lrecl=999999 mod;
   %end;
 
   /* setup temp ref */

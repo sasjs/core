@@ -35,25 +35,24 @@
   @param scopes= list of space-seperated unquoted scopes (default is openid)
   @param grant_type= valid values are "password" or "authorization_code" (unquoted)
   @param outds= the dataset to contain the registered client id and secret
-  @param access_token_validity= The duration of validity of the access token 
+  @param access_token_validity= The duration of validity of the access token
     in seconds.  A value of DEFAULT will omit the entry (and use system default)
   @param refresh_token_validity= The duration of validity of the refresh token
     in seconds.  A value of DEFAULT will omit the entry (and use system default)
   @param name= A human readable name for the client
-  @param required_user_groups= A list of group names. If a user does not belong 
-    to all the required groups, the user will not be authenticated and no tokens 
-    are issued to this client for that user. If this field is not specified, 
+  @param required_user_groups= A list of group names. If a user does not belong
+    to all the required groups, the user will not be authenticated and no tokens
+    are issued to this client for that user. If this field is not specified,
     authentication and token issuance proceeds normally.
-  @param autoapprove= During the auth step the user can choose which scope to 
+  @param autoapprove= During the auth step the user can choose which scope to
     apply.  Setting this to true will autoapprove all the client scopes.
-  @param use_session= If true, access tokens issued to this client will be 
+  @param use_session= If true, access tokens issued to this client will be
     associated with an HTTP session and revoked upon logout or time-out.
   @param outjson= A dataset containing the lines of JSON submitted.  Useful
     for debugging.  Default= _null_.
-    
+
   @version VIYA V.03.04
-  @author Allan Bowe
-  @source https://github.com/sasjs/core
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
   <h4> Dependencies </h4>
   @li mp_abort.sas
@@ -143,7 +142,7 @@ data _null_;
   if not missing(autoapprove) then autoapprove=cats(',"autoapprove":',autoapprove);
   use_session=trim(symget('use_session'));
   if not missing(use_session) then use_session=cats(',"use_session":',use_session);
-  
+
   put '{'  clientid  ;
   put clientsecret ;
   put clientname;

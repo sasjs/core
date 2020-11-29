@@ -3,14 +3,13 @@
    @brief deprecated - replaced by mv_tokenrefresh.sas
 
    @version VIYA V.03.04
-   @author Allan Bowe
-   @source https://github.com/sasjs/core
- 
+   @author Allan Bowe, source: https://github.com/sasjs/core
+
    <h4> Dependencies </h4>
    @li mv_tokenrefresh.sas
 
  **/
- 
+
  %macro mv_getaccesstoken(client_id=someclient
      ,client_secret=somesecret
      ,grant_type=authorization_code

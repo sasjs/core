@@ -15,8 +15,7 @@
 
 
   @version VIYA V.03.04
-  @author Allan Bowe
-  @source https://github.com/sasjs/core
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
   <h4> Dependencies </h4>
   @li mp_abort.sas
@@ -42,7 +41,7 @@
 %end;
 
 %put &sysmacroname: grant_type=&grant_type;
-%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password 
+%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )
   ,mac=&sysmacroname
@@ -121,7 +120,7 @@ options noquotelenmax;
         out=&fname2
         &oauth_bearer
         url=%unquote(%superq(href));
-        headers 
+        headers
       %if &grant_type=authorization_code %then %do;
                 "Authorization"="Bearer &&&access_token_var"
       %end;

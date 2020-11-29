@@ -1,27 +1,28 @@
 /**
   @file mv_createwebservice.sas
   @brief Creates a JobExecution web service if it doesn't already exist
-  @details  Code is passed in as one or more filerefs.
+  @details
+  Code is passed in as one or more filerefs.
 
-    %* Step 1 - compile macros ;
-    filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
-    %inc mc;
+      %* Step 1 - compile macros ;
+      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      %inc mc;
 
-    %* Step 2 - Create some code and add it to a web service;
-    filename ft15f001 temp;
-    parmcards4;
-        %webout(FETCH) %* fetch any tables sent from frontend;
-        %* do some sas, any inputs are now already WORK tables;
-        data example1 example2;
-          set sashelp.class;
-        run;
-        %* send data back;
-        %webout(OPEN)
-        %webout(ARR,example1) * Array format, fast, suitable for large tables ;
-        %webout(OBJ,example2) * Object format, easier to work with ;
-        %webout(CLOSE)
-    ;;;;
-    %mv_createwebservice(path=/Public/app/common,name=appinit)
+      %* Step 2 - Create some code and add it to a web service;
+      filename ft15f001 temp;
+      parmcards4;
+          %webout(FETCH) %* fetch any tables sent from frontend;
+          %* do some sas, any inputs are now already WORK tables;
+          data example1 example2;
+            set sashelp.class;
+          run;
+          %* send data back;
+          %webout(OPEN)
+          %webout(ARR,example1) * Array format, fast, suitable for large tables ;
+          %webout(OBJ,example2) * Object format, easier to work with ;
+          %webout(CLOSE)
+      ;;;;
+      %mv_createwebservice(path=/Public/app/common,name=appinit)
 
 
   Notes:
@@ -54,8 +55,7 @@
     a shared context - see https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5pyhn1wg3ja0drdl6h.htm&docsetVersion=3.5&locale=en
 
   @version VIYA V.03.04
-  @author Allan Bowe
-  @source https://github.com/sasjs/core
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
 **/
 

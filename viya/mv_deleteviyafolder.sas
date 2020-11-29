@@ -1,7 +1,7 @@
 /**
   @file mv_deleteviyafolder.sas
   @brief Creates a viya folder if that folder does not already exist
-  @details If not running in Studo 5 +, will expect an oauth token in a global 
+  @details If not running in Studo 5 +, will expect an oauth token in a global
   macro variable (default ACCESS_TOKEN).
 
       options mprint;
@@ -16,8 +16,7 @@
 
 
   @version VIYA V.03.04
-  @author Allan Bowe
-  @source https://github.com/sasjs/core
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
   <h4> Dependencies </h4>
   @li mp_abort.sas
@@ -42,7 +41,7 @@
     %let &access_token_var=;
 %end;
 %put &sysmacroname: grant_type=&grant_type;
-%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password 
+%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )
   ,mac=&sysmacroname
@@ -121,10 +120,10 @@ run;
 %let fname2=%mf_getuniquefileref();
 proc http method='DELETE' out=&fname2 &oauth_bearer
     url=%unquote(%superq(href));
-    headers 
+    headers
   %if &grant_type=authorization_code %then %do;
             "Authorization"="Bearer &&&access_token_var"
-  %end;   
+  %end;
             'Accept'='*/*'; /**/
 run;
 %if &SYS_PROCHTTP_STATUS_CODE ne 204 %then %do;

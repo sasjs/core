@@ -10329,8 +10329,7 @@ run;
 
 
   @version VIYA V.03.04
-  @author Allan Bowe
-  @source https://github.com/sasjs/core
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
   <h4> Dependencies </h4>
   @li mp_abort.sas
@@ -10356,7 +10355,7 @@ run;
 %end;
 
 %put &sysmacroname: grant_type=&grant_type;
-%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password 
+%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )
   ,mac=&sysmacroname
@@ -10435,7 +10434,7 @@ options noquotelenmax;
         out=&fname2
         &oauth_bearer
         url=%unquote(%superq(href));
-        headers 
+        headers
       %if &grant_type=authorization_code %then %do;
                 "Authorization"="Bearer &&&access_token_var"
       %end;
@@ -10467,27 +10466,28 @@ options noquotelenmax;
 %mend;/**
   @file mv_createwebservice.sas
   @brief Creates a JobExecution web service if it doesn't already exist
-  @details  Code is passed in as one or more filerefs.
+  @details
+  Code is passed in as one or more filerefs.
 
-    %* Step 1 - compile macros ;
-    filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
-    %inc mc;
+      %* Step 1 - compile macros ;
+      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      %inc mc;
 
-    %* Step 2 - Create some code and add it to a web service;
-    filename ft15f001 temp;
-    parmcards4;
-        %webout(FETCH) %* fetch any tables sent from frontend;
-        %* do some sas, any inputs are now already WORK tables;
-        data example1 example2;
-          set sashelp.class;
-        run;
-        %* send data back;
-        %webout(OPEN)
-        %webout(ARR,example1) * Array format, fast, suitable for large tables ;
-        %webout(OBJ,example2) * Object format, easier to work with ;
-        %webout(CLOSE)
-    ;;;;
-    %mv_createwebservice(path=/Public/app/common,name=appinit)
+      %* Step 2 - Create some code and add it to a web service;
+      filename ft15f001 temp;
+      parmcards4;
+          %webout(FETCH) %* fetch any tables sent from frontend;
+          %* do some sas, any inputs are now already WORK tables;
+          data example1 example2;
+            set sashelp.class;
+          run;
+          %* send data back;
+          %webout(OPEN)
+          %webout(ARR,example1) * Array format, fast, suitable for large tables ;
+          %webout(OBJ,example2) * Object format, easier to work with ;
+          %webout(CLOSE)
+      ;;;;
+      %mv_createwebservice(path=/Public/app/common,name=appinit)
 
 
   Notes:
@@ -10520,8 +10520,7 @@ options noquotelenmax;
     a shared context - see https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5pyhn1wg3ja0drdl6h.htm&docsetVersion=3.5&locale=en
 
   @version VIYA V.03.04
-  @author Allan Bowe
-  @source https://github.com/sasjs/core
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
 **/
 
@@ -11124,7 +11123,7 @@ run;
 /**
   @file mv_deletefoldermember.sas
   @brief Deletes an item in a Viya folder
-  @details If not executed in Studio 5+  will expect oauth token in a global 
+  @details If not executed in Studio 5+  will expect oauth token in a global
   macro variable (default ACCESS_TOKEN).
 
       filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
@@ -11143,8 +11142,7 @@ run;
 
 
   @version VIYA V.03.04
-  @author Allan Bowe
-  @source https://github.com/sasjs/core
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
   <h4> Dependencies </h4>
   @li mp_abort.sas
@@ -11171,7 +11169,7 @@ run;
     %let &access_token_var=;
 %end;
 %put &sysmacroname: grant_type=&grant_type;
-%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password 
+%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )
   ,mac=&sysmacroname
@@ -11252,7 +11250,7 @@ run;
   %return;
 %end;
 proc http method="DELETE" url="&base_uri&uri" &oauth_bearer;
-  headers 
+  headers
 %if &grant_type=authorization_code %then %do;
       "Authorization"="Bearer &&&access_token_var"
 %end;
@@ -11275,7 +11273,7 @@ libname &libref1a clear;
 %mend;/**
   @file mv_deletejes.sas
   @brief Creates a job execution service if it does not already exist
-  @details If not executed in Studio 5+  will expect oauth token in a global 
+  @details If not executed in Studio 5+  will expect oauth token in a global
   macro variable (default ACCESS_TOKEN).
 
       filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
@@ -11293,8 +11291,7 @@ libname &libref1a clear;
 
 
   @version VIYA V.03.04
-  @author Allan Bowe
-  @source https://github.com/sasjs/core
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
   <h4> Dependencies </h4>
   @li mp_abort.sas
@@ -11320,7 +11317,7 @@ libname &libref1a clear;
     %let &access_token_var=;
 %end;
 %put &sysmacroname: grant_type=&grant_type;
-%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password 
+%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )
   ,mac=&sysmacroname
@@ -11400,7 +11397,7 @@ run;
   %return;
 %end;
 proc http method="DELETE" url="&uri" &oauth_bearer;
-  headers 
+  headers
 %if &grant_type=authorization_code %then %do;
       "Authorization"="Bearer &&&access_token_var"
 %end;
@@ -11423,7 +11420,7 @@ libname &libref1a clear;
 %mend;/**
   @file mv_deleteviyafolder.sas
   @brief Creates a viya folder if that folder does not already exist
-  @details If not running in Studo 5 +, will expect an oauth token in a global 
+  @details If not running in Studo 5 +, will expect an oauth token in a global
   macro variable (default ACCESS_TOKEN).
 
       options mprint;
@@ -11438,8 +11435,7 @@ libname &libref1a clear;
 
 
   @version VIYA V.03.04
-  @author Allan Bowe
-  @source https://github.com/sasjs/core
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
   <h4> Dependencies </h4>
   @li mp_abort.sas
@@ -11464,7 +11460,7 @@ libname &libref1a clear;
     %let &access_token_var=;
 %end;
 %put &sysmacroname: grant_type=&grant_type;
-%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password 
+%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )
   ,mac=&sysmacroname
@@ -11543,10 +11539,10 @@ run;
 %let fname2=%mf_getuniquefileref();
 proc http method='DELETE' out=&fname2 &oauth_bearer
     url=%unquote(%superq(href));
-    headers 
+    headers
   %if &grant_type=authorization_code %then %do;
             "Authorization"="Bearer &&&access_token_var"
-  %end;   
+  %end;
             'Accept'='*/*'; /**/
 run;
 %if &SYS_PROCHTTP_STATUS_CODE ne 204 %then %do;
@@ -11567,14 +11563,13 @@ libname &libref1 clear;
    @brief deprecated - replaced by mv_tokenrefresh.sas
 
    @version VIYA V.03.04
-   @author Allan Bowe
-   @source https://github.com/sasjs/core
- 
+   @author Allan Bowe, source: https://github.com/sasjs/core
+
    <h4> Dependencies </h4>
    @li mv_tokenrefresh.sas
 
  **/
- 
+
  %macro mv_getaccesstoken(client_id=someclient
      ,client_secret=somesecret
      ,grant_type=authorization_code
@@ -11599,14 +11594,13 @@ libname &libref1 clear;
    @brief deprecated - replaced by mv_registerclient.sas
 
    @version VIYA V.03.04
-   @author Allan Bowe
-   @source https://github.com/sasjs/core
- 
+   @author Allan Bowe, source: https://github.com/sasjs/core
+
    <h4> Dependencies </h4>
    @li mv_registerclient.sas
 
  **/
- 
+
  %macro mv_getapptoken(client_id=someclient
      ,client_secret=somesecret
      ,grant_type=authorization_code
@@ -11648,8 +11642,7 @@ libname &libref1 clear;
 
 
   @version VIYA V.03.04
-  @author Allan Bowe
-  @source https://github.com/sasjs/core
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
   <h4> Dependencies </h4>
   @li mp_abort.sas
@@ -11714,7 +11707,7 @@ run;
 
 
 
-/* clear refs 
+/* clear refs
 filename &fname1 clear;
 libname &libref1 clear;
 */
@@ -11735,8 +11728,7 @@ libname &libref1 clear;
 
 
   @version VIYA V.03.04
-  @author Allan Bowe
-  @source https://github.com/sasjs/core
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
   <h4> Dependencies </h4>
   @li mp_abort.sas
@@ -11869,8 +11861,7 @@ libname &libref1 clear;
 
 
   @version VIYA V.03.04
-  @author Allan Bowe
-  @source https://github.com/sasjs/core
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
   <h4> Dependencies </h4>
   @li mp_abort.sas
@@ -11895,7 +11886,7 @@ libname &libref1 clear;
     %let &access_token_var=;
 %end;
 %put &sysmacroname: grant_type=&grant_type;
-%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password 
+%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )
   ,mac=&sysmacroname
@@ -11912,7 +11903,7 @@ options noquotelenmax;
 %let fname1=%mf_getuniquefileref();
 proc http method='GET' out=&fname1 &oauth_bearer
   url="&base_uri/identities/groups/&group/members?limit=10000";
-  headers 
+  headers
   %if &grant_type=authorization_code %then %do;
           "Authorization"="Bearer &&&access_token_var"
   %end;
@@ -11974,8 +11965,7 @@ filename &fname1 clear;
 
 
   @version VIYA V.03.04
-  @author Allan Bowe
-  @source https://github.com/sasjs/core
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
   <h4> Dependencies </h4>
   @li mp_abort.sas
@@ -11999,7 +11989,7 @@ filename &fname1 clear;
     %let &access_token_var=;
 %end;
 %put &sysmacroname: grant_type=&grant_type;
-%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password 
+%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )
   ,mac=&sysmacroname
@@ -12017,7 +12007,7 @@ options noquotelenmax;
 
 proc http method='GET' out=&fname1 &oauth_bearer
   url="&base_uri/identities/groups?limit=10000";
-  headers 
+  headers
   %if &grant_type=authorization_code %then %do;
           "Authorization"="Bearer &&&access_token_var"
   %end;
@@ -12045,14 +12035,13 @@ libname &libref1 clear;
    @brief deprecated - replaced by mv_tokenauth.sas
 
    @version VIYA V.03.04
-   @author Allan Bowe
-   @source https://github.com/sasjs/core
- 
+   @author Allan Bowe, source: https://github.com/sasjs/core
+
    <h4> Dependencies </h4>
    @li mv_tokenauth.sas
 
  **/
- 
+
  %macro mv_getrefreshtoken(client_id=someclient
      ,client_secret=somesecret
      ,grant_type=authorization_code
@@ -12095,8 +12084,7 @@ libname &libref1 clear;
 
 
   @version VIYA V.03.04
-  @author Allan Bowe
-  @source https://github.com/sasjs/core
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
   <h4> Dependencies </h4>
   @li mp_abort.sas
@@ -12201,12 +12189,12 @@ libname &libref1 clear;
       creationTimeStamp char(24),
       modifiedTimeStamp char(24),
       state char(6)
- 
+
   @param access_token_var= The global macro variable to contain the access token
   @param grant_type= valid values:
    * password
    * authorization_code
-   * detect - will check if access_token exists, if not will use sas_services if 
+   * detect - will check if access_token exists, if not will use sas_services if
     a SASStudioV session else authorization_code.  Default option.
    * sas_services - will use oauth_bearer=sas_services
 
@@ -12214,8 +12202,7 @@ libname &libref1 clear;
 
 
   @version VIYA V.03.04
-  @author Allan Bowe
-  @source https://github.com/sasjs/core
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
   <h4> Dependencies </h4>
   @li mp_abort.sas
@@ -12239,7 +12226,7 @@ libname &libref1 clear;
     %let &access_token_var=;
 %end;
 %put &sysmacroname: grant_type=&grant_type;
-%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password 
+%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )
   ,mac=&sysmacroname
@@ -12301,7 +12288,7 @@ libname &libref1 clear;
 
   Example with parameters:
 
-     %mv_jobexecute(path=/Public/folder
+      %mv_jobexecute(path=/Public/folder
         ,name=somejob
         ,paramstring=%str("macvarname":"macvarvalue","answer":42)
       )
@@ -12485,25 +12472,24 @@ libname &libref;
   @param scopes= list of space-seperated unquoted scopes (default is openid)
   @param grant_type= valid values are "password" or "authorization_code" (unquoted)
   @param outds= the dataset to contain the registered client id and secret
-  @param access_token_validity= The duration of validity of the access token 
+  @param access_token_validity= The duration of validity of the access token
     in seconds.  A value of DEFAULT will omit the entry (and use system default)
   @param refresh_token_validity= The duration of validity of the refresh token
     in seconds.  A value of DEFAULT will omit the entry (and use system default)
   @param name= A human readable name for the client
-  @param required_user_groups= A list of group names. If a user does not belong 
-    to all the required groups, the user will not be authenticated and no tokens 
-    are issued to this client for that user. If this field is not specified, 
+  @param required_user_groups= A list of group names. If a user does not belong
+    to all the required groups, the user will not be authenticated and no tokens
+    are issued to this client for that user. If this field is not specified,
     authentication and token issuance proceeds normally.
-  @param autoapprove= During the auth step the user can choose which scope to 
+  @param autoapprove= During the auth step the user can choose which scope to
     apply.  Setting this to true will autoapprove all the client scopes.
-  @param use_session= If true, access tokens issued to this client will be 
+  @param use_session= If true, access tokens issued to this client will be
     associated with an HTTP session and revoked upon logout or time-out.
   @param outjson= A dataset containing the lines of JSON submitted.  Useful
     for debugging.  Default= _null_.
-    
+
   @version VIYA V.03.04
-  @author Allan Bowe
-  @source https://github.com/sasjs/core
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
   <h4> Dependencies </h4>
   @li mp_abort.sas
@@ -12593,7 +12579,7 @@ data _null_;
   if not missing(autoapprove) then autoapprove=cats(',"autoapprove":',autoapprove);
   use_session=trim(symget('use_session'));
   if not missing(use_session) then use_session=cats(',"use_session":',use_session);
-  
+
   put '{'  clientid  ;
   put clientsecret ;
   put clientname;
@@ -12726,8 +12712,7 @@ libname &libref clear;
   @param base_uri= The Viya API server location
 
   @version VIYA V.03.04
-  @author Allan Bowe
-  @source https://github.com/sasjs/core
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
   <h4> Dependencies </h4>
   @li mp_abort.sas
@@ -12869,8 +12854,7 @@ filename &fref2 clear;
   @param refresh_token_var= The global macro variable containing the refresh token
 
   @version VIYA V.03.04
-  @author Allan Bowe
-  @source https://github.com/sasjs/core
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
   <h4> Dependencies </h4>
   @li mp_abort.sas
@@ -12992,13 +12976,13 @@ filename &fref1 clear;
   @li mf_getuser.sas
 
   @version Viya 3.3
-  @author Allan Bowe
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
 **/
 %macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=Y);
 %global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name
   sasjs_tables SYS_JES_JOB_URI;
-%if %index("&_debug",log) %then %let _debug=131; 
+%if %index("&_debug",log) %then %let _debug=131;
 
 %local i tempds;
 %let action=%upcase(&action);
@@ -13104,8 +13088,8 @@ filename &fref1 clear;
      filename _webout temp lrecl=999999 mod;
   %end;
   %else %do;
-    filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" 
-      name="_webout.json" lrecl=999999 mod; 
+    filename _webout filesrvc parenturi="&SYS_JES_JOB_URI"
+      name="_webout.json" lrecl=999999 mod;
   %end;
 
   /* setup temp ref */

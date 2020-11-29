@@ -1,7 +1,7 @@
 /**
   @file mv_deletefoldermember.sas
   @brief Deletes an item in a Viya folder
-  @details If not executed in Studio 5+  will expect oauth token in a global 
+  @details If not executed in Studio 5+  will expect oauth token in a global
   macro variable (default ACCESS_TOKEN).
 
       filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
@@ -20,8 +20,7 @@
 
 
   @version VIYA V.03.04
-  @author Allan Bowe
-  @source https://github.com/sasjs/core
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
   <h4> Dependencies </h4>
   @li mp_abort.sas
@@ -48,7 +47,7 @@
     %let &access_token_var=;
 %end;
 %put &sysmacroname: grant_type=&grant_type;
-%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password 
+%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )
   ,mac=&sysmacroname
@@ -129,7 +128,7 @@ run;
   %return;
 %end;
 proc http method="DELETE" url="&base_uri&uri" &oauth_bearer;
-  headers 
+  headers
 %if &grant_type=authorization_code %then %do;
       "Authorization"="Bearer &&&access_token_var"
 %end;

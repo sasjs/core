@@ -34,12 +34,12 @@
       creationTimeStamp char(24),
       modifiedTimeStamp char(24),
       state char(6)
- 
+
   @param access_token_var= The global macro variable to contain the access token
   @param grant_type= valid values:
    * password
    * authorization_code
-   * detect - will check if access_token exists, if not will use sas_services if 
+   * detect - will check if access_token exists, if not will use sas_services if
     a SASStudioV session else authorization_code.  Default option.
    * sas_services - will use oauth_bearer=sas_services
 
@@ -47,8 +47,7 @@
 
 
   @version VIYA V.03.04
-  @author Allan Bowe
-  @source https://github.com/sasjs/core
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
   <h4> Dependencies </h4>
   @li mp_abort.sas
@@ -72,7 +71,7 @@
     %let &access_token_var=;
 %end;
 %put &sysmacroname: grant_type=&grant_type;
-%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password 
+%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )
   ,mac=&sysmacroname

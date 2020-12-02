@@ -39,7 +39,8 @@ options noquotelenmax;
 
   @version 9.2
   @author Allan Bowe
-**/  /** @cond */
+**/
+/** @cond */
 
 %macro mf_abort(mac=mf_abort.sas, type=, msg=, iftrue=%str(1=1)
 )/*/STORE SOURCE*/;
@@ -204,7 +205,8 @@ options noquotelenmax;
 
   @version 8
   @author Allan Bowe
-**/  /** @cond */
+**/
+/** @cond */
 
 %macro mf_existfeature(feature
 )/*/STORE SOURCE*/;
@@ -239,7 +241,8 @@ options noquotelenmax;
   @param var (positional) - variable name
   @version 9.2
   @author Allan Bowe
-**/  /** @cond */
+**/
+/** @cond */
 
 %macro mf_existvar(libds /* 2 part dataset name */
       , var /* variable name */
@@ -404,7 +407,8 @@ options noquotelenmax;
   @version 9.2
   @author Allan Bowe
 
-**/  /** @cond */
+**/
+/** @cond */
 
 %macro mf_getengine(libref
 )/*/STORE SOURCE*/;

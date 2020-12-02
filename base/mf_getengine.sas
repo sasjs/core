@@ -22,7 +22,8 @@
   @version 9.2
   @author Allan Bowe
 
-**/  /** @cond */
+**/
+/** @cond */
 
 %macro mf_getengine(libref
 )/*/STORE SOURCE*/;

@@ -19,7 +19,8 @@
 
   @version 8
   @author Allan Bowe
-**/  /** @cond */
+**/
+/** @cond */
 
 %macro mf_existfeature(feature
 )/*/STORE SOURCE*/;

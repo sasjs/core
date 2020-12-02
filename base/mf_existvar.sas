@@ -11,7 +11,8 @@
   @param var (positional) - variable name
   @version 9.2
   @author Allan Bowe
-**/  /** @cond */
+**/
+/** @cond */
 
 %macro mf_existvar(libds /* 2 part dataset name */
       , var /* variable name */

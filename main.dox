@@ -13,6 +13,11 @@
         * Not metadata aware
         * No X command
         * Prefixes:  _mf_, _mp_
+
+    Macros starting `mf_` are macro _functions_ and can be used in assignment
+    statements.  Those starting `mp_` are macro _procedures_, which generate
+    SAS statements, and must therefore be applied accordingly.
+
  */
 
 /*! \dir meta

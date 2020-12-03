@@ -8,6 +8,7 @@
     applying CRLF line endings and converting embedded cr and crlf to lf.
 
   usage:
+
       fileref mycsv "/path/your/csv";
       %mp_cleancsv(in=mycsv,out=/path/new.csv)
 
@@ -17,6 +18,7 @@
 
   @version 9.2
   @author Allan Bowe
+  @cond
 **/
 
 %macro mp_cleancsv(in=NOTPROVIDED,out=NOTPROVIDED,qchar='22'x);
@@ -66,3 +68,4 @@
     end;
   run;
 %mend;
+/** @endcond */

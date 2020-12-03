@@ -16,6 +16,8 @@
 
   You may need to adjust the rendered DBML to suit your needs.
 
+  ![dbml for sas](https://i.imgur.com/8T1tIZp.gif)
+
 
   <h4> SAS Macros </h4>
   @li mf_getquotedstr.sas

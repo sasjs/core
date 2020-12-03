@@ -14,6 +14,7 @@
 
   @version 9.2
   @author Allan Bowe
+  @cond
 **/
 
 %macro mf_existvarlist(libds, varlist
@@ -54,3 +55,5 @@
     %put Vars not found: &found;
   %end;
 %mend;
+
+/** @endcond */

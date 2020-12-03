@@ -5,11 +5,11 @@
     the particulars of an environment.  For instance, can stream custom
     results back to the client in an STP Web App context, or completely stop
     in the case of a batch run.
-  
+
   Using SAS Abort Cancel mechanisms can cause hung sessions in some Stored Process
   environments.  This macro takes a unique approach - we set the SAS syscc to 0,
-  run `stpsrvset('program error', 0)` (if SAS 9) and then - we open a macro 
-  but don't close it!  This provides a graceful abort for SAS web services in all 
+  run `stpsrvset('program error', 0)` (if SAS 9) and then - we open a macro
+  but don't close it!  This provides a graceful abort for SAS web services in all
   web enabled environments.
 
   @param mac= to contain the name of the calling macro
@@ -18,6 +18,7 @@
 
   @version 9.4M3
   @author Allan Bowe
+  @cond
 **/
 
 %macro mp_abort(mac=mp_abort.sas, type=, msg=, iftrue=%str(1=1)
@@ -30,7 +31,7 @@
   %put NOTE - &msg;
 
   /* Stored Process Server web app context */
-  %if %symexist(_metaperson) 
+  %if %symexist(_metaperson)
   or (%symexist(SYSPROCESSNAME) and "&SYSPROCESSNAME"="Compute Server" )
   %then %do;
     options obs=max replace nosyntaxcheck mprint;
@@ -151,3 +152,4 @@
   %end;
 %mend;
 
+/** @endcond */

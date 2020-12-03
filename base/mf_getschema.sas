@@ -17,6 +17,7 @@
 
   @version 9.2
   @author Allan Bowe
+  @cond
 **/
 
 %macro mf_getschema(libref
@@ -38,3 +39,5 @@
   &schema
 
 %mend;
+
+/** @endcond */

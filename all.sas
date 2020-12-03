@@ -39,8 +39,8 @@ options noquotelenmax;
 
   @version 9.2
   @author Allan Bowe
+  @cond
 **/
-/** @cond */
 
 %macro mf_abort(mac=mf_abort.sas, type=, msg=, iftrue=%str(1=1)
 )/*/STORE SOURCE*/;
@@ -278,6 +278,7 @@ options noquotelenmax;
 
   @version 9.2
   @author Allan Bowe
+  @cond
 **/
 
 %macro mf_existvarlist(libds, varlist
@@ -317,7 +318,9 @@ options noquotelenmax;
     0
     %put Vars not found: &found;
   %end;
-%mend;/**
+%mend;
+
+/** @endcond *//**
   @file
   @brief Returns a character attribute of a dataset.
   @details Can be used in open code, eg as follows:
@@ -633,6 +636,7 @@ options noquotelenmax;
 
   @version 9.2
   @author Allan Bowe
+  @cond
 **/
 
 %macro mf_getschema(libref
@@ -654,6 +658,8 @@ options noquotelenmax;
   &schema
 
 %mend;
+
+/** @endcond */
 /**
   @file
   @brief Assigns and returns an unused fileref
@@ -1529,11 +1535,11 @@ Usage:
     the particulars of an environment.  For instance, can stream custom
     results back to the client in an STP Web App context, or completely stop
     in the case of a batch run.
-  
+
   Using SAS Abort Cancel mechanisms can cause hung sessions in some Stored Process
   environments.  This macro takes a unique approach - we set the SAS syscc to 0,
-  run `stpsrvset('program error', 0)` (if SAS 9) and then - we open a macro 
-  but don't close it!  This provides a graceful abort for SAS web services in all 
+  run `stpsrvset('program error', 0)` (if SAS 9) and then - we open a macro
+  but don't close it!  This provides a graceful abort for SAS web services in all
   web enabled environments.
 
   @param mac= to contain the name of the calling macro
@@ -1542,6 +1548,7 @@ Usage:
 
   @version 9.4M3
   @author Allan Bowe
+  @cond
 **/
 
 %macro mp_abort(mac=mp_abort.sas, type=, msg=, iftrue=%str(1=1)
@@ -1554,7 +1561,7 @@ Usage:
   %put NOTE - &msg;
 
   /* Stored Process Server web app context */
-  %if %symexist(_metaperson) 
+  %if %symexist(_metaperson)
   or (%symexist(SYSPROCESSNAME) and "&SYSPROCESSNAME"="Compute Server" )
   %then %do;
     options obs=max replace nosyntaxcheck mprint;
@@ -1675,7 +1682,7 @@ Usage:
   %end;
 %mend;
 
-/**
+/** @endcond *//**
   @file
   @brief Copy any file using binary input / output streams
   @details Reads in a file byte by byte and writes it back out.  Is an
@@ -1739,6 +1746,7 @@ Usage:
     applying CRLF line endings and converting embedded cr and crlf to lf.
 
   usage:
+
       fileref mycsv "/path/your/csv";
       %mp_cleancsv(in=mycsv,out=/path/new.csv)
 
@@ -1748,6 +1756,7 @@ Usage:
 
   @version 9.2
   @author Allan Bowe
+  @cond
 **/
 
 %macro mp_cleancsv(in=NOTPROVIDED,out=NOTPROVIDED,qchar='22'x);
@@ -1796,7 +1805,8 @@ Usage:
       else put inchar $char1.;
     end;
   run;
-%mend;/**
+%mend;
+/** @endcond *//**
   @file mp_createconstraints.sas
   @brief Creates constraints
   @details Takes the output from mp_getconstraints.sas as input
@@ -2711,6 +2721,8 @@ create table &outds as
   and indexes, and assuming that the column names would match).
 
   You may need to adjust the rendered DBML to suit your needs.
+
+  ![dbml for sas](https://i.imgur.com/8T1tIZp.gif)
 
 
   <h4> SAS Macros </h4>

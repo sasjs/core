@@ -4068,6 +4068,93 @@ select distinct lowcase(memname)
 
 %mend;/**
   @file
+  @brief Enables previous observations to be re-instated
+  @details Remembers the last X observations by storing them in a hash table.
+  Is a convenience over the use of lag() or retain, when an entire observation
+  needs to be restored.
+
+  This macro will also restore automatic variables (such as _n_ and _error_).
+
+  Example Usage:
+
+      data example;
+        set sashelp.class;
+        calc_var=_n_*3;
+        * initialise hash and save from PDV ;
+        %mp_prevobs(INIT,history=2)
+        if _n_ =10 then do;
+          * fetch previous but 1 record;
+          %mp_prevobs(FETCH,-2) 
+          put _n_= name= age= calc_var=; 
+          * fetch previous record;
+          %mp_prevobs(FETCH,-1) 
+          put _n_= name= age= calc_var=; 
+          * reinstate current record ;
+          %mp_prevobs(FETCH,0) 
+          put _n_= name= age= calc_var=;
+        end;
+      run;
+
+  Result:
+
+  <img src="https://imgur.com/PSjHoET.png" alt="mp_prevobs sas" width="400"/>
+
+  Credit is made to `data _null_` for authoring this very helpful paper:
+  https://www.lexjansen.com/pharmasug/2008/cc/CC08.pdf
+
+  @param action Either FETCH a current or previous record, or INITialise.
+  @param record The relative (to current) position of the previous observation 
+   to return.  
+  @param history= The number of records to retain in the hash table. Default=5
+  @param prefix= the prefix to give to the variables used to store the hash name
+   and index. Default=mp_prevobs
+
+  @version 9.2
+  @author Allan Bowe
+
+**/
+
+%macro mp_prevobs(action,record,history=5,prefix=mp_prevobs
+)/*/STORE SOURCE*/;
+%let action=%upcase(&action);
+%let prefix=%upcase(&prefix);
+%let record=%eval((&record+0) * -1);
+
+%if &action=INIT %then %do;
+    
+  if _n_ eq 1 then do; 
+    attrib &prefix._VAR length=$64; 
+    dcl hash &prefix._HASH(ordered:'Y');
+    &prefix._KEY=0;
+    &prefix._HASH.defineKey("&prefix._KEY"); 
+    do while(1); 
+      call vnext(&prefix._VAR); 
+      if &prefix._VAR='' then leave;
+      if &prefix._VAR eq "&prefix._VAR" then continue; 
+      else if &prefix._VAR eq "&prefix._KEY" then continue; 
+      &prefix._HASH.defineData(&prefix._VAR);
+    end; 
+    &prefix._HASH.defineDone(); 
+  end;
+  /* this part has to happen before FETCHing */
+  &prefix._KEY+1;
+  &prefix._rc=&prefix._HASH.add();
+  if &prefix._rc then putlog 'adding' &prefix._rc=;
+  %if &history>0 %then %do;
+    if &prefix._key>&history+1 then 
+      &prefix._HASH.remove(key: &prefix._KEY - &history - 1);
+    if &prefix._rc then putlog 'removing' &prefix._rc=;
+  %end;
+%end;
+%else %if &action=FETCH %then %do;
+  if &record > &prefix._key then putlog "Not enough records in &Prefix._hash yet";
+  else &prefix._rc=&prefix._HASH.find(key: &prefix._KEY - &record);
+  if &prefix._rc then putlog &prefix._rc= " when fetching " &prefix._KEY=
+    "with record &record and " _n_=;
+%end;
+
+%mend;/**
+  @file
   @brief Returns all children from a hierarchy table for a specified parent
   @details Where data stores hierarchies in a simple parent / child mapping,
     it is not always straightforward to extract all the children for a
@@ -4666,6 +4753,64 @@ proc sql
 %else %do;
  %mp_binarycopy(inloc="&inloc",outref=_webout)
 %end;
+
+%mend;/**
+  @file mp_testwritespeedlibrary.sas
+  @brief Tests the write speed of a new table in a SAS library
+  @details Will create a new table of a certain size in an 
+  existing SAS library.  The table will have one column,
+  and will be subsequently deleted.
+      
+      %mp_testwritespeedlibrary(
+        lib=work
+        ,size=0.5
+        ,outds=work.results
+      )
+
+  @param lib= (WORK) The library in which to create the table
+  @param size= (0.1) The size in GB of the table to create
+  @param outds= (WORK.RESULTS) The output dataset to be created.
+
+  <h4> Dependencies </h4>
+  @li mf_getuniquename.sas
+  @li mf_existds.sas
+
+  @version 9.4
+  @author Allan Bowe
+
+**/
+
+%macro mp_testwritespeedlibrary(lib=WORK
+  ,outds=work.results
+  ,size=0.1
+)/*/STORE SOURCE*/;
+%local ds start;
+
+/* find an unused, unique name for the new table */
+%let ds=%mf_getuniquename();
+%do %until(%mf_existds(&lib..&ds)=0);
+  %let ds=%mf_getuniquename();
+%end;
+
+%let start=%sysfunc(datetime());
+
+data &lib..&ds(compress=no keep=x);
+  header=128*1024;
+  size=(1073741824/8 * &size) - header;
+  do x=1 to size;
+    output;
+  end;
+run;
+
+proc sql;
+drop table &lib..&ds;
+
+data &outds;
+  lib="&lib";
+  start_dttm=put(&start,datetime19.);
+  end_dttm=put(datetime(),datetime19.);
+  duration_seconds=end_dttm-start_dttm;
+run;
 
 %mend;/**
   @file

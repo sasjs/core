@@ -21,7 +21,7 @@
   @param ds= The target dataset.  Leave blank (default) for all datasets.
   @param outds the output dataset
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
 
   @version 9.2
   @author Allan Bowe

@@ -8,7 +8,7 @@
         %put %mf_trimstr(/blah/,h); * /blah/;
         %put %mf_trimstr(/blah/,h/);* /bla;
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
 
 
   @param basestr The string to be modified

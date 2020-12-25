@@ -7,7 +7,7 @@
       %put %mf_getvalue(sashelp.class,name,filter=%quote(age=15));
       %put %mf_getvalue(sashelp.class,name);
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_getattrn.sas
 
   @param libds dataset to query

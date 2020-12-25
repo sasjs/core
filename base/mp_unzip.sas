@@ -12,7 +12,7 @@
 
       %mp_unzip(ziploc="/some/file.zip",outdir=/some/folder)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_mkdir.sas
   @li mf_getuniquefileref.sas
 

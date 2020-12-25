@@ -199,7 +199,7 @@ options noquotelenmax;
 
   @return output returns 1 or 0 (or -1 if not found)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_getplatform.sas
 
 
@@ -270,7 +270,7 @@ options noquotelenmax;
 
         %put %mf_existVarList(sashelp.class, age sex name dummyvar)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_abort.sas
 
   @param libds 2 part dataset or view reference
@@ -522,7 +522,7 @@ options noquotelenmax;
 
   @param switch the param for which to return a platform specific variable
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_mval.sas
   @li mf_trimstr.sas
 
@@ -807,7 +807,7 @@ options noquotelenmax;
       %put %mf_getvalue(sashelp.class,name,filter=%quote(age=15));
       %put %mf_getvalue(sashelp.class,name);
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_getattrn.sas
 
   @param libds dataset to query
@@ -1324,7 +1324,7 @@ Usage:
 
         %put Number of observations=%mf_nobs(sashelp.class);
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_getattrn.sas
 
   @param libds library.dataset
@@ -1351,7 +1351,7 @@ Usage:
         %put %mf_trimstr(/blah/,h); * /blah/;
         %put %mf_trimstr(/blah/,h/);* /bla;
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
 
 
   @param basestr The string to be modified
@@ -1422,7 +1422,7 @@ Usage:
   Returns:
   > 1
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_abort.sas
 
   @param verifyvars space separated list of macro variable names
@@ -1830,7 +1830,7 @@ Usage:
   @param outds= a table containing the create statements (create_statement column)
   @param execute= `YES|NO` - default is NO. To actually create, use YES.
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
 
   @version 9.2
   @author Allan Bowe
@@ -1900,7 +1900,7 @@ Usage:
     ;;;;
     %mp_createwebservice(path=/Public/app/common,name=appInit,code=ft15f001,replace=YES)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_getplatform.sas
   @li mm_createwebservice.sas
   @li mv_createwebservice.sas
@@ -1986,7 +1986,7 @@ Usage:
   @version 9.2
   @author Allan Bowe
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
   @li mf_existds.sas
 
@@ -2375,7 +2375,7 @@ run;
       create view view2 as select * from sashelp.class;
       %mp_dropmembers(list=data1 view2)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_isblank.sas
 
 
@@ -2725,7 +2725,7 @@ run;
   @param ds= The target dataset.  Leave blank (default) for all datasets.
   @param outds the output dataset
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
 
   @version 9.2
   @author Allan Bowe
@@ -3103,7 +3103,7 @@ run;
       proc sql; describe table &syslast;
       %mp_getddl(work,test,flavour=tsql,showlog=YES)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_getconstraints.sas
 
   @param lib libref of the library to create DDL for.  Should be assigned.
@@ -3460,7 +3460,7 @@ run;
   @param libds Two part dataset (or view) reference.
   @param outds= The output dataset to create
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_getvarlist.sas
   @li mf_getvartype.sas
   @li mf_getvarformat.sas
@@ -3532,7 +3532,7 @@ create table &outds (rename=(
   @param min_rows= The minimum number of rows a table should have in order to try
     and guess the PK.  Default=5.
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_getvarlist.sas
   @li mf_getuniquename.sas
   @li mf_nobs.sas
@@ -3985,7 +3985,7 @@ create table &outds (rename=(
     %mp_lib2cards(lib=sashelp
         , outloc= C:\temp )
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_mkdir.sas
   @li mp_ds2cards.sas
 
@@ -4080,16 +4080,16 @@ select distinct lowcase(memname)
       data example;
         set sashelp.class;
         calc_var=_n_*3;
-        * initialise hash and save from PDV ;
+        %* initialise hash and save from PDV ;
         %mp_prevobs(INIT,history=2)
         if _n_ =10 then do;
-          * fetch previous but 1 record;
+          %* fetch previous but 1 record;
           %mp_prevobs(FETCH,-2) 
           put _n_= name= age= calc_var=; 
-          * fetch previous record;
+          %* fetch previous record;
           %mp_prevobs(FETCH,-1) 
           put _n_= name= age= calc_var=; 
-          * reinstate current record ;
+          %* reinstate current record ;
           %mp_prevobs(FETCH,0) 
           put _n_= name= age= calc_var=;
         end;
@@ -4420,7 +4420,7 @@ proc sort; by descending sumcols memname libname; run;
   @param outobs= set to a positive integer to restrict the number of observations
   @param filter_text= add a (valid) filter clause to further filter the results
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_getvarlist.sas
   @li mf_getvartype.sas
   @li mf_mkdir.sas
@@ -4518,7 +4518,7 @@ proc sql
     %mp_setkeyvalue(someindex,22,type=N)
     %mp_setkeyvalue(somenewindex,somevalue)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_existds.sas
 
   @param key Provide a key on which to perform the lookup
@@ -4646,7 +4646,7 @@ proc sql
 
       %mp_streamfile(contenttype=csv,inloc=/some/where.txt,outname=myfile.txt)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_getplatform.sas
   @li mp_binarycopy.sas
 
@@ -4771,7 +4771,7 @@ proc sql
   @param size= (0.1) The size in GB of the table to create
   @param outds= (WORK.RESULTS) The output dataset to be created.
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_getuniquename.sas
   @li mf_existds.sas
 
@@ -4893,7 +4893,7 @@ run;
 
       %mp_unzip(ziploc="/some/file.zip",outdir=/some/folder)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_mkdir.sas
   @li mf_getuniquefileref.sas
 
@@ -4964,7 +4964,7 @@ run;
   @param var The variable to modify
   @param len The new length to apply
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_existds.sas
   @li mp_abort.sas
   @li mf_existvar.sas
@@ -5051,7 +5051,7 @@ alter table &libds modify &var char(&len);
   be sure that _debug is not set (else the SPWA will send non zipped content
   as well).
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_dirlist.sas
 
   @param in= unquoted filepath, dataset of files or directory to zip
@@ -5228,7 +5228,7 @@ filename __us2grp clear;
       disconnect from MyAlias;
       quit;
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_getengine.sas
   @li mp_abort.sas
 
@@ -5676,7 +5676,7 @@ run;
 
       %mm_assignlib(SOMEREF)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
 
   @param libref the libref (not name) of the metadata library
@@ -5757,7 +5757,7 @@ run;
 
   @warning application components do not get deleted when removing the container folder!  be sure you have the administrative priviliges to remove this kind of metadata from the SMC plugin (or be ready to do to so programmatically).
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
   @li mf_verifymacvars.sas
 
@@ -5912,7 +5912,7 @@ run;
 
     %mm_createdataset(tableuri=G5X8AFW1.BE00015Y)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mm_getlibs.sas
   @li mm_gettables.sas
   @li mm_getcols.sas
@@ -5988,7 +5988,7 @@ run;
       %mm_createdocument(tree=/User Folders/sasdemo
         ,name=MyNote)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
   @li mf_verifymacvars.sas
 
@@ -6277,7 +6277,7 @@ run;
         ,directory=/tmp/tests
         ,mDebug=1)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_verifymacvars.sas
   @li mm_createfolder.sas
 
@@ -6618,7 +6618,7 @@ filename &frefout temp;
         ,Server=SASApp
         ,stptype=2)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_nobs.sas
   @li mf_verifymacvars.sas
   @li mm_getdirectories.sas
@@ -6991,7 +6991,7 @@ Usage:
     ;;;;
     %mm_createwebservice(path=/Public/app/common,name=appInit,code=ft15f001,replace=YES)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mm_createstp.sas
   @li mf_getuser.sas
   @li mm_createfolder.sas
@@ -7382,7 +7382,7 @@ run;
     %mm_createdocument(tree=/User Folders/&sysuserid,name=MyNote)
     %mm_deletedocument(target=/User Folders/&sysuserid/MyNote)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
 
   @param target= full path to the document being deleted
 
@@ -7452,7 +7452,7 @@ run;
 
     %mm_deletestp(target=/some/meta/path/myStoredProcess)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
 
   @param target= full path to the STP being deleted
 
@@ -7522,7 +7522,7 @@ run;
 
   @param outds= the ONE LEVEL work dataset to create
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mm_getobjects.sas
   @li mf_getuniquefileref.sas
   @li mm_getdetails.sas
@@ -7812,7 +7812,7 @@ run;
         ,outref=/some/unquoted/filename.ext
       )
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
 
   @param tree= The metadata path of the document
@@ -7961,7 +7961,7 @@ filename __outdoc clear;
   @param outds= the dataset to create that contains the list of directories
   @param mDebug= set to 1 to show debug messages in the log
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
 
   @version 9.4
   @author Allan Bowe
@@ -8648,7 +8648,7 @@ libname _XML_ clear;
       filename __mc2 clear;
       libname __mc3 clear;
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mm_getrepos.sas
 
   @version 9.3
@@ -8887,7 +8887,7 @@ filename __outdoc clear;
 
       %mm_getstps(tree=/My Folder/My STPs, name=My STP)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mm_gettree.sas
 
   @param tree= the metadata folder location in which to search.  Leave blank
@@ -9555,7 +9555,7 @@ filename __shake clear;
       ./mmscript.sh "myuser" "mypass"
 
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_loc.sas
   @li mm_tree.sas
   @li mf_getuniquefileref.sas
@@ -9675,7 +9675,7 @@ run;
             Table
         ,outds=morestuff)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_getquotedstr.sas
   @li mm_getpublictypes.sas
   @li mf_isblank.sas
@@ -10056,7 +10056,7 @@ run;
     %mm_updatestpservertype(target=/some/meta/path/myStoredProcess
       ,type=WKS)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
 
   @param target= full path to the STP being deleted
   @param type= Either WKS or STP depending on whether Workspace or Stored Process
@@ -10412,7 +10412,7 @@ run;
 
     %mmx_deletemetafolder(loc=/some/meta/folder,user=sasdemo,pass=mars345)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_loc.sas
 
   @param loc= the metadata folder to delete
@@ -10467,7 +10467,7 @@ Usage:
         ,outspkpath=%str(/tmp)
     )
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_loc.sas
   @li mm_tree.sas
   @li mf_getuniquefileref.sas
@@ -10549,7 +10549,7 @@ run;
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
   @li mf_getuniquefileref.sas
   @li mf_getuniquelibref.sas
@@ -10712,7 +10712,7 @@ options noquotelenmax;
     To minimise postgres requests, output json is stored in a temporary file
     and then sent to _webout in one go at the end.
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
   @li mv_createfolder.sas
   @li mf_getuniquelibref.sas
@@ -11362,7 +11362,7 @@ run;
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
@@ -11511,7 +11511,7 @@ libname &libref1a clear;
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
@@ -11655,7 +11655,7 @@ libname &libref1a clear;
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
@@ -11783,7 +11783,7 @@ libname &libref1 clear;
    @version VIYA V.03.04
    @author Allan Bowe, source: https://github.com/sasjs/core
 
-   <h4> Dependencies </h4>
+   <h4> SAS Macros </h4>
    @li mv_tokenrefresh.sas
 
  **/
@@ -11814,7 +11814,7 @@ libname &libref1 clear;
    @version VIYA V.03.04
    @author Allan Bowe, source: https://github.com/sasjs/core
 
-   <h4> Dependencies </h4>
+   <h4> SAS Macros </h4>
    @li mv_registerclient.sas
 
  **/
@@ -11862,7 +11862,7 @@ libname &libref1 clear;
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
@@ -11948,7 +11948,7 @@ libname &libref1 clear;
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
@@ -12081,7 +12081,7 @@ libname &libref1 clear;
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
@@ -12185,7 +12185,7 @@ filename &fname1 clear;
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
@@ -12255,7 +12255,7 @@ libname &libref1 clear;
    @version VIYA V.03.04
    @author Allan Bowe, source: https://github.com/sasjs/core
 
-   <h4> Dependencies </h4>
+   <h4> SAS Macros </h4>
    @li mv_tokenauth.sas
 
  **/
@@ -12304,7 +12304,7 @@ libname &libref1 clear;
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
@@ -12422,7 +12422,7 @@ libname &libref1 clear;
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
@@ -12533,7 +12533,7 @@ libname &libref1 clear;
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
@@ -12709,7 +12709,7 @@ libname &libref;
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
@@ -12932,7 +12932,7 @@ libname &libref clear;
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
@@ -13074,7 +13074,7 @@ filename &fref2 clear;
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
@@ -13189,7 +13189,7 @@ filename &fref1 clear;
   @param dslabel= value to use instead of the real name for sending to JSON
   @param fmt= change to N to strip formats from output
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_jsonout.sas
   @li mf_getuser.sas
 

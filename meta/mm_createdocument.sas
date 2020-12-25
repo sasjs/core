@@ -12,7 +12,7 @@
       %mm_createdocument(tree=/User Folders/sasdemo
         ,name=MyNote)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
   @li mf_verifymacvars.sas
 

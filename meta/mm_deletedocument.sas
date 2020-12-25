@@ -8,7 +8,7 @@
     %mm_createdocument(tree=/User Folders/&sysuserid,name=MyNote)
     %mm_deletedocument(target=/User Folders/&sysuserid/MyNote)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
 
   @param target= full path to the document being deleted
 

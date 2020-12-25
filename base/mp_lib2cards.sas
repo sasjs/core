@@ -8,7 +8,7 @@
     %mp_lib2cards(lib=sashelp
         , outloc= C:\temp )
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_mkdir.sas
   @li mp_ds2cards.sas
 

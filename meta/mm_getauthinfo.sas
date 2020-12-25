@@ -7,7 +7,7 @@
 
   @param outds= the ONE LEVEL work dataset to create
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mm_getobjects.sas
   @li mf_getuniquefileref.sas
   @li mm_getdetails.sas

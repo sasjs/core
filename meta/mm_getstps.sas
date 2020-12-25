@@ -14,7 +14,7 @@
 
       %mm_getstps(tree=/My Folder/My STPs, name=My STP)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mm_gettree.sas
 
   @param tree= the metadata folder location in which to search.  Leave blank

@@ -11,7 +11,7 @@
   Returns:
   > 1
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_abort.sas
 
   @param verifyvars space separated list of macro variable names

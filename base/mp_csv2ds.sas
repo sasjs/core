@@ -29,7 +29,7 @@
   @version 9.2
   @author Allan Bowe
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
   @li mf_existds.sas
 

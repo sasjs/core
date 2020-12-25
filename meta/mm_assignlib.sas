@@ -10,7 +10,7 @@
 
       %mm_assignlib(SOMEREF)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
 
   @param libref the libref (not name) of the metadata library

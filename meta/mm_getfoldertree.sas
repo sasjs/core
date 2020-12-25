@@ -14,7 +14,7 @@
   @param outds= the dataset to create that contains the list of directories
   @param mDebug= set to 1 to show debug messages in the log
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
 
   @version 9.4
   @author Allan Bowe

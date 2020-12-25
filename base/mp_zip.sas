@@ -12,7 +12,7 @@
   be sure that _debug is not set (else the SPWA will send non zipped content
   as well).
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_dirlist.sas
 
   @param in= unquoted filepath, dataset of files or directory to zip

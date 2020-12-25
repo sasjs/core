@@ -32,7 +32,7 @@
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas

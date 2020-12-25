@@ -11,7 +11,7 @@
         ,outref=/some/unquoted/filename.ext
       )
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
 
   @param tree= The metadata path of the document

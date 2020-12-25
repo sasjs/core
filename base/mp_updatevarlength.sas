@@ -18,7 +18,7 @@
   @param var The variable to modify
   @param len The new length to apply
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_existds.sas
   @li mp_abort.sas
   @li mf_existvar.sas

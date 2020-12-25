@@ -6,7 +6,7 @@
 
         %put Number of observations=%mf_nobs(sashelp.class);
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_getattrn.sas
 
   @param libds library.dataset

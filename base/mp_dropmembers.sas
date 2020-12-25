@@ -9,7 +9,7 @@
       create view view2 as select * from sashelp.class;
       %mp_dropmembers(list=data1 view2)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_isblank.sas
 
 

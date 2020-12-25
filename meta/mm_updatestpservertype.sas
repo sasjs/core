@@ -8,7 +8,7 @@
     %mm_updatestpservertype(target=/some/meta/path/myStoredProcess
       ,type=WKS)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
 
   @param target= full path to the STP being deleted
   @param type= Either WKS or STP depending on whether Workspace or Stored Process

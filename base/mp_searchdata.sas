@@ -25,7 +25,7 @@
   @param outobs= set to a positive integer to restrict the number of observations
   @param filter_text= add a (valid) filter clause to further filter the results
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_getvarlist.sas
   @li mf_getvartype.sas
   @li mf_mkdir.sas

@@ -21,7 +21,7 @@
   @param libds Two part dataset (or view) reference.
   @param outds= The output dataset to create
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_getvarlist.sas
   @li mf_getvartype.sas
   @li mf_getvarformat.sas

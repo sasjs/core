@@ -29,7 +29,7 @@
     To minimise postgres requests, output json is stored in a temporary file
     and then sent to _webout in one go at the end.
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
   @li mv_createfolder.sas
   @li mf_getuniquelibref.sas

@@ -24,7 +24,7 @@ Usage:
     ;;;;
     %mm_createwebservice(path=/Public/app/common,name=appInit,code=ft15f001,replace=YES)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mm_createstp.sas
   @li mf_getuser.sas
   @li mm_createfolder.sas

@@ -14,7 +14,7 @@
       disconnect from MyAlias;
       quit;
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_getengine.sas
   @li mp_abort.sas
 

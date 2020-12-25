@@ -14,7 +14,7 @@
       filename __mc2 clear;
       libname __mc3 clear;
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mm_getrepos.sas
 
   @version 9.3

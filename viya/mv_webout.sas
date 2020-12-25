@@ -27,7 +27,7 @@
   @param dslabel= value to use instead of the real name for sending to JSON
   @param fmt= change to N to strip formats from output
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_jsonout.sas
   @li mf_getuser.sas
 

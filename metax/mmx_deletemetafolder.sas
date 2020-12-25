@@ -9,7 +9,7 @@
 
     %mmx_deletemetafolder(loc=/some/meta/folder,user=sasdemo,pass=mars345)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_loc.sas
 
   @param loc= the metadata folder to delete

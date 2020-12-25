@@ -22,7 +22,7 @@
   @param outds= a table containing the create statements (create_statement column)
   @param execute= `YES|NO` - default is NO. To actually create, use YES.
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
 
   @version 9.2
   @author Allan Bowe

@@ -5,7 +5,7 @@
    @version VIYA V.03.04
    @author Allan Bowe, source: https://github.com/sasjs/core
 
-   <h4> Dependencies </h4>
+   <h4> SAS Macros </h4>
    @li mv_tokenrefresh.sas
 
  **/

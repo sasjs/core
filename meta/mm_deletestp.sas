@@ -7,7 +7,7 @@
 
     %mm_deletestp(target=/some/meta/path/myStoredProcess)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
 
   @param target= full path to the STP being deleted
 

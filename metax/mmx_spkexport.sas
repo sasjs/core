@@ -25,7 +25,7 @@ Usage:
         ,outspkpath=%str(/tmp)
     )
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_loc.sas
   @li mm_tree.sas
   @li mf_getuniquefileref.sas

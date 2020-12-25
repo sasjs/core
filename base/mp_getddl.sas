@@ -15,7 +15,7 @@
       proc sql; describe table &syslast;
       %mp_getddl(work,test,flavour=tsql,showlog=YES)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_getconstraints.sas
 
   @param lib libref of the library to create DDL for.  Should be assigned.

@@ -39,7 +39,7 @@
         ,Server=SASApp
         ,stptype=2)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_nobs.sas
   @li mf_verifymacvars.sas
   @li mm_getdirectories.sas

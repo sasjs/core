@@ -11,7 +11,7 @@
 
       %mp_streamfile(contenttype=csv,inloc=/some/where.txt,outname=myfile.txt)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_getplatform.sas
   @li mp_binarycopy.sas
 

@@ -46,7 +46,7 @@
             Table
         ,outds=morestuff)
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_getquotedstr.sas
   @li mm_getpublictypes.sas
   @li mf_isblank.sas

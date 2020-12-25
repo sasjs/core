@@ -10,7 +10,7 @@
 
   @param switch the param for which to return a platform specific variable
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mf_mval.sas
   @li mf_trimstr.sas
 

@@ -15,7 +15,7 @@
 
   @warning application components do not get deleted when removing the container folder!  be sure you have the administrative priviliges to remove this kind of metadata from the SMC plugin (or be ready to do to so programmatically).
 
-  <h4> Dependencies </h4>
+  <h4> SAS Macros </h4>
   @li mp_abort.sas
   @li mf_verifymacvars.sas
 

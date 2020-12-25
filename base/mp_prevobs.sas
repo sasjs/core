@@ -12,16 +12,16 @@
       data example;
         set sashelp.class;
         calc_var=_n_*3;
-        * initialise hash and save from PDV ;
+        %* initialise hash and save from PDV ;
         %mp_prevobs(INIT,history=2)
         if _n_ =10 then do;
-          * fetch previous but 1 record;
+          %* fetch previous but 1 record;
           %mp_prevobs(FETCH,-2) 
           put _n_= name= age= calc_var=; 
-          * fetch previous record;
+          %* fetch previous record;
           %mp_prevobs(FETCH,-1) 
           put _n_= name= age= calc_var=; 
-          * reinstate current record ;
+          %* reinstate current record ;
           %mp_prevobs(FETCH,0) 
           put _n_= name= age= calc_var=;
         end;

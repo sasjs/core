@@ -91,7 +91,25 @@ The **Macro Core** documentation is created using [doxygen](http://www.doxygen.n
 - version. The EARLIEST SAS version in which this macro is known to work.
 - author. Author name, contact details optional
 
-All macros must be commented in the doxygen format, to enable the [online documentation](https://sasjs.github.io/core.github.io/).
+All macros must be commented in the doxygen format, to enable the [online documentation](https://core.sasjs.io).
+
+### Dependencies
+SAS code can contain one of two types of dependency - SAS Macros, and SAS Programs.  When compiling projects using the [SASjs CLI](https://cli.sasjs.io) the doxygen header is scanned for `  @li` items under the following headers:
+
+```
+  <h4> SAS Macros </h4>
+  @li mf_nobs.sas
+  @li mm_assignlib.sas
+
+  <h4> SAS Programs </h4>
+  @li somefile.ddl SOMEFREF
+  @li someprogram.sas FREFTWO
+```
+
+The CLI can then extract all the dependencies and insert as precode (SAS Macros) or in a temp engine fileref (SAS Programs) when creating SAS Jobs and Services.
+
+When contributing to this library, it is therefore important to ensure that all dependencies are listed in the header in this format.
+
 
 ## Coding Standards
 
@@ -102,6 +120,7 @@ All macros must be commented in the doxygen format, to enable the [online docume
 - Mandatory parameters should be positional, all optional parameters should be keyword (var=) style.
 - All dataset references must be 2 level (eg `work.blah`, not `blah`). This is to avoid contention when options [DATASTMTCHK](https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000279064.htm)=ALLKEYWORDS is in effect.
 - Avoid naming collisions! All macro variables should be local scope. Use system generated work tables where possible - eg `data ; set sashelp.class; run; data &output; set &syslast; run;`
+- If you have a long-running SQL query, the use of a `quit;` statement is recommended in order to benefit from the timing statistics.
 
 # General Notes
 

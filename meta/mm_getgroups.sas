@@ -5,17 +5,15 @@
     blank to return all groups.
   Usage:
 
-    - all groups
-    %mm_getGroups()
+    - all groups: `%mm_getGroups()`
 
-    - all groups for a particular user
-    %mm_getgroups(user=&sysuserid)
+    - all groups for a particular user: `%mm_getgroups(user=&sysuserid)`
 
-  @param user= the metadata user to return groups for.  Leave blank for all
+  @param [in] user= the metadata user to return groups for.  Leave blank for all
     groups.
-  @param outds= the dataset to create that contains the list of groups
-  @param repo= the metadata repository that contains the user/group information
-  @param mDebug= set to 1 to show debug messages in the log
+  @param [in] repo= the metadata repository that contains the user/group information
+  @param [in] mDebug= set to 1 to show debug messages in the log
+  @param [out] outds= the dataset to create that contains the list of groups
 
   @returns outds  dataset containing all groups in a column named "metagroup"
    - groupuri

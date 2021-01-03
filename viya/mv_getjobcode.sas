@@ -125,7 +125,7 @@ data _null_;
     infile = io.open (sas.symget("fpath1"), "r")
     outfile = io.open (sas.symget("fpath2"), "w")
     io.input(infile)
-    local resp=json2sas.decode(io.read())
+    local resp=json.decode(io.read())
     local job=resp["code"]
     outfile:write(job)
     io.close(infile)

@@ -12374,7 +12374,7 @@ data _null_;
     infile = io.open (sas.symget("fpath1"), "r")
     outfile = io.open (sas.symget("fpath2"), "w")
     io.input(infile)
-    local resp=json2sas.decode(io.read())
+    local resp=json.decode(io.read())
     local job=resp["code"]
     outfile:write(job)
     io.close(infile)
@@ -13549,7 +13549,7 @@ filename &fref1 clear;
 data _null_;
   file "%sysfunc(pathname(work))/ml_json.lua";
   put '-- ';
-  put '-- json.lua  (modified from json.lua) ';
+  put '-- json.lua ';
   put '-- ';
   put '-- Copyright (c) 2019 rxi ';
   put '-- ';

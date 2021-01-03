@@ -51,3 +51,14 @@
         * Prefixes: _mv_
 
  */
+
+ /*! \dir lua
+ *  \brief Lua macros
+ *  \details These macros have the following attributes:
+
+        * OS independent
+        * Work as LUA functions (they are immediately executed/compiled)
+        * Auto-generated from the plain source `.lua` files in the same directory
+        * Prefixes: _ml_
+
+ */

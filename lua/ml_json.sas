@@ -13,7 +13,7 @@
 data _null_;
   file "%sysfunc(pathname(work))/ml_json.lua";
   put '-- ';
-  put '-- json.lua  (modified from json.lua) ';
+  put '-- json.lua ';
   put '-- ';
   put '-- Copyright (c) 2019 rxi ';
   put '-- ';

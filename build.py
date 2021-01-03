@@ -21,9 +21,10 @@ for file in files:
     with open(file) as infile:
         for line in infile:
           ml.write("  put '" + line.rstrip().replace("'","''") + " ';\n")
-    ml.write("run;\n")
-    ml.write("%mend;\n\n")
-    ml.write("%inc \"%sysfunc(pathname(work))/" + name + ".lua\";\n")
+    ml.write("run;\n\n")
+    ml.write("%inc \"%sysfunc(pathname(work))/" + name + ".lua\";\n\n")
+    ml.write("%mend;\n")
+
 ml.close()
 
 # prepare web files

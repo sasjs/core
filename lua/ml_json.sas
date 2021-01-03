@@ -36,7 +36,7 @@ data _null_;
   put '-- SOFTWARE. ';
   put '-- ';
   put ' ';
-  put 'local json = { _version = "0.1.2" } ';
+  put 'json = { _version = "0.1.2" } ';
   put ' ';
   put '------------------------------------------------------------------------------- ';
   put '-- Encode ';
@@ -384,6 +384,7 @@ data _null_;
   put ' ';
   put 'return json ';
 run;
-%mend;
 
 %inc "%sysfunc(pathname(work))/ml_json.lua";
+
+%mend;

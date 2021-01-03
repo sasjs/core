@@ -1,6 +1,6 @@
 /**
-  @file mv_deletejes.sas
-  @brief Creates a job execution service if it does not already exist
+  @file
+  @brief Deletes a Viya Job, if it exists
   @details If not executed in Studio 5+  will expect oauth token in a global
   macro variable (default ACCESS_TOKEN).
 

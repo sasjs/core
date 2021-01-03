@@ -11488,8 +11488,8 @@ filename &fname1a clear;
 libname &libref1a clear;
 
 %mend;/**
-  @file mv_deletejes.sas
-  @brief Creates a job execution service if it does not already exist
+  @file
+  @brief Deletes a Viya Job, if it exists
   @details If not executed in Studio 5+  will expect oauth token in a global
   macro variable (default ACCESS_TOKEN).
 
@@ -12247,7 +12247,157 @@ run;
 filename &fname1 clear;
 libname &libref1 clear;
 
-%mend; /**
+%mend;/**
+  @file
+  @brief Extract the source code from a SAS Viya Job
+  @details Extracts the SAS code from a Job into a fileref or physical file.
+  Example:
+
+      %mv_getjobcode(
+         path=/Public/jobs
+        ,name=some_job
+        ,outfile=/tmp/some_job.sas
+      )
+
+  @param [in] access_token_var= The global macro variable to contain the access token
+  @param [in] grant_type= valid values:
+      * password
+      * authorization_code
+      * detect - will check if access_token exists, if not will use sas_services if
+        a SASStudioV session else authorization_code.  Default option.
+      * sas_services - will use oauth_bearer=sas_services
+  @param [in] path= The SAS Drive path of the job
+  @param [in] name= The name of the job
+  @param [out] outref= A fileref to which to write the source code
+  @param [out] outfile= A file to which to write the source code
+
+  @version VIYA V.03.04
+  @author Allan Bowe, source: https://github.com/sasjs/core
+
+  <h4> SAS Macros </h4>
+  @li mp_abort.sas
+  @li mf_getplatform.sas
+  @li mf_getuniquefileref.sas
+  @li mv_getfoldermembers.sas
+  @li ml_json.sas
+
+**/
+
+%macro mv_getjobcode(outref=0,outfile=0
+    ,name=0,path=0
+    ,contextName=SAS Job Execution compute context
+    ,access_token_var=ACCESS_TOKEN
+    ,grant_type=sas_services
+  );
+%local oauth_bearer;
+%if &grant_type=detect %then %do;
+  %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
+  %else %let grant_type=sas_services;
+%end;
+%if &grant_type=sas_services %then %do;
+    %let oauth_bearer=oauth_bearer=sas_services;
+    %let &access_token_var=;
+%end;
+%put &sysmacroname: grant_type=&grant_type;
+%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
+    and &grant_type ne sas_services
+  )
+  ,mac=&sysmacroname
+  ,msg=%str(Invalid value for grant_type: &grant_type)
+)
+%mp_abort(iftrue=("&path"="0")
+  ,mac=&sysmacroname
+  ,msg=%str(Job Path not provided)
+)
+%mp_abort(iftrue=("&name"="0")
+  ,mac=&sysmacroname
+  ,msg=%str(Job Name not provided)
+)
+%mp_abort(iftrue=("&outfile"="0" and "&outref"="0")
+  ,mac=&sysmacroname
+  ,msg=%str(Output destination (file or fileref) must be provided)
+)
+options noquotelenmax;
+%local base_uri; /* location of rest apis */
+%let base_uri=%mf_getplatform(VIYARESTAPI);
+data;run;
+%local foldermembers;
+%let foldermembers=&syslast;
+%mv_getfoldermembers(root=&path
+    ,access_token_var=&access_token_var
+    ,grant_type=&grant_type
+    ,outds=&foldermembers
+)
+%local joburi;
+%let joburi=0;
+data _null_;
+  set &foldermembers;
+  if name="&name" and uri=:'/jobDefinitions/definitions'
+    then call symputx('joburi',uri);
+run;
+%mp_abort(iftrue=("&joburi"="0")
+  ,mac=&sysmacroname
+  ,msg=%str(Job &path/&name not found)
+)
+
+/* prepare request*/
+%local  fname1;
+%let fname1=%mf_getuniquefileref();
+proc http method='GET' out=&fname1 &oauth_bearer
+  url="&base_uri&joburi";
+  headers "Accept"="application/vnd.sas.job.definition+json"
+  %if &grant_type=authorization_code %then %do;
+          "Authorization"="Bearer &&&access_token_var"
+  %end;
+  ;
+run;
+%if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201 %then
+%do;
+  data _null_;infile &fname1;input;putlog _infile_;run;
+  %mp_abort(mac=&sysmacroname
+    ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
+  )
+%end;
+%local  fname2 fname3 fpath1 fpath2 fpath3;
+%let fname2=%mf_getuniquefileref();
+%let fname3=%mf_getuniquefileref();
+%let fpath1=%sysfunc(pathname(&fname1));
+%let fpath2=%sysfunc(pathname(&fname2));
+%let fpath3=%sysfunc(pathname(&fname2));
+
+/* compile the lua JSON module */
+%ml_json() 
+/* read using LUA - this allows the code to be of any length */
+data _null_;
+  file "&fpath3..lua";
+  put '
+    infile = io.open (sas.symget("fpath1"), "r")
+    outfile = io.open (sas.symget("fpath2"), "w")
+    io.input(infile)
+    local resp=json2sas.decode(io.read())
+    local job=resp["code"]
+    outfile:write(job)
+    io.close(infile)
+    io.close(outfile)
+   ';
+run;
+%inc "&fpath3..lua";
+/* export to desired destination */
+data _null_;
+  %if &outref=0 %then %do;
+    file "&outfile" lrecl=32767;
+  %end;
+  %else %do;
+    file &outref;
+  %end;
+  infile &fname2;
+  input;
+  put _infile_;
+run;
+filename &fname1 clear;
+filename &fname2 clear;
+%mend;
+ /**
    @file mv_getrefreshtoken.sas
    @brief deprecated - replaced by mv_tokenauth.sas
 
@@ -13385,20 +13535,21 @@ filename &fref1 clear;
 
 %mend;
 /**
-  @file ml_json2sas.sas
-  @brief Creates the json2sas.lua file
-  @details Writes json2sas.lua to the work directory
+  @file ml_json.sas
+  @brief Compiles the json.lua lua file
+  @details Writes json.lua to the work directory
+  and then includes it.
   Usage:
 
-      %ml_json2sas()
+      %ml_json()
 
 **/
 
-%macro ml_json2sas();
+%macro ml_json();
 data _null_;
-  file "%sysfunc(pathname(work))/json2sas.lua";
+  file "%sysfunc(pathname(work))/ml_json.lua";
   put '-- ';
-  put '-- json2sas.lua  (modified from json.lua) ';
+  put '-- json.lua  (modified from json.lua) ';
   put '-- ';
   put '-- Copyright (c) 2019 rxi ';
   put '-- ';
@@ -13421,7 +13572,7 @@ data _null_;
   put '-- SOFTWARE. ';
   put '-- ';
   put ' ';
-  put 'local json2sas = { _version = "0.1.2" } ';
+  put 'local json = { _version = "0.1.2" } ';
   put ' ';
   put '------------------------------------------------------------------------------- ';
   put '-- Encode ';
@@ -13521,7 +13672,7 @@ data _null_;
   put '  error("unexpected type ''" .. t .. "''") ';
   put 'end ';
   put ' ';
-  put 'function json2sas.encode(val) ';
+  put 'function json.encode(val) ';
   put '  return ( encode(val) ) ';
   put 'end ';
   put ' ';
@@ -13755,7 +13906,7 @@ data _null_;
   put '  decode_error(str, idx, "unexpected character ''" .. chr .. "''") ';
   put 'end ';
   put ' ';
-  put 'function json2sas.decode(str) ';
+  put 'function json.decode(str) ';
   put '  if type(str) ~= "string" then ';
   put '    error("expected argument of type string, got " .. type(str)) ';
   put '  end ';
@@ -13767,90 +13918,8 @@ data _null_;
   put '  return res ';
   put 'end ';
   put ' ';
-  put '-- convert macro variable array into one variable and decode ';
-  put 'function json2sas.go(macvar) ';
-  put '  local x=1 ';
-  put '  local cnt=0 ';
-  put '  local mac=sas.symget(macvar..''0'') ';
-  put '  local newstr='''' ';
-  put '  if mac and mac ~= '''' then ';
-  put '    cnt=mac ';
-  put '    for x=1,cnt,1 do ';
-  put '      mac=sas.symget(macvar..x) ';
-  put '      if mac and mac ~= '''' then ';
-  put '        newstr=newstr..mac ';
-  put '      else ';
-  put '        return print(macvar..x..'' NOT FOUND!!'') ';
-  put '      end ';
-  put '    end ';
-  put '  else ';
-  put '    return print(macvar..''0 NOT FOUND!!'') ';
-  put '  end ';
-  put '  -- print(''mac:''..mac..''cnt:''..cnt..''newstr''..newstr) ';
-  put '  local oneVar=json2sas.decode(newstr) ';
-  put '  local jsdata=oneVar["data"] ';
-  put '  local meta={} ';
-  put '  local attrs={} ';
-  put '  for tablename, data in pairs(jsdata) do -- each table ';
-  put '    print("Processing table: "..tablename) ';
-  put '    attrs[tablename]={} ';
-  put '    for k, v in ipairs(data) do -- each row ';
-  put '      if(k==1) then  -- column names ';
-  put '        for a, b in pairs(v) do ';
-  put '          attrs[tablename][a]={} ';
-  put '          attrs[tablename][a]["name"]=b ';
-  put '        end ';
-  put '      elseif(k==2) then  -- get types ';
-  put '        for a, b in pairs(v) do ';
-  put '  	      if type(b)==''number'' then ';
-  put '  	        attrs[tablename][a]["type"]="N" ';
-  put '  	        attrs[tablename][a]["length"]=8 ';
-  put '  	      else ';
-  put '            attrs[tablename][a]["type"]="C" ';
-  put '            attrs[tablename][a]["length"]=string.len(b) ';
-  put '  	      end ';
-  put '        end ';
-  put '      else  --update lengths ';
-  put '        for a, b in pairs(v) do ';
-  put '          if (type(b)==''string'' and string.len(b)>attrs[tablename][a]["length"]) ';
-  put '          then ';
-  put '            attrs[tablename][a]["length"]=string.len(b) ';
-  put '          end ';
-  put '        end ';
-  put '  	  end ';
-  put '  	end ';
-  put '    print(json2sas.encode(attrs[tablename])) -- show results ';
-  put ' ';
-  put '    -- Now create the SAS table ';
-  put '    sas.new_table("work."..tablename,attrs[tablename]) ';
-  put '    local dsid=sas.open("work."..tablename, "u") ';
-  put '    for k, v in ipairs(data) do ';
-  put '      if k>1 then ';
-  put '        sas.append(dsid) ';
-  put '        for a, b in pairs(v) do ';
-  put '          sas.put_value(dsid, attrs[tablename][a]["name"], b) ';
-  put '        end ';
-  put '        sas.update(dsid) ';
-  put '      end ';
-  put '    end ';
-  put '    sas.close(dsid) ';
-  put '  end ';
-  put '  return json2sas.decode(newstr) ';
-  put 'end ';
-  put ' ';
-  put ' ';
-  put 'function quote(str) ';
-  put '  return sas.quote(str) ';
-  put 'end ';
-  put 'function sasvar(str) ';
-  put '  print("processing: "..str) ';
-  put '  print(sas.symexist(str)) ';
-  put '  if sas.symexist(str)==1 then ';
-  put '    return quote(str)..'':''..quote(sas.symget(str))..'','' ';
-  put '  end ';
-  put '  return '''' ';
-  put 'end ';
-  put ' ';
-  put 'return json2sas ';
+  put 'return json ';
 run;
 %mend;
+
+%inc "%sysfunc(pathname(work))/ml_json.lua";

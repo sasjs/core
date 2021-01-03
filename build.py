@@ -9,19 +9,21 @@ for file in files:
     ml = open('lua/' + name + '.sas', "w")
     ml.write("/**\n")
     ml.write("  @file " + name + '.sas\n')
-    ml.write("  @brief Creates the " + basename + " file\n")
+    ml.write("  @brief Compiles the " + basename + " lua file\n")
     ml.write("  @details Writes " + basename + " to the work directory\n")
+    ml.write("  and then includes it.\n")
     ml.write("  Usage:\n\n")
     ml.write("      %" + name + "()\n\n")
     ml.write("**/\n\n")
     ml.write("%macro " + name + "();\n")
     ml.write("data _null_;\n")
-    ml.write("  file \"%sysfunc(pathname(work))/" + basename + "\";\n")
+    ml.write("  file \"%sysfunc(pathname(work))/" + name + ".lua\";\n")
     with open(file) as infile:
         for line in infile:
           ml.write("  put '" + line.rstrip().replace("'","''") + " ';\n")
     ml.write("run;\n")
-    ml.write("%mend;\n")
+    ml.write("%mend;\n\n")
+    ml.write("%inc \"%sysfunc(pathname(work))/" + name + ".lua\";\n")
 ml.close()
 
 # prepare web files

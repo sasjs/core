@@ -1,18 +1,19 @@
 /**
-  @file ml_json2sas.sas
-  @brief Creates the json2sas.lua file
-  @details Writes json2sas.lua to the work directory
+  @file ml_json.sas
+  @brief Compiles the json.lua lua file
+  @details Writes json.lua to the work directory
+  and then includes it.
   Usage:
 
-      %ml_json2sas()
+      %ml_json()
 
 **/
 
-%macro ml_json2sas();
+%macro ml_json();
 data _null_;
-  file "%sysfunc(pathname(work))/json2sas.lua";
+  file "%sysfunc(pathname(work))/ml_json.lua";
   put '-- ';
-  put '-- json2sas.lua  (modified from json.lua) ';
+  put '-- json.lua  (modified from json.lua) ';
   put '-- ';
   put '-- Copyright (c) 2019 rxi ';
   put '-- ';
@@ -35,7 +36,7 @@ data _null_;
   put '-- SOFTWARE. ';
   put '-- ';
   put ' ';
-  put 'local json2sas = { _version = "0.1.2" } ';
+  put 'local json = { _version = "0.1.2" } ';
   put ' ';
   put '------------------------------------------------------------------------------- ';
   put '-- Encode ';
@@ -135,7 +136,7 @@ data _null_;
   put '  error("unexpected type ''" .. t .. "''") ';
   put 'end ';
   put ' ';
-  put 'function json2sas.encode(val) ';
+  put 'function json.encode(val) ';
   put '  return ( encode(val) ) ';
   put 'end ';
   put ' ';
@@ -369,7 +370,7 @@ data _null_;
   put '  decode_error(str, idx, "unexpected character ''" .. chr .. "''") ';
   put 'end ';
   put ' ';
-  put 'function json2sas.decode(str) ';
+  put 'function json.decode(str) ';
   put '  if type(str) ~= "string" then ';
   put '    error("expected argument of type string, got " .. type(str)) ';
   put '  end ';
@@ -381,90 +382,8 @@ data _null_;
   put '  return res ';
   put 'end ';
   put ' ';
-  put '-- convert macro variable array into one variable and decode ';
-  put 'function json2sas.go(macvar) ';
-  put '  local x=1 ';
-  put '  local cnt=0 ';
-  put '  local mac=sas.symget(macvar..''0'') ';
-  put '  local newstr='''' ';
-  put '  if mac and mac ~= '''' then ';
-  put '    cnt=mac ';
-  put '    for x=1,cnt,1 do ';
-  put '      mac=sas.symget(macvar..x) ';
-  put '      if mac and mac ~= '''' then ';
-  put '        newstr=newstr..mac ';
-  put '      else ';
-  put '        return print(macvar..x..'' NOT FOUND!!'') ';
-  put '      end ';
-  put '    end ';
-  put '  else ';
-  put '    return print(macvar..''0 NOT FOUND!!'') ';
-  put '  end ';
-  put '  -- print(''mac:''..mac..''cnt:''..cnt..''newstr''..newstr) ';
-  put '  local oneVar=json2sas.decode(newstr) ';
-  put '  local jsdata=oneVar["data"] ';
-  put '  local meta={} ';
-  put '  local attrs={} ';
-  put '  for tablename, data in pairs(jsdata) do -- each table ';
-  put '    print("Processing table: "..tablename) ';
-  put '    attrs[tablename]={} ';
-  put '    for k, v in ipairs(data) do -- each row ';
-  put '      if(k==1) then  -- column names ';
-  put '        for a, b in pairs(v) do ';
-  put '          attrs[tablename][a]={} ';
-  put '          attrs[tablename][a]["name"]=b ';
-  put '        end ';
-  put '      elseif(k==2) then  -- get types ';
-  put '        for a, b in pairs(v) do ';
-  put '  	      if type(b)==''number'' then ';
-  put '  	        attrs[tablename][a]["type"]="N" ';
-  put '  	        attrs[tablename][a]["length"]=8 ';
-  put '  	      else ';
-  put '            attrs[tablename][a]["type"]="C" ';
-  put '            attrs[tablename][a]["length"]=string.len(b) ';
-  put '  	      end ';
-  put '        end ';
-  put '      else  --update lengths ';
-  put '        for a, b in pairs(v) do ';
-  put '          if (type(b)==''string'' and string.len(b)>attrs[tablename][a]["length"]) ';
-  put '          then ';
-  put '            attrs[tablename][a]["length"]=string.len(b) ';
-  put '          end ';
-  put '        end ';
-  put '  	  end ';
-  put '  	end ';
-  put '    print(json2sas.encode(attrs[tablename])) -- show results ';
-  put ' ';
-  put '    -- Now create the SAS table ';
-  put '    sas.new_table("work."..tablename,attrs[tablename]) ';
-  put '    local dsid=sas.open("work."..tablename, "u") ';
-  put '    for k, v in ipairs(data) do ';
-  put '      if k>1 then ';
-  put '        sas.append(dsid) ';
-  put '        for a, b in pairs(v) do ';
-  put '          sas.put_value(dsid, attrs[tablename][a]["name"], b) ';
-  put '        end ';
-  put '        sas.update(dsid) ';
-  put '      end ';
-  put '    end ';
-  put '    sas.close(dsid) ';
-  put '  end ';
-  put '  return json2sas.decode(newstr) ';
-  put 'end ';
-  put ' ';
-  put ' ';
-  put 'function quote(str) ';
-  put '  return sas.quote(str) ';
-  put 'end ';
-  put 'function sasvar(str) ';
-  put '  print("processing: "..str) ';
-  put '  print(sas.symexist(str)) ';
-  put '  if sas.symexist(str)==1 then ';
-  put '    return quote(str)..'':''..quote(sas.symget(str))..'','' ';
-  put '  end ';
-  put '  return '''' ';
-  put 'end ';
-  put ' ';
-  put 'return json2sas ';
+  put 'return json ';
 run;
 %mend;
+
+%inc "%sysfunc(pathname(work))/ml_json.lua";

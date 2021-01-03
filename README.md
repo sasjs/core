@@ -40,6 +40,27 @@ Documentation: https://sasjs.github.io/core.github.io/files.html
 - X command enabled
 - Prefixes: _mmw_,_mmu_,_mmx_
 
+**lua** library 
+
+Wait - this is a macro library - what is LUA doing here?  Well, it is a little known fact that you CAN run LUA within a SAS Macro.  It has to be written to a text file with a `.lua` extension, from where you can `%include` it.  So, without using the `proc lua` wrapper.
+
+To contribute, simply write your freeform LUA in the LUA folder.  Then run the `build.py`, which will convert your LUA into a data step with put statements, and create the macro wrapper with a `ml_` prefix.  You can then use your module in any program by running:
+
+```
+/* compile the lua module */
+%ml_yourmodule()
+
+/* Execute.  Do not use the restart keyword! */
+proc lua; 
+submit;
+  print(yourStuff);
+endsubmit;
+run;
+```
+
+- X command enabled
+- Prefixes: _mmw_,_mmu_,_mmx_
+
 # Installation
 
 First, download the repo to a location your SAS system can access. Then update your sasautos path to include the components you wish to have available,eg:
@@ -72,6 +93,7 @@ filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
   - _mm_ for metadata macros (interface with the metadata server).
   - _mmx_ for macros that use metadata and are XCMD enabled
   - _mx_ for macros that are XCMD enabled
+  - _ml_ for macros that are used to compile LUA modules
   - _mv_ for macros that will only work in Viya
 - follow verb-noun convention
 - unix style line endings (lf)

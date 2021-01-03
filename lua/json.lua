@@ -1,5 +1,5 @@
 --
--- json2sas.lua  (modified from json.lua)
+-- json.lua  (modified from json.lua)
 --
 -- Copyright (c) 2019 rxi
 --
@@ -22,7 +22,7 @@
 -- SOFTWARE.
 --
 
-local json2sas = { _version = "0.1.2" }
+local json = { _version = "0.1.2" }
 
 -------------------------------------------------------------------------------
 -- Encode
@@ -122,7 +122,7 @@ encode = function(val, stack)
   error("unexpected type '" .. t .. "'")
 end
 
-function json2sas.encode(val)
+function json.encode(val)
   return ( encode(val) )
 end
 
@@ -356,7 +356,7 @@ parse = function(str, idx)
   decode_error(str, idx, "unexpected character '" .. chr .. "'")
 end
 
-function json2sas.decode(str)
+function json.decode(str)
   if type(str) ~= "string" then
     error("expected argument of type string, got " .. type(str))
   end
@@ -368,88 +368,4 @@ function json2sas.decode(str)
   return res
 end
 
--- convert macro variable array into one variable and decode
-function json2sas.go(macvar)
-  local x=1
-  local cnt=0
-  local mac=sas.symget(macvar..'0')
-  local newstr=''
-  if mac and mac ~= '' then
-    cnt=mac
-    for x=1,cnt,1 do
-      mac=sas.symget(macvar..x)
-      if mac and mac ~= '' then
-        newstr=newstr..mac
-      else
-        return print(macvar..x..' NOT FOUND!!')
-      end
-    end
-  else
-    return print(macvar..'0 NOT FOUND!!')
-  end
-  -- print('mac:'..mac..'cnt:'..cnt..'newstr'..newstr)
-  local oneVar=json2sas.decode(newstr)
-  local jsdata=oneVar["data"]
-  local meta={}
-  local attrs={}
-  for tablename, data in pairs(jsdata) do -- each table
-    print("Processing table: "..tablename)
-    attrs[tablename]={}
-    for k, v in ipairs(data) do -- each row
-      if(k==1) then  -- column names
-        for a, b in pairs(v) do
-          attrs[tablename][a]={}
-          attrs[tablename][a]["name"]=b
-        end
-      elseif(k==2) then  -- get types
-        for a, b in pairs(v) do
-  	      if type(b)=='number' then
-  	        attrs[tablename][a]["type"]="N"
-  	        attrs[tablename][a]["length"]=8
-  	      else
-            attrs[tablename][a]["type"]="C"
-            attrs[tablename][a]["length"]=string.len(b)
-  	      end
-        end
-      else  --update lengths
-        for a, b in pairs(v) do
-          if (type(b)=='string' and string.len(b)>attrs[tablename][a]["length"])
-          then
-            attrs[tablename][a]["length"]=string.len(b)
-          end
-        end
-  	  end
-  	end
-    print(json2sas.encode(attrs[tablename])) -- show results
-
-    -- Now create the SAS table
-    sas.new_table("work."..tablename,attrs[tablename])
-    local dsid=sas.open("work."..tablename, "u")
-    for k, v in ipairs(data) do
-      if k>1 then
-        sas.append(dsid)
-        for a, b in pairs(v) do
-          sas.put_value(dsid, attrs[tablename][a]["name"], b)
-        end
-        sas.update(dsid)
-      end
-    end
-    sas.close(dsid)
-  end
-  return json2sas.decode(newstr)
-end
-
-
-function quote(str)
-  return sas.quote(str)
-end
-function sasvar(str)
-  print("processing: "..str)
-  print(sas.symexist(str))
-  if sas.symexist(str)==1 then
-    return quote(str)..':'..quote(sas.symget(str))..','
-  end
-  return ''
-end
-
-return json2sas
+return json

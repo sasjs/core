@@ -12865,18 +12865,18 @@ libname &libref;
   @param [in] access_token_var= The global macro variable to contain the access token
   @param [in] grant_type= valid values:
 
-    * password
-    * authorization_code
-    * detect - will check if access_token exists, if not will use sas_services if
-      a SASStudioV session else authorization_code.  Default option.
-    * sas_services - will use oauth_bearer=sas_services
+      - password
+      - authorization_code
+      - detect - will check if access_token exists, if not will use sas_services if
+        a SASStudioV session else authorization_code.  Default option.
+      - sas_services - will use oauth_bearer=sas_services
 
   @param [in] inds= The input dataset containing the list of job uris, in the
     following format:  `/jobExecution/jobs/&JOBID./state` and the corresponding
     job name.  The uri should be in a `uri` variable, and the job path/name
     should be in a `_program` variable.
   @param [out] outds= The output dataset containing the list of states by job
-    (default=mv_jobexecute)
+    (default=work.mv_jobexecute)
 
 
   @version VIYA V.03.04
@@ -12921,6 +12921,10 @@ libname &libref;
 %mp_abort(iftrue=(%mf_existvar(&inds,uri)=0)
   ,mac=&sysmacroname
   ,msg=%str(The URI variable was not found in the input dataset(&inds))
+)
+%mp_abort(iftrue=(%mf_existvar(&inds,_program)=0)
+  ,mac=&sysmacroname
+  ,msg=%str(The _PROGRAM variable was not found in the input dataset(&inds))
 )
 
 %if %mf_nobs(&inds)=0 %then %do;

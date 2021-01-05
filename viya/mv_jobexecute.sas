@@ -23,23 +23,24 @@
         ,paramstring=%str("macvarname":"macvarvalue","answer":42)
       )
 
-  @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= valid values:
-   * password
-   * authorization_code
-   * detect - will check if access_token exists, if not will use sas_services if
-    a SASStudioV session else authorization_code.  Default option.
-   * sas_services - will use oauth_bearer=sas_services
+  @param [in] access_token_var= The global macro variable to contain the access token
+  @param [in] grant_type= valid values:
 
-  @param path= The SAS Drive path to the job being executed
-  @param name= The name of the job to execute
-  @param paramstring= A JSON fragment with name:value pairs, eg: `"name":"value"`
+    * password
+    * authorization_code
+    * detect - will check if access_token exists, if not will use sas_services if
+      a SASStudioV session else authorization_code.  Default option.
+    * sas_services - will use oauth_bearer=sas_services
+
+  @param [in] path= The SAS Drive path to the job being executed
+  @param [in] name= The name of the job to execute
+  @param [in] paramstring= A JSON fragment with name:value pairs, eg: `"name":"value"`
   or "name":"value","name2":42`.  This will need to be wrapped in `%str()`.
 
-  @param contextName= Context name with which to run the job.
+  @param [in] contextName= Context name with which to run the job.
     Default = `SAS Job Execution compute context`
 
-  @param outds= The output dataset containing links (Default=work.mv_jobexecute)
+  @param [out] outds= The output dataset containing links (Default=work.mv_jobexecute)
 
 
   @version VIYA V.03.04
@@ -158,6 +159,7 @@ libname &libref JSON fileref=&fname1;
 
 data &outds;
   set &libref..links;
+  _program="&path/&name";
 run;
 
 /* clear refs */

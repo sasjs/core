@@ -1,0 +1,6 @@
+{
+ "macroFolders": [
+  "../base","../meta","../metax","../viya"
+ ],
+ "useMacroCore": false
+}

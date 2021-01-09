@@ -1,6 +1,3 @@
 {
- "macroFolders": [
-  "../base","../meta","../metax","../viya"
- ],
- "useMacroCore": false
+  "macroFolders": ["../base", "../meta", "../metax", "../viya", "../lua"]
 }

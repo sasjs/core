@@ -130,7 +130,7 @@ data _null_;
   paramstring=symget('paramstring');
   put '{"jobDefinitionUri":' joburi ;
   put '  ,"arguments":{"_contextName":' contextname;
-  put '    "_program":' _program;
+  put '    ,"_program":' _program;
   if paramstring ne "0" then do;
     put '    ,' paramstring;
   end;

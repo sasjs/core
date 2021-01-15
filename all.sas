@@ -12400,22 +12400,24 @@ filename &fname2 clear;
 /**
   @file
   @brief Extract the status from a running SAS Viya job
-  @details Extracts the status from a running job and writes it to a fileref.
-  An output dataset is created like this:
+  @details Extracts the status from a running job and appends it to an output
+  dataset with the following structure:
 
       | uri                                                           | state   | timestamp          |
       |---------------------------------------------------------------|---------|--------------------|
       | /jobExecution/jobs/5cebd840-2063-42c1-be0c-421ec3e1c175/state | running | 15JAN2021:12:35:08 |
 
+  To query the running job, you need the URI.  Sample code for achieving this
+  is provided below.
+
   ## Example
 
   First, compile the macros:
 
-      filename mc url
-      "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
-  Create a long running job (in this case, a web service):
+  Next, create a long running job (in this case, a web service):
 
       filename ft15f001 temp;
       parmcards4;
@@ -12432,7 +12434,7 @@ filename &fname2 clear;
       ;;;;
       %mv_createwebservice(path=/Public/temp,name=demo)
 
-  Execute it, grab the uri, and check status:
+  Execute it, grab the uri, and finally, check the job status:
 
       %mv_jobexecute(path=/Public/temp
         ,name=demo
@@ -12447,14 +12449,26 @@ filename &fname2 clear;
 
       %mv_getjobstate(uri=&uri,outds=results)
 
+  You can run this macro as part of a loop to await the final 'completed' status.
+  The full list of status values is:
+
+  @li idle
+  @li pending
+  @li running
+  @li canceled
+  @li completed
+  @li failed
+
+  If you have one or more jobs that you'd like to wait for completion you can
+  also use the [mv_jobwaitfor](/mv__jobwaitfor_8sas.html) macro.
 
   @param [in] access_token_var= The global macro variable to contain the access token
   @param [in] grant_type= valid values:
-      * password
-      * authorization_code
-      * detect - will check if access_token exists, if not will use sas_services if
+    @li password
+    @li authorization_code
+    @li detect - will check if access_token exists, if not will use sas_services if
         a SASStudioV session else authorization_code.  Default option.
-      * sas_services - will use oauth_bearer=sas_services
+    @li sas_services - will use oauth_bearer=sas_services.
   @param [in] uri= The uri of the running job for which to fetch the status,
     in the format `/jobExecution/jobs/$UUID/state` (unquoted).
   @param [out] outds= The output dataset in which to APPEND the status. Three
@@ -12969,7 +12983,13 @@ libname &libref;
 
   The input table is formed as per below.  Each observation represents one job.
   Each variable is converted into a macro variable with the same name.
-  The FLOW column provides the sequential ordering capability.
+
+      | variable| description   |
+      |---|---|---|
+      |FLOW_ID| Provides the sequential ordering capability|
+      |_CONTEXTNAME|Dictates which context should be used to run the job. If
+       blank, will default to `SAS Job Execution compute context`.|
+      |_PROGRAM|Provides the path to the job itself|
 
 
   ## Example
@@ -12984,6 +13004,8 @@ libname &libref;
 
       filename ft15f001 temp;
       parmcards4;
+        %put this is job: &_program;
+        %put this was run in flow &flow_id;
         data ;
           rand=ranuni(0)*&macrovar1;
           do x=1 to rand;
@@ -12998,7 +13020,8 @@ libname &libref;
   Prepare an input table with 60 executions:
 
       data work.inputjobs;
-        do flow=1 to 3;
+        _contextName='SAS Job Execution compute context';
+        do flow_id=1 to 3;
           do job=1 to 10;
             _program='/Public/temp/name/demo1';
             macrovar1=10*job;
@@ -13025,7 +13048,8 @@ libname &libref;
         a SASStudioV session else authorization_code.  Default option.
       * sas_services - will use oauth_bearer=sas_services
   @param [in] inds= The input dataset containing a list of jobs and parameters
-  @param [in] maxconcurrency= The max number of parallel jobs to run
+  @param [in] maxconcurrency= The max number of parallel jobs to run.  If set to
+   0 (default) then there is no limit applied.
   @param [out] outds= The output dataset containing the results
 
   @version VIYA V.03.05
@@ -13035,14 +13059,12 @@ libname &libref;
   @li mp_abort.sas
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
-  @li mv_getfoldermembers.sas
-  @li ml_json.sas
+  @li mf_existvarlist.sas
 
 **/
 
-%macro mv_jobflow(outref=0,outfile=0
-    ,name=0,path=0
-    ,contextName=SAS Job Execution compute context
+%macro mv_jobflow(inds=0,outds=work.mv_jobflow
+    ,maxconcurrency=0
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
   );
@@ -13062,82 +13084,39 @@ libname &libref;
   ,mac=&sysmacroname
   ,msg=%str(Invalid value for grant_type: &grant_type)
 )
-%mp_abort(iftrue=("&path"="0")
+
+%mp_abort(iftrue=("&inds"="0")
   ,mac=&sysmacroname
-  ,msg=%str(Job Path not provided)
+  ,msg=%str(Input dataset was not provided)
 )
-%mp_abort(iftrue=("&name"="0")
+%mp_abort(iftrue=(%mf_existVarList(&inds,_CONTEXTNAME FLOWID _PROGRAM)=0)
   ,mac=&sysmacroname
-  ,msg=%str(Job Name not provided)
+  ,msg=%str(The following columns must exist on the input dataset(&inds):
+    _CONTEXTNAME FLOWID _PROGRAM)
 )
-%mp_abort(iftrue=("&outfile"="0" and "&outref"="0")
-  ,mac=&sysmacroname
-  ,msg=%str(Output destination (file or fileref) must be provided)
-)
+
 options noquotelenmax;
 %local base_uri; /* location of rest apis */
 %let base_uri=%mf_getplatform(VIYARESTAPI);
-data;run;
-%local foldermembers;
-%let foldermembers=&syslast;
-%mv_getfoldermembers(root=&path
-    ,access_token_var=&access_token_var
-    ,grant_type=&grant_type
-    ,outds=&foldermembers
-)
-%local joburi;
-%let joburi=0;
-data _null_;
-  set &foldermembers;
-  if name="&name" and uri=:'/jobDefinitions/definitions'
-    then call symputx('joburi',uri);
-run;
-%mp_abort(iftrue=("&joburi"="0")
-  ,mac=&sysmacroname
-  ,msg=%str(Job &path/&name not found)
-)
 
-/* prepare request*/
-%local  fname1;
-%let fname1=%mf_getuniquefileref();
-proc http method='GET' out=&fname1 &oauth_bearer
-  url="&base_uri&joburi";
-  headers "Accept"="application/vnd.sas.job.definition+json"
-  %if &grant_type=authorization_code %then %do;
-          "Authorization"="Bearer &&&access_token_var"
-  %end;
-  ;
-run;
-%if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201 %then
-%do;
-  data _null_;infile &fname1;input;putlog _infile_;run;
-  %mp_abort(mac=&sysmacroname
-    ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
-  )
-%end;
-%local  fname2 fname3 fpath1 fpath2 fpath3;
-%let fname2=%mf_getuniquefileref();
-%let fname3=%mf_getuniquefileref();
-%let fpath1=%sysfunc(pathname(&fname1));
-%let fpath2=%sysfunc(pathname(&fname2));
-%let fpath3=%sysfunc(pathname(&fname2));
 
-/* compile the lua JSON module */
-%ml_json()
-/* read using LUA - this allows the code to be of any length */
-data _null_;
-  file "&fpath3..lua";
-  put '
-    infile = io.open (sas.symget("fpath1"), "r")
-    outfile = io.open (sas.symget("fpath2"), "w")
-    io.input(infile)
-    local resp=json.decode(io.read())
-    local job=resp["code"]
-    outfile:write(job)
-    io.close(infile)
-    io.close(outfile)
-   ';
+/* get flows */
+proc sort data=&inds;
+by flow_id;
 run;
+
+data _null_;
+  set &inds keep=flow_id end=last;
+  by flow_id;
+  if last.flow_id then do;
+    cnt+1;
+    call symputx(cats('flow',_n_),flow_id,'l');
+  end;
+  if last then call symputx('flowcnt',cnt,'l');
+run;
+
+
+
 %inc "&fpath3..lua";
 /* export to desired destination */
 data _null_;

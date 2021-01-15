@@ -1,22 +1,24 @@
 /**
   @file
   @brief Extract the status from a running SAS Viya job
-  @details Extracts the status from a running job and writes it to a fileref.
-  An output dataset is created like this:
+  @details Extracts the status from a running job and appends it to an output
+  dataset with the following structure:
 
       | uri                                                           | state   | timestamp          |
       |---------------------------------------------------------------|---------|--------------------|
       | /jobExecution/jobs/5cebd840-2063-42c1-be0c-421ec3e1c175/state | running | 15JAN2021:12:35:08 |
 
+  To query the running job, you need the URI.  Sample code for achieving this
+  is provided below.
+
   ## Example
 
   First, compile the macros:
 
-      filename mc url
-      "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
-  Create a long running job (in this case, a web service):
+  Next, create a long running job (in this case, a web service):
 
       filename ft15f001 temp;
       parmcards4;
@@ -33,7 +35,7 @@
       ;;;;
       %mv_createwebservice(path=/Public/temp,name=demo)
 
-  Execute it, grab the uri, and check status:
+  Execute it, grab the uri, and finally, check the job status:
 
       %mv_jobexecute(path=/Public/temp
         ,name=demo
@@ -48,14 +50,26 @@
 
       %mv_getjobstate(uri=&uri,outds=results)
 
+  You can run this macro as part of a loop to await the final 'completed' status.
+  The full list of status values is:
+
+  @li idle
+  @li pending
+  @li running
+  @li canceled
+  @li completed
+  @li failed
+
+  If you have one or more jobs that you'd like to wait for completion you can
+  also use the [mv_jobwaitfor](/mv__jobwaitfor_8sas.html) macro.
 
   @param [in] access_token_var= The global macro variable to contain the access token
   @param [in] grant_type= valid values:
-      * password
-      * authorization_code
-      * detect - will check if access_token exists, if not will use sas_services if
+    @li password
+    @li authorization_code
+    @li detect - will check if access_token exists, if not will use sas_services if
         a SASStudioV session else authorization_code.  Default option.
-      * sas_services - will use oauth_bearer=sas_services
+    @li sas_services - will use oauth_bearer=sas_services.
   @param [in] uri= The uri of the running job for which to fetch the status,
     in the format `/jobExecution/jobs/$UUID/state` (unquoted).
   @param [out] outds= The output dataset in which to APPEND the status. Three

@@ -72,7 +72,7 @@
     %let oauth_bearer=oauth_bearer=sas_services;
     %let &access_token_var=;
 %end;
-%put &sysmacroname: grant_type=&grant_type;
+
 %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )

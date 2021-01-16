@@ -12878,7 +12878,7 @@ libname &libref1 clear;
     %let oauth_bearer=oauth_bearer=sas_services;
     %let &access_token_var=;
 %end;
-%put &sysmacroname: grant_type=&grant_type;
+
 %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )
@@ -13230,8 +13230,8 @@ data;run;%let jdswaitfor=&syslast;
         select count(*) into: jobcheck
           from &outds where uri="&&joburi&jid";
         %if &jobcheck>0 %then %do;
+          %put &&job&jid in flow &fid with uri &&joburi&jid completed!;
           %let job&jid=0;
-          %put &&job&jid in flow &fid completed!;
         %end;
       %end;
     %end;
@@ -13250,10 +13250,16 @@ data;run;%let jdswaitfor=&syslast;
         proc append base=&outds data=&jdsapp;
         run;
       %end;
+      proc sql;
+      delete from &jdsrunning
+        where uri in (select uri from &outds
+          where state in ('canceled','completed','failed')
+        );
+
       /* loop again if jobs are left */
       %if &completed < &jcnt %then %do;
         %let jid=0;
-        %put looping flow &fid again - &completed jobs completed, &concurrency jobs running;
+        %put looping flow &fid again - &completed of &jcnt jobs completed, &concurrency jobs running;
       %end;
     %end;
   %end;
@@ -13365,7 +13371,7 @@ data;run;%let jdswaitfor=&syslast;
     %let oauth_bearer=oauth_bearer=sas_services;
     %let &access_token_var=;
 %end;
-%put &sysmacroname: grant_type=&grant_type;
+
 %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )

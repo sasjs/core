@@ -1,9 +1,9 @@
 /**
   @file
-  @brief Takes a dataset of running jobs and waits for them to complete
-  @details Will poll `/jobs/{jobId}/state` at set intervals until they are all
-  completed.  Completion is determined by reference to the returned _state_, as
-  per the following table:
+  @brief Takes a dataset of running jobs and waits for ANY or ALL of them to complete
+  @details Will poll `/jobs/{jobId}/state` at set intervals until ANY or ALL
+  jobs are completed.  Completion is determined by reference to the returned
+  _state_, as per the following table:
 
   | state     | Wait? | Notes|
   |-----------|-------|------|
@@ -49,8 +49,7 @@
         where method='GET' and rel='state';
       run;
 
-      %mv_jobwaitfor(inds=work.jobs,outds=work.jobstates)
-
+      %mv_jobwaitfor(ALL,inds=work.jobs,outds=work.jobstates)
 
   Delete the job:
 
@@ -65,6 +64,8 @@
         a SASStudioV session else authorization_code.  Default option.
       - sas_services - will use oauth_bearer=sas_services
 
+  @param [in] action=Either ALL (to wait for every job) or ANY (if one job
+    completes, processing will continue).  Default=ALL.
   @param [in] inds= The input dataset containing the list of job uris, in the
     following format:  `/jobExecution/jobs/&JOBID./state` and the corresponding
     job name.  The uri should be in a `uri` variable, and the job path/name
@@ -85,8 +86,8 @@
 
 **/
 
-%macro mv_jobwaitfor(
-     access_token_var=ACCESS_TOKEN
+%macro mv_jobwaitfor(action
+    ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
     ,inds=0
     ,outds=work.mv_jobwaitfor
@@ -137,6 +138,11 @@ data _null_;
   if last then call symputx('uricnt',_n_,'l');
 run;
 
+%local runcnt;
+%if &action=ALL %then %let runcnt=&uricnt;
+%else %if &action=ANY %then %let runcnt=1;
+%else %let runcnt=&uricnt;
+
 %local fname0 ;
 %let fname0=%mf_getuniquefileref();
 
@@ -176,7 +182,7 @@ run;
         uri="&&joburi&i",
         state="&status",
         timestamp=datetime();
-      %let joburi&i=0;
+      %let joburi&i=0; /* do not re-check */
     %end;
     %else %if &status=idle or &status=pending or &status=running %then %do;
       data _null_;
@@ -194,7 +200,7 @@ run;
     %let goback=0;
     proc sql noprint;
     select count(*) into:goback from &outds;
-    %if &goback ne &uricnt %then %let i=0;
+    %if &goback lt &runcnt %then %let i=0;
   %end;
 %end;
 

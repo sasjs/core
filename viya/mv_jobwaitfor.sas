@@ -132,9 +132,11 @@ options noquotelenmax;
 %let base_uri=%mf_getplatform(VIYARESTAPI);
 
 data _null_;
+  length jobparams $32767;
   set &inds end=last;
   call symputx(cats('joburi',_n_),uri,'l');
   call symputx(cats('jobname',_n_),_program,'l');
+  call symputx(cats('jobparams',_n_),jobparams,'l');
   if last then call symputx('uricnt',_n_,'l');
 run;
 
@@ -147,7 +149,7 @@ run;
 %let fname0=%mf_getuniquefileref();
 
 data &outds;
-  format _program uri $128. state $32. timestamp datetime19.;
+  format _program uri $128. state $32. timestamp datetime19. jobparams $32767.;
   stop;
 run;
 
@@ -181,7 +183,8 @@ run;
         _program="&&jobname&i",
         uri="&&joburi&i",
         state="&status",
-        timestamp=datetime();
+        timestamp=datetime(),
+        jobparams=symget("jobparams&i");
       %let joburi&i=0; /* do not re-check */
     %end;
     %else %if &status=idle or &status=pending or &status=running %then %do;

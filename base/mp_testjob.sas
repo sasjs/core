@@ -26,6 +26,7 @@
 %local lib dir ds1 ds2 ds3 start_tm i;
 
 %let start_tm=%sysfunc(datetime());
+%let duration=%sysevalf(&duration);
 
 /* create a temporary library in WORK */
 %let lib=%mf_getuniquelibref();
@@ -53,7 +54,7 @@ libname &lib "%sysfunc(pathname(work))/&dir";
   proc summary ;
     class randnum0 randnum1;
     output out=&lib..&ds2;
-  run;
+  run;quit;
   %if %sysevalf( (%sysfunc(datetime())-&start_tm)>&duration ) %then %goto gate;
 
   /* add more data */
@@ -62,6 +63,7 @@ libname &lib "%sysfunc(pathname(work))/&dir";
     select *, ranuni(0)*10 as randnum2
   from &lib..&ds1
   order by randnum1;
+  quit;
   %if %sysevalf( (%sysfunc(datetime())-&start_tm)>&duration ) %then %goto gate;
 
   proc sort data=&lib..&ds3;

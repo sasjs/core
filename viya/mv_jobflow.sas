@@ -9,21 +9,30 @@
 
   ## Input table (minimum variables needed)
 
-      | variable| description   |
-      |---|---|---|
-      |FLOW_ID| Numeric value, provides sequential ordering capability|
-      |_CONTEXTNAME|Dictates which context should be used to run the job. If
-       blank, will default to `SAS Job Execution compute context`.|
-      |_PROGRAM|Provides the path to the job itself|
+  @li FLOW_ID - Numeric value, provides sequential ordering capability
+  @li _CONTEXTNAME - Dictates which context should be used to run the job. If
+    blank, will default to `SAS Job Execution compute context`.
+  @li _PROGRAM - Provides the path to the job itself
+
+  Any additional variables provided in this table are converted into macro
+  variables and passed into the relevant job.
+
+  | FLOW_ID| _CONTEXTNAME   |_PROGRAM|
+  |---|---|---|
+  |0|SAS Job Execution compute context|/Public/jobs/somejob1|
+  |0|SAS Job Execution compute context|/Public/jobs/somejob2|
 
   ## Output table (minimum variables produced)
 
-      | variable| description   |
-      |---|---|---|
-      |FLOW_ID| Numeric value, provides sequential ordering capability|
-      |_CONTEXTNAME|Dictates which context should be used to run the job. If
-       blank, will default to `SAS Job Execution compute context`.|
-      |_PROGRAM|Provides the path to the job itself|
+  @li _PROGRAM - the SAS Drive path of the job
+  @li URI - the URI of the executed job
+  @li STATE - the completed state of the job
+  @li TIMESTAMP - the datetime that the job completed
+  @li JOBPARAMS - the parameters that were passed to the job
+  @li FLOW_ID - the id of the flow in which the job was executed
+
+  ![https://i.imgur.com/nZE9PvT.png](https://i.imgur.com/nZE9PvT.png)
+
 
   ## Example
 

@@ -3,10 +3,17 @@
   @brief Adds custom quotes / delimiters to a  delimited string
   @details Can be used in open code, eg as follows:
 
-    %put %mf_getquotedstr(blah   blah  blah);
+      %put %mf_getquotedstr(blah   blah  blah);
 
   which returns:
 > 'blah','blah','blah'
+
+  Alternatively:
+
+      %put %mf_getquotedstr(these words are double quoted,quote=D)
+
+  for:
+> "these","words","are","double","quoted"
 
   @param in_str the unquoted, spaced delimited string to transform
   @param dlm= the delimeter to be applied to the output (default comma)

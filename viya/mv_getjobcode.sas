@@ -114,10 +114,10 @@ run;
 %let fname3=%mf_getuniquefileref();
 %let fpath1=%sysfunc(pathname(&fname1));
 %let fpath2=%sysfunc(pathname(&fname2));
-%let fpath3=%sysfunc(pathname(&fname2));
+%let fpath3=%sysfunc(pathname(&fname3));
 
 /* compile the lua JSON module */
-%ml_json() 
+%ml_json()
 /* read using LUA - this allows the code to be of any length */
 data _null_;
   file "&fpath3..lua";
@@ -147,4 +147,5 @@ data _null_;
 run;
 filename &fname1 clear;
 filename &fname2 clear;
+filename &fname3 clear;
 %mend;

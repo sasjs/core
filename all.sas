@@ -12487,7 +12487,7 @@ run;
 %let fname3=%mf_getuniquefileref();
 %let fpath1=%sysfunc(pathname(&fname1));
 %let fpath2=%sysfunc(pathname(&fname2));
-%let fpath3=%sysfunc(pathname(&fname2));
+%let fpath3=%sysfunc(pathname(&fname3));
 
 /* compile the lua JSON module */
 %ml_json()
@@ -12520,6 +12520,7 @@ data _null_;
 run;
 filename &fname1 clear;
 filename &fname2 clear;
+filename &fname3 clear;
 %mend;
 /**
   @file
@@ -12577,6 +12578,7 @@ filename &fname2 clear;
 
 
   @param [in] access_token_var= The global macro variable to contain the access token
+  @param [in] mdebug= set to 1 to enable DEBUG messages
   @param [in] grant_type= valid values:
     @li password
     @li authorization_code
@@ -12604,6 +12606,7 @@ filename &fname2 clear;
     ,contextName=SAS Job Execution compute context
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
+    ,mdebug=0
   );
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
@@ -12660,7 +12663,7 @@ options noquotelenmax;
 %local  fname1;
 %let fname1=%mf_getuniquefileref();
 proc http method='GET' out=&fname1 &oauth_bearer
-  url="&base_uri&joburi";
+  url="&base_uri&uri";
   headers
   %if &grant_type=authorization_code %then %do;
           "Authorization"="Bearer &&&access_token_var"
@@ -12679,7 +12682,7 @@ run;
 %let fname3=%mf_getuniquefileref();
 %let fpath1=%sysfunc(pathname(&fname1));
 %let fpath2=%sysfunc(pathname(&fname2));
-%let fpath3=%sysfunc(pathname(&fname2));
+%let fpath3=%sysfunc(pathname(&fname3));
 
 /* compile the lua JSON module */
 %ml_json()
@@ -12699,15 +12702,94 @@ data _null_;
 run;
 %inc "&fpath3..lua";
 /* get log path*/
+%let errflg=1;
+%let errmsg=No entry in &fname2 fileref;
 data _null_;
   infile &fname2;
   input;
-  call symputx('logloc',_infile_,'l');
+  uri=_infile_;
+  if length(uri)<12 then do;
+    call symputx('errflg',1);
+    call symputx('errmsg',"URI is invalid (too short) - '&uri'",'l');
+  end;
+  if scan(uri,1) ne 'files' or scan(uri,2) ne 'files' then do;
+    call symputx('errflg',1);
+    call symputx('errmsg',
+      "URI should be in format /files/files/$$$$UUID$$$$"
+      !!" but is actually like: &uri",'l');
+  end;
+  call symputx('errflg',0,'l');
+  call symputx('logloc',uri,'l');
 run;
-%put &=logloc;
-filename &fname1 clear;
-filename &fname2 clear;
-%mend;/**
+
+%mp_abort(iftrue=(&errflg=1)
+  ,mac=&sysmacroname
+  ,msg=%str(&errmsg)
+)
+
+/* we have a log uri - now fetch the log */
+proc http method='GET' out=&fname1 &oauth_bearer
+  url="&base_uri&logloc/content";
+  headers
+  %if &grant_type=authorization_code %then %do;
+          "Authorization"="Bearer &&&access_token_var"
+  %end;
+  ;
+run;
+%if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201 %then
+%do;
+  data _null_;infile &fname1;input;putlog _infile_;run;
+  %mp_abort(mac=&sysmacroname
+    ,msg=%str(logfetch: &SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
+  )
+%end;
+
+data _null_;
+  file "&fpath3..lua";
+  put '
+    infile = io.open (sas.symget("fpath1"), "r")
+    outfile = io.open (sas.symget("fpath2"), "w")
+    io.input(infile)
+    local resp=json.decode(io.read())
+    for i, v in pairs(resp["items"]) do
+	    outfile:write(v.line,"\n")
+    end
+    io.close(infile)
+    io.close(outfile)
+  ';
+run;
+%inc "&fpath3..lua";
+
+/* write log out to the specified fileref */
+data _null_;
+  infile &fname2 end=last;
+  file &outref mod;
+  if _n_=1 then do;
+    put "/** SASJS Viya Job Log Extract start: &uri **/";
+  end;
+  input;
+  put _infile_;
+  %if &mdebug=0 %then %do;
+    putlog _infile_;
+  %end;
+  if last then do;
+    put "/** SASJS Viya Job Log Extract end: &uri **/";
+  end;
+run;
+
+%if &mdebug=0 %then %do;
+  filename &fname1 clear;
+  filename &fname2 clear;
+  filename &fname3 clear;
+%end;
+%else %do;
+  %put _local_;
+%end;
+%mend;
+
+
+
+/**
   @file
   @brief Extract the status from a running SAS Viya job
   @details Extracts the status from a running job and appends it to an output
@@ -13661,7 +13743,7 @@ data;run;%let jdswaitfor=&syslast;
     should be in a `_program` variable.
   @param [out] outds= The output dataset containing the list of states by job
     (default=work.mv_jobexecute)
-
+  @param [out] outref= A fileref to which the spawned job logs should be appended.
 
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
@@ -13672,6 +13754,7 @@ data;run;%let jdswaitfor=&syslast;
   @li mf_getuniquefileref.sas
   @li mf_existvar.sas
   @li mf_nobs.sas
+  @li mv_getjoblog.sas
 
 **/
 
@@ -13680,6 +13763,7 @@ data;run;%let jdswaitfor=&syslast;
     ,grant_type=sas_services
     ,inds=0
     ,outds=work.mv_jobwaitfor
+    ,outref=0
   );
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
@@ -13723,7 +13807,7 @@ options noquotelenmax;
 data _null_;
   length jobparams $32767;
   set &inds end=last;
-  call symputx(cats('joburi',_n_),uri,'l');
+  call symputx(cats('joburi',_n_),substr(uri,1,55)!!'/state','l');
   call symputx(cats('jobname',_n_),_program,'l');
   call symputx(cats('jobparams',_n_),jobparams,'l');
   if last then call symputx('uricnt',_n_,'l');
@@ -13767,14 +13851,20 @@ run;
     run;
 
     %if &status=completed or &status=failed or &status=canceled %then %do;
+      %local plainuri;
+      %let plainuri=%substr(&&joburi&i,1,55);
       proc sql;
       insert into &outds set
         _program="&&jobname&i",
-        uri="&&joburi&i",
+        uri="&plainuri",
         state="&status",
         timestamp=datetime(),
         jobparams=symget("jobparams&i");
       %let joburi&i=0; /* do not re-check */
+      /* fetch log */
+      %if %str(&outref) ne 0 %then %do;
+        %mv_getjoblog(uri=&plainuri,outref=&outref)
+      %end;
     %end;
     %else %if &status=idle or &status=pending or &status=running %then %do;
       data _null_;

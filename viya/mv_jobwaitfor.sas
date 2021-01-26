@@ -72,7 +72,7 @@
     should be in a `_program` variable.
   @param [out] outds= The output dataset containing the list of states by job
     (default=work.mv_jobexecute)
-
+  @param [out] outref= A fileref to which the spawned job logs should be appended.
 
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
@@ -83,6 +83,7 @@
   @li mf_getuniquefileref.sas
   @li mf_existvar.sas
   @li mf_nobs.sas
+  @li mv_getjoblog.sas
 
 **/
 
@@ -91,6 +92,7 @@
     ,grant_type=sas_services
     ,inds=0
     ,outds=work.mv_jobwaitfor
+    ,outref=0
   );
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
@@ -134,7 +136,7 @@ options noquotelenmax;
 data _null_;
   length jobparams $32767;
   set &inds end=last;
-  call symputx(cats('joburi',_n_),uri,'l');
+  call symputx(cats('joburi',_n_),substr(uri,1,55)!!'/state','l');
   call symputx(cats('jobname',_n_),_program,'l');
   call symputx(cats('jobparams',_n_),jobparams,'l');
   if last then call symputx('uricnt',_n_,'l');
@@ -178,14 +180,20 @@ run;
     run;
 
     %if &status=completed or &status=failed or &status=canceled %then %do;
+      %local plainuri;
+      %let plainuri=%substr(&&joburi&i,1,55);
       proc sql;
       insert into &outds set
         _program="&&jobname&i",
-        uri="&&joburi&i",
+        uri="&plainuri",
         state="&status",
         timestamp=datetime(),
         jobparams=symget("jobparams&i");
       %let joburi&i=0; /* do not re-check */
+      /* fetch log */
+      %if %str(&outref) ne 0 %then %do;
+        %mv_getjoblog(uri=&plainuri,outref=&outref)
+      %end;
     %end;
     %else %if &status=idle or &status=pending or &status=running %then %do;
       data _null_;

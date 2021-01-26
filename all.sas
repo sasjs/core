@@ -12573,7 +12573,7 @@ filename &fname3 clear;
 
       %mv_getjoblog(uri=&uri,outref=mylog)
 
-  This macro is used by the mv_jobwaitfor macro, which is generally a more
+  This macro is used by the mv_jobwaitfor.sas macro, which is generally a more
   convenient way to wait for the job to finish before fetching the log.
 
 

@@ -230,6 +230,32 @@ options noquotelenmax;
 
 /** @endcond *//**
   @file
+  @brief Checks whether a fileref exists
+  @details You can probably do without this macro as it is just a one liner.
+  Mainly it is here as a convenient way to remember the syntax!
+
+  @param fref the fileref to detect
+
+  @return output Returns 1 if found and 0 if not found.  Note - it is possible
+  that the fileref is found, but the file does not (yet) exist. If you need
+  to test for this, you may as well use the fileref function directly.
+
+  @version 8
+  @author [Allan Bowe](https://www.linkedin.com/in/allanbowe/)
+**/
+
+%macro mf_existfileref(fref
+)/*/STORE SOURCE*/;
+
+  %if %sysfunc(fileref(&fref))=0 %then %do;
+    1
+  %end;
+  %else %do;
+    0
+  %end;
+
+%mend;/**
+  @file
   @brief Checks if a variable exists in a data set.
   @details Returns 0 if the variable does NOT exist, and return the position of
     the var if it does.
@@ -12464,7 +12490,7 @@ run;
 %let fpath3=%sysfunc(pathname(&fname2));
 
 /* compile the lua JSON module */
-%ml_json() 
+%ml_json()
 /* read using LUA - this allows the code to be of any length */
 data _null_;
   file "&fpath3..lua";
@@ -12496,6 +12522,192 @@ filename &fname1 clear;
 filename &fname2 clear;
 %mend;
 /**
+  @file
+  @brief Extract the log from a completed SAS Viya Job
+  @details Extracts log from a Viya job and writes it out to a fileref
+
+  To query the job, you need the URI.  Sample code for achieving this
+  is provided below.
+
+  ## Example
+
+  First, compile the macros:
+
+      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      %inc mc;
+
+  Next, create a job (in this case, a web service):
+
+      filename ft15f001 temp;
+      parmcards4;
+        data ;
+          rand=ranuni(0)*1000;
+          do x=1 to rand;
+            y=rand*4;
+            output;
+          end;
+        run;
+        proc sort data=&syslast
+          by descending y;
+        run;
+      ;;;;
+      %mv_createwebservice(path=/Public/temp,name=demo)
+
+  Execute it:
+
+      %mv_jobexecute(path=/Public/temp
+        ,name=demo
+        ,outds=work.info
+      )
+
+  Wait for it to finish, and grab the uri:
+
+      data _null_;
+        set work.info;
+        if method='GET' and rel='self';
+        call symputx('uri',uri);
+      run;
+
+  Finally, fetch the log:
+
+      %mv_getjoblog(uri=&uri,outref=mylog)
+
+  This macro is used by the mv_jobwaitfor macro, which is generally a more
+  convenient way to wait for the job to finish before fetching the log.
+
+
+  @param [in] access_token_var= The global macro variable to contain the access token
+  @param [in] grant_type= valid values:
+    @li password
+    @li authorization_code
+    @li detect - will check if access_token exists, if not will use sas_services if
+        a SASStudioV session else authorization_code.  Default option.
+    @li sas_services - will use oauth_bearer=sas_services.
+  @param [in] uri= The uri of the running job for which to fetch the status,
+    in the format `/jobExecution/jobs/$UUID/state` (unquoted).
+  @param [out] outref= The output fileref to which to APPEND the log (is always
+  appended).
+
+
+  @version VIYA V.03.04
+  @author Allan Bowe, source: https://github.com/sasjs/core
+
+  <h4> SAS Macros </h4>
+  @li mp_abort.sas
+  @li mf_getplatform.sas
+  @li mf_existfileref.sas
+  @li ml_json.sas
+
+**/
+
+%macro mv_getjoblog(uri=0,outref=0
+    ,contextName=SAS Job Execution compute context
+    ,access_token_var=ACCESS_TOKEN
+    ,grant_type=sas_services
+  );
+%local oauth_bearer;
+%if &grant_type=detect %then %do;
+  %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
+  %else %let grant_type=sas_services;
+%end;
+%if &grant_type=sas_services %then %do;
+    %let oauth_bearer=oauth_bearer=sas_services;
+    %let &access_token_var=;
+%end;
+%put &sysmacroname: grant_type=&grant_type;
+%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
+    and &grant_type ne sas_services
+  )
+  ,mac=&sysmacroname
+  ,msg=%str(Invalid value for grant_type: &grant_type)
+)
+
+/* validation in datastep for better character safety */
+%local errmsg errflg;
+data _null_;
+  uri=symget('uri');
+  if length(uri)<12 then do;
+    call symputx('errflg',1);
+    call symputx('errmsg',"URI is invalid (too short) - '&uri'",'l');
+  end;
+  if scan(uri,-1)='state' or scan(uri,1) ne 'jobExecution' then do;
+    call symputx('errflg',1);
+    call symputx('errmsg',
+      "URI should be in format /jobExecution/jobs/$$$$UUID$$$$"
+      !!" but is actually like: &uri",'l');
+  end;
+run;
+
+%mp_abort(iftrue=(&errflg=1)
+  ,mac=&sysmacroname
+  ,msg=%str(&errmsg)
+)
+
+%mp_abort(iftrue=(&outref=0)
+  ,mac=&sysmacroname
+  ,msg=%str(Output fileref should be provided)
+)
+
+%if %mf_existfileref(&outref) ne 1 %then %do;
+  filename &outref temp;
+%end;
+
+options noquotelenmax;
+%local base_uri; /* location of rest apis */
+%let base_uri=%mf_getplatform(VIYARESTAPI);
+
+/* prepare request*/
+%local  fname1;
+%let fname1=%mf_getuniquefileref();
+proc http method='GET' out=&fname1 &oauth_bearer
+  url="&base_uri&joburi";
+  headers
+  %if &grant_type=authorization_code %then %do;
+          "Authorization"="Bearer &&&access_token_var"
+  %end;
+  ;
+run;
+%if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201 %then
+%do;
+  data _null_;infile &fname1;input;putlog _infile_;run;
+  %mp_abort(mac=&sysmacroname
+    ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
+  )
+%end;
+%local  fname2 fname3 fpath1 fpath2 fpath3;
+%let fname2=%mf_getuniquefileref();
+%let fname3=%mf_getuniquefileref();
+%let fpath1=%sysfunc(pathname(&fname1));
+%let fpath2=%sysfunc(pathname(&fname2));
+%let fpath3=%sysfunc(pathname(&fname2));
+
+/* compile the lua JSON module */
+%ml_json()
+/* read using LUA - this allows the code to be of any length */
+data _null_;
+  file "&fpath3..lua";
+  put '
+    infile = io.open (sas.symget("fpath1"), "r")
+    outfile = io.open (sas.symget("fpath2"), "w")
+    io.input(infile)
+    local resp=json.decode(io.read())
+    local logloc=resp["logLocation"]
+    outfile:write(logloc)
+    io.close(infile)
+    io.close(outfile)
+   ';
+run;
+%inc "&fpath3..lua";
+/* get log path*/
+data _null_;
+  infile &fname2;
+  input;
+  call symputx('logloc',_infile_,'l');
+run;
+%put &=logloc;
+filename &fname1 clear;
+filename &fname2 clear;
+%mend;/**
   @file
   @brief Extract the status from a running SAS Viya job
   @details Extracts the status from a running job and appends it to an output

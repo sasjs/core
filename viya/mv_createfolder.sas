@@ -4,7 +4,6 @@
   @details Expects oauth token in a global macro variable (default
   ACCESS_TOKEN).
 
-      options mprint;
       %mv_createfolder(path=/Public)
 
 

@@ -103,6 +103,7 @@
       @li sas_services - will use oauth_bearer=sas_services
   @param [in] inds= The input dataset containing a list of jobs and parameters
   @param [in] maxconcurrency= The max number of parallel jobs to run.  Default=8.
+  @param [in] mdebug= set to 1 to enable DEBUG messages
   @param [out] outds= The output dataset containing the results
   @param [out] outref= The output fileref to which to append the log file(s).
 
@@ -125,6 +126,7 @@
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
     ,outref=0
+    ,mdebug=0
   );
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
@@ -247,8 +249,8 @@ data;run;%let jdswaitfor=&syslast;
       jparams='jparams'!!left(symget('jid'));
       call symputx(jparams,substr(_infile_,3,length(_infile_)-4));
     run;
-    %local joburi&jid;
-    %let joburi&jid=0; /* used in next loop */
+    %local jobuid&jid;
+    %let jobuid&jid=0; /* used in next loop */
   %end;
   %local concurrency completed;
   %let concurrency=0;
@@ -259,8 +261,21 @@ data;run;%let jdswaitfor=&syslast;
       * now we can execute the jobs up to the maxconcurrency setting
       */
     %if "&&job&jid" ne "0" %then %do; /* this var is zero if job finished */
-      %if "&&joburi&jid"="0" and &concurrency<&maxconcurrency %then %do;
-        /* job has not been triggered and we have free slots */
+
+      /* check to see if the job finished in the previous round */
+      %if %sysfunc(exist(&outds))=1 %then %do;
+        %local jobcheck;  %let jobcheck=0;
+        proc sql noprint;
+        select count(*) into: jobcheck
+          from &outds where uuid="&&jobuid&jid";
+        %if &jobcheck>0 %then %do;
+          %put &&job&jid in flow &fid with uid &&jobuid&jid completed!;
+          %let job&jid=0;
+        %end;
+      %end;
+
+      /* check if job was triggered and if so, if we have enough slots to run */
+      %if "&&jobuid&jid"="0" and &concurrency<&maxconcurrency %then %do;
         %local jobname jobpath;
         %let jobname=%scan(&&job&jid,-1,/);
         %let jobpath=%substr(&&job&jid,1,%length(&&job&jid)-%length(&jobname)-1);
@@ -274,22 +289,13 @@ data;run;%let jdswaitfor=&syslast;
           format jobparams $32767.;
           set &jdsapp(where=(method='GET' and rel='state'));
           jobparams=symget("jparams&jid");
-          call symputx("joburi&jid",uri,'l');
+          /* uri here has the /state suffix */
+          uuid=scan(uri,-2,'/');
+          call symputx("jobuid&jid",uuid,'l');
         run;
         proc append base=&jdsrunning data=&jdsapp;
         run;
         %let concurrency=%eval(&concurrency+1);
-      %end;
-      %else %if %sysfunc(exist(&outds))=1 %then %do;
-        /* check to see if the job has finished as was previously executed */
-        %local jobcheck;  %let jobcheck=0;
-        proc sql noprint;
-        select count(*) into: jobcheck
-          from &outds where uri="&&joburi&jid";
-        %if &jobcheck>0 %then %do;
-          %put &&job&jid in flow &fid with uri &&joburi&jid completed!;
-          %let job&jid=0;
-        %end;
       %end;
     %end;
     %if &jid=&jcnt %then %do;
@@ -303,13 +309,14 @@ data;run;%let jdswaitfor=&syslast;
         data &jdsapp;
           set &jdswaitfor;
           flow_id=&&flow&fid;
+          uuid=scan(uri,-1,'/');
         run;
         proc append base=&outds data=&jdsapp;
         run;
       %end;
       proc sql;
       delete from &jdsrunning
-        where uri in (select uri from &outds
+        where uuid in (select uuid from &outds
           where state in ('canceled','completed','failed')
         );
 
@@ -323,5 +330,8 @@ data;run;%let jdswaitfor=&syslast;
   /* back up and execute the next flow */
 %end;
 
+%if &mdebug=1 %then %do;
+  %put _local_;
+%end;
 
 %mend;

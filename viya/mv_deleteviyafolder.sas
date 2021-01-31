@@ -4,7 +4,6 @@
   @details If not running in Studo 5 +, will expect an oauth token in a global
   macro variable (default ACCESS_TOKEN).
 
-      options mprint;
       %mv_createfolder(path=/Public/test/blah)
       %mv_deleteviyafolder(path=/Public/test)
 

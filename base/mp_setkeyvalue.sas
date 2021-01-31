@@ -3,8 +3,8 @@
   @brief Logs a key value pair a control dataset
   @details If the dataset does not exist, it is created.  Usage:
 
-    %mp_setkeyvalue(someindex,22,type=N)
-    %mp_setkeyvalue(somenewindex,somevalue)
+      %mp_setkeyvalue(someindex,22,type=N)
+      %mp_setkeyvalue(somenewindex,somevalue)
 
   <h4> SAS Macros </h4>
   @li mf_existds.sas
@@ -26,7 +26,7 @@
 
   %if not (%mf_existds(&libds)) %then %do;
     data &libds (index=(key/unique));
-      length key $32 valc $256 valn 8 type $1;
+      length key $64 valc $2048 valn 8 type $1;
       call missing(of _all_);
       stop;
     run;

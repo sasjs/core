@@ -3,8 +3,8 @@
   @brief retrieves a key value pair from a control dataset
   @details By default, control dataset is work.mp_setkeyvalue.  Usage:
 
-    %mp_setkeyvalue(someindex,22,type=N)
-    %put %mf_getkeyvalue(someindex)
+      %mp_setkeyvalue(someindex,22,type=N)
+      %put %mf_getkeyvalue(someindex)
 
 
   @param key Provide a key on which to perform the lookup

@@ -10,13 +10,25 @@
   "author": "Allan Bowe <support@macropeople.com>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/sasjs/core"
+    "url": "git+https://github.com/sasjs/core.git"
   },
   "release": {
-    "branches": ["main"]
+    "branches": [
+      "main"
+    ]
   },
   "publishConfig": {
     "access": "public"
   },
-  "devDependencies": {}
+  "bugs": {
+    "url": "https://github.com/sasjs/core/issues"
+  },
+  "homepage": "https://github.com/sasjs/core#readme",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+  }
 }

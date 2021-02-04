@@ -13400,6 +13400,9 @@ libname &libref;
 
   ![https://i.imgur.com/nZE9PvT.png](https://i.imgur.com/nZE9PvT.png)
 
+  To avoid hammering the box with many hits in rapid succession, a one
+  second pause is made between every request.
+
 
   ## Example
 
@@ -13662,6 +13665,10 @@ data;run;%let jdswaitfor=&syslast;
         proc append base=&jdsrunning data=&jdsapp;
         run;
         %let concurrency=%eval(&concurrency+1);
+        /* sleep one second after every request to smooth the impact */
+        data _null_;
+          call sleep(1,1);
+        run;
       %end;
     %end;
     %if &jid=&jcnt %then %do;

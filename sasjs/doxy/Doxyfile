@@ -19,7 +19,9 @@ HTML_FOOTER            = $(DOXY_CONTENT)new_footer.html
 HTML_EXTRA_STYLESHEET  = $(DOXY_CONTENT)new_stylesheet.css
 INHERIT_DOCS           = NO
 INLINE_INFO            = NO
-INPUT                  = $(DOXY_CONTENT)../../README.md $(DOXY_INPUT)
+INPUT                  = $(DOXY_CONTENT)../../README.md \
+                         $(DOXY_CONTENT)../../CONTRIBUTING.md \
+                         $(DOXY_INPUT)
 USE_MDFILE_AS_MAINPAGE = README.md
 LAYOUT_FILE            = $(DOXY_CONTENT)DoxygenLayout.xml
 MAX_INITIALIZER_LINES  = 0

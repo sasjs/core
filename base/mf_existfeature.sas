@@ -32,9 +32,11 @@
     %put Supported features:  PROCLUA;
   %end;
   %else %if &feature=PROCLUA %then %do;
+    /* https://blogs.sas.com/content/sasdummy/2015/08/03/using-lua-within-your-sas-programs */
     %if &platform=SASVIYA %then 1;
-    %else %if "&sysver"="9.3" or "&sysver"="9.4" %then 1;
-    %else 0;
+    %else %if "&sysver"="9.2" or "&sysver"="9.3" %then 0;
+    %else %if "&SYSVLONG" < "9.04.01M3" %then 0;
+    %else 1;
   %end;
   %else %do;
     -1

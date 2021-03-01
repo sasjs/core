@@ -1,6 +1,6 @@
 {
   "$schema": "https://cli.sasjs.io/sasjsconfig-schema.json",
-  "macroFolders": ["../base", "../meta", "../metax", "../viya", "../lua"],
+  "macroFolders": ["base", "meta", "metax", "viya", "lua"],
   "docConfig":{
     "displayMacroCore": false
   }

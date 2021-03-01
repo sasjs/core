@@ -1,31 +1,20 @@
 /**
   @file mv_getgroups.sas
   @brief Creates a dataset with a list of viya groups
-  @details First, be sure you have an access token (which requires an app token).
-
-  Using the macros here:
+  @details First, load the macros:
 
       filename mc url
         "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
-  An administrator needs to set you up with an access code:
+  Next, execute:
 
-      %mv_registerclient(outds=client)
+      %mv_getgroups(outds=work.groups)
 
-  Navigate to the url from the log (opting in to the groups) and paste the
-  access code below:
-
-      %mv_tokenauth(inds=client,code=wKDZYTEPK6)
-
-  Now we can run the macro!
-
-      %mv_getgroups()
-
-  @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= valid values are "password" or "authorization_code" (unquoted).
+  @param [in] access_token_var= The global macro variable to contain the access token
+  @param [in] grant_type= valid values are "password" or "authorization_code" (unquoted).
     The default is authorization_code.
-  @param outds= The library.dataset to be created that contains the list of groups
+  @param [out] outds= The library.dataset to be created that contains the list of groups
 
 
   @version VIYA V.03.04

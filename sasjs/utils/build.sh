@@ -3,6 +3,8 @@
 # PROJECT: Macro Core Docs Build                                   #
 ####################################################################
 
+cd ../..
+
 sasjs doc
 
 # refresh github pages site

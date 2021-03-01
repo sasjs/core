@@ -20,7 +20,7 @@ HTML_EXTRA_STYLESHEET  = $(DOXY_CONTENT)new_stylesheet.css
 INHERIT_DOCS           = NO
 INLINE_INFO            = NO
 INPUT                  = $(DOXY_CONTENT)../../README.md \
-                         $(DOXY_CONTENT)../../CONTRIBUTING.md \
+                       = $(DOXY_CONTENT)../../main.dox \
                          $(DOXY_INPUT)
 USE_MDFILE_AS_MAINPAGE = README.md
 LAYOUT_FILE            = $(DOXY_CONTENT)DoxygenLayout.xml

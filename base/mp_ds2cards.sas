@@ -3,25 +3,27 @@
   @brief Create a CARDS file from a SAS dataset.
   @details Uses dataset attributes to convert all data into datalines.
     Running the generated file will rebuild the original dataset.
-  usage:
+  Usage:
 
       %mp_ds2cards(base_ds=sashelp.class
         , cards_file= "C:\temp\class.sas"
         , maxobs=5)
 
-    stuff to add
+  TODO:
      - labelling the dataset
      - explicity setting a unix LF
      - constraints / indexes etc
 
-  @param base_ds= Should be two level - eg work.blah.  This is the table that
+  @param [in] base_ds= Should be two level - eg work.blah.  This is the table that
                    is converted to a cards file.
-  @param tgt_ds= Table that the generated cards file would create. Optional -
+  @param [in] tgt_ds= Table that the generated cards file would create. Optional -
                   if omitted, will be same as BASE_DS.
-  @param cards_file= Location in which to write the (.sas) cards file
-  @param maxobs= to limit output to the first <code>maxobs</code> observations
-  @param showlog= whether to show generated cards file in the SAS log (YES/NO)
-  @param outencoding= provide encoding value for file statement (eg utf-8)
+  @param [out] cards_file= Location in which to write the (.sas) cards file
+  @param [in] maxobs= to limit output to the first <code>maxobs</code> observations
+  @param [in] showlog= whether to show generated cards file in the SAS log (YES/NO)
+  @param [in] outencoding= provide encoding value for file statement (eg utf-8)
+  @param [in] append= If NO then will rebuild the cards file if it already exists,
+  otherwise will append to it.  Used by the mp_lib2cards.sas macro.
 
 
   @version 9.2
@@ -34,6 +36,7 @@
     ,random_sample=NO
     ,showlog=YES
     ,outencoding=
+    ,append=NO
 )/*/STORE SOURCE*/;
 %local i setds nvars;
 
@@ -46,6 +49,8 @@
 %if (&tgt_ds = ) %then %let tgt_ds=&base_ds;
 %if %index(&tgt_ds,.)=0 %then %let tgt_ds=WORK.%scan(&base_ds,2,.);
 %if ("&outencoding" ne "") %then %let outencoding=encoding="&outencoding";
+%if ("&append" = "") %then %let append=;
+%else %let append=mod;
 
 /* get varcount */
 %let nvars=0;
@@ -172,7 +177,7 @@ data _null_;
 run;
 
 data _null_;
-  file &cards_file. &outencoding lrecl=32767 termstr=nl;
+  file &cards_file. &outencoding lrecl=32767 termstr=nl &append;
   length __attrib $32767;
   if _n_=1 then do;
     put '/*******************************************************************';

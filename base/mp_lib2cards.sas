@@ -10,6 +10,15 @@
   The output will be one cards file in the `outloc` directory per dataset in the
   input `lib` library.  If the `outloc` directory does not exist, it is created.
 
+  To create a single SAS file with the first 1000 records of each table in a
+  library you could use this syntax:
+
+      %mp_lib2cards(lib=sashelp
+          , outloc= /tmp
+          , outfile= myfile.sas
+          , maxobs= 1000
+      )
+
   <h4> SAS Macros </h4>
   @li mf_mkdir.sas
   @li mf_trimstr.sas

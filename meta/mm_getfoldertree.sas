@@ -1,18 +1,20 @@
 /**
-  @file mm_getfoldertree.sas
+  @file
   @brief Returns all folders / subfolder content for a particular root
   @details Shows all members and SubTrees recursively for a particular root.
   Note - for big sites, this returns a lot of data!  So you may wish to reduce
-  the logging to speed up the process (see example below)
+  the logging to speed up the process (see example below), OR - use mm_tree.sas
+  which uses proc metadata and is far more efficient.
+
   Usage:
 
     options ps=max nonotes nosource;
     %mm_getfoldertree(root=/My/Meta/Path, outds=iwantthisdataset)
     options notes source;
-    
-  @param root= the parent folder under which to return all contents
-  @param outds= the dataset to create that contains the list of directories
-  @param mDebug= set to 1 to show debug messages in the log
+
+  @param [in] root= the parent folder under which to return all contents
+  @param [out] outds= the dataset to create that contains the list of directories
+  @param [in] mDebug= set to 1 to show debug messages in the log
 
   <h4> SAS Macros </h4>
 
@@ -60,7 +62,7 @@ data &outds.TMP/view=&outds.TMP;
     __n1+1;
     /* Walk through all possible associations of this object. */
     __n2=1;
-    if assoctype in ('Members','SubTrees') then 
+    if assoctype in ('Members','SubTrees') then
     do while(metadata_getnasn(pathuri,assoctype,__n2,metauri)>0);
       __n2+1;
       call missing(name,publictype,MetadataUpdated,MetadataCreated);

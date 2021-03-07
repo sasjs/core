@@ -10500,6 +10500,10 @@ run;
     put _infile_;
   run;
 %end;
+%else %do;
+  filename &frefin clear;
+  filename &frefout clear;
+%end;
 
 %mend;/**
   @file mm_webout.sas

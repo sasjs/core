@@ -1,5 +1,5 @@
 /**
-  @file mv_createwebservice.sas
+  @file
   @brief Creates a JobExecution web service if it doesn't already exist
   @details
   Code is passed in as one or more filerefs.

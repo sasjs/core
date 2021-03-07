@@ -1,11 +1,8 @@
 #!/bin/bash
 ####################################################################
 # PROJECT: Macro Core Docs Build                                   #
+# To execute, use the npm command (npm run docs)                   #
 ####################################################################
-
-cd ../..
-
-sasjs doc
 
 # refresh github pages site
 rm -rf sasjsbuild/docsite

@@ -10301,16 +10301,15 @@ run;
 %end;
 
 %mend;/**
-  @file mm_updatestpservertype.sas
+  @file
   @brief Updates a type 2 stored process to run on STP or WKS context
   @details Only works on Type 2 (9.3 compatible) STPs
 
   Usage:
 
-    %mm_updatestpservertype(target=/some/meta/path/myStoredProcess
-      ,type=WKS)
+      %mm_updatestpservertype(target=/some/meta/path/myStoredProcess
+        ,type=WKS)
 
-  <h4> SAS Macros </h4>
 
   @param target= full path to the STP being deleted
   @param type= Either WKS or STP depending on whether Workspace or Stored Process
@@ -10375,31 +10374,40 @@ run;
 
   Usage:
 
-    %mm_updatestpsourcecode(stp=/my/metadata/path/mystpname
-      ,stpcode="/file/system/source.sas")
+      %mm_updatestpsourcecode(stp=/my/metadata/path/mystpname
+        ,stpcode="/file/system/source.sas")
 
-
-  @param stp= the BIP Tree folder path plus Stored Process Name
-  @param stpcode= the source file (or fileref) containing the SAS code to load
+  @param [in] stp= the BIP Tree folder path plus Stored Process Name
+  @param [in] stpcode= the source file (or fileref) containing the SAS code to load
     into the stp.  For multiple files, they should simply be concatenated first.
-  @param minify= set to YES in order to strip comments, blank lines, and CRLFs.
+  @param [in] minify= set to YES in order to strip comments, blank lines, and CRLFs.
 
-  @param frefin= change default inref if it clashes with an existing one
-  @param frefout= change default outref if it clashes with an existing one
+  @param frefin= deprecated - a unique fileref is now always used
+  @param frefout= deprecated - a unique fileref is now always used
   @param mDebug= set to 1 to show debug messages in the log
 
   @version 9.3
   @author Allan Bowe
+
+  <h4> SAS Macros </h4>
+  @li mf_getuniquefileref.sas
 
 **/
 
 %macro mm_updatestpsourcecode(stp=
   ,stpcode=
   ,minify=NO
+  ,mdebug=0
+  /* deprecated */
   ,frefin=inmeta
   ,frefout=outmeta
-  ,mdebug=0
 );
+
+%if &frefin ne inmeta or &frefout ne outmeta %then %do;
+  %put %str(WARN)ING: the frefin and frefout parameters will be deprecated in
+    an upcoming release.;
+%end;
+
 /* first, check if STP exists */
 %local tsuri;
 %let tsuri=stopifempty ;
@@ -10437,7 +10445,9 @@ run;
   %return;
 %end;
 
-filename &frefin temp lrecl=32767;
+%local frefin frefout;
+%let frefin=%mf_getuniquefileref();
+%let frefout=%mf_getuniquefileref();
 
 /* write header XML */
 data _null_;
@@ -10450,7 +10460,7 @@ run;
 /* write contents */
 %if %length(&stpcode)>2 %then %do;
   data _null_;
-    file &frefin mod;
+    file &frefin lrecl=32767 mod;
     infile &stpcode lrecl=32767;
     length outstr $32767;
     input outstr ;
@@ -10478,9 +10488,6 @@ data _null_;
   put "'></TextStore></Metadata><NS>SAS</NS><Flags>268435456</Flags>
     </UpdateMetadata>";
 run;
-
-
-filename &frefout temp;
 
 proc metadata in= &frefin out=&frefout;
 run;

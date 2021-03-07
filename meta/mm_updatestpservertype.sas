@@ -1,14 +1,13 @@
 /**
-  @file mm_updatestpservertype.sas
+  @file
   @brief Updates a type 2 stored process to run on STP or WKS context
   @details Only works on Type 2 (9.3 compatible) STPs
 
   Usage:
 
-    %mm_updatestpservertype(target=/some/meta/path/myStoredProcess
-      ,type=WKS)
+      %mm_updatestpservertype(target=/some/meta/path/myStoredProcess
+        ,type=WKS)
 
-  <h4> SAS Macros </h4>
 
   @param target= full path to the STP being deleted
   @param type= Either WKS or STP depending on whether Workspace or Stored Process

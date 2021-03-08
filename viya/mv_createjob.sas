@@ -217,23 +217,23 @@ run;
     rec = "20"x;
     do while(fread(filein)=0);
       rc = fget(filein,rec,1);
-      if rec='"' then do;
+      if rec='"' then do;  /* DOUBLE QUOTE */
         rc =fput(fileid,'\');rc =fwrite(fileid);
         rc =fput(fileid,'"');rc =fwrite(fileid);
       end;
-      else if rec='0A'x then do;
-        rc =fput(fileid,'\');rc =fwrite(fileid);
-        rc =fput(fileid,'r');rc =fwrite(fileid);
-      end;
-      else if rec='0D'x then do;
+      else if rec='0A'x then do; /* LF */
         rc =fput(fileid,'\');rc =fwrite(fileid);
         rc =fput(fileid,'n');rc =fwrite(fileid);
       end;
-      else if rec='09'x then do;
+      else if rec='0D'x then do; /* CR */
+        rc =fput(fileid,'\');rc =fwrite(fileid);
+        rc =fput(fileid,'r');rc =fwrite(fileid);
+      end;
+      else if rec='09'x then do; /* TAB */
         rc =fput(fileid,'\');rc =fwrite(fileid);
         rc =fput(fileid,'t');rc =fwrite(fileid);
       end;
-      else if rec='5C'x then do;
+      else if rec='5C'x then do; /* BACKSLASH */
         rc =fput(fileid,'\');rc =fwrite(fileid);
         rc =fput(fileid,'\');rc =fwrite(fileid);
       end;

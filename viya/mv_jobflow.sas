@@ -106,6 +106,8 @@
       @li sas_services - will use oauth_bearer=sas_services
   @param [in] inds= The input dataset containing a list of jobs and parameters
   @param [in] maxconcurrency= The max number of parallel jobs to run.  Default=8.
+  @param [in] raise_err=0 Set to 1 to raise SYSCC when a job does not complete
+            succcessfully
   @param [in] mdebug= set to 1 to enable DEBUG messages
   @param [out] outds= The output dataset containing the results
   @param [out] outref= The output fileref to which to append the log file(s).
@@ -129,6 +131,7 @@
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
     ,outref=0
+    ,raise_err=0
     ,mdebug=0
   );
 %local oauth_bearer;
@@ -307,7 +310,8 @@ data;run;%let jdswaitfor=&syslast;
     %end;
     %if &jid=&jcnt %then %do;
       /* we are at the end of the loop - time to see which jobs have finished */
-      %mv_jobwaitfor(ANY,inds=&jdsrunning,outds=&jdswaitfor,outref=&outref)
+      %mv_jobwaitfor(ANY,inds=&jdsrunning,outds=&jdswaitfor,outref=&outref
+                    ,raise_err=&raise_err)
       %local done;
       %let done=%mf_nobs(&jdswaitfor);
       %if &done>0 %then %do;

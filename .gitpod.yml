@@ -1,4 +1,3 @@
-
 tasks:
   - init: npm i && clear
 
@@ -6,4 +5,4 @@ image:
   file: .gitpod.dockerfile
 vscode:
   extensions:
-    - sasjs.sasjs-for-vscode
+    - sasjs.sasjs-for-vscode@1.4.3:LY5VLf6H5R3u7nqVRnCQRw==

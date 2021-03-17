@@ -131,7 +131,7 @@
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
     ,outref=0
-    ,raise_error=0
+    ,raise_err=0
     ,mdebug=0
   );
 %local oauth_bearer;

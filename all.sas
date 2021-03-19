@@ -13910,6 +13910,8 @@ libname &libref;
       @li sas_services - will use oauth_bearer=sas_services
   @param [in] inds= The input dataset containing a list of jobs and parameters
   @param [in] maxconcurrency= The max number of parallel jobs to run.  Default=8.
+  @param [in] raise_err=0 Set to 1 to raise SYSCC when a job does not complete
+            succcessfully
   @param [in] mdebug= set to 1 to enable DEBUG messages
   @param [out] outds= The output dataset containing the results
   @param [out] outref= The output fileref to which to append the log file(s).
@@ -13933,6 +13935,7 @@ libname &libref;
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
     ,outref=0
+    ,raise_err=0
     ,mdebug=0
   );
 %local oauth_bearer;
@@ -14111,7 +14114,8 @@ data;run;%let jdswaitfor=&syslast;
     %end;
     %if &jid=&jcnt %then %do;
       /* we are at the end of the loop - time to see which jobs have finished */
-      %mv_jobwaitfor(ANY,inds=&jdsrunning,outds=&jdswaitfor,outref=&outref)
+      %mv_jobwaitfor(ANY,inds=&jdsrunning,outds=&jdswaitfor,outref=&outref
+                    ,raise_err=&raise_err)
       %local done;
       %let done=%mf_nobs(&jdswaitfor);
       %if &done>0 %then %do;
@@ -14218,6 +14222,8 @@ data;run;%let jdswaitfor=&syslast;
     following format:  `/jobExecution/jobs/&JOBID./state` and the corresponding
     job name.  The uri should be in a `uri` variable, and the job path/name
     should be in a `_program` variable.
+  @param [in] raise_err=0 Set to 1 to raise SYSCC when a job does not complete
+              succcessfully
   @param [out] outds= The output dataset containing the list of states by job
     (default=work.mv_jobexecute)
   @param [out] outref= A fileref to which the spawned job logs should be appended.
@@ -14229,6 +14235,7 @@ data;run;%let jdswaitfor=&syslast;
   @li mp_abort.sas
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
+  @li mf_getuniquelibref.sas
   @li mf_existvar.sas
   @li mf_nobs.sas
   @li mv_getjoblog.sas
@@ -14241,6 +14248,7 @@ data;run;%let jdswaitfor=&syslast;
     ,inds=0
     ,outds=work.mv_jobwaitfor
     ,outref=0
+    ,raise_err=0
   );
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
@@ -14284,7 +14292,7 @@ options noquotelenmax;
 data _null_;
   length jobparams $32767;
   set &inds end=last;
-  call symputx(cats('joburi',_n_),substr(uri,1,55)!!'/state','l');
+  call symputx(cats('joburi',_n_),substr(uri,1,55),'l');
   call symputx(cats('jobname',_n_),_program,'l');
   call symputx(cats('jobparams',_n_),jobparams,'l');
   if last then call symputx('uricnt',_n_,'l');
@@ -14299,7 +14307,7 @@ run;
 %let fname0=%mf_getuniquefileref();
 
 data &outds;
-  format _program uri $128. state $32. timestamp datetime19. jobparams $32767.;
+  format _program uri $128. state $32. stateDetails $32. timestamp datetime19. jobparams $32767.;
   stop;
 run;
 
@@ -14307,7 +14315,7 @@ run;
 %do i=1 %to &uricnt;
   %if "&&joburi&i" ne "0" %then %do;
     proc http method='GET' out=&fname0 &oauth_bearer url="&base_uri/&&joburi&i";
-      headers "Accept"="text/plain"
+      headers "Accept"="application/json"
       %if &grant_type=authorization_code %then %do;
               "Authorization"="Bearer &&&access_token_var"
       %end;  ;
@@ -14321,11 +14329,19 @@ run;
     %end;
 
     %let status=notset;
+
+    %local libref1;
+    %let libref1=%mf_getuniquelibref();
+    libname &libref1 json fileref=&fname0;
+
     data _null_;
-      infile &fname0;
-      input;
-      call symputx('status',_infile_,'l');
+      length state stateDetails $32;
+      set &libref1..root;
+      call symputx('status',state,'l');
+      call symputx('stateDetails',stateDetails,'l');
     run;
+
+    libname &libref1 clear;
 
     %if &status=completed or &status=failed or &status=canceled %then %do;
       %local plainuri;
@@ -14335,6 +14351,7 @@ run;
         _program="&&jobname&i",
         uri="&plainuri",
         state="&status",
+        stateDetails=symget("stateDetails"),
         timestamp=datetime(),
         jobparams=symget("jobparams&i");
       %let joburi&i=0; /* do not re-check */
@@ -14353,6 +14370,16 @@ run;
         ,msg=%str(status &status not expected!!)
       )
     %end;
+
+    %if (&raise_err) %then %do;
+      %if (&status = canceled or &status = failed or %length(&stateDetails)>0) %then %do;
+        %if ("&stateDetails" = "%str(war)ning") %then %let SYSCC=4;
+        %else %let SYSCC=5;
+        %put %str(ERR)OR: Job &&jobname&i. did not complete successfully. &stateDetails;
+        %return;
+      %end; 
+    %end;
+
   %end;
   %if &i=&uricnt %then %do;
     %local goback;

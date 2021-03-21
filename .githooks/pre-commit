@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # A hook script to verify that no filenames with capital letters are committed.
 # Called by "git commit" with no arguments.  The hook should
@@ -6,69 +6,11 @@
 # it wants to stop the commit.
 #
 # Go through all the changed files (except for deleted and unmerged)
-#
-# Check for lines containing "debugger" "console." or "alert("
 
-# Test only JS files
-js_pattern="\.js"
-# Check for changed lines
-added_lines="^\+"
-# Check for lines with comments
-comment="(//|/\*).*"
-beginning_of_line="^\+[\s]*"
-# Check for lines containing "debugger" "console." or "alert(", skip comments
-evil_pattern="(console\.|alert\(|debugger).*"
-# Set exit code to 0, will be set to 1 on error.
+# Save exit code of last executed action
 exit_code=0
-# Grep git diff of files to commit
-js_files=$(
-	git diff --cached --find-copies --find-renames --name-only --diff-filter=ACMRTXBU |
-	grep -E "$js_pattern"
-)
 
-
-if [[ -n $js_files ]];
-then
-	for file in $js_files; do
-		# Get only changed lines AND
-		# Only lines starting with '+' AND
-		# NOT lines with comments AND
-		# Test for console, debug etc.
-		lines_with_no_comment=$(
-			git diff --cached $file |
-			grep -E "$added_lines" |
-			grep -Ev "$comment" |
-			grep -E "$evil_pattern"
-		)
-		# Get only changed lines AND
-		# Only lines starting with '+' AND
-		# NOT lines starting with a comment AND
-		# Test for lines with console, debug etc. before a comment
-		lines_with_comment=$(
-			git diff --cached $file |
-			grep -E "$added_lines" |
-			grep -Ev "$beginning_of_line$comment" |
-			grep -E "${evil_pattern}$comment"
-		)
-
-
-		if [[ -n $lines_with_no_comment || -n $lines_with_comment ]];
-		then
-			echo
-			echo -e "Found illegal commands in \033[1m$file:\033[0m"
-			echo -e '\E[0;32m'"$lines_with_no_comment"
-			echo -e "$lines_with_comment"'\033[0m'
-			echo
-			# Abort commit
-			exit_code=1
-		fi
-
-	done
-fi
-
-# Check if file is an image JPG|GIF|PNG|JPEG and check for uppercase letters
-
-# Check for image file types
+# Check if file is one of SAS|DDL|CSV|SH and check for uppercase letters
 mime_pattern="\.(sas|ddl|csv|sh)"
 # Check for capital letters only in file names
 extra_pattern="(^|/)[^/]*([A-Z]+)[^/]*\.[A-Za-z]{3}$"
@@ -76,8 +18,8 @@ extra_pattern="(^|/)[^/]*([A-Z]+)[^/]*\.[A-Za-z]{3}$"
 files=$(	git diff --cached --find-copies --find-renames --name-only --diff-filter=ACMRTXBU |
 			grep -Ei "$mime_pattern" |
 			grep -E  "$extra_pattern" )
-
-if [[ -n $files ]];
+echo "$files"
+if [ "$files" !="" ];
 then
 	echo
 	echo "Found files that contain capital letters."
@@ -90,7 +32,7 @@ then
 	exit_code=1
 fi
 
-if [ $exit_code == 0 ]; then
+if [ "$exit_code" == "0" ]; then
 	echo
 	echo -e '\033[1m'"Pre-commit validation Passed"'\033[0m'
 	echo

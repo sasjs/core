@@ -28,6 +28,10 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "docs": "sasjs doc && ./sasjs/utils/build.sh"
+    "docs": "sasjs doc && ./sasjs/utils/build.sh",
+    "postinstall": "node-git-hooks"
+  },
+  "dependencies": {
+    "node-git-hooks": "^1.0.5"
   }
 }

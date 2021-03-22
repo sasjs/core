@@ -19,14 +19,14 @@ files=$(	git diff --cached --find-copies --find-renames --name-only --diff-filte
 			grep -Ei "$mime_pattern" |
 			grep -E  "$extra_pattern" )
 echo "$files"
-if [ "$files" !="" ];
+if [[ -n "$files"  ]];
 then
 	echo
 	echo "Found files that contain capital letters."
-	echo "Please rename the following files and commit again:"
+	echo "Please rename the following files in lowercase, and commit again:"
 
 	for file in $files; do
-		echo -e '\E[0;32m'"$file"'\033[0m'
+		echo -e '- \E[0;32m'"$file"'\033[0m'
 	done
 	# Abort commit
 	exit_code=1

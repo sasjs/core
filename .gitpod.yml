@@ -5,4 +5,4 @@ image:
   file: .gitpod.dockerfile
 vscode:
   extensions:
-    - sasjs.sasjs-for-vscode@1.4.3:LY5VLf6H5R3u7nqVRnCQRw==
+    - sasjs.sasjs-for-vscode@1.6.0:V4hJpMtbpekMcPRNhh4SXQ==

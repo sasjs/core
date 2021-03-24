@@ -1,0 +1,9 @@
+{
+  "search.exclude": {
+    "**/sasjsbuild/**": true,
+    "**/dist/**":true
+  },
+  "editor.insertSpaces": true,
+  "editor.tabSize": 2,
+  "trim_trailing_whitespace": true
+}

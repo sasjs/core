@@ -9,7 +9,7 @@ filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
 %inc mc;
 ```
 
-Documentation: https://sasjs.github.io/core.github.io/files.html
+Documentation: https://core.sasjs.io
 
 # Components
 
@@ -84,7 +84,7 @@ filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
 ## File Properties
 
 - filenames much match macro names
-- filenames must be lowercase
+- filenames must be lowercase, without spaces
 - macro names must be lowercase
 - one macro per file
 - prefixes:
@@ -99,7 +99,7 @@ filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
 - unix style line endings (lf)
 - individual lines should be no more than 80 characters long
 - UTF-8
-- no trailing white space
+
 
 ## Header Properties
 
@@ -136,13 +136,15 @@ When contributing to this library, it is therefore important to ensure that all 
 ## Coding Standards
 
 - Indentation = 2 spaces. No tabs!
+- no trailing white space
+- no invisible characters, other than spaces. If invisibles are needed, use hex literals.
 - Macro variables should not have the trailing dot (`&var` not `&var.`) unless necessary to prevent incorrect resolution
-- The closing `%mend;` should not contain the macro name.
+- The closing `%mend;` should **not** contain the macro name.
 - All macros should be defined with brackets, even if no variables are needed - ie `%macro x();` not `%macro x;`
 - Mandatory parameters should be positional, all optional parameters should be keyword (var=) style.
 - All dataset references must be 2 level (eg `work.blah`, not `blah`). This is to avoid contention when options [DATASTMTCHK](https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000279064.htm)=ALLKEYWORDS is in effect.
 - Avoid naming collisions! All macro variables should be local scope. Use system generated work tables where possible - eg `data ; set sashelp.class; run; data &output; set &syslast; run;`
-- If you have a long-running SQL query, the use of a `quit;` statement is recommended in order to benefit from the timing statistics.
+- The use of `quit;` for `proc sql` is optional unless you are looking to benefit from the timing statistics.
 
 # General Notes
 

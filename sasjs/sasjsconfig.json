@@ -2,6 +2,12 @@
   "$schema": "https://cli.sasjs.io/sasjsconfig-schema.json",
   "macroFolders": ["base", "meta", "metax", "viya", "lua"],
   "docConfig":{
-    "displayMacroCore": false
+    "displayMacroCore": false,
+    "enableLineage": false,
+    "doxyContent": {
+      "favIcon": "runningman.jpg",
+      "logo": "Macro_core_website_1.png",
+      "readMe": "../../README.md"
+    }
   }
 }

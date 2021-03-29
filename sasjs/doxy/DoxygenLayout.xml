@@ -18,7 +18,7 @@
 
     <tab type="filelist" visible="yes" title="" intro="List of Files Used in the Macro-Core Library"/>
 
-    <tab type="examples" visible="no" title="" intro=""/>
+    <tab type="examples" visible="yes" title="" intro=""/>
   </navindex>
 
 

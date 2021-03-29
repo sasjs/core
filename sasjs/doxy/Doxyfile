@@ -21,6 +21,7 @@ HTML_EXTRA_STYLESHEET  = $(HTML_EXTRA_STYLESHEET)
 INHERIT_DOCS           = NO
 INLINE_INFO            = NO
 INPUT                  = $(DOXY_INPUT)
+INPUT                 += main.dox
 LAYOUT_FILE            = $(LAYOUT_FILE)
 USE_MDFILE_AS_MAINPAGE = README.md
 MAX_INITIALIZER_LINES  = 0

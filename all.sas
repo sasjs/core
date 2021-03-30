@@ -8548,37 +8548,48 @@ run;
 %mend;/**
   @file
   @brief Compares the metadata of a library with the physical tables
-
-  @param [out] prefix the dataset to create that contains the list of libraries
-  @param mDebug set to anything but 0 to show debug messages in the log
-
-  @test Create a temporary library as follows:
-
-    %
-
   @details Creates a series of output tables that show the differences between
   metadata and physical tables.
   Each output can be created with an optional prefix.
 
 
-
+  @param [in] libname the metadata name of the library to be compared
+  @param [out] prefix the dataset to create that contains the list of libraries
 
   @version 9.3
   @author Allan Bowe
 
 **/
 
-%macro mm_getlibmetadiffs
+%macro mm_getlibmetadiffs(
     prefix=metadiff
-    ,mdebug=0
 )/*/STORE SOURCE*/;
 
-%if &mdebug = 0 %then %let mdebug=*;
-
-&mdebug %put _local_;
 
 
-%mend;/**
+  options VALIDVARNAME=ANY VALIDMEMNAME=EXTEND;
+
+
+  ods trace on;
+  ods output
+    factoid1=s9h.&requestid.ml_all
+    updtab=s9h.&requestid.ml_up
+    addtab=s9h.&requestid.ml_add
+    deltab=s9h.&requestid.ml_del
+  ;
+
+  proc metalib;
+    omr=(library="&libraryname");
+    noexec;
+    report(type=detail);
+  run;
+
+  ods output close;
+  ods trace off;
+
+
+%mend;
+/**
   @file
   @brief Creates a dataset with all metadata libraries
   @details Will only show the libraries to which a user has the requisite

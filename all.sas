@@ -4094,6 +4094,103 @@ select distinct lowcase(memname)
 
 %mend;/**
   @file
+  @brief Create a Markdown Table from a dataset
+  @details A markdown table is a simple table representation for use in
+  documents written in markdown format.
+
+  An online generator is available here:
+  https://www.tablesgenerator.com/markdown_tables
+
+  This structure is also used by the Macro Core library for documenting input/
+  output datasets, as well as the sasjs/cli tool for documenting inputs/outputs
+  for web services.
+
+  We take the standard definition one step further by embedding the informat
+  in the table header row, like so:
+
+      |var1:$|var2:best.|var3:date9.|
+      |---|---|---|
+      |some text|42|01JAN1960|
+      |blah|1|31DEC1999|
+
+  Which resolves to:
+
+  |var1:$|var2:best.|var3:date9.|
+  |---|---|---|
+  |some text|42|01JAN1960|
+  |blah|1|31DEC1999|
+
+
+  Usage:
+
+      %mp_mdtablewrite(libds=sashelp.class,showlog=YES)
+
+
+  <h4> SAS Macros </h4>
+  @li mf_getvarlist.sas
+  @li mf_getvarformat.sas
+
+  @param [in] libds= the library / dataset to create or read from.
+  @param [out] fref= Fileref to contain the markdown. Default=mdtable.
+  @param [out] showlog= set to YES to show the markdown in the log. Default=NO.
+
+  @version 9.3
+  @author Allan Bowe
+**/
+
+%macro mp_mdtablewrite(
+  libds=,
+  fref=mdtable,
+  showlog=NO
+)/*/STORE SOURCE*/;
+
+/* check fileref is assigned */
+%if %sysfunc(fileref(&fref)) > 0 %then %do;
+  filename &fref temp;
+%end;
+
+%local vars;
+%let vars=%mf_getvarlist(&libds);
+
+/* create the header row */
+data _null_;
+  file &fref;
+  length line $32767;
+  put '|'
+%local i var fmt;
+%do i=1 %to %sysfunc(countw(&vars));
+  %let var=%scan(&vars,&i);
+  %let fmt=%mf_getvarformat(&libds,&var,force=1);
+  "&var:&fmt|"
+%end;
+  ;
+  put '|'
+%do i=1 %to %sysfunc(countw(&vars));
+  "---|"
+%end;
+  ;
+run;
+
+/* write out the data */
+data _null_;
+  file &fref mod dlm='|' lrecl=32767;
+  set &libds ;
+  length line $32767;
+  line=cats('|',%mf_getvarlist(&libds,dlm=%str(,'|',)),'|');
+  put line;
+run;
+
+%if %upcase(&showlog)=YES %then %do;
+  options ps=max;
+  data _null_;
+    infile &fref;
+    input;
+    putlog _infile_;
+  run;
+%end;
+
+%mend mp_mdtablewrite;/**
+  @file
   @brief Logs the time the macro was executed in a control dataset.
   @details If the dataset does not exist, it is created.  Usage:
 
@@ -8552,9 +8649,76 @@ run;
   metadata and physical tables.
   Each output can be created with an optional prefix.
 
+  Credit - Paul Homes
+  https://platformadmin.com/blogs/paul/2012/11/sas-proc-metalib-ods-output
 
-  @param [in] libname the metadata name of the library to be compared
-  @param [out] prefix the dataset to create that contains the list of libraries
+  Usage:
+
+      %* create (and assign) a library for testing purposes ;
+      %mm_createlibrary(
+        libname=My Temp Library,
+        libref=XXTEMPXX,
+        tree=/User Folders/&sysuserid,
+        directory=%sysfunc(pathname(work))
+      )
+
+      %* create some tables;
+      data work.table1 table2 table3;
+        a=1;b='two';c=3;
+      run;
+
+      %* register the tables;
+      proc metalib;
+        omr=(library="My Temp Library");
+        report(type=detail);
+        update_rule (delete);
+      run;
+
+      %* modify the tables;
+      proc sql;
+      drop table table3;
+      alter table table2 drop c;
+      alter table table2 add d num;
+
+      %* run the macro;
+      %mm_getlibmetadiffs(libname=My Temp Library)
+
+      %* delete the library ;
+      %mm_deletelibrary(name=My Temp Library)
+
+  The program will create four output tables, with the following structure (and
+  example data):
+
+  #### &prefix.added
+  |name:$32.|metaID:$17.|SAStabName:$32.|
+  |---|---|---|
+  |||DATA1|
+
+  #### &prefix.deleted
+  |name:$32.|metaID:$17.|SAStabName:$32.|
+  |---|---|---|
+  |TABLE3|A5XLSNXI.BK0001HO|TABLE3|
+
+  #### &prefix.updated
+  |tabName:$32.|tabMetaID:$17.|SAStabName:$32.|metaName:$32.|metaID:$17.|sasname:$32.|metaType:$16.|change:$64.|
+  |---|---|---|---|---|---|---|---|
+  |TABLE2|A5XLSNXI.BK0001HN|TABLE2|c|A5XLSNXI.BM000MA9|c|Column|Deleted|
+  ||||d||d|Column|Added|
+
+  #### &prefix.meta
+  |Label1:$28.|cValue1:$1.|nValue1:D12.3|
+  |---|---|---|
+  |Total tables analyzed|4|4|
+  |Tables to be Updated|1|1|
+  |Tables to be Deleted|1|1|
+  |Tables to be Added|1|1|
+  |Tables matching data source|1|1|
+  |Tables not processed|0|0|
+
+  @param [in] libname= the metadata name of the library to be compared
+  @param [out] outlib= The output library in which to store the output tables.
+  Default=WORK.
+  @param [out] prefix The prefix for the four tables created. Default=metadiff.
 
   @version 9.3
   @author Allan Bowe
@@ -8562,33 +8726,43 @@ run;
 **/
 
 %macro mm_getlibmetadiffs(
-    prefix=metadiff
+  libname= ,
+  prefix=metadiff,
+  outlib=work
 )/*/STORE SOURCE*/;
 
+  /* create tempds */
+  data;run;
+  %local tempds;
+  %let tempds=&syslast;
 
+  /* save options */
+  proc optsave out=&tempds;
+  run;
 
   options VALIDVARNAME=ANY VALIDMEMNAME=EXTEND;
 
-
-  ods trace on;
   ods output
-    factoid1=s9h.&requestid.ml_all
-    updtab=s9h.&requestid.ml_up
-    addtab=s9h.&requestid.ml_add
-    deltab=s9h.&requestid.ml_del
+    factoid1=&outlib..&prefix.meta
+    updtab=&outlib..&prefix.updated
+    addtab=&outlib..&prefix.added
+    deltab=&outlib..&prefix.deleted
   ;
 
   proc metalib;
-    omr=(library="&libraryname");
+    omr=(library="&libname");
     noexec;
     report(type=detail);
+    update_rule (delete);
   run;
 
   ods output close;
-  ods trace off;
 
+  /* restore options */
+  proc optload data=&tempds;
+  run;
 
-%mend;
+%mend mm_getlibmetadiffs;
 /**
   @file
   @brief Creates a dataset with all metadata libraries

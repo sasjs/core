@@ -5,7 +5,8 @@
   Code is passed in as one or more filerefs.
 
       %* Step 1 - compile macros ;
-      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      filename mc url
+        "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
       %* Step 2 - Create some code and add it to a web service;
@@ -18,7 +19,7 @@
           run;
           %* send data back;
           %webout(OPEN)
-          %webout(ARR,example1) * Array format, fast, suitable for large tables ;
+          %webout(ARR,example1) * Array format, fast, suitable for large tables;
           %webout(OBJ,example2) * Object format, easier to work with ;
           %webout(CLOSE)
       ;;;;
@@ -52,7 +53,8 @@
     adapter, add a (different) fileref here.
   @param contextname= Choose a specific context on which to run the Job.  Leave
     blank to use the default context.  From Viya 3.5 it is possible to configure
-    a shared context - see https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5pyhn1wg3ja0drdl6h.htm&docsetVersion=3.5&locale=en
+    a shared context - see
+https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5pyhn1wg3ja0drdl6h.htm&docsetVersion=3.5&locale=en
 
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
@@ -163,7 +165,7 @@ proc http method='GET'
             'Accept'='application/vnd.sas.collection+json'
             'Accept-Language'='string';
 %if &debug=1 %then %do;
-   debug level = 3;
+  debug level = 3;
 %end;
 run;
 /*data _null_;infile &fname2;input;putlog _infile_;run;*/
@@ -200,23 +202,23 @@ data _null_;
   file &fname3 TERMSTR=' ';
   length string $32767;
   string=cats('{"version": 0,"name":"'
-  	,"&name"
-  	,'","type":"Compute","parameters":[{"name":"_addjesbeginendmacros"'
+    ,"&name"
+    ,'","type":"Compute","parameters":[{"name":"_addjesbeginendmacros"'
     ,',"type":"CHARACTER","defaultValue":"false"}');
   context=quote(cats(symget('contextname')));
   if context ne '""' then do;
     string=cats(string,',{"version": 1,"name": "_contextName","defaultValue":'
-     ,context,',"type":"CHARACTER","label":"Context Name","required": false}');
+      ,context,',"type":"CHARACTER","label":"Context Name","required": false}');
   end;
   string=cats(string,'],"code":"');
   put string;
 run;
 
 /**
- * Add webout macro
- * These put statements are auto generated - to change the macro, change the
- * source (mv_webout) and run `build.py`
- */
+  * Add webout macro
+  * These put statements are auto generated - to change the macro, change the
+  * source (mv_webout) and run `build.py`
+  */
 filename sasjs temp lrecl=3000;
 data _null_;
   file sasjs;
@@ -616,7 +618,7 @@ proc http method='POST'
   %end;
             "Accept"="application/vnd.sas.job.definition+json";
 %if &debug=1 %then %do;
-   debug level = 3;
+    debug level = 3;
 %end;
 run;
 /*data _null_;infile &fname4;input;putlog _infile_;run;*/

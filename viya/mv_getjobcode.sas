@@ -5,7 +5,7 @@
   Example:
 
       %mv_getjobcode(
-         path=/Public/jobs
+        path=/Public/jobs
         ,name=some_job
         ,outfile=/tmp/some_job.sas
       )
@@ -129,7 +129,7 @@ data _null_;
     outfile:write(job)
     io.close(infile)
     io.close(outfile)
-   ';
+  ';
 run;
 %inc "&fpath3..lua";
 /* export to desired destination */

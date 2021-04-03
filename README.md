@@ -40,7 +40,7 @@ Documentation: https://core.sasjs.io
 - X command enabled
 - Prefixes: _mmw_,_mmu_,_mmx_
 
-**lua** library 
+**lua** library
 
 Wait - this is a macro library - what is LUA doing here?  Well, it is a little known fact that you CAN run LUA within a SAS Macro.  It has to be written to a text file with a `.lua` extension, from where you can `%include` it.  So, without using the `proc lua` wrapper.
 
@@ -51,7 +51,7 @@ To contribute, simply write your freeform LUA in the LUA folder.  Then run the `
 %ml_yourmodule()
 
 /* Execute.  Do not use the restart keyword! */
-proc lua; 
+proc lua;
 submit;
   print(yourStuff);
 endsubmit;
@@ -118,7 +118,7 @@ All macros must be commented in the doxygen format, to enable the [online docume
 ### Dependencies
 SAS code can contain one of two types of dependency - SAS Macros, and SAS Programs.  When compiling projects using the [SASjs CLI](https://cli.sasjs.io) the doxygen header is scanned for `  @li` items under the following headers:
 
-```
+```sas
   <h4> SAS Macros </h4>
   @li mf_nobs.sas
   @li mm_assignlib.sas

@@ -225,7 +225,7 @@ run;
         %else %let SYSCC=5;
         %put %str(ERR)OR: Job &&jobname&i. did not complete successfully. &stateDetails;
         %return;
-      %end; 
+      %end;
     %end;
 
   %end;

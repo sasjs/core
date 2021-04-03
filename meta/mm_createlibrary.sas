@@ -56,7 +56,7 @@
 **/
 
 %macro mm_createlibrary(
-     libname=My New Library
+    libname=My New Library
     ,libref=mynewlib
     ,libdesc=Created automatically using the mm_createlibrary macro
     ,engine=BASE
@@ -78,8 +78,8 @@
 %let libref=%upcase(&libref);
 
 /**
- * Check Library does not exist already with this libname
- */
+  * Check Library does not exist already with this libname
+  */
 data _null_;
   length type uri $256;
   rc=metadata_resolve("omsobj:SASLibrary?@Name='&libname'",type,uri);
@@ -93,8 +93,8 @@ run;
 %end;
 
 /**
- * Check Library does not exist already with this libref
- */
+  * Check Library does not exist already with this libref
+  */
 data _null_;
   length type uri $256;
   rc=metadata_resolve("omsobj:SASLibrary?@Libref='&libref'",type,uri);
@@ -109,13 +109,13 @@ run;
 
 
 /**
- * Attempt to create tree
- */
+  * Attempt to create tree
+  */
 %mm_createfolder(path=&tree)
 
 /**
- * check tree exists
- */
+  * check tree exists
+  */
 data _null_;
   length type uri $256;
   rc=metadata_pathobj("","&tree","Folder",type,uri);
@@ -128,8 +128,8 @@ run;
 %end;
 
 /**
- * Create filerefs for proc metadata call
- */
+  * Create filerefs for proc metadata call
+  */
 filename &frefin temp;
 filename &frefout temp;
 
@@ -140,8 +140,8 @@ filename &frefout temp;
 
 
   /**
-   * Check that the ServerContext exists
-   */
+    * Check that the ServerContext exists
+    */
   data _null_;
     length type uri $256;
     rc=metadata_resolve("omsobj:ServerContext?@Name='&ServerContext'",type,uri);
@@ -155,8 +155,8 @@ filename &frefout temp;
   %end;
 
   /**
-   * Get prototype info
-   */
+    * Get prototype info
+    */
   data _null_;
     length type uri str $256;
     str="omsobj:Prototype?@Name='Library.SAS.Prototype.Name.xmlKey.txt'";
@@ -166,21 +166,21 @@ filename &frefout temp;
     putlog (_all_)(=);
   run;
   %if &checktype ne Prototype %then %do;
-    %put %str(ERR)OR: Prototype (Library.SAS.Prototype.Name.xmlKey.txt) not found!;
+    %put %str(ERR)OR: Prototype Library.SAS.Prototype.Name.xmlKey.txt not found;
     %return;
   %end;
 
   /**
-   * Check that Physical location exists
-   */
+    * Check that Physical location exists
+    */
   %if %sysfunc(fileexist(&directory))=0 %then %do;
     %put %str(ERR)OR: Physical directory (&directory) does not appear to exist!;
     %return;
   %end;
 
   /**
-   * Check that Directory Object exists in metadata
-   */
+    * Check that Directory Object exists in metadata
+    */
   data _null_;
     length type uri $256;
     rc=metadata_resolve("omsobj:Directory?@DirectoryRole='LibraryPath'"
@@ -228,16 +228,16 @@ filename &frefout temp;
   %end;
 
   /**
-   *  check SAS version
-   */
+    *  check SAS version
+    */
   %if %sysevalf(&sysver lt 9.3) %then %do;
     %put WARNING: Version 9.3 or later required;
     %return;
   %end;
 
   /**
-   * Prepare the XML and create the library
-   */
+    * Prepare the XML and create the library
+    */
   data _null_;
     file &frefin;
     treeuri=quote(symget('treeuri'));
@@ -311,8 +311,8 @@ filename &frefout temp;
 
 
 /**
- * Wrap up
- */
+  * Wrap up
+  */
 %if &mdebug ne 1 %then %do;
   filename &frefin clear;
   filename &frefout clear;

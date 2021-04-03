@@ -32,7 +32,9 @@
   /* in case the parameter is a libref.tablename, pull off just the libref */
   %let libref = %upcase(%scan(&libref, 1, %str(.)));
 
-  %let dsid=%sysfunc(open(sashelp.vlibnam(where=(libname="%upcase(&libref)")),i));
+  %let dsid=%sysfunc(
+    open(sashelp.vlibnam(where=(libname="%upcase(&libref)")),i)
+  );
   %if (&dsid ^= 0) %then %do;
     %let engnum=%sysfunc(varnum(&dsid,ENGINE));
     %let rc=%sysfunc(fetch(&dsid));
@@ -41,7 +43,7 @@
     %let rc= %sysfunc(close(&dsid));
   %end;
 
- &engine
+  &engine
 
 %mend;
 

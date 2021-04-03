@@ -38,13 +38,13 @@
 
 
   @returns outds contains the following variables:
-   - directory (containing folder)
-   - file_or_folder (file / folder)
-   - filepath (path/to/file.name)
-   - filename (just the file name)
-   - ext (.extension)
-   - msg (system message if any issues)
-   - OS SPECIFIC variables, if <code>getattrs=</code> is used.
+    - directory (containing folder)
+    - file_or_folder (file / folder)
+    - filepath (path/to/file.name)
+    - filename (just the file name)
+    - ext (.extension)
+    - msg (system message if any issues)
+    - OS SPECIFIC variables, if <code>getattrs=</code> is used.
 
   @version 9.2
   @author Allan Bowe
@@ -57,8 +57,11 @@
 )/*/STORE SOURCE*/;
 %let getattrs=%upcase(&getattrs)XX;
 
-data &outds (compress=no keep=file_or_folder filepath filename ext msg directory);
-  length directory filepath $500 fref fref2 $8 file_or_folder $6 filename $80 ext $20 msg $200;
+data &outds(compress=no
+    keep=file_or_folder filepath filename ext msg directory
+  );
+  length directory filepath $500 fref fref2 $8 file_or_folder $6 filename $80
+    ext $20 msg $200;
   %if &fref=0 %then %do;
     rc = filename(fref, "&path");
   %end;
@@ -67,15 +70,15 @@ data &outds (compress=no keep=file_or_folder filepath filename ext msg directory
     rc=0;
   %end;
   if rc = 0 then do;
-     did = dopen(fref);
-     directory=dinfo(did,'Directory');
-     if did=0 then do;
-        putlog "NOTE: This directory is empty - " directory;
-        msg=sysmsg();
-        put _all_;
-        stop;
-     end;
-     rc = filename(fref);
+    did = dopen(fref);
+    directory=dinfo(did,'Directory');
+    if did=0 then do;
+      putlog "NOTE: This directory is empty - " directory;
+      msg=sysmsg();
+      put _all_;
+      stop;
+    end;
+    rc = filename(fref);
   end;
   else do;
     msg=sysmsg();
@@ -98,7 +101,7 @@ data &outds (compress=no keep=file_or_folder filepath filename ext msg directory
 
     if index(fmsg,'File is in use') or index(dmsg,'is not a directory')
       then file_or_folder='file';
-    else if index(fmsg, 'Insufficient authorization') then file_or_folder='file';
+    else if index(fmsg,'Insufficient authorization') then file_or_folder='file';
     else if file_or_folder='' then file_or_folder='locked';
 
     if file_or_folder='file' then do;

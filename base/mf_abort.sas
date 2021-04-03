@@ -3,7 +3,7 @@
   @brief abort gracefully according to context
   @details Do not use directly!  See bottom of explanation for details.
 
-   Configures an abort mechanism according to site specific policies or the
+  Configures an abort mechanism according to site specific policies or the
     particulars of an environment.  For instance, can stream custom
     results back to the client in an STP Web App context, or completely stop
     in the case of a batch run.
@@ -49,7 +49,10 @@
         input; putlog _infile_;
         i=1;
         retain logonce 0;
-        if (_infile_=:"%str(WARN)ING" or _infile_=:"%str(ERR)OR") and logonce=0 then do;
+        if (
+            _infile_=:"%str(WARN)ING" or _infile_=:"%str(ERR)OR"
+          ) and logonce=0
+        then do;
           call symputx('logline',_n_);
           logonce+1;
         end;
@@ -112,21 +115,22 @@
     %let syscc=0;
     %if %symexist(SYS_JES_JOB_URI) %then %do;
       /* refer web service output to file service in one hit */
-      filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name="_webout.json";
+      filename _webout filesrvc parenturi="&SYS_JES_JOB_URI"
+        name="_webout.json";
       %let rc=%sysfunc(fcopy(_web,_webout));
     %end;
     %else %do;
       data _null_;
         if symexist('sysprocessmode')
-         then if symget("sysprocessmode")="SAS Stored Process Server"
-          then rc=stpsrvset('program error', 0);
+          then if symget("sysprocessmode")="SAS Stored Process Server"
+            then rc=stpsrvset('program error', 0);
       run;
     %end;
     /**
-     * endsas is reliable but kills some deployments.
-     * Abort variants are ungraceful (non zero return code)
-     * This approach lets SAS run silently until the end :-)
-     */
+      * endsas is reliable but kills some deployments.
+      * Abort variants are ungraceful (non zero return code)
+      * This approach lets SAS run silently until the end :-)
+      */
     %put _all_;
     filename skip temp;
     data _null_;

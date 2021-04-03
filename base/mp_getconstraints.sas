@@ -14,7 +14,7 @@
           constraint unq unique(tx_from, dd_type),
           constraint nnn not null(DD_SHORTDESC)
         );
-      
+
       %mp_getconstraints(lib=work,ds=example,outds=work.constraints)
 
   @param lib= The target library (default=WORK)
@@ -49,8 +49,8 @@ create table &outds as
   on a.TABLE_CATALOG=b.TABLE_CATALOG
     and a.TABLE_NAME=b.TABLE_NAME
     and a.constraint_name=b.constraint_name
-  where a.TABLE_CATALOG="&lib"  
-    and b.TABLE_CATALOG="&lib"  
+  where a.TABLE_CATALOG="&lib"
+    and b.TABLE_CATALOG="&lib"
   %if "&ds" ne "" %then %do;
     and a.TABLE_NAME="&ds"
     and b.TABLE_NAME="&ds"

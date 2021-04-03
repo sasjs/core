@@ -31,28 +31,32 @@
 filename response temp;
 options noquotelenmax;
 proc metadata in= '<GetMetadataObjects><Reposid>$METAREPOSITORY</Reposid>
- <Type>IdentityGroup</Type><NS>SAS</NS><Flags>388</Flags>
- <Options>
- <Templates><IdentityGroup Name="" Desc="" PublicType=""/></Templates>
- <XMLSelect search="@PublicType=''Role''"/>
- </Options>
- </GetMetadataObjects>'
-  out=response;
+  <Type>IdentityGroup</Type><NS>SAS</NS><Flags>388</Flags>
+  <Options>
+  <Templates><IdentityGroup Name="" Desc="" PublicType=""/></Templates>
+  <XMLSelect search="@PublicType=''Role''"/>
+  </Options>
+  </GetMetadataObjects>'
+    out=response;
 run;
 
 filename sxlemap temp;
 data _null_;
   file sxlemap;
   put '<SXLEMAP version="1.2" name="roles"><TABLE name="roles">';
-  put "<TABLE-PATH syntax='XPath'>/GetMetadataObjects/Objects/IdentityGroup</TABLE-PATH>";
+  put "<TABLE-PATH syntax='XPath'>/GetMetadataObjects/Objects/IdentityGroup";
+  put "</TABLE-PATH>";
   put '<COLUMN name="roleuri">';
-  put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/IdentityGroup/@Id</PATH>";
+  put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/IdentityGroup/@Id";
+  put "</PATH>";
   put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>32</LENGTH>";
   put '</COLUMN><COLUMN name="rolename">';
-  put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/IdentityGroup/@Name</PATH>";
+  put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/IdentityGroup/@Name";
+  put "</PATH>";
   put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>256</LENGTH>";
   put '</COLUMN><COLUMN name="roledesc">';
-  put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/IdentityGroup/@Desc</PATH>";
+  put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/IdentityGroup/@Desc";
+  put "</PATH>";
   put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>500</LENGTH>";
   put '</COLUMN></TABLE></SXLEMAP>';
 run;

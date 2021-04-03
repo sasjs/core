@@ -20,7 +20,7 @@
 
 %macro mf_getvalue(libds,variable,filter=1
 )/*/STORE SOURCE*/;
- %if %mf_getattrn(&libds,NLOBS)>0 %then %do;
+  %if %mf_getattrn(&libds,NLOBS)>0 %then %do;
     %local dsid rc &variable;
     %let dsid=%sysfunc(open(&libds(where=(&filter))));
     %syscall set(dsid);

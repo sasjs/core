@@ -10,20 +10,22 @@
         , maxobs=5)
 
   TODO:
-     - labelling the dataset
-     - explicity setting a unix LF
-     - constraints / indexes etc
+    - labelling the dataset
+    - explicity setting a unix LF
+    - constraints / indexes etc
 
-  @param [in] base_ds= Should be two level - eg work.blah.  This is the table that
-                   is converted to a cards file.
-  @param [in] tgt_ds= Table that the generated cards file would create. Optional -
-                  if omitted, will be same as BASE_DS.
+  @param [in] base_ds= Should be two level - eg work.blah.  This is the table
+                  that is converted to a cards file.
+  @param [in] tgt_ds= Table that the generated cards file would create.
+    Optional - if omitted, will be same as BASE_DS.
   @param [out] cards_file= Location in which to write the (.sas) cards file
-  @param [in] maxobs= to limit output to the first <code>maxobs</code> observations
-  @param [in] showlog= whether to show generated cards file in the SAS log (YES/NO)
+  @param [in] maxobs= to limit output to the first <code>maxobs</code>
+    observations
+  @param [in] showlog= whether to show generated cards file in the SAS log
+    (YES/NO)
   @param [in] outencoding= provide encoding value for file statement (eg utf-8)
-  @param [in] append= If NO then will rebuild the cards file if it already exists,
-  otherwise will append to it.  Used by the mp_lib2cards.sas macro.
+  @param [in] append= If NO then will rebuild the cards file if it already
+    exists, otherwise will append to it.  Used by the mp_lib2cards.sas macro.
 
 
   @version 9.2
@@ -41,8 +43,8 @@
 %local i setds nvars;
 
 %if not %sysfunc(exist(&base_ds)) %then %do;
-   %put WARNING:  &base_ds does not exist;
-   %return;
+  %put WARNING:  &base_ds does not exist;
+  %return;
 %end;
 
 %if %index(&base_ds,.)=0 %then %let base_ds=WORK.&base_ds;
@@ -64,10 +66,12 @@ select count(*) into: nvars from dictionary.columns
 %end;
 
 /* get indexes */
-proc sort data=sashelp.vindex
-    (where=(upcase(libname)="%scan(%upcase(&base_ds),1)"
-       and upcase(memname)="%scan(%upcase(&base_ds),2)"))
-	out=_data_;
+proc sort
+  data=sashelp.vindex(
+    where=(upcase(libname)="%scan(%upcase(&base_ds),1)"
+      and upcase(memname)="%scan(%upcase(&base_ds),2)")
+    )
+  out=_data_;
   by indxname indxpos;
 run;
 
@@ -82,7 +86,7 @@ data _null_;
     idxcnt+1;
     nom='';
     uni='';
-  	vars=name;
+    vars=name;
   end;
   else vars=catx(' ',vars,name);
   if last.indxname then do;
@@ -110,8 +114,8 @@ proc sql
   ;
 reset outobs=max;
 create table datalines1 as
-   select name,type,length,varnum,format,label from dictionary.columns
-   where libname="%upcase(%scan(&base_ds,1))"
+  select name,type,length,varnum,format,label from dictionary.columns
+  where libname="%upcase(%scan(&base_ds,1))"
     and memname="%upcase(%scan(&base_ds,2))";
 
 /**
@@ -126,7 +130,7 @@ create table datalines1 as
 
 data datalines_2;
   format dataline $32000.;
- set datalines1 (where=(upcase(name) not in
+  set datalines1 (where=(upcase(name) not in
     ('PROCESSED_DTTM','VALID_FROM_DTTM','VALID_TO_DTTM')));
   if type='num' then dataline=
     cats('ifc(int(',name,')=',name,'
@@ -140,9 +144,9 @@ proc sql noprint;
 select dataline into: datalines separated by ',' from datalines_2;
 
 %local
-   process_dttm_flg
-   valid_from_dttm_flg
-   valid_to_dttm_flg
+  process_dttm_flg
+  valid_from_dttm_flg
+  valid_to_dttm_flg
 ;
 %let process_dttm_flg = N;
 %let valid_from_dttm_flg = N;
@@ -212,7 +216,7 @@ data _null_;
       put "input ";
       %do i = 1 %to &nvars.;
         %if(%length(&&input_stmt_&i..)) %then
-           put "   &&input_stmt_&i..";
+          put "   &&input_stmt_&i..";
         ;
       %end;
       put ";";

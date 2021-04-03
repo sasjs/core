@@ -17,12 +17,12 @@
 **/
 
 %macro mm_deletestp(
-     target=
+    target=
 )/*/STORE SOURCE*/;
 
 /**
- * Check STP does exist
- */
+  * Check STP does exist
+  */
 %local cmtype;
 data _null_;
   length type uri $256;
@@ -38,10 +38,10 @@ run;
 filename __in temp lrecl=10000;
 filename __out temp lrecl=10000;
 data _null_ ;
-   file __in ;
-   put "<DeleteMetadata><Metadata><ClassifierMap Id='&stpuri'/>";
-   put "</Metadata><NS>SAS</NS><Flags>268436480</Flags><Options/>";
-   put "</DeleteMetadata>";
+  file __in ;
+  put "<DeleteMetadata><Metadata><ClassifierMap Id='&stpuri'/>";
+  put "</Metadata><NS>SAS</NS><Flags>268436480</Flags><Options/>";
+  put "</DeleteMetadata>";
 run ;
 proc metadata in=__in out=__out verbose;run;
 
@@ -52,8 +52,8 @@ filename __in clear;
 filename __out clear;
 
 /**
- * Check deletion
- */
+  * Check deletion
+  */
 %local isgone;
 data _null_;
   length type uri $256;

@@ -133,7 +133,9 @@ run;
 
     if notnull='yes' then notnul=' not null';
     if notnull='no' and missing(label) then put '  ' name typ;
-    else if notnull='yes' and missing(label) then put '  ' name typ '[' notnul ']';
+    else if notnull='yes' and missing(label) then do;
+      put '  ' name typ '[' notnul ']';
+    end;
     else if notnull='no' then put '  ' name typ '[' lab ']';
     else put '  ' name typ '[' notnul ',' lab ']';
 
@@ -166,7 +168,7 @@ run;
       call symputx('constcheck',1);
     end;
 
-    if last then call symputx('constraints_used',cats(upcase(constraints_used)));
+    if last then call symput('constraints_used',cats(upcase(constraints_used)));
 
     length curds const col $39;
     curds="&curds";
@@ -176,7 +178,8 @@ run;
 
   proc append base=&pkds data=&syslast;run;
 
-  /* Create Unique Indexes, but only if they were not already defined within the Constraints section. */
+  /* Create Unique Indexes, but only if they were not already defined within
+    the Constraints section. */
   data _data_(keep=curds const col);
     set &idxinfo (where=(
       libname="%scan(&curds,1,.)"
@@ -187,7 +190,7 @@ run;
     file &outref mod;
     by idxusage indxname;
     name=upcase(name);
-    if &constcheck=1 then stop; /* in fact we only care about PKs so stop if we have */
+    if &constcheck=1 then stop; /* we only care about PKs so stop if we have */
     if _n_=1 and &constcheck=0 then put / '  indexes {';
 
     length cols $5000;
@@ -217,8 +220,8 @@ run;
 %end;
 
 /**
- * now we need to figure out the relationships
- */
+  * now we need to figure out the relationships
+  */
 
 /* sort alphabetically so we can have one set of unique cols per table */
 proc sort data=&pkds nodupkey;
@@ -226,7 +229,7 @@ proc sort data=&pkds nodupkey;
 run;
 
 data &pkds.1 (keep=curds col)
-     &pkds.2 (keep=curds cols);
+    &pkds.2 (keep=curds cols);
   set &pkds;
   by curds const;
   length retconst $39 cols $5000;
@@ -261,7 +264,11 @@ run;
       line='Ref: "'!!"&curds"
         !!cats('".(',"%mf_getquotedstr(&pkcols,dlm=%str(,),quote=%str( ))",')')
         !!' - '
-        !!cats(quote(trim(curds)),'.(',"%mf_getquotedstr(&pkcols,dlm=%str(,),quote=%str( ))",')');
+        !!cats(quote(trim(curds))
+            ,'.('
+            ,"%mf_getquotedstr(&pkcols,dlm=%str(,),quote=%str( ))"
+            ,')'
+          );
       put line;
     run;
 
@@ -282,7 +289,9 @@ run;
     create table &pkds.5b as
       select curds,count(*) as cnt
       from &pkds.5a
-      where curds not in (select curds from &pkds.2 where cols="&pkcols") /* not a one to one match */
+      where curds not in (
+          select curds from &pkds.2 where cols="&pkcols"
+        ) /* not a one to one match */
         and curds ne "&curds" /* exclude self */
       group by 1;
     create table &pkds.6 as

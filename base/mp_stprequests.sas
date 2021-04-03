@@ -1,12 +1,13 @@
 /**
   @file
   @brief Capture session start / finish times and request details
-  @details For details, see http://www.rawsas.com/2015/09/logging-of-stored-process-server.html.
+  @details For details, see
+  https://rawsas.com/event-logging-of-stored-process-server-sessions.
     Requires a base table in the following structure (name can be changed):
 
     proc sql;
     create table &libds(
-       request_dttm num not null format=datetime.
+      request_dttm num not null format=datetime.
       ,status_cd char(4) not null
       ,_metaperson varchar(100) not null
       ,_program varchar(500)

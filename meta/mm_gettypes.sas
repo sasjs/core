@@ -26,16 +26,16 @@
 filename response temp;
 /* get list of libraries */
 proc metadata in=
- '<GetTypes>
-   <Types/>
-   <NS>SAS</NS>
-   <!-- specify the OMI_SUCCINCT flag -->
-   <Flags>2048</Flags>
-   <Options>
-     <!-- include <REPOSID> XML element and a repository identifier -->
-     <Reposid>$METAREPOSITORY</Reposid>
-   </Options>
-</GetTypes>'
+  '<GetTypes>
+    <Types/>
+    <NS>SAS</NS>
+    <!-- specify the OMI_SUCCINCT flag -->
+    <Flags>2048</Flags>
+    <Options>
+      <!-- include <REPOSID> XML element and a repository identifier -->
+      <Reposid>$METAREPOSITORY</Reposid>
+    </Options>
+  </GetTypes>'
   out=response;
 run;
 

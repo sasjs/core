@@ -72,10 +72,10 @@
     foundation repo then select a different one here
 
   @returns outds  dataset containing the following columns:
-   - stpuri
-   - prompturi
-   - fileuri
-   - texturi
+    - stpuri
+    - prompturi
+    - fileuri
+    - texturi
 
   @version 9.2
   @author Allan Bowe
@@ -83,7 +83,7 @@
 **/
 
 %macro mm_createstp(
-     stpname=Macro People STP
+    stpname=Macro People STP
     ,stpdesc=This stp was created automatically by the mm_createstp macro
     ,filename=mm_createstp.sas
     ,directory=SASEnvironment/SASCode
@@ -109,8 +109,8 @@
 %mp_dropmembers(%scan(&outds,2,.))
 
 /**
- * check tree exists
- */
+  * check tree exists
+  */
 data _null_;
   length type uri $256;
   rc=metadata_pathobj("","&tree","Folder",type,uri);
@@ -123,8 +123,8 @@ run;
 %end;
 
 /**
- * Check STP does not exist already
- */
+  * Check STP does not exist already
+  */
 %local cmtype;
 data _null_;
   length type uri $256;
@@ -138,8 +138,8 @@ run;
 %end;
 
 /**
- * Check that the physical file exists
- */
+  * Check that the physical file exists
+  */
 %if %sysfunc(fileexist(&directory/&filename)) ne 1 %then %do;
   %put WARNING: FILE *&directory/&filename* NOT FOUND!;
   %return;
@@ -210,7 +210,8 @@ run;
     rc3=METADATA_SETATTR(prompturi, 'GroupType','2');
     rc4=METADATA_SETATTR(prompturi, 'Name','Parameters');
     rc5=METADATA_SETATTR(prompturi, 'PublicType','Embedded:PromptGroup');
-    GroupInfo="<PromptGroup promptId='PromptGroup_%sysfunc(datetime())_&sysprocessid'"
+    GroupInfo=
+      "<PromptGroup promptId='PromptGroup_%sysfunc(datetime())_&sysprocessid'"
       !!" version='1.0'><Label><Text xml:lang='en-GB'>Parameters</Text>"
       !!"</Label></PromptGroup>";
     rc6 = METADATA_SETATTR(prompturi, 'GroupInfo',groupinfo);
@@ -315,8 +316,8 @@ run;
   %end;
 
   /**
-   * First, create a Hello World type 2 stored process
-   */
+    * First, create a Hello World type 2 stored process
+    */
   filename &frefin temp;
   data _null_;
     file &frefin;
@@ -371,8 +372,8 @@ run;
   %end;
 
   /**
-   * Next, add the source code
-   */
+    * Next, add the source code
+    */
   %mm_updatestpsourcecode(stp=&tree/&stpname
     ,stpcode="&directory/&filename"
     ,frefin=&frefin.

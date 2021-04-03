@@ -35,7 +35,7 @@
 
 
 %macro mf_verifymacvars(
-     verifyVars  /* list of macro variable NAMES */
+    verifyVars  /* list of macro variable NAMES */
     ,makeUpcase=NO  /* set to YES to make all the variable VALUES uppercase */
     ,mAbort=SOFT
 )/*/STORE SOURCE*/;

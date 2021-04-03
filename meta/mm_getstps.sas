@@ -23,16 +23,17 @@
     combine with the <code>tree=</code> parameter.
   @param outds= the dataset to create that contains the list of stps.
   @param mDebug= set to 1 to show debug messages in the log
-  @param showDesc= provide a non blank value to return stored process descriptions
-  @param showUsageVersion= provide a non blank value to return the UsageVersion.  This
-    is either 1000000 (type 1, 9.2) or 2000000 (type2, 9.3 onwards).
+  @param showDesc= provide a non blank value to return stored process
+    descriptions
+  @param showUsageVersion= provide a non blank value to return the UsageVersion.
+    This is either 1000000 (type 1, 9.2) or 2000000 (type2, 9.3 onwards).
 
   @returns outds  dataset containing the following columns
-   - stpuri
-   - stpname
-   - treeuri
-   - stpdesc (if requested)
-   - usageversion (if requested)
+    - stpuri
+    - stpname
+    - treeuri
+    - stpdesc (if requested)
+    - usageversion (if requested)
 
   @version 9.2
   @author Allan Bowe
@@ -40,7 +41,7 @@
 **/
 
 %macro mm_getstps(
-     tree=
+    tree=
     ,name=
     ,outds=work.mm_getstps
     ,mDebug=0

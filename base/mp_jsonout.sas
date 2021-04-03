@@ -4,8 +4,8 @@
   @details PROC JSON is faster but will produce errs like the ones below if
   special chars are encountered.
 
-     >An object or array close is not valid at this point in the JSON text.
-     >Date value out of range
+  >An object or array close is not valid at this point in the JSON text.
+  >Date value out of range
 
   If this happens, try running with ENGINE=DATASTEP.
 
@@ -13,7 +13,7 @@
 
         filename tmp temp;
         data class; set sashelp.class;run;
-        
+
         %mp_jsonout(OBJ,class,jref=tmp)
 
         data _null_;
@@ -22,7 +22,7 @@
         run;
 
   If you are building web apps with SAS then you are strongly encouraged to use
-  the mX_createwebservice macros in combination with the 
+  the mX_createwebservice macros in combination with the
   [sasjs adapter](https://github.com/sasjs/adapter).
   For more information see https://sasjs.io
 
@@ -38,11 +38,11 @@
   @param fmt= Whether to keep or strip formats from the table
   @param engine= Which engine to use to send the JSON, options are:
   * PROCJSON (default)
-  * DATASTEP 
+  * DATASTEP
 
   @param dbg= DEPRECATED - was used to conditionally add PRETTY to
     proc json but this can cause line truncation in large files.
-    
+
 
   @version 9.2
   @author Allan Bowe
@@ -66,7 +66,7 @@
   %if &engine=PROCJSON %then %do;
     data;run;%let tempds=&syslast;
     proc sql;drop table &tempds;
-    data &tempds /view=&tempds;set &ds; 
+    data &tempds /view=&tempds;set &ds;
     %if &fmt=N %then format _numeric_ best32.;;
     proc json out=&jref pretty
         %if &action=ARR %then nokeys ;
@@ -81,13 +81,14 @@
       %put &sysmacroname:  &ds NOT FOUND!!!;
       %return;
     %end;
-    data _null_;file &jref mod ; 
+    data _null_;file &jref mod ;
       put "["; call symputx('cols',0,'l');
-    proc sort data=sashelp.vcolumn(where=(libname='WORK' & memname="%upcase(&ds)"))
+    proc sort
+      data=sashelp.vcolumn(where=(libname='WORK' & memname="%upcase(&ds)"))
       out=_data_;
       by varnum;
 
-    data _null_; 
+    data _null_;
       set _last_ end=last;
       call symputx(cats('name',_n_),name,'l');
       call symputx(cats('type',_n_),type,'l');
@@ -121,8 +122,9 @@
         )))))!!'"';
       %end;
     %end;
-    run; 
-    /* write to temp loc to avoid _webout truncation - https://support.sas.com/kb/49/325.html */
+    run;
+    /* write to temp loc to avoid _webout truncation
+      - https://support.sas.com/kb/49/325.html */
     filename _sjs temp lrecl=131068 encoding='utf-8';
     data _null_; file _sjs lrecl=131068 encoding='utf-8' mod;
       set &tempds;
@@ -131,7 +133,7 @@
       %do i=1 %to &cols;
         %if &i>1 %then  "," ;
         %if &action=OBJ %then """&&name&i"":" ;
-        &&name&i 
+        &&name&i
       %end;
       %if &action=ARR %then "]" ; %else "}" ; ;
     proc sql;

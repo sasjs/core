@@ -18,12 +18,12 @@
 **/
 
 %macro mm_deletedocument(
-     target=
+    target=
 )/*/STORE SOURCE*/;
 
 /**
- * Check document exist
- */
+  * Check document exist
+  */
 %local type;
 data _null_;
   length type uri $256;
@@ -39,10 +39,10 @@ run;
 filename __in temp lrecl=10000;
 filename __out temp lrecl=10000;
 data _null_ ;
-   file __in ;
-   put "<DeleteMetadata><Metadata><Document Id='&stpuri'/>";
-   put "</Metadata><NS>SAS</NS><Flags>268436480</Flags><Options/>";
-   put "</DeleteMetadata>";
+  file __in ;
+  put "<DeleteMetadata><Metadata><Document Id='&stpuri'/>";
+  put "</Metadata><NS>SAS</NS><Flags>268436480</Flags><Options/>";
+  put "</DeleteMetadata>";
 run ;
 proc metadata in=__in out=__out verbose;run;
 
@@ -53,8 +53,8 @@ filename __in clear;
 filename __out clear;
 
 /**
- * Check deletion
- */
+  * Check deletion
+  */
 %local isgone;
 data _null_;
   length type uri $256;

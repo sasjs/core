@@ -10,9 +10,9 @@
   @param mDebug= set to 1 to show debug messages in the log
 
   @returns outds  dataset containing the following columns:
-   - directoryuri
-   - groupname
-   - groupdesc
+    - directoryuri
+    - groupname
+    - groupdesc
 
   @version 9.2
   @author Allan Bowe
@@ -20,7 +20,7 @@
 **/
 
 %macro mm_getDirectories(
-     path=
+    path=
     ,outds=work.mm_getDirectories
     ,mDebug=0
 )/*/STORE SOURCE*/;
@@ -39,8 +39,10 @@ data &outds (keep=directoryuri name directoryname directorydesc );
   do while
   (metadata_getnobj("omsobj:Directory?@Id contains '.'",__i,directoryuri)>0);
 %end; %else %do;
-  do while
-  (metadata_getnobj("omsobj:Directory?@DirectoryName='&path'",__i,directoryuri)>0);
+  do while(
+    metadata_getnobj("omsobj:Directory?@DirectoryName='&path'",__i,directoryuri)
+    >0
+  );
 %end;
     __rc1=metadata_getattr(directoryuri, "Name", name);
     __rc2=metadata_getattr(directoryuri, "DirectoryName", directoryname);

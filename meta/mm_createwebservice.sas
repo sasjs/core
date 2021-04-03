@@ -22,7 +22,7 @@ Usage:
         %webout(OBJ,example2) * Object format, easier to work with ;
         %webout(CLOSE)
     ;;;;
-    %mm_createwebservice(path=/Public/app/common,name=appInit,code=ft15f001,replace=YES)
+    %mm_createwebservice(path=/Public/app/common,name=appInit)
 
   <h4> SAS Macros </h4>
   @li mm_createstp.sas
@@ -76,10 +76,10 @@ Usage:
   %let path=%substr(&path,1,%length(&path)-1);
 
 /**
- * Add webout macro
- * These put statements are auto generated - to change the macro, change the
- * source (mm_webout) and run `build.py`
- */
+  * Add webout macro
+  * These put statements are auto generated - to change the macro, change the
+  * source (mm_webout) and run `build.py`
+  */
 filename sasjs temp;
 data _null_;
   file sasjs lrecl=3000 ;
@@ -119,7 +119,8 @@ data _null_;
   put '    %end; ';
   put '    data _null_;file &jref mod ; ';
   put '      put "["; call symputx(''cols'',0,''l''); ';
-  put '    proc sort data=sashelp.vcolumn(where=(libname=''WORK'' & memname="%upcase(&ds)")) ';
+  put '    proc sort ';
+  put '      data=sashelp.vcolumn(where=(libname=''WORK'' & memname="%upcase(&ds)")) ';
   put '      out=_data_; ';
   put '      by varnum; ';
   put ' ';
@@ -158,7 +159,8 @@ data _null_;
   put '      %end; ';
   put '    %end; ';
   put '    run; ';
-  put '    /* write to temp loc to avoid _webout truncation - https://support.sas.com/kb/49/325.html */ ';
+  put '    /* write to temp loc to avoid _webout truncation ';
+  put '      - https://support.sas.com/kb/49/325.html */ ';
   put '    filename _sjs temp lrecl=131068 encoding=''utf-8''; ';
   put '    data _null_; file _sjs lrecl=131068 encoding=''utf-8'' mod; ';
   put '      set &tempds; ';

@@ -2,7 +2,7 @@
   @file
   @brief Returns a userid according to session context
   @details In a workspace session, a user is generally represented by <code>
-    &sysuserid</code> or <code>SYS_COMPUTE_SESSION_OWNER</code> if it exists.  
+    &sysuserid</code> or <code>SYS_COMPUTE_SESSION_OWNER</code> if it exists.
     In a Stored Process session, <code>&sysuserid</code>
     resolves to a system account (default=sassrv) and instead there are several
     metadata username variables to choose from (_metauser, _metaperson
@@ -12,7 +12,7 @@
 
         %let user= %mf_getUser();
         %put &user;
-        
+
   @param type - do not use, may be deprecated in a future release
 
   @return SYSUSERID (if workspace server)

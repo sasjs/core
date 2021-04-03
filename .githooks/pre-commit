@@ -15,30 +15,30 @@ mime_pattern="\.(sas|ddl|csv|sh)"
 # Check for capital letters only in file names
 extra_pattern="(^|/)[^/]*([A-Z]+)[^/]*\.[A-Za-z]{3}$"
 # Grep git diff of files to commit
-files=$(	git diff --cached --find-copies --find-renames --name-only --diff-filter=ACMRTXBU |
-			grep -Ei "$mime_pattern" |
-			grep -E  "$extra_pattern" )
+files=$(  git diff --cached --find-copies --find-renames --name-only --diff-filter=ACMRTXBU |
+      grep -Ei "$mime_pattern" |
+      grep -E  "$extra_pattern" )
 echo "$files"
 if [[ -n "$files"  ]];
 then
-	echo
-	echo "Found files that contain capital letters."
-	echo "Please rename the following files in lowercase, and commit again:"
+  echo
+  echo "Found files that contain capital letters."
+  echo "Please rename the following files in lowercase, and commit again:"
 
-	for file in $files; do
-		echo -e '- \E[0;32m'"$file"'\033[0m'
-	done
-	# Abort commit
-	exit_code=1
+  for file in $files; do
+    echo -e '- \E[0;32m'"$file"'\033[0m'
+  done
+  # Abort commit
+  exit_code=1
 fi
 
 if [ "$exit_code" == "0" ]; then
-	echo
-	echo -e '\033[1m'"Pre-commit validation Passed"'\033[0m'
-	echo
+  echo
+  echo -e '\033[1m'"Pre-commit validation Passed"'\033[0m'
+  echo
 else
-	echo
-	echo -e '\033[1m'"Commit Aborted!"'\033[0m'
-	echo
+  echo
+  echo -e '\033[1m'"Commit Aborted!"'\033[0m'
+  echo
 fi
 exit $exit_code

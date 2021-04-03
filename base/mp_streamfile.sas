@@ -6,7 +6,8 @@
 
   Usage:
 
-      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      filename mc url
+        "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
       %mp_streamfile(contenttype=csv,inloc=/some/where.txt,outname=myfile.txt)
@@ -65,13 +66,15 @@
 %else %if &contentype=XLSX %then %do;
   %if &platform=SASMETA %then %do;
     data _null_;
-      rc=stpsrv_header('Content-type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      rc=stpsrv_header('Content-type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
     run;
   %end;
   %else %if &platform=SASVIYA %then %do;
     filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.xls'
-      contenttype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      contenttype=
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       contentdisp="attachment; filename=&outname";
   %end;
 %end;
@@ -113,10 +116,10 @@
 %end;
 
 %if &inref ne 0 %then %do;
- %mp_binarycopy(inref=&inref,outref=_webout)
+  %mp_binarycopy(inref=&inref,outref=_webout)
 %end;
 %else %do;
- %mp_binarycopy(inloc="&inloc",outref=_webout)
+  %mp_binarycopy(inloc="&inloc",outref=_webout)
 %end;
 
 %mend;

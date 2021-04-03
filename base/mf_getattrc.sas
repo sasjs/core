@@ -17,7 +17,7 @@
 **/
 
 %macro mf_getattrc(
-     libds
+    libds
     ,attr
 )/*/STORE SOURCE*/;
   %local dsid rc;

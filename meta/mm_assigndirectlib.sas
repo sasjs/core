@@ -33,7 +33,7 @@
 **/
 
 %macro mm_assigndirectlib(
-     libref /* libref to assign from metadata */
+    libref /* libref to assign from metadata */
     ,open_passthrough= /* provide an alias to produce the
                           CONNECT TO statement for the
                           relevant external database */
@@ -107,7 +107,7 @@ run;
   run;
 
   %if %sysevalf(&sysver<9.4) %then %do;
-   libname &libref &filepath;
+    libname &libref &filepath;
   %end;
   %else %do;
     /* apply the new filelocks option to cater for temporary locks */
@@ -117,7 +117,8 @@ run;
 %end;
 %else %if &engine=REMOTE %then %do;
   data x;
-    length rcCon rcProp rc k 3 uriCon uriProp PropertyValue PropertyName Delimiter $256 properties $2048;
+    length rcCon rcProp rc k 3 uriCon uriProp PropertyValue PropertyName
+      Delimiter $256 properties $2048;
     retain properties;
     rcCon = metadata_getnasn("&liburi", "LibraryConnection", 1, uriCon);
 
@@ -129,8 +130,9 @@ run;
       rc = metadata_getattr(uriProp , "DefaultValue",PropertyValue);
       rc = metadata_getattr(uriProp , "PropertyName",PropertyName);
       rc = metadata_getattr(uriProp , "Delimiter",Delimiter);
-      properties = trim(properties) !! " " !! trim(PropertyName) !! trim(Delimiter) !! trim(PropertyValue);
-        output;
+      properties = trim(properties) !! " " !! trim(PropertyName)
+        !! trim(Delimiter) !! trim(PropertyValue);
+      output;
       k+1;
       rcProp = metadata_getnasn(uriCon, "Properties", k, uriProp);
     end;
@@ -165,13 +167,14 @@ run;
       rc=metadata_getnasn(connx_uri,'Properties',i,conprop_uri);
       rc2=metadata_getattr(conprop_uri,'Name',value);
       if value='Connection.OLE.Property.DATASOURCE.Name.xmlKey.txt' then do;
-         rc3=metadata_getattr(conprop_uri,'DefaultValue',datasource);
+        rc3=metadata_getattr(conprop_uri,'DefaultValue',datasource);
       end;
       else if value='Connection.OLE.Property.PROVIDER.Name.xmlKey.txt' then do;
-         rc4=metadata_getattr(conprop_uri,'DefaultValue',provider);
+        rc4=metadata_getattr(conprop_uri,'DefaultValue',provider);
       end;
-      else if value='Connection.OLE.Property.PROPERTIES.Name.xmlKey.txt' then do;
-         rc5=metadata_getattr(conprop_uri,'DefaultValue',properties);
+      else if value='Connection.OLE.Property.PROPERTIES.Name.xmlKey.txt' then
+      do;
+        rc5=metadata_getattr(conprop_uri,'DefaultValue',properties);
       end;
     end;
     &mD.putlog 'NOTE- dsn/provider/properties: ' /
@@ -194,8 +197,8 @@ run;
       /* need additional properties to make this work */
         properties=('Integrated Security'=SSPI
                     'Persist Security Info'=True
-                   %sysfunc(compress(%str(&SQL_properties),%str(())))
-                   )
+                  %sysfunc(compress(%str(&SQL_properties),%str(())))
+                  )
       DATASOURCE=&sql_dsn PROMPT=NO
       PROVIDER=&sql_provider SCHEMA=&sql_schema CONNECTION = GLOBAL);
   %end;
@@ -203,9 +206,9 @@ run;
     LIBNAME &libref OLEDB  PROPERTIES=&sql_properties
       DATASOURCE=&sql_dsn  PROVIDER=&sql_provider SCHEMA=&sql_schema
     %if %length(&sql_domain)>0 %then %do;
-       authdomain="&sql_domain"
+      authdomain="&sql_domain"
     %end;
-       connection=shared;
+      connection=shared;
   %end;
 %end;
 %else %if &engine=ODBC %then %do;
@@ -222,8 +225,8 @@ run;
       rc2=metadata_getnasn(connx_uri,'Properties',i,conprop_uri);
       rc3=metadata_getattr(conprop_uri,'Name',value);
       if value='Connection.ODBC.Property.DATASRC.Name.xmlKey.txt' then do;
-         rc4=metadata_getattr(conprop_uri,'DefaultValue',datasource);
-         rc2=-1;
+        rc4=metadata_getattr(conprop_uri,'DefaultValue',datasource);
+        rc2=-1;
       end;
     end;
     /* get SCHEMA */
@@ -280,7 +283,7 @@ run;
 
     /* get PRESERVE_TAB_NAMES value */
     /* be careful with PRESERVE_TAB_NAMES=YES - it will mean your table will
-       become case sensitive!! */
+      become case sensitive!! */
     prop='Library.DBMS.Property.PreserveTabNames.Name.xmlKey.txt';
     rc=metadata_getprop("&liburi",prop,preserve_tab_names,"");
     if preserve_tab_names^='' then preserve_tab_names=
@@ -357,7 +360,8 @@ run;
     call symputx('authdomain',authdomain,'l');
 
     /* path */
-    rc=metadata_getprop(assocuri1,'Connection.Oracle.Property.PATH.Name.xmlKey.txt',path);
+    rc=metadata_getprop(assocuri1,
+      'Connection.Oracle.Property.PATH.Name.xmlKey.txt',path);
     call symputx('path',path,'l');
 
     /* schema */
@@ -366,27 +370,30 @@ run;
     call symputx('schema',schema,'l');
   run;
   %put NOTE: Executing the following:/; %put NOTE-;
-  %put NOTE- libname &libref ORACLE path=&path schema=&schema authdomain=&authdomain;
+  %put NOTE- libname &libref ORACLE path=&path schema=&schema;
+  %put NOTE-     authdomain=&authdomain;
   %put NOTE-;
   libname &libref ORACLE path=&path schema=&schema authdomain=&authdomain;
 %end;
 %else %if &engine=SQLSVR %then %do;
   %put NOTE: Obtaining &engine library details;
   data _null;
-    length assocuri1 assocuri2 assocuri3 authdomain path schema userid passwd $256;
+    length assocuri1 assocuri2 assocuri3 authdomain path schema userid
+      passwd $256;
     call missing (of _all_);
- 
+
     rc=metadata_getnasn("&liburi",'DefaultLogin',1,assocuri1);
     rc=metadata_getattr(assocuri1,"UserID",userid);
     rc=metadata_getattr(assocuri1,"Password",passwd);
     call symputx('user',userid,'l');
     call symputx('pass',passwd,'l');
- 
+
     /* path */
     rc=metadata_getnasn("&liburi",'LibraryConnection',1,assocuri2);
-    rc=metadata_getprop(assocuri2,'Connection.SQL.Property.Datasrc.Name.xmlKey.txt',path);
+    rc=metadata_getprop(assocuri2,
+      'Connection.SQL.Property.Datasrc.Name.xmlKey.txt',path);
     call symputx('path',path,'l');
- 
+
     /* schema */
     rc=metadata_getnasn("&liburi",'UsingPackages',1,assocuri3);
     rc=metadata_getattr(assocuri3,'SchemaName',schema);
@@ -394,17 +401,19 @@ run;
   run;
 
   %put NOTE: Executing the following:/; %put NOTE-;
-  %put NOTE- libname &libref SQLSVR datasrc=&path schema=&schema user="&user" pass="XXX";
+  %put NOTE- libname &libref SQLSVR datasrc=&path schema=&schema ;
+  %put NOTE-    user="&user" pass="XXX";
   %put NOTE-;
 
-  libname &libref SQLSVR datasrc=&path schema=&schema user="&user" pass="&pass" ;
+  libname &libref SQLSVR datasrc=&path schema=&schema user="&user" pass="&pass";
 %end;
 %else %if &engine=TERADATA %then %do;
   %put NOTE: Obtaining &engine library details;
   data _null;
-    length assocuri1 assocuri2 assocuri3 authdomain path schema userid passwd $256;
+    length assocuri1 assocuri2 assocuri3 authdomain path schema userid
+      passwd $256;
     call missing (of _all_);
- 
+
         /* get auth domain */
     rc=metadata_getnasn("&liburi",'LibraryConnection',1,assocuri1);
     rc=metadata_getnasn(assocuri1,'Domain',1,assocuri2);
@@ -421,9 +430,10 @@ run;
 
     /* path */
     rc=metadata_getnasn("&liburi",'LibraryConnection',1,assocuri2);
-    rc=metadata_getprop(assocuri2,'Connection.Teradata.Property.SERVER.Name.xmlKey.txt',path);
+    rc=metadata_getprop(assocuri2,
+      'Connection.Teradata.Property.SERVER.Name.xmlKey.txt',path);
     call symputx('path',path,'l');
- 
+
     /* schema */
     rc=metadata_getnasn("&liburi",'UsingPackages',1,assocuri3);
     rc=metadata_getattr(assocuri3,'SchemaName',schema);
@@ -431,7 +441,8 @@ run;
   run;
 
   %put NOTE: Executing the following:/; %put NOTE-;
-  %put NOTE- libname &libref TERADATA server=&path schema=&schema authdomain=&authdomain;
+  %put NOTE- libname &libref TERADATA server=&path schema=&schema ;
+  %put NOTe-   authdomain=&authdomain;
   %put NOTE-;
 
   libname &libref TERADATA server=&path schema=&schema authdomain=&authdomain;

@@ -19,7 +19,7 @@
 **/
 
 %macro mp_distinctfmtvalues(
-     libds=
+    libds=
     ,var=
     ,outvar=formatted_value
     ,outds=work.mp_distinctfmtvalues
@@ -34,7 +34,7 @@
   create table &outds as
     select distinct
     %if &vtype=C & %trim(&fmt)=%str() %then %do;
-       &var
+      &var
     %end;
     %else %if &vtype=C %then %do;
       put(&var,&fmt)
@@ -45,6 +45,6 @@
     %else %do;
       put(&var,&fmt)
     %end;
-       as &outvar length=&varlen
+        as &outvar length=&varlen
     from &libds;
 %mend;

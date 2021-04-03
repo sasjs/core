@@ -14,7 +14,7 @@ Usage:
     filename ft15f001 temp;
     parmcards4;
         %* fetch any data from frontend ;
-        %webout(FETCH) 
+        %webout(FETCH)
         data example1 example2;
           set sashelp.class;
         run;

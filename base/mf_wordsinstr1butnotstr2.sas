@@ -6,7 +6,7 @@
   Usage:
 
       %let x= %mf_wordsInStr1ButNotStr2(
-         Str1=blah sss blaaah brah bram boo
+        Str1=blah sss blaaah brah bram boo
         ,Str2=   blah blaaah brah ssss
       );
 
@@ -24,8 +24,8 @@
 **/
 
 %macro mf_wordsInStr1ButNotStr2(
-    Str1= /* string containing words to extract */
-   ,Str2= /* used to compare with the extract string */
+  Str1= /* string containing words to extract */
+  ,Str2= /* used to compare with the extract string */
 )/*/STORE SOURCE*/;
 
 %local count_base count_extr i i2 extr_word base_word match outvar;

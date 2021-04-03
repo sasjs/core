@@ -5,9 +5,9 @@
   Usage:
 
       data test;
-         format str1 $1.  num1 datetime19.;
-         str2='hello mum!'; num2=666;
-         stop;
+        format str1 $1.  num1 datetime19.;
+        str2='hello mum!'; num2=666;
+        stop;
       run;
       %put %mf_getVarFormat(test,str1);
       %put %mf_getVarFormat(work.test,num1);
@@ -45,9 +45,9 @@
     /* Get variable format */
     %if(&vnum > 0) %then %let vformat=%sysfunc(varfmt(&dsid, &vnum));
     %else %do;
-       %put NOTE: Variable &var does not exist in &libds;
-       %let rc = %sysfunc(close(&dsid));
-       %return;
+      %put NOTE: Variable &var does not exist in &libds;
+      %let rc = %sysfunc(close(&dsid));
+      %return;
     %end;
   %end;
   %else %do;

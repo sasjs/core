@@ -11,7 +11,8 @@
       %mm_getfoldermembers(root=/User Folders/&sysuserid, outds=usercontent)
 
   @param [in] root= the parent folder under which to return all contents
-  @param [out] outds= the dataset to create that contains the list of directories
+  @param [out] outds= the dataset to create that contains the list of
+    directories
   @param [in] mDebug= set to 1 to show debug messages in the log
 
   <h4> Data Outputs </h4>
@@ -20,11 +21,11 @@
 
   |metauri $17|metaname $256|metatype $32|
   |---|---|---|
-  |A5XLSNXI.AA000001|Products	|Folder|
-  |A5XLSNXI.AA000002|Shared Data	|Folder|
-  |A5XLSNXI.AA000003|User Folders	|Folder|
-  |A5XLSNXI.AA000004|System	|Folder|
-  |A5XLSNXI.AA00003K|30.SASApps	|Folder|
+  |A5XLSNXI.AA000001|Products  |Folder|
+  |A5XLSNXI.AA000002|Shared Data  |Folder|
+  |A5XLSNXI.AA000003|User Folders  |Folder|
+  |A5XLSNXI.AA000004|System  |Folder|
+  |A5XLSNXI.AA00003K|30.SASApps  |Folder|
   |A5XLSNXI.AA00006A|Public|Folder|
 
   <h4> SAS Macros </h4>
@@ -37,7 +38,7 @@
 
 **/
 %macro mm_getfoldermembers(
-     root=
+    root=
     ,outds=work.mm_getfoldertree
 )/*/STORE SOURCE*/;
 

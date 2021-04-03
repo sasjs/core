@@ -13,7 +13,8 @@
     options notes source;
 
   @param [in] root= the parent folder under which to return all contents
-  @param [out] outds= the dataset to create that contains the list of directories
+  @param [out] outds= the dataset to create that contains the list of
+    directories
   @param [in] mDebug= set to 1 to show debug messages in the log
 
   <h4> SAS Macros </h4>
@@ -23,7 +24,7 @@
 
 **/
 %macro mm_getfoldertree(
-     root=
+    root=
     ,outds=work.mm_getfoldertree
     ,mDebug=0
     ,depth=50 /* how many nested folders to query */

@@ -15,7 +15,8 @@
   Usage:
 
       %* load macros;
-      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      filename mc url
+        "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
       %* export everything;
@@ -32,16 +33,16 @@
 
       %* with specific types;
       %mm_tree(root=%str(/my/folder)
-        ,types= 
-            DeployedJob 
-            ExternalFile 
-            Folder 
-            Folder.SecuredData 
-            GeneratedTransform 
-            InformationMap.Relational 
-            Job 
-            Library 
-            Prompt 
+        ,types=
+            DeployedJob
+            ExternalFile
+            Folder
+            Folder.SecuredData
+            GeneratedTransform
+            InformationMap.Relational
+            Job
+            Library
+            Prompt
             StoredProcess
             Table
         ,outds=morestuff)
@@ -53,8 +54,8 @@
 
   @param root= the parent folder under which to return all contents
   @param outds= the dataset to create that contains the list of directories
-  @param types= Space-seperated, unquoted list of types for filtering the 
-    output.  Special types:  
+  @param types= Space-seperated, unquoted list of types for filtering the
+    output.  Special types:
 
     * ALl - return all types (the default)
     * EXPORTABLE - return only the content types that can be exported in an SPK
@@ -64,7 +65,7 @@
 
 **/
 %macro mm_tree(
-     root=
+    root=
     ,types=ALL
     ,outds=work.mm_tree
 )/*/STORE SOURCE*/;
@@ -84,12 +85,12 @@ options noquotelenmax;
 filename response temp;
 /* get list of libraries */
 proc metadata in=
- '<GetMetadataObjects><Reposid>$METAREPOSITORY</Reposid>
-   <Type>Tree</Type><Objects/><NS>SAS</NS>
-   <Flags>384</Flags>
-   <XMLSelect search="*[@TreeType=&apos;BIP Folder&apos;]"/>
-   <Options/></GetMetadataObjects>'
-  out=response;
+  '<GetMetadataObjects><Reposid>$METAREPOSITORY</Reposid>
+    <Type>Tree</Type><Objects/><NS>SAS</NS>
+    <Flags>384</Flags>
+    <XMLSelect search="*[@TreeType=&apos;BIP Folder&apos;]"/>
+    <Options/></GetMetadataObjects>'
+    out=response;
 run;
 /*
 data _null_;
@@ -104,7 +105,8 @@ filename sxlemap temp;
 data _null_;
   file sxlemap;
   put '<SXLEMAP version="1.2" name="SASObjects"><TABLE name="SASObjects">';
-  put "<TABLE-PATH syntax='XPath'>/GetMetadataObjects/Objects/Tree</TABLE-PATH>";
+  put "<TABLE-PATH syntax='XPath'>/GetMetadataObjects/Objects/Tree";
+  put "</TABLE-PATH>";
   put '<COLUMN name="pathuri">';
   put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/Tree/@Id</PATH>";
   put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>64</LENGTH>";
@@ -130,7 +132,7 @@ data &outds;
     path=cats('/',pname,path);
     tmpuri=parenturi;
   end;
-  
+
   if path=:"&root";
 
   %if "&types"="ALL" or ("&types" ne "ALL" and "&types" ne "Folder") %then %do;

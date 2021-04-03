@@ -46,7 +46,7 @@ run;
 filename response temp;
 /* get list of libraries */
 proc metadata in=
- '<GetMetadataObjects>
+  '<GetMetadataObjects>
   <Reposid>$METAREPOSITORY</Reposid>
   <Type>SASLibrary</Type>
   <Objects/>

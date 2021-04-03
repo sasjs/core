@@ -27,7 +27,7 @@
   @param schema= Choose a preferred schema name (default is to use actual schema
     ,else libref)
   @param applydttm= for non SAS DDL, choose if columns are created with native
-   datetime2 format or regular decimal type
+    datetime2 format or regular decimal type
   @version 9.3
   @author Allan Bowe
 **/
@@ -86,7 +86,9 @@ create table _data_ as
   %global constraints_used;
   data _null_;
     length ctype $11 constraint_name_orig $256 constraints_used $5000;
-    set &colconst (where=(table_name="&curds" and constraint_type in ('PRIMARY','UNIQUE'))) end=last;
+    set &colconst(
+        where=(table_name="&curds" and constraint_type in ('PRIMARY','UNIQUE'))
+      ) end=last;
     file &fref mod;
     by constraint_type constraint_name;
     retain constraints_used;
@@ -161,10 +163,19 @@ run;
       put ');';
     run;
 
-    /* Create Unique Indexes, but only if they were not already defined within the Constraints section. */
+    /* Create Unique Indexes, but only if they were not already defined within
+      the Constraints section. */
     data _null_;
       *length ds $128;
-      set &idxinfo (where=(memname="&curds" and unique='yes' and indxname not in (%sysfunc(tranwrd("&constraints_used",%str( ),%str(","))))));
+      set &idxinfo(
+        where=(
+          memname="&curds"
+          and unique='yes'
+          and indxname not in (
+              %sysfunc(tranwrd("&constraints_used",%str( ),%str(",")))
+              )
+          )
+        );
       file &fref mod;
       by idxusage indxname;
 /*       ds=cats(libname,'.',memname); */
@@ -228,10 +239,19 @@ run;
     /* Extra step for data constraints */
     %addConst()
 
-    /* Create Unique Indexes, but only if they were not already defined within the Constraints section. */
+    /* Create Unique Indexes, but only if they were not already defined within
+      the Constraints section. */
     data _null_;
       *length ds $128;
-      set &idxinfo (where=(memname="&curds" and unique='yes' and indxname not in (%sysfunc(tranwrd("&constraints_used",%str( ),%str(","))))));
+      set &idxinfo(
+        where=(
+          memname="&curds"
+          and unique='yes'
+          and indxname not in (
+            %sysfunc(tranwrd("&constraints_used",%str( ),%str(",")))
+          )
+        )
+      );
       file &fref mod;
       by idxusage indxname;
       *ds=cats(libname,'.',memname);
@@ -320,15 +340,24 @@ run;
       put ');';
     run;
 
-    /* Create Unique Indexes, but only if they were not already defined within the Constraints section. */
+    /* Create Unique Indexes, but only if they were not already defined within
+      the Constraints section. */
     data _null_;
       *length ds $128;
-      set &idxinfo (where=(memname="&curds" and unique='yes' and indxname not in (%sysfunc(tranwrd("&constraints_used",%str( ),%str(","))))));
+      set &idxinfo(
+        where=(
+          memname="&curds"
+          and unique='yes'
+          and indxname not in (
+            %sysfunc(tranwrd("&constraints_used",%str( ),%str(",")))
+          )
+        )
+      );
       file &fref mod;
       by idxusage indxname;
 /*       ds=cats(libname,'.',memname); */
       if first.indxname then do;
-          put 'CREATE UNIQUE INDEX "' indxname +(-1) '" ' "ON &schema..&curds (" ;
+          put 'CREATE UNIQUE INDEX "' indxname +(-1) '" ' "ON &schema..&curds(";
           put '  "' name +(-1) '"' ;
       end;
       else put '  ,"' name +(-1) '"';

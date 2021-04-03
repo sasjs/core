@@ -32,9 +32,9 @@
 
 
   @returns outds contains the following variables:
-   - level (0 = top level)
-   - &parentvar
-   - &childvar (null if none found)
+    - level (0 = top level)
+    - &parentvar
+    - &childvar (null if none found)
 
   @version 9.2
   @author Allan Bowe

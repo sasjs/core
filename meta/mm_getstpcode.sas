@@ -69,14 +69,14 @@ run;
 
 
 /**
- * Now we can extract the textstore
- */
+  * Now we can extract the textstore
+  */
 filename __getdoc temp lrecl=10000000;
 proc metadata
- in="<GetMetadata><Reposid>$METAREPOSITORY</Reposid>
-    <Metadata><TextStore Id='&tsuri'/></Metadata>
-    <Ns>SAS</Ns><Flags>1</Flags><Options/></GetMetadata>"
- out=__getdoc ;
+  in="<GetMetadata><Reposid>$METAREPOSITORY</Reposid>
+      <Metadata><TextStore Id='&tsuri'/></Metadata>
+      <Ns>SAS</Ns><Flags>1</Flags><Options/></GetMetadata>"
+  out=__getdoc ;
 run;
 
 /* find the beginning of the text */
@@ -97,47 +97,47 @@ data _null_;
 /* read the content, byte by byte, resolving escaped chars */
 filename __outdoc &outeng lrecl=100000;
 data _null_;
- length filein 8 fileid 8;
- filein = fopen("__getdoc","I",1,"B");
- fileid = fopen("__outdoc","O",1,"B");
- rec = "20"x;
- length entity $6;
- do while(fread(filein)=0);
-   x+1;
-   if x>&start then do;
-    rc = fget(filein,rec,1);
-    if rec='"' then leave;
-    else if rec="&" then do;
-      entity=rec;
-      do until (rec=";");
-        if fread(filein) ne 0 then goto getout;
-        rc = fget(filein,rec,1);
-        entity=cats(entity,rec);
+  length filein 8 fileid 8;
+  filein = fopen("__getdoc","I",1,"B");
+  fileid = fopen("__outdoc","O",1,"B");
+  rec = "20"x;
+  length entity $6;
+  do while(fread(filein)=0);
+    x+1;
+    if x>&start then do;
+      rc = fget(filein,rec,1);
+      if rec='"' then leave;
+      else if rec="&" then do;
+        entity=rec;
+        do until (rec=";");
+          if fread(filein) ne 0 then goto getout;
+          rc = fget(filein,rec,1);
+          entity=cats(entity,rec);
+        end;
+        select (entity);
+          when ('&amp;' ) rec='&'  ;
+          when ('&lt;'  ) rec='<'  ;
+          when ('&gt;'  ) rec='>'  ;
+          when ('&apos;') rec="'"  ;
+          when ('&quot;') rec='"'  ;
+          when ('&#x0a;') rec='0A'x;
+          when ('&#x0d;') rec='0D'x;
+          when ('&#36;' ) rec='$'  ;
+          when ('&#x09;') rec='09'x;
+          otherwise putlog "%str(WARN)ING: missing value for " entity=;
+        end;
+        rc =fput(fileid, substr(rec,1,1));
+        rc =fwrite(fileid);
       end;
-      select (entity);
-        when ('&amp;' ) rec='&'  ;
-        when ('&lt;'  ) rec='<'  ;
-        when ('&gt;'  ) rec='>'  ;
-        when ('&apos;') rec="'"  ;
-        when ('&quot;') rec='"'  ;
-        when ('&#x0a;') rec='0A'x;
-        when ('&#x0d;') rec='0D'x;
-        when ('&#36;' ) rec='$'  ;
-        when ('&#x09;') rec='09'x;
-        otherwise putlog "%str(WARN)ING: missing value for " entity=;
+      else do;
+        rc =fput(fileid,rec);
+        rc =fwrite(fileid);
       end;
-      rc =fput(fileid, substr(rec,1,1));
-      rc =fwrite(fileid);
     end;
-    else do;
-      rc =fput(fileid,rec);
-      rc =fwrite(fileid);
-    end;
-   end;
- end;
- getout:
- rc=fclose(filein);
- rc=fclose(fileid);
+  end;
+  getout:
+  rc=fclose(filein);
+  rc=fclose(fileid);
 run;
 
 %if &outeng=TEMP %then %do;

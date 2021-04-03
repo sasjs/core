@@ -10,8 +10,8 @@
 
 
   @param target= full path to the STP being deleted
-  @param type= Either WKS or STP depending on whether Workspace or Stored Process
-        type required
+  @param type= Either WKS or STP depending on whether Workspace or
+    Stored Process type required
 
   @version 9.4
   @author Allan Bowe
@@ -24,8 +24,8 @@
 )/*/STORE SOURCE*/;
 
 /**
- * Check STP does exist
- */
+  * Check STP does exist
+  */
 %local cmtype;
 data _null_;
   length type uri $256;
@@ -51,7 +51,8 @@ data _null_;
     n+1;
     rc=metadata_getattr(uri,"Name",name);
     if name='Stored Process' then do;
-      rc = METADATA_SETATTR(uri,'StoredText','<?xml version="1.0" encoding="UTF-8"?>'
+      rc = METADATA_SETATTR(uri,'StoredText'
+        ,'<?xml version="1.0" encoding="UTF-8"?>'
         !!'<StoredProcess><ServerContext LogicalServerType="'!!"&newtype"
         !!'" OtherAllowed="false"/><ResultCapabilities Package="false" '
         !!' Streaming="true"/><OutputParameters/></StoredProcess>');

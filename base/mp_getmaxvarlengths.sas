@@ -1,17 +1,18 @@
 /**
   @file mp_getmaxvarlengths.sas
   @brief Scans a dataset to find the max length of the variable values
-  @details  
+  @details
   This macro will scan a base dataset and produce an output dataset with two
   columns:
 
   - NAME    Name of the base dataset column
   - MAXLEN Maximum length of the data contained therein.
 
-  Character fields may be allocated very large widths (eg 32000) of which the maximum
-    value is likely to be much narrower.  This macro was designed to enable a HTML
-    table to be appropriately sized however this could be used as part of a data
-    audit to ensure we aren't over-sizing our tables in relation to the data therein.
+  Character fields may be allocated very large widths (eg 32000) of which the
+  maximum  value is likely to be much narrower.  This macro was designed to
+  enable a HTML table to be appropriately sized however this could be used as
+  part of a data audit to ensure we aren't over-sizing our tables in relation to
+  the data therein.
 
   Numeric fields are converted using the relevant format to determine the width.
   Usage:
@@ -33,7 +34,7 @@
 
 %macro mp_getmaxvarlengths(
     libds      /* libref.dataset to analyse */
-   ,outds=work.mp_getmaxvarlengths /* name of output dataset to create */
+    ,outds=work.mp_getmaxvarlengths /* name of output dataset to create */
 )/*/STORE SOURCE*/;
 
 %local vars x var fmt;

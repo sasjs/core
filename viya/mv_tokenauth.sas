@@ -15,7 +15,8 @@
 
   Usage:
 
-      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      filename mc url
+        "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
 
@@ -31,13 +32,15 @@
   @param outds= A dataset containing access_token and refresh_token
   @param client_id= The client name
   @param client_secret= client secret
-  @param grant_type= valid values are "password" or "authorization_code" (unquoted).
-    The default is authorization_code.
-  @param code= If grant_type=authorization_code then provide the necessary code here
+  @param grant_type= valid values are "password" or "authorization_code"
+    (unquoted). The default is authorization_code.
+  @param code= If grant_type=authorization_code then provide the necessary code
+    here
   @param user= If grant_type=password then provide the username here
   @param pass= If grant_type=password then provide the password here
   @param access_token_var= The global macro variable to contain the access token
-  @param refresh_token_var= The global macro variable to contain the refresh token
+  @param refresh_token_var= The global macro variable to contain the refresh
+    token
   @param base_uri= The Viya API server location
 
   @version VIYA V.03.04
@@ -88,7 +91,8 @@
   ,msg=%str(Authorization code required)
 )
 
-%mp_abort(iftrue=(&grant_type=password and (%str(&user)=%str() or %str(&pass)=%str()))
+%mp_abort(iftrue=(
+  &grant_type=password and (%str(&user)=%str() or %str(&pass)=%str()))
   ,mac=&sysmacroname
   ,msg=%str(username / password required)
 )
@@ -99,7 +103,7 @@
 data _null_;
   file &fref1;
   if "&grant_type"='authorization_code' then string=cats(
-   'grant_type=authorization_code&code=',symget('code'));
+    'grant_type=authorization_code&code=',symget('code'));
   else string=cats('grant_type=password&username=',symget('user')
     ,'&password=',symget(pass));
   call symputx('grantstring',cats("'",string,"'"));
@@ -107,8 +111,8 @@ run;
 /*data _null_;infile &fref1;input;put _infile_;run;*/
 
 /**
- * Request access token
- */
+  * Request access token
+  */
 %if &base_uri=#NOTSET# %then %let base_uri=%mf_getplatform(VIYARESTAPI);
 
 %let fref2=%mf_getuniquefileref();
@@ -123,8 +127,8 @@ run;
 /*data _null_;infile &fref2;input;put _infile_;run;*/
 
 /**
- * Extract access / refresh tokens
- */
+  * Extract access / refresh tokens
+  */
 
 %let libref=%mf_getuniquelibref();
 libname &libref JSON fileref=&fref2;

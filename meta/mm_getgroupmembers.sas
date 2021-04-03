@@ -2,11 +2,11 @@
   @file
   @brief Creates dataset with all members of a metadata group
   @details
-  
+
   usage:
-  
+
     %mm_getgroupmembers(someGroupName
-      ,outds=work.mm_getgroupmembers 
+      ,outds=work.mm_getgroupmembers
       ,emails=YES)
 
   @param group metadata group for which to bring back members

@@ -16,7 +16,7 @@
 
 %macro mf_getkeyvalue(key,libds=work.mp_setkeyvalue
 )/*/STORE SOURCE*/;
- %local ds dsid key valc valn type rc;
+%local ds dsid key valc valn type rc;
 %let dsid=%sysfunc(open(&libds(where=(key="&key"))));
 %syscall set(dsid);
 %let rc = %sysfunc(fetch(&dsid));

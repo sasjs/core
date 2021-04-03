@@ -23,7 +23,7 @@
 %local a b c;
 %if &switch.NONE=NONE %then %do;
   %if %symexist(sysprocessmode) %then %do;
-    %if "&sysprocessmode"="SAS Object Server" 
+    %if "&sysprocessmode"="SAS Object Server"
     or "&sysprocessmode"= "SAS Compute Server" %then %do;
         SASVIYA
     %end;

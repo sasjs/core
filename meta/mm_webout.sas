@@ -33,7 +33,7 @@
 
 **/
 %macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y);
-%global _webin_file_count _webin_fileref1 _webin_name1 _program _debug 
+%global _webin_file_count _webin_fileref1 _webin_name1 _program _debug
   sasjs_tables;
 %local i tempds;
 
@@ -108,7 +108,7 @@
       i+1;
       call symputx('wt'!!left(i),name,'l');
       call symputx('wtcnt',i,'l');
-    data _null_; file &fref encoding='utf-8'; 
+    data _null_; file &fref encoding='utf-8';
       put ",""WORK"":{";
     %do i=1 %to &wtcnt;
       %let wt=&&wt&i;

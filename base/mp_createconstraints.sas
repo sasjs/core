@@ -13,7 +13,7 @@
           constraint unq unique(tx_from, dd_type),
           constraint nnn not null(DD_SHORTDESC)
         );
-      
+
       %mp_getconstraints(lib=work,ds=example,outds=work.constraints)
       %mp_deleteconstraints(inds=work.constraints,outds=dropped,execute=YES)
       %mp_createconstraints(inds=work.constraints,outds=created,execute=YES)
@@ -48,7 +48,7 @@ data &outds;
     else type=constraint_type;
     create_statement=catx(" ","alter table",libref,".",table_name
       ,"add constraint",constraint_name,type,"(");
-    if last.constraint_name then 
+    if last.constraint_name then
       create_statement=cats(create_statement,column_name,");");
     else create_statement=cats(create_statement,column_name,",");
     if "&execute"="YES" then call execute(create_statement);

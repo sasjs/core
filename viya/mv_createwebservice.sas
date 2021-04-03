@@ -5,7 +5,8 @@
   Code is passed in as one or more filerefs.
 
       %* Step 1 - compile macros ;
-      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      filename mc url
+        "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
       %* Step 2 - Create some code and add it to a web service;
@@ -18,7 +19,7 @@
           run;
           %* send data back;
           %webout(OPEN)
-          %webout(ARR,example1) * Array format, fast, suitable for large tables ;
+          %webout(ARR,example1) * Array format, fast, suitable for large tables;
           %webout(OBJ,example2) * Object format, easier to work with ;
           %webout(CLOSE)
       ;;;;
@@ -52,7 +53,8 @@
     adapter, add a (different) fileref here.
   @param contextname= Choose a specific context on which to run the Job.  Leave
     blank to use the default context.  From Viya 3.5 it is possible to configure
-    a shared context - see https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5pyhn1wg3ja0drdl6h.htm&docsetVersion=3.5&locale=en
+    a shared context - see
+https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5pyhn1wg3ja0drdl6h.htm&docsetVersion=3.5&locale=en
 
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
@@ -163,7 +165,7 @@ proc http method='GET'
             'Accept'='application/vnd.sas.collection+json'
             'Accept-Language'='string';
 %if &debug=1 %then %do;
-   debug level = 3;
+  debug level = 3;
 %end;
 run;
 /*data _null_;infile &fname2;input;putlog _infile_;run;*/
@@ -200,23 +202,23 @@ data _null_;
   file &fname3 TERMSTR=' ';
   length string $32767;
   string=cats('{"version": 0,"name":"'
-  	,"&name"
-  	,'","type":"Compute","parameters":[{"name":"_addjesbeginendmacros"'
+    ,"&name"
+    ,'","type":"Compute","parameters":[{"name":"_addjesbeginendmacros"'
     ,',"type":"CHARACTER","defaultValue":"false"}');
   context=quote(cats(symget('contextname')));
   if context ne '""' then do;
     string=cats(string,',{"version": 1,"name": "_contextName","defaultValue":'
-     ,context,',"type":"CHARACTER","label":"Context Name","required": false}');
+      ,context,',"type":"CHARACTER","label":"Context Name","required": false}');
   end;
   string=cats(string,'],"code":"');
   put string;
 run;
 
 /**
- * Add webout macro
- * These put statements are auto generated - to change the macro, change the
- * source (mv_webout) and run `build.py`
- */
+  * Add webout macro
+  * These put statements are auto generated - to change the macro, change the
+  * source (mv_webout) and run `build.py`
+  */
 filename sasjs temp lrecl=3000;
 data _null_;
   file sasjs;
@@ -256,7 +258,8 @@ data _null_;
   put '    %end; ';
   put '    data _null_;file &jref mod ; ';
   put '      put "["; call symputx(''cols'',0,''l''); ';
-  put '    proc sort data=sashelp.vcolumn(where=(libname=''WORK'' & memname="%upcase(&ds)")) ';
+  put '    proc sort ';
+  put '      data=sashelp.vcolumn(where=(libname=''WORK'' & memname="%upcase(&ds)")) ';
   put '      out=_data_; ';
   put '      by varnum; ';
   put ' ';
@@ -295,7 +298,8 @@ data _null_;
   put '      %end; ';
   put '    %end; ';
   put '    run; ';
-  put '    /* write to temp loc to avoid _webout truncation - https://support.sas.com/kb/49/325.html */ ';
+  put '    /* write to temp loc to avoid _webout truncation ';
+  put '      - https://support.sas.com/kb/49/325.html */ ';
   put '    filename _sjs temp lrecl=131068 encoding=''utf-8''; ';
   put '    data _null_; file _sjs lrecl=131068 encoding=''utf-8'' mod; ';
   put '      set &tempds; ';
@@ -410,7 +414,8 @@ data _null_;
   put '        if _n_=1 then call symputx(''input_statement'',_infile_); ';
   put '        list; ';
   put '      data &table; ';
-  put '        infile "%sysfunc(pathname(work))/&table..csv" firstobs=2 dsd termstr=crlf; ';
+  put '        infile "%sysfunc(pathname(work))/&table..csv" firstobs=2 dsd ';
+  put '          termstr=crlf; ';
   put '        input &input_statement; ';
   put '      run; ';
   put '    %end; ';
@@ -442,7 +447,7 @@ data _null_;
   put '  /* setup webout */ ';
   put '  OPTIONS NOBOMFILE; ';
   put '  %if "X&SYS_JES_JOB_URI.X"="XX" %then %do; ';
-  put '     filename _webout temp lrecl=999999 mod; ';
+  put '    filename _webout temp lrecl=999999 mod; ';
   put '  %end; ';
   put '  %else %do; ';
   put '    filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" ';
@@ -451,7 +456,8 @@ data _null_;
   put ' ';
   put '  /* setup temp ref */ ';
   put '  %if %upcase(&fref) ne _WEBOUT %then %do; ';
-  put '    filename &fref temp lrecl=999999 permission=''A::u::rwx,A::g::rw-,A::o::---'' mod; ';
+  put '    filename &fref temp lrecl=999999 permission=''A::u::rwx,A::g::rw-,A::o::---'' ';
+  put '      mod; ';
   put '  %end; ';
   put ' ';
   put '  /* setup json */ ';
@@ -616,7 +622,7 @@ proc http method='POST'
   %end;
             "Accept"="application/vnd.sas.job.definition+json";
 %if &debug=1 %then %do;
-   debug level = 3;
+    debug level = 3;
 %end;
 run;
 /*data _null_;infile &fname4;input;putlog _infile_;run;*/

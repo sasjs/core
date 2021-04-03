@@ -5,8 +5,8 @@
 Usage:
 
       data test;
-         length str $1.  num 8.;
-         stop;
+        length str $1.  num 8.;
+        stop;
       run;
       %put %mf_getvartype(test,str);
       %put %mf_getvartype(work.test,num);
@@ -35,8 +35,8 @@ Usage:
     /* Get variable type (C/N) */
     %if(&vnum. > 0) %then %let vtype = %sysfunc(vartype(&dsid, &vnum.));
     %else %do;
-       %put NOTE: Variable &var does not exist in &libds;
-       %let vtype = %str( );
+      %put NOTE: Variable &var does not exist in &libds;
+      %let vtype = %str( );
     %end;
   %end;
   %else %put dataset &libds not opened! (rc=&dsid);

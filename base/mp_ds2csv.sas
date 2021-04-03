@@ -19,8 +19,8 @@
 )/*/STORE SOURCE*/;
 
 %if not %sysfunc(exist(&ds)) %then %do;
-   %put WARNING:  &ds does not exist;
-   %return;
+  %put WARNING:  &ds does not exist;
+  %return;
 %end;
 
 %if %index(&ds,.)=0 %then %let ds=WORK.&ds;
@@ -36,22 +36,22 @@
 
 /* first get headers */
 data _null_;
-   file &outloc dlm=',' dsd &outencoding lrecl=32767;
-   length header $ 2000;
-   dsid=open("&ds.","i");
-   num=attrn(dsid,"nvars");
-   do i=1 to num;
-      header = trim(left(coalescec(varlabel(dsid,i),varname(dsid,i))));
-      put header @;
-   end;
-   rc=close(dsid);
+  file &outloc dlm=',' dsd &outencoding lrecl=32767;
+  length header $ 2000;
+  dsid=open("&ds.","i");
+  num=attrn(dsid,"nvars");
+  do i=1 to num;
+    header = trim(left(coalescec(varlabel(dsid,i),varname(dsid,i))));
+    put header @;
+  end;
+  rc=close(dsid);
 run;
 
 /* next, export data */
 data _null_;
-   set &ds.;
-   file &outloc mod dlm=',' dsd &outencoding lrecl=32767;
-   put (_all_) (+0);
+  set &ds.;
+  file &outloc mod dlm=',' dsd &outencoding lrecl=32767;
+  put (_all_) (+0);
 run;
 
 

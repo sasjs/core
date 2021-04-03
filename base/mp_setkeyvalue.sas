@@ -12,7 +12,7 @@
   @param key Provide a key on which to perform the lookup
   @param value Provide a value
   @param type= either C or N will populate valc and valn respectively.  C is
-               default.
+              default.
   @param libds= define the target table to hold the parameters
 
   @version 9.2

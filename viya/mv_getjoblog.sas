@@ -10,7 +10,8 @@
 
   First, compile the macros:
 
-      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      filename mc url
+        "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
   Next, create a job (in this case, a web service):
@@ -174,7 +175,7 @@ data _null_;
     outfile:write(logloc)
     io.close(infile)
     io.close(outfile)
-   ';
+  ';
 run;
 %inc "&fpath3..lua";
 /* get log path*/
@@ -228,7 +229,7 @@ data _null_;
     io.input(infile)
     local resp=json.decode(io.read())
     for i, v in pairs(resp["items"]) do
-	    outfile:write(v.line,"\n")
+      outfile:write(v.line,"\n")
     end
     io.close(infile)
     io.close(outfile)

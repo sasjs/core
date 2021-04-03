@@ -31,7 +31,13 @@
     "docs": "sasjs doc && ./sasjs/utils/build.sh",
     "postinstall": "node-git-hooks"
   },
-  "dependencies": {
-    "node-git-hooks": "^1.0.5"
+  "devDependencies": {
+    "@sasjs/cli": "^2.14.2",
+    "ghooks": "^2.0.4"
+  },
+  "config": {
+    "ghooks": {
+      "pre-commit": "sasjs lint"
+    }
   }
 }

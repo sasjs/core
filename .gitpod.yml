@@ -1,5 +1,5 @@
 tasks:
-  - init: npm i
+  - init: npm i -g @sasjs/cli
 
 image:
   file: .gitpod.dockerfile

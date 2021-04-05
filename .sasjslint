@@ -3,7 +3,7 @@
     "noEncodedPasswords": true,
     "hasDoxygenHeader": true,
     "noSpacesInFileNames": true,
-    "maxLineLength": 140,
+    "maxLineLength": 135,
     "lowerCaseFileNames": true,
     "noTabIndentation": true,
     "indentationMultiple": 2

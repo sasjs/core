@@ -39,13 +39,13 @@
     needs to be attached to the beginning of the job
   @param code= Fileref(s) of the actual code to be added
   @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= valid values are "password" or "authorization_code" (unquoted).
-    The default is authorization_code.
+  @param grant_type= valid values are "password" or "authorization_code"
+    (unquoted). The default is authorization_code.
   @param replace= select NO to avoid replacing any existing job in that location
   @param contextname= Choose a specific context on which to run the Job.  Leave
     blank to use the default context.  From Viya 3.5 it is possible to configure
     a shared context - see
-    https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5pyhn1wg3ja0drdl6h.htm&docsetVersion=3.5&locale=en
+https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5pyhn1wg3ja0drdl6h.htm&docsetVersion=3.5&locale=en
 
   @version VIYA V.03.04
   @author [Allan Bowe](https://www.linkedin.com/in/allanbowe)

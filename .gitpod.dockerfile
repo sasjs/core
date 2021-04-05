@@ -1,4 +1,3 @@
-
 FROM gitpod/workspace-full
 
 RUN sudo apt-get update \
@@ -6,5 +5,4 @@ RUN sudo apt-get update \
     doxygen \
  && npm i -g npm@latest \
  && npm i -g @sasjs/cli \
- && npm i \
  && sudo rm -rf /var/lib/apt/lists/*

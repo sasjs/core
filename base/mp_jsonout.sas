@@ -4,8 +4,11 @@
   @details PROC JSON is faster but will produce errs like the ones below if
   special chars are encountered.
 
-  >An object or array close is not valid at this point in the JSON text.
-  >Date value out of range
+  > ERROR: Some code points did not transcode.
+
+  > An object or array close is not valid at this point in the JSON text.
+
+  > Date value out of range
 
   If this happens, try running with ENGINE=DATASTEP.
 
@@ -14,7 +17,9 @@
         filename tmp temp;
         data class; set sashelp.class;run;
 
+        %mp_jsonout(OPEN,jref=tmp)
         %mp_jsonout(OBJ,class,jref=tmp)
+        %mp_jsonout(CLOSE,jref=tmp)
 
         data _null_;
         infile tmp;
@@ -27,18 +32,18 @@
   For more information see https://sasjs.io
 
   @param action Valid values:
-    * OPEN - opens the JSON
-    * OBJ - sends a table with each row as an object
-    * ARR - sends a table with each row in an array
-    * CLOSE - closes the JSON
+    @li OPEN - opens the JSON
+    @li OBJ - sends a table with each row as an object
+    @li ARR - sends a table with each row in an array
+    @li CLOSE - closes the JSON
 
   @param ds the dataset to send.  Must be a work table.
   @param jref= the fileref to which to send the JSON
   @param dslabel= the name to give the table in the exported JSON
   @param fmt= Whether to keep or strip formats from the table
-  @param engine= Which engine to use to send the JSON, options are:
-  * PROCJSON (default)
-  * DATASTEP
+  @param engine= Which engine to use to send the JSON, valid options are:
+    @li PROCJSON (default)
+    @li DATASTEP (more reliable when data has non standard characters)
 
   @param dbg= DEPRECATED - was used to conditionally add PRETTY to
     proc json but this can cause line truncation in large files.

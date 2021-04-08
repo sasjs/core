@@ -165,7 +165,7 @@
 %end;
 
 %else %if &action=CLOSE %then %do;
-  data _null_;file &jref encoding='utf-8';
+  data _null_;file &jref encoding='utf-8' mod;
     put "}";
   run;
 %end;

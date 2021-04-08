@@ -3919,8 +3919,11 @@ create table &outds (rename=(
   @details PROC JSON is faster but will produce errs like the ones below if
   special chars are encountered.
 
-  >An object or array close is not valid at this point in the JSON text.
-  >Date value out of range
+  > ERROR: Some code points did not transcode.
+
+  > An object or array close is not valid at this point in the JSON text.
+
+  > Date value out of range
 
   If this happens, try running with ENGINE=DATASTEP.
 
@@ -3929,7 +3932,9 @@ create table &outds (rename=(
         filename tmp temp;
         data class; set sashelp.class;run;
 
+        %mp_jsonout(OPEN,jref=tmp)
         %mp_jsonout(OBJ,class,jref=tmp)
+        %mp_jsonout(CLOSE,jref=tmp)
 
         data _null_;
         infile tmp;
@@ -3942,18 +3947,18 @@ create table &outds (rename=(
   For more information see https://sasjs.io
 
   @param action Valid values:
-    * OPEN - opens the JSON
-    * OBJ - sends a table with each row as an object
-    * ARR - sends a table with each row in an array
-    * CLOSE - closes the JSON
+    @li OPEN - opens the JSON
+    @li OBJ - sends a table with each row as an object
+    @li ARR - sends a table with each row in an array
+    @li CLOSE - closes the JSON
 
   @param ds the dataset to send.  Must be a work table.
   @param jref= the fileref to which to send the JSON
   @param dslabel= the name to give the table in the exported JSON
   @param fmt= Whether to keep or strip formats from the table
-  @param engine= Which engine to use to send the JSON, options are:
-  * PROCJSON (default)
-  * DATASTEP
+  @param engine= Which engine to use to send the JSON, valid options are:
+    @li PROCJSON (default)
+    @li DATASTEP (more reliable when data has non standard characters)
 
   @param dbg= DEPRECATED - was used to conditionally add PRETTY to
     proc json but this can cause line truncation in large files.
@@ -4075,11 +4080,12 @@ create table &outds (rename=(
 %end;
 
 %else %if &action=CLOSE %then %do;
-  data _null_;file &jref encoding='utf-8';
+  data _null_;file &jref encoding='utf-8' mod;
     put "}";
   run;
 %end;
-%mend;/**
+%mend;
+/**
   @file
   @brief Convert all library members to CARDS files
   @details Gets list of members then calls the <code>%mp_ds2cards()</code> macro.
@@ -7510,7 +7516,7 @@ data _null_;
   put '%end; ';
   put ' ';
   put '%else %if &action=CLOSE %then %do; ';
-  put '  data _null_;file &jref encoding=''utf-8''; ';
+  put '  data _null_;file &jref encoding=''utf-8'' mod; ';
   put '    put "}"; ';
   put '  run; ';
   put '%end; ';
@@ -12037,7 +12043,7 @@ data _null_;
   put '%end; ';
   put ' ';
   put '%else %if &action=CLOSE %then %do; ';
-  put '  data _null_;file &jref encoding=''utf-8''; ';
+  put '  data _null_;file &jref encoding=''utf-8'' mod; ';
   put '    put "}"; ';
   put '  run; ';
   put '%end; ';
@@ -12169,7 +12175,7 @@ data _null_;
   put '%end; ';
   put '%else %if &action=ARR or &action=OBJ %then %do; ';
   put '    %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt ';
-  put '      ,jref=&fref,engine=PROCJSON,dbg=%str(&_debug) ';
+  put '      ,jref=&fref,engine=DATASTEP,dbg=%str(&_debug) ';
   put '    ) ';
   put '%end; ';
   put '%else %if &action=CLOSE %then %do; ';
@@ -15376,7 +15382,7 @@ libname &libref clear;
 filename &fref1 clear;
 
 %mend;/**
-  @file mv_webout.sas
+  @file
   @brief Send data to/from the SAS Viya Job Execution Service
   @details This macro should be added to the start of each Job Execution
   Service, **immediately** followed by a call to:
@@ -15388,7 +15394,7 @@ filename &fref1 clear;
     following syntax:
 
         data some datasets; * make some data ;
-        retain some columns;
+          retain some columns;
         run;
 
         %mv_webout(OPEN)
@@ -15539,7 +15545,7 @@ filename &fref1 clear;
 %end;
 %else %if &action=ARR or &action=OBJ %then %do;
     %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt
-      ,jref=&fref,engine=PROCJSON,dbg=%str(&_debug)
+      ,jref=&fref,engine=DATASTEP,dbg=%str(&_debug)
     )
 %end;
 %else %if &action=CLOSE %then %do;

@@ -196,7 +196,7 @@ data _null_;
   put '%end; ';
   put ' ';
   put '%else %if &action=CLOSE %then %do; ';
-  put '  data _null_;file &jref encoding=''utf-8''; ';
+  put '  data _null_;file &jref encoding=''utf-8'' mod; ';
   put '    put "}"; ';
   put '  run; ';
   put '%end; ';

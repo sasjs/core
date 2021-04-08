@@ -1,5 +1,5 @@
 /**
-  @file mv_webout.sas
+  @file
   @brief Send data to/from the SAS Viya Job Execution Service
   @details This macro should be added to the start of each Job Execution
   Service, **immediately** followed by a call to:
@@ -11,7 +11,7 @@
     following syntax:
 
         data some datasets; * make some data ;
-        retain some columns;
+          retain some columns;
         run;
 
         %mv_webout(OPEN)
@@ -162,7 +162,7 @@
 %end;
 %else %if &action=ARR or &action=OBJ %then %do;
     %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt
-      ,jref=&fref,engine=PROCJSON,dbg=%str(&_debug)
+      ,jref=&fref,engine=DATASTEP,dbg=%str(&_debug)
     )
 %end;
 %else %if &action=CLOSE %then %do;

@@ -376,8 +376,6 @@ run;
     */
   %mm_updatestpsourcecode(stp=&tree/&stpname
     ,stpcode="&directory/&filename"
-    ,frefin=&frefin.
-    ,frefout=&frefout.
     ,mdebug=&mdebug
     ,minify=&minify)
 

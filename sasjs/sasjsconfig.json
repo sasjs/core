@@ -1,7 +1,7 @@
 {
   "$schema": "https://cli.sasjs.io/sasjsconfig-schema.json",
   "macroFolders": ["base", "meta", "metax", "viya", "lua"],
-  "docConfig":{
+  "docConfig": {
     "displayMacroCore": false,
     "enableLineage": false,
     "doxyContent": {
@@ -9,5 +9,26 @@
       "logo": "Macro_core_website_1.png",
       "readMe": "../../README.md"
     }
-  }
+  },
+  "serviceConfig": {
+    "initProgram": "tests/testinit.sas"
+  },
+  "defaultTarget": "viya",
+  "targets": [
+    {
+      "name": "viya",
+      "serverUrl": "https://sas.analytium.co.uk",
+      "serverType": "SASVIYA",
+      "appLoc": "/Public/temp/macrocore",
+      "serviceConfig": {
+        "serviceFolders": ["tests/viya"],
+        "macroVars": {
+          "mcTestAppLoc": "/Public/temp/macrocore"
+        }
+      },
+      "deployConfig": {
+        "deployServicePack": true
+      }
+    }
+  ]
 }

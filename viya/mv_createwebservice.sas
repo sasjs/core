@@ -46,9 +46,10 @@
     needs to be attached to the beginning of the service
   @param code= Fileref(s) of the actual code to be added
   @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= valid values are "password" or "authorization_code" (unquoted).
-    The default is authorization_code.
-  @param replace= select NO to avoid replacing any existing service in that location
+  @param grant_type= valid values are "password" or "authorization_code"
+    (unquoted). The default is authorization_code.
+  @param replace= select NO to avoid replacing any existing service in that
+    location
   @param adapter= the macro uses the sasjs adapter by default.  To use another
     adapter, add a (different) fileref here.
   @param contextname= Choose a specific context on which to run the Job.  Leave
@@ -145,7 +146,8 @@ libname &libref1 JSON fileref=&fname1;
 
 data _null_;
   set &libref1..links;
-  if rel='members' then call symputx('membercheck',quote("&base_uri"!!trim(href)),'l');
+  if rel='members' then
+    call symputx('membercheck',quote("&base_uri"!!trim(href)),'l');
   else if rel='self' then call symputx('parentFolderUri',href,'l');
 run;
 data _null_;
@@ -591,6 +593,14 @@ run;
       else if rec='5C'x then do; /* BACKSLASH */
         rc =fput(fileid,'\');rc =fwrite(fileid);
         rc =fput(fileid,'\');rc =fwrite(fileid);
+      end;
+      else if rec='01'x then do; /* Unprintable */
+        rc =fput(fileid,'\');rc =fwrite(fileid);
+        rc =fput(fileid,'u');rc =fwrite(fileid);
+        rc =fput(fileid,'0');rc =fwrite(fileid);
+        rc =fput(fileid,'0');rc =fwrite(fileid);
+        rc =fput(fileid,'0');rc =fwrite(fileid);
+        rc =fput(fileid,'1');rc =fwrite(fileid);
       end;
       else do;
         rc =fput(fileid,rec);

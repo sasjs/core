@@ -3914,6 +3914,79 @@ create table &outds (rename=(
   %end;
 
 %mend;/**
+  @file
+  @brief Returns a unique hash for a dataset
+  @details Ignores metadata attributes, used only to hash values. Compared
+  datasets must be in the same order.
+
+      %mp_hashdataset(sashelp.class,outds=myhash);
+
+      data _null_;
+        set work.myhash;
+        put hashkey=;
+      run;
+
+
+  <h4> SAS Macros </h4>
+  @li mf_getattrn.sas
+  @li mf_getuniquename.sas
+  @li mf_getvarlist.sas
+  @li mf_getvartype.sas
+
+  @param [in] libds dataset to hash
+  @param [out] outds= (work.mf_hashdataset) The output dataset to create. This
+  will contain one column (hashkey) with one observation (a hex32.
+  representation of the input hash)
+  |hashkey:$32.|
+  |---|
+  |28ABC74ABFC45F50794237BA5566E6CA|
+
+  @version 9.2
+  @author Allan Bowe
+**/
+
+%macro mp_hashdataset(
+  libds,
+  outds=
+)/*/STORE SOURCE*/;
+  %if %mf_getattrn(&libds,NLOBS)=0 %then %do;
+    %put %str(WARN)ING: Dataset &libds is empty;, or is not a dataset;
+  %end;
+  %else %if %mf_getattrn(&libds,NLOBS)<0 %then %do;
+    %put %str(ERR)OR: Dataset &libds is not a dataset;
+  %end;
+  %else %do;
+    %local keyvar /* roll up the md5 */
+      prevkeyvar /* retain prev record md5 */
+      lastvar /* last var in input ds */
+      varlist var i;
+    /* avoid naming conflict for hash key vars */
+    %let keyvar=%mf_getuniquename();
+    %let prevkeyvar=%mf_getuniquename();
+    %let lastvar=%mf_getuniquename();
+    %let varlist=%mf_getvarlist(&libds);
+    data &outds(rename=(&keyvar=hashkey) keep=&keyvar);
+      length &prevkeyvar &keyvar $32;
+      retain &prevkeyvar;
+      set &libds end=&lastvar;
+      /* hash should include previous row */
+      if _n_>1 then &keyvar=put(md5(&prevkeyvar
+      /* loop every column, hashing every individual value */
+    %do i=1 %to %sysfunc(countw(&varlist));
+      %let var=%scan(&varlist,&i,%str( ));
+      %if %mf_getvartype(&libds,&var)=C %then %do;
+          !!put(md5(trim(&var)),$hex32.)
+      %end;
+      %else %do;
+          !!put(md5(trim(put(&var*1,binary64.))),$hex32.)
+      %end;
+    %end;
+      ),$hex32.);
+      &prevkeyvar=&keyvar;
+      if &lastvar then output;
+    run;
+  %end;
+%mend;/**
   @file mp_jsonout.sas
   @brief Writes JSON in SASjs format to a fileref
   @details PROC JSON is faster but will produce errs like the ones below if
@@ -5374,60 +5447,6 @@ alter table &libds modify &var char(&len);
 
 %mend;
 /**
-  @file
-  @brief Validates a filter clause
-  @details Validates a filter to avoid SQL injection.  Works by removing string
-  literals, then ensuring that none of the following characters remain: &,%,;
-
-
-
-      %mp_setkeyvalue(someindex,22,type=N)
-      %mp_setkeyvalue(somenewindex,somevalue)
-
-  <h4> SAS Macros </h4>
-  @li mf_existds.sas
-
-  @param key Provide a key on which to perform the lookup
-  @param value Provide a value
-  @param type= either C or N will populate valc and valn respectively.  C is
-              default.
-  @param libds= define the target table to hold the parameters
-
-  @version 9.2
-  @author Allan Bowe
-  @source https://github.com/sasjs/core
-
-**/
-
-%macro mp_setkeyvalue(key,value,type=C,libds=work.mp_setkeyvalue
-)/*/STORE SOURCE*/;
-
-  %if not (%mf_existds(&libds)) %then %do;
-    data &libds (index=(key/unique));
-      length key $64 valc $2048 valn 8 type $1;
-      call missing(of _all_);
-      stop;
-    run;
-  %end;
-
-  proc sql;
-    delete from &libds
-      where key=symget('key');
-    insert into &libds
-      set key=symget('key')
-  %if &type=C %then %do;
-        ,valc=symget('value')
-        ,type='C'
-  %end;
-  %else %do;
-        ,valn=symgetn('value')
-        ,type='N'
-  %end;
-  ;
-
-  quit;
-
-%mend;/**
   @file
   @brief Creates a zip file
   @details For DIRECTORY usage, will ignore subfolders. For DATASET usage,

@@ -72,7 +72,6 @@ https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5p
     %let oauth_bearer=oauth_bearer=sas_services;
     %let &access_token_var=;
 %end;
-%put &sysmacroname: grant_type=&grant_type;
 
 /* initial validation checking */
 %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password

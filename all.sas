@@ -11331,8 +11331,8 @@ run;
 
   @param path= The full path of the folder to be created
   @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= valid values are "password" or "authorization_code" (unquoted).
-    The default is authorization_code.
+  @param grant_type= (authorization_code) Valid values are "password" or
+    "authorization_code" (unquoted).
 
 
   @version VIYA V.03.04
@@ -11361,7 +11361,6 @@ run;
     %let &access_token_var=;
 %end;
 
-%put &sysmacroname: grant_type=&grant_type;
 %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )
@@ -11407,12 +11406,15 @@ options noquotelenmax;
   %local libref1;
   %let libref1=%mf_getuniquelibref();
   libname &libref1 JSON fileref=&fname1;
-  %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 404)
+  %mp_abort(
+    iftrue=(
+      &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 404
+    )
     ,mac=&sysmacroname
     ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
   )
   %if &SYS_PROCHTTP_STATUS_CODE=200 %then %do;
-    %put &sysmacroname &newpath exists so grab the follow on link ;
+    %*put &sysmacroname &newpath exists so grab the follow on link ;
     data _null_;
       set &libref1..links;
       if rel='createChild' then
@@ -11544,7 +11546,6 @@ https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5p
     %let oauth_bearer=oauth_bearer=sas_services;
     %let &access_token_var=;
 %end;
-%put &sysmacroname: grant_type=&grant_type;
 
 /* initial validation checking */
 %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
@@ -11863,7 +11864,6 @@ https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5p
     %let oauth_bearer=oauth_bearer=sas_services;
     %let &access_token_var=;
 %end;
-%put &sysmacroname: grant_type=&grant_type;
 
 /* initial validation checking */
 %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
@@ -12647,7 +12647,7 @@ libname &libref1a clear;
     %let oauth_bearer=oauth_bearer=sas_services;
     %let &access_token_var=;
 %end;
-%put &sysmacroname: grant_type=&grant_type;
+
 %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )
@@ -12789,7 +12789,7 @@ libname &libref1a clear;
     %let oauth_bearer=oauth_bearer=sas_services;
     %let &access_token_var=;
 %end;
-%put &sysmacroname: grant_type=&grant_type;
+
 %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )
@@ -13215,7 +13215,7 @@ libname &libref1 clear;
     %let oauth_bearer=oauth_bearer=sas_services;
     %let &access_token_var=;
 %end;
-%put &sysmacroname: grant_type=&grant_type;
+
 %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )

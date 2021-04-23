@@ -4,13 +4,14 @@
   @details Ignores metadata attributes, used only to hash values. Compared
   datasets must be in the same order.
 
-      %mp_hashdataset(sashelp.class,outds=myhash);
+      %mp_hashdataset(sashelp.class,outds=myhash)
 
       data _null_;
         set work.myhash;
         put hashkey=;
       run;
 
+  ![sas md5 hash dataset log results](https://i.imgur.com/MqF98vk.png)
 
   <h4> SAS Macros </h4>
   @li mf_getattrn.sas

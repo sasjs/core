@@ -1040,14 +1040,17 @@ options noquotelenmax;
   returns:
   > List of Variables=Name Sex Age Height Weight
 
+  For a seperated list of column values:
+
         %put %mf_getvarlist(sashelp.class,dlm=%str(,),quote=double);
 
   returns:
   > "Name","Sex","Age","Height","Weight"
 
-  @param libds Two part dataset (or view) reference.
-  @param dlm= provide a delimiter (eg comma or space) to separate the vars
-  @param quote= use either DOUBLE or SINGLE to quote the results
+  @param [in] libds Two part dataset (or view) reference.
+  @param [in] dlm= ( ) Provide a delimiter (eg comma or space) to separate the
+    variables
+  @param [in] quote= (none) use either DOUBLE or SINGLE to quote the results
 
   @version 9.2
   @author Allan Bowe

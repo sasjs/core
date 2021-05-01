@@ -22,6 +22,9 @@
   @version 9.2
   @author Allan Bowe
 
+  <h4> Related Macros </h4>
+  @li mf_getxengine.sas
+
 **/
 /** @cond */
 

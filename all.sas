@@ -7675,8 +7675,16 @@ data _null_;
   put '%else %if &action=OPEN %then %do; ';
   put '  /* fix encoding */ ';
   put '  OPTIONS NOBOMFILE; ';
+  put ' ';
+  put '  /** ';
+  put '    * check engine type to avoid the below err message: ';
+  put '    * > Function is only valid for filerefs using the CACHE access method. ';
+  put '    */ ';
   put '  data _null_; ';
-  put '    rc = stpsrv_header(''Content-type'',"text/html; encoding=utf-8"); ';
+  put '    set sashelp.vextfl(where=(fileref="_WEBOUT")); ';
+  put '    if xengine=''STREAM'' then do; ';
+  put '      rc=stpsrv_header(''Content-type'',"text/html; encoding=utf-8"); ';
+  put '    end; ';
   put '  run; ';
   put ' ';
   put '  /* setup json */ ';
@@ -7690,16 +7698,9 @@ data _null_;
   put '%end; ';
   put ' ';
   put '%else %if &action=ARR or &action=OBJ %then %do; ';
-  put '  %if &sysver=9.4 %then %do; ';
-  put '    %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt ';
-  put '      ,engine=PROCJSON,dbg=%str(&_debug) ';
-  put '    ) ';
-  put '  %end; ';
-  put '  %else %do; ';
-  put '    %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt ';
-  put '      ,engine=DATASTEP,dbg=%str(&_debug) ';
-  put '    ) ';
-  put '  %end; ';
+  put '  %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt ';
+  put '    ,engine=DATASTEP,dbg=%str(&_debug) ';
+  put '  ) ';
   put '%end; ';
   put '%else %if &action=CLOSE %then %do; ';
   put '  %if %str(&_debug) ge 131 %then %do; ';
@@ -11144,8 +11145,16 @@ run;
 %else %if &action=OPEN %then %do;
   /* fix encoding */
   OPTIONS NOBOMFILE;
+
+  /**
+    * check engine type to avoid the below err message:
+    * > Function is only valid for filerefs using the CACHE access method.
+    */
   data _null_;
-    rc = stpsrv_header('Content-type',"text/html; encoding=utf-8");
+    set sashelp.vextfl(where=(fileref="_WEBOUT"));
+    if xengine='STREAM' then do;
+      rc=stpsrv_header('Content-type',"text/html; encoding=utf-8");
+    end;
   run;
 
   /* setup json */
@@ -11159,16 +11168,9 @@ run;
 %end;
 
 %else %if &action=ARR or &action=OBJ %then %do;
-  %if &sysver=9.4 %then %do;
-    %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt
-      ,engine=PROCJSON,dbg=%str(&_debug)
-    )
-  %end;
-  %else %do;
-    %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt
-      ,engine=DATASTEP,dbg=%str(&_debug)
-    )
-  %end;
+  %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt
+    ,engine=DATASTEP,dbg=%str(&_debug)
+  )
 %end;
 %else %if &action=CLOSE %then %do;
   %if %str(&_debug) ge 131 %then %do;

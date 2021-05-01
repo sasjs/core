@@ -68,8 +68,16 @@
 %else %if &action=OPEN %then %do;
   /* fix encoding */
   OPTIONS NOBOMFILE;
+
+  /**
+    * check engine type to avoid the below err message:
+    * > Function is only valid for filerefs using the CACHE access method.
+    */
   data _null_;
-    rc = stpsrv_header('Content-type',"text/html; encoding=utf-8");
+    set sashelp.vextfl(where=(fileref="_WEBOUT"));
+    if xengine='STREAM' then do;
+      rc=stpsrv_header('Content-type',"text/html; encoding=utf-8");
+    end;
   run;
 
   /* setup json */
@@ -83,16 +91,9 @@
 %end;
 
 %else %if &action=ARR or &action=OBJ %then %do;
-  %if &sysver=9.4 %then %do;
-    %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt
-      ,engine=PROCJSON,dbg=%str(&_debug)
-    )
-  %end;
-  %else %do;
-    %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt
-      ,engine=DATASTEP,dbg=%str(&_debug)
-    )
-  %end;
+  %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt
+    ,engine=DATASTEP,dbg=%str(&_debug)
+  )
 %end;
 %else %if &action=CLOSE %then %do;
   %if %str(&_debug) ge 131 %then %do;

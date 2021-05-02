@@ -1,6 +1,12 @@
 {
   "$schema": "https://cli.sasjs.io/sasjsconfig-schema.json",
-  "macroFolders": ["base", "meta", "metax", "viya", "lua"],
+  "macroFolders": [
+    "base",
+    "meta",
+    "metax",
+    "viya",
+    "lua"
+  ],
   "docConfig": {
     "displayMacroCore": false,
     "enableLineage": false,
@@ -21,14 +27,18 @@
       "serverType": "SASVIYA",
       "appLoc": "/Public/temp/macrocore",
       "serviceConfig": {
-        "serviceFolders": ["tests/viya"],
+        "serviceFolders": [
+          "tests/base",
+          "tests/viya"
+        ],
         "macroVars": {
           "mcTestAppLoc": "/Public/temp/macrocore"
         }
       },
       "deployConfig": {
         "deployServicePack": true
-      }
+      },
+      "contextName": "SAS Job Execution compute context"
     }
   ]
 }

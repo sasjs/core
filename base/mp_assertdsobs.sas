@@ -25,6 +25,8 @@
   |---|---|---|
   |User Provided description|PASS|Dataset &inds has XX obs|
 
+  <h4> Related Macros </h4>
+  @li mp_assertcolvals.sas
 
   @version 9.2
   @author Allan Bowe

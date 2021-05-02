@@ -59,6 +59,7 @@
 
   <h4> SAS Macros </h4>
   @li mp_abort.sas
+  @li mf_nobs.sas
 
   @version 9.3
   @author Allan Bowe
@@ -74,17 +75,26 @@
 
 filename &outref temp;
 
-data _null_;
-  file &outref lrecl=32800;
-  set &inds end=last;
-  by SUBGROUP_ID;
-  if _n_=1 then put '(';
-  else if first.SUBGROUP_ID then put +1 GROUP_LOGIC '(';
-  else put +2 SUBGROUP_LOGIC;
+%if %mf_nobs(&inds)=0 %then %do;
+  /* ensure we have a default filter */
+  data _null_;
+    file &outref;
+    put '1=1';
+  run;
+%end;
+%else %do;
+  data _null_;
+    file &outref lrecl=32800;
+    set &inds end=last;
+    by SUBGROUP_ID;
+    if _n_=1 then put '(';
+    else if first.SUBGROUP_ID then put +1 GROUP_LOGIC '(';
+    else put +2 SUBGROUP_LOGIC;
 
-  put +4 VARIABLE_NM OPERATOR_NM RAW_VALUE;
+    put +4 VARIABLE_NM OPERATOR_NM RAW_VALUE;
 
-  if last.SUBGROUP_ID then put ')'@;
-run;
+    if last.SUBGROUP_ID then put ')'@;
+  run;
+%end;
 
 %mend;

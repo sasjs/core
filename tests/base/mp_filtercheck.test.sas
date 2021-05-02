@@ -18,13 +18,15 @@ datalines4;
 AND,AND,1,AGE,=,12
 AND,AND,1,SEX,<=,"'M'"
 AND,OR,2,Name,NOT IN,"('Jane','Alfred')"
-AND,OR,2,Weight,>=,7
+AND,OR,2,Weight,>=,77.7
+AND,OR,2,Weight,NE,77.7
 ;;;;
 run;
 
 %mp_filtercheck(work.inds,
   targetds=sashelp.class,
-  outds=work.badrecords
+  outds=work.badrecords,
+  abort=NO
 )
 %let syscc=0;
 %mp_assertdsobs(work.badrecords,
@@ -45,10 +47,10 @@ AND,OR,2,Name,NOT IN,"('Jane','Alfred')"
 AND,OR,2,Weight,>=,7
 ;;;;
 run;
-
 %mp_filtercheck(work.inds,
   targetds=sashelp.class,
-  outds=work.badrecords
+  outds=work.badrecords,
+  abort=NO
 )
 %let syscc=0;
 %mp_assertdsobs(work.badrecords,
@@ -69,7 +71,8 @@ run;
 
 %mp_filtercheck(work.inds,
   targetds=sashelp.class,
-  outds=work.badrecords
+  outds=work.badrecords,
+  abort=NO
 )
 %let syscc=0;
 %mp_assertdsobs(work.badrecords,
@@ -91,7 +94,8 @@ run;
 
 %mp_filtercheck(work.inds,
   targetds=sashelp.class,
-  outds=work.badrecords
+  outds=work.badrecords,
+  abort=NO
 )
 %let syscc=0;
 %mp_assertdsobs(work.badrecords,
@@ -109,10 +113,10 @@ datalines4;
 AND,AND,1,age,=,;;%abort
 ;;;;
 run;
-
 %mp_filtercheck(work.inds,
   targetds=sashelp.class,
-  outds=work.badrecords
+  outds=work.badrecords,
+  abort=NO
 )
 %let syscc=0;
 %mp_assertdsobs(work.badrecords,

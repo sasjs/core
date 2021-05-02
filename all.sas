@@ -1793,13 +1793,15 @@ Usage:
 
   <h4> SAS Macros </h4>
   @li mf_nobs.sas
+  @li mp_abort.sas
 
 
   @param [in] inds input dataset to test for presence of observations
   @param [in] desc= (Testing observations) The user provided test description
   @param [in] test= (HASOBS) The test to apply.  Valid values are:
-    @li HASOBS Test is a PASS if the input dataset has any observations
-    @li EMPTY Test is a PASS if input dataset is empty
+    @li HASOBS - Test is a PASS if the input dataset has any observations
+    @li EMPTY - Test is a PASS if input dataset is empty
+    @li EQUALS [integer] - Test passes if obs count matches the provided integer
   @param [out] outds= (work.test_results) The output dataset to contain the
   results.  If it does not exist, it will be created, with the following format:
   |TEST_DESCRIPTION:$256|TEST_RESULT:$4|TEST_COMMENTS:$256|
@@ -1822,6 +1824,21 @@ Usage:
   %let nobs=%mf_nobs(&inds);
   %let test=%upcase(&test);
 
+  %if %substr(&test.xxxxx,1,6)=EQUALS %then %do;
+    %let val=%scan(&test,2,%str( ));
+    %mp_abort(iftrue= (%DATATYP(&val)=CHAR)
+      ,mac=&sysmacroname
+      ,msg=%str(Invalid test - &test, expected EQUALS [integer])
+    )
+    %let test=EQUALS;
+  %end;
+  %else %if &test ne HASOBS and &test ne EMPTY %then %do;
+    %mp_abort(
+      mac=&sysmacroname,
+      msg=%str(Invalid test - &test)
+    )
+  %end;
+
   data;
     length test_description $256 test_result $4 test_comments $256;
     test_description=symget('desc');
@@ -1832,6 +1849,9 @@ Usage:
   %end;
   %else %if &test=EMPTY %then %do;
     if &nobs=0 then test_result='PASS';
+  %end;
+  %else %if &test=EQUALS %then %do;
+    if &nobs=&val then test_result='PASS';
   %end;
   %else %do;
     test_comments="&sysmacroname: Unsatisfied test condition - &test";
@@ -2885,7 +2905,8 @@ run;
   @brief Checks an input filter table for validity
   @details Performs checks on the input table to ensure it arrives in the
   correct format.  This is necessary to prevent code injection.  Will update
-  SYSCC to 1008 if bad records are found.
+  SYSCC to 1008 if bad records are found, and call mp_abort.sas for a
+  graceful service exit (configurable).
 
   Used for dynamic filtering in [Data Controller for SAS&reg;](https://datacontroller.io).
 
@@ -2915,6 +2936,7 @@ run;
 
   @param [in] inds The table to be checked, with the format above
   @param [in] targetds= The target dataset against which to verify VARIABLE_NM
+  @param [out] abort= (YES) If YES will call mp_abort.sas on any exceptions
   @param [out] outds= The output table, which is a copy of the &inds. table
   plus a REASON_CD column, containing only bad records.  If bad records found,
   the SYSCC value will be set to 1008 (general data problem).  Downstream
@@ -2934,7 +2956,7 @@ run;
   @todo Support date / hex / name literals and exponents in RAW_VALUE field
 **/
 
-%macro mp_filtercheck(inds,targetds=,outds=work.badrecords);
+%macro mp_filtercheck(inds,targetds=,outds=work.badrecords,abort=YES);
 
 %mp_abort(iftrue= (&syscc ne 0)
   ,mac=&sysmacroname
@@ -2975,7 +2997,7 @@ data &outds;
     output;
   end;
   if OPERATOR_NM not in
-  ('=','>','<','<=','>=','BETWEEN','IN','NOT IN','NOT EQUAL','CONTAINS')
+  ('=','>','<','<=','>=','BETWEEN','IN','NOT IN','NE','CONTAINS')
   then do;
     REASON_CD='Invalid OPERATOR_NM';
     putlog REASON_CD= OPERATOR_NM=;
@@ -3004,11 +3026,8 @@ data &outds;
   regex = prxparse("s/(\').*?(\')//");
   call prxchange(regex,-1,raw_value2);
 
-  /* remove commas */
-  raw_value3=compress(raw_value2,',');
-
-
-
+  /* remove commas and periods*/
+  raw_value3=compress(raw_value2,',.');
 
   /* output records that contain values other than digits and spaces */
   if notdigit(compress(raw_value3,' '))>0 then do;
@@ -3020,7 +3039,22 @@ data &outds;
 
 run;
 
-%if %mf_nobs(&outds)>0 %then %let syscc=1008;
+%if %mf_nobs(&outds)>0 %then %do;
+  %if &abort=YES %then %do;
+    data _null_;
+      set &outds;
+      call symputx('REASON_CD',reason_cd,'l');
+      stop;
+    run;
+    %mp_abort(
+      mac=&sysmacroname,
+      msg=%str(Filter issues in &inds, first was &reason_cd, details in &outds)
+    )
+  %end;
+  %let syscc=1008;
+%end;
+
+
 
 %mend;
 /**
@@ -3084,6 +3118,7 @@ run;
 
   <h4> SAS Macros </h4>
   @li mp_abort.sas
+  @li mf_nobs.sas
 
   @version 9.3
   @author Allan Bowe
@@ -3099,18 +3134,27 @@ run;
 
 filename &outref temp;
 
-data _null_;
-  file &outref lrecl=32800;
-  set &inds end=last;
-  by SUBGROUP_ID;
-  if _n_=1 then put '(';
-  else if first.SUBGROUP_ID then put +1 GROUP_LOGIC '(';
-  else put +2 SUBGROUP_LOGIC;
+%if %mf_nobs(&inds)=0 %then %do;
+  /* ensure we have a default filter */
+  data _null_;
+    file &outref;
+    put '1=1';
+  run;
+%end;
+%else %do;
+  data _null_;
+    file &outref lrecl=32800;
+    set &inds end=last;
+    by SUBGROUP_ID;
+    if _n_=1 then put '(';
+    else if first.SUBGROUP_ID then put +1 GROUP_LOGIC '(';
+    else put +2 SUBGROUP_LOGIC;
 
-  put +4 VARIABLE_NM OPERATOR_NM RAW_VALUE;
+    put +4 VARIABLE_NM OPERATOR_NM RAW_VALUE;
 
-  if last.SUBGROUP_ID then put ')'@;
-run;
+    if last.SUBGROUP_ID then put ')'@;
+  run;
+%end;
 
 %mend;
 /**

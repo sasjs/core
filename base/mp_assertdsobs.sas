@@ -10,13 +10,15 @@
 
   <h4> SAS Macros </h4>
   @li mf_nobs.sas
+  @li mp_abort.sas
 
 
   @param [in] inds input dataset to test for presence of observations
   @param [in] desc= (Testing observations) The user provided test description
   @param [in] test= (HASOBS) The test to apply.  Valid values are:
-    @li HASOBS Test is a PASS if the input dataset has any observations
-    @li EMPTY Test is a PASS if input dataset is empty
+    @li HASOBS - Test is a PASS if the input dataset has any observations
+    @li EMPTY - Test is a PASS if input dataset is empty
+    @li EQUALS [integer] - Test passes if obs count matches the provided integer
   @param [out] outds= (work.test_results) The output dataset to contain the
   results.  If it does not exist, it will be created, with the following format:
   |TEST_DESCRIPTION:$256|TEST_RESULT:$4|TEST_COMMENTS:$256|
@@ -39,6 +41,21 @@
   %let nobs=%mf_nobs(&inds);
   %let test=%upcase(&test);
 
+  %if %substr(&test.xxxxx,1,6)=EQUALS %then %do;
+    %let val=%scan(&test,2,%str( ));
+    %mp_abort(iftrue= (%DATATYP(&val)=CHAR)
+      ,mac=&sysmacroname
+      ,msg=%str(Invalid test - &test, expected EQUALS [integer])
+    )
+    %let test=EQUALS;
+  %end;
+  %else %if &test ne HASOBS and &test ne EMPTY %then %do;
+    %mp_abort(
+      mac=&sysmacroname,
+      msg=%str(Invalid test - &test)
+    )
+  %end;
+
   data;
     length test_description $256 test_result $4 test_comments $256;
     test_description=symget('desc');
@@ -49,6 +66,9 @@
   %end;
   %else %if &test=EMPTY %then %do;
     if &nobs=0 then test_result='PASS';
+  %end;
+  %else %if &test=EQUALS %then %do;
+    if &nobs=&val then test_result='PASS';
   %end;
   %else %do;
     test_comments="&sysmacroname: Unsatisfied test condition - &test";

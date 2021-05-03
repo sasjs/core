@@ -68,12 +68,12 @@ data _null_;
 run;
 
 %if &tsuri=stopifempty %then %do;
-  %put WARNING:  &stp.(StoredProcess) not found!;
+  %put %str(WARN)ING:  &stp.(StoredProcess) not found!;
   %return;
 %end;
 
 %if %length(&stpcode)<2 %then %do;
-  %put WARNING:  No SAS code supplied!!;
+  %put %str(WARN)ING:  No SAS code supplied!!;
   %return;
 %end;
 

@@ -29,7 +29,7 @@
   %let dsid=%sysfunc(open(&libds,is));
 
   %if &dsid=0 %then %do;
-    %put WARNING:  unable to open &libds in mf_existvarlist (&dsid);
+    %put %str(WARN)ING:  unable to open &libds in mf_existvarlist (&dsid);
   %end;
 
   %if %sysfunc(attrn(&dsid,NVARS))=0 %then %do;

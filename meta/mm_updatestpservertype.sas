@@ -34,7 +34,7 @@ data _null_;
   call symputx('stpuri',uri,'l');
 run;
 %if &cmtype ne ClassifierMap %then %do;
-  %put WARNING: No Stored Process found at &target;
+  %put %str(WARN)ING: No Stored Process found at &target;
   %return;
 %end;
 

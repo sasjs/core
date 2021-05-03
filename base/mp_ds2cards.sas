@@ -43,7 +43,7 @@
 %local i setds nvars;
 
 %if not %sysfunc(exist(&base_ds)) %then %do;
-  %put WARNING:  &base_ds does not exist;
+  %put %str(WARN)ING:  &base_ds does not exist;
   %return;
 %end;
 
@@ -61,7 +61,7 @@ select count(*) into: nvars from dictionary.columns
   where libname="%scan(%upcase(&base_ds),1)"
     and memname="%scan(%upcase(&base_ds),2)";
 %if &nvars=0 %then %do;
-  %put WARNING:  Dataset &base_ds has no variables!  It will not be converted.;
+  %put %str(WARN)ING: Dataset &base_ds has no variables, will not be converted.;
   %return;
 %end;
 

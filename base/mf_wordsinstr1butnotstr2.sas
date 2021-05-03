@@ -30,7 +30,7 @@
 
 %local count_base count_extr i i2 extr_word base_word match outvar;
 %if %length(&str1)=0 or %length(&str2)=0 %then %do;
-  %put WARNING: empty string provided!;
+  %put %str(WARN)ING: empty string provided!;
   %put base string (str1)= &str1;
   %put compare string (str2) = &str2;
   %return;

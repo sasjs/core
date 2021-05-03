@@ -70,7 +70,7 @@ data _null_;
 run;
 
 %if &appuri=stopifempty %then %do;
-  %put WARNING:  &app.(Application) not found!;
+  %put %str(WARN)ING:  &app.(Application) not found!;
   %return;
 %end;
 

@@ -19,7 +19,7 @@
 )/*/STORE SOURCE*/;
 
 %if not %sysfunc(exist(&ds)) %then %do;
-  %put WARNING:  &ds does not exist;
+  %put %str(WARN)ING:  &ds does not exist;
   %return;
 %end;
 

@@ -332,7 +332,7 @@ run;
   run;
 
   %if %length(&open_passthrough)>0 %then %do;
-    %put WARNING:  Passthrough option for postgres not yet supported;
+    %put %str(WARN)ING: Passthrough option for postgres not yet supported;
     %return;
   %end;
   %else %do;
@@ -455,8 +455,8 @@ run;
   %return;
 %end;
 %else %do;
-  %put WARNING: Engine &engine is currently unsupported;
-  %put WARNING- Please contact your support team.;
+  %put %str(WARN)ING: Engine &engine is currently unsupported;
+  %put %str(WARN)ING- Please contact your support team.;
   %return;
 %end;
 

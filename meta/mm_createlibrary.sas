@@ -88,7 +88,7 @@ data _null_;
   putlog (_all_)(=);
 run;
 %if &checktype = SASLibrary %then %do;
-  %put WARNING: Library (&liburi) already exists with libname (&libname)  ;
+  %put %str(WARN)ING: Library (&liburi) already exists with libname (&libname);
   %return;
 %end;
 
@@ -103,7 +103,7 @@ data _null_;
   putlog (_all_)(=);
 run;
 %if &checktype = SASLibrary %then %do;
-  %put WARNING: Library (&liburi) already exists with libref (&libref)  ;
+  %put %str(WARN)ING: Library (&liburi) already exists with libref (&libref)  ;
   %return;
 %end;
 
@@ -123,7 +123,7 @@ data _null_;
   call symputx('treeuri',uri,'l');
 run;
 %if &foldertype ne Tree %then %do;
-  %put WARNING: Tree &tree does not exist!;
+  %put %str(WARN)ING: Tree &tree does not exist!;
   %return;
 %end;
 
@@ -231,7 +231,7 @@ filename &frefout temp;
     *  check SAS version
     */
   %if %sysevalf(&sysver lt 9.3) %then %do;
-    %put WARNING: Version 9.3 or later required;
+    %put %str(WARN)ING: Version 9.3 or later required;
     %return;
   %end;
 

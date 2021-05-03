@@ -58,12 +58,12 @@ data _null_;
 run;
 
 %if &tsuri=stopifempty %then %do;
-  %put WARNING:  &path/&name.(Document) not found!;
+  %put %str(WARN)ING:  &path/&name.(Document) not found!;
   %return;
 %end;
 
 %if %length(&text)<2 %then %do;
-  %put WARNING:  No text supplied!!;
+  %put %str(WARN)ING:  No text supplied!!;
   %return;
 %end;
 

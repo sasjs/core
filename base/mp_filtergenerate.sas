@@ -88,13 +88,14 @@ filename &outref temp;
     file &outref lrecl=32800;
     set &inds end=last;
     by SUBGROUP_ID;
-    if _n_=1 then put '(';
+    if _n_=1 then put '((';
     else if first.SUBGROUP_ID then put +1 GROUP_LOGIC '(';
     else put +2 SUBGROUP_LOGIC;
 
     put +4 VARIABLE_NM OPERATOR_NM RAW_VALUE;
 
     if last.SUBGROUP_ID then put ')'@;
+    if last then put ')';
   run;
 %end;
 

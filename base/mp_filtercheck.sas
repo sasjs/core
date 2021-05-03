@@ -27,7 +27,7 @@
   @li SUBGROUP_LOGIC - only AND/OR
   @li SUBGROUP_ID - only integers
   @li VARIABLE_NM - must be in the target table
-  @li OPERATOR_NM - only =/>/</<=/>=/BETWEEN/IN/NOT IN/NOT EQUAL/CONTAINS
+  @li OPERATOR_NM - only =/>/</<=/>=/BETWEEN/IN/NOT IN/NE/CONTAINS
   @li RAW_VALUE - no unquoted values except integers, commas and spaces.
 
   @returns The &outds table containing any bad rows, plus a REASON_CD column.
@@ -42,11 +42,15 @@
 
   <h4> SAS Macros </h4>
   @li mp_abort.sas
+  @li mf_getuniquefileref.sas
   @li mf_getvarlist.sas
   @li mf_nobs.sas
+  @li mp_filtergenerate.sas
+  @li mp_filtervalidate.sas
 
   <h4> Related Macros </h4>
   @li mp_filtergenerate.sas
+  @li mp_filtervalidate.sas
 
   @version 9.3
   @author Allan Bowe
@@ -150,8 +154,18 @@ run;
     )
   %end;
   %let syscc=1008;
+  %return;
 %end;
 
+/**
+  * syntax checking passed but it does not mean the filter is valid
+  * for that we can run a proc sql validate query
+  */
+%local fref1;
+%let fref1=%mf_getuniquefileref();
+%mp_filtergenerate(&inds,outref=&fref1)
 
+/* this macro will also set syscc to 1008 if any issues found */
+%mp_filtervalidate(&fref1,&targetds,outds=&outds,abort=&abort)
 
 %mend;

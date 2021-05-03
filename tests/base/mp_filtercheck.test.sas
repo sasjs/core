@@ -63,7 +63,7 @@ run;
 data work.inds;
   infile datalines4 dsd;
   input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
-    OPERATOR_NM:$10. RAW_VALUE:$32767.;
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
 datalines4;
 AND,OR,2,Name,NOT IN,"(''''Jane','Alfred')"
 ;;;;
@@ -85,7 +85,7 @@ run;
 data work.inds;
   infile datalines4 dsd;
   input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
-    OPERATOR_NM:$10. RAW_VALUE:$32767.;
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
 datalines4;
 AND,AND,1,%abort,=,12
 AND,OR,2,Weight,>=,7
@@ -108,7 +108,7 @@ run;
 data work.inds;
   infile datalines4 dsd;
   input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
-    OPERATOR_NM:$10. RAW_VALUE:$32767.;
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
 datalines4;
 AND,AND,1,age,=,;;%abort
 ;;;;

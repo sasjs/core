@@ -21,7 +21,7 @@
       data work.filtertable;
         infile datalines4 dsd;
         input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
-          OPERATOR_NM:$10. RAW_VALUE:$32767.;
+          OPERATOR_NM:$10. RAW_VALUE:$4000.;
       datalines4;
       AND,AND,1,AGE,=,12
       AND,AND,1,SEX,<=,"'M'"
@@ -56,6 +56,7 @@
 
   <h4> Related Macros </h4>
   @li mp_filtercheck.sas
+  @li mp_filtervalidate.sas
 
   <h4> SAS Macros </h4>
   @li mp_abort.sas

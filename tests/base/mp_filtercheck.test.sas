@@ -13,7 +13,7 @@
 data work.inds;
   infile datalines4 dsd;
   input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
-    OPERATOR_NM:$10. RAW_VALUE:$32767.;
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
 datalines4;
 AND,AND,1,AGE,=,12
 AND,AND,1,SEX,<=,"'M'"
@@ -39,7 +39,7 @@ run;
 data work.inds;
   infile datalines4 dsd;
   input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
-    OPERATOR_NM:$10. RAW_VALUE:$32767.;
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
 datalines4;
 AND,AND,1,invalid,=,12
 AND,AND,1,SEX,<=,"'M'"

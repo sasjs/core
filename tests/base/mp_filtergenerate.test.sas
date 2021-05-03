@@ -15,7 +15,7 @@ options source2;
 data work.inds;
   infile datalines4 dsd;
   input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
-    OPERATOR_NM:$10. RAW_VALUE:$32767.;
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
 datalines4;
 AND,AND,1,AGE,>,5
 AND,AND,1,SEX,NE,"'M'"
@@ -39,7 +39,7 @@ run;
 data work.inds;
   infile datalines4 dsd;
   input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
-    OPERATOR_NM:$10. RAW_VALUE:$32767.;
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
 datalines4;
 ;;;;
 run;
@@ -59,7 +59,7 @@ run;
 data work.inds;
   infile datalines4 dsd;
   input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
-    OPERATOR_NM:$10. RAW_VALUE:$32767.;
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
 datalines4;
 AND,OR,2,Name,IN,"('Jane','Janet')"
 ;;;;
@@ -80,7 +80,7 @@ run;
 data work.inds;
   infile datalines4 dsd;
   input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
-    OPERATOR_NM:$10. RAW_VALUE:$32767.;
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
 datalines4;
 OR,OR,2,Name,IN,"('Jane','Janet')"
 OR,OR,3,Name,IN,"('James')"
@@ -102,7 +102,7 @@ run;
 data work.inds;
   infile datalines4 dsd;
   input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
-    OPERATOR_NM:$10. RAW_VALUE:$32767.;
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
 datalines4;
 AND,OR,2,Name,IN,"('Jane','Janet')"
 AND,OR,3,Name,IN,"('James')"

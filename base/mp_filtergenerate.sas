@@ -5,7 +5,7 @@
   This feature is used to create dynamic dropdowns in [Data Controller for SAS&reg](
   https://datacontroller.io). The input table should be in the format below:
 
-  |GROUP_LOGIC:$3|SUBGROUP_LOGIC:$3|SUBGROUP_ID:8.|VARIABLE_NM:$32|OPERATOR_NM:$10|RAW_VALUE:$32767|
+  |GROUP_LOGIC:$3|SUBGROUP_LOGIC:$3|SUBGROUP_ID:8.|VARIABLE_NM:$32|OPERATOR_NM:$10|RAW_VALUE:$4000|
   |---|---|---|---|---|---|
   |AND|AND|1|AGE|=|12|
   |AND|AND|1|SEX|<=|'M'|

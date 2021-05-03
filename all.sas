@@ -325,7 +325,7 @@ options noquotelenmax;
   %let dsid=%sysfunc(open(&libds,is));
 
   %if &dsid=0 %then %do;
-    %put WARNING:  unable to open &libds in mf_existvarlist (&dsid);
+    %put %str(WARN)ING:  unable to open &libds in mf_existvarlist (&dsid);
   %end;
 
   %if %sysfunc(attrn(&dsid,NVARS))=0 %then %do;
@@ -377,7 +377,7 @@ options noquotelenmax;
   %local dsid rc;
   %let dsid=%sysfunc(open(&libds,is));
   %if &dsid = 0 %then %do;
-    %put WARNING: Cannot open %trim(&libds), system message below;
+    %put %str(WARN)ING: Cannot open %trim(&libds), system message below;
     %put %sysfunc(sysmsg());
     -1
   %end;
@@ -1602,7 +1602,7 @@ Usage:
 
 %local count_base count_extr i i2 extr_word base_word match outvar;
 %if %length(&str1)=0 or %length(&str2)=0 %then %do;
-  %put WARNING: empty string provided!;
+  %put %str(WARN)ING: empty string provided!;
   %put base string (str1)= &str1;
   %put compare string (str2) = &str2;
   %return;
@@ -2783,7 +2783,7 @@ run;
 %local i setds nvars;
 
 %if not %sysfunc(exist(&base_ds)) %then %do;
-  %put WARNING:  &base_ds does not exist;
+  %put %str(WARN)ING:  &base_ds does not exist;
   %return;
 %end;
 
@@ -2801,7 +2801,7 @@ select count(*) into: nvars from dictionary.columns
   where libname="%scan(%upcase(&base_ds),1)"
     and memname="%scan(%upcase(&base_ds),2)";
 %if &nvars=0 %then %do;
-  %put WARNING:  Dataset &base_ds has no variables!  It will not be converted.;
+  %put %str(WARN)ING: Dataset &base_ds has no variables, will not be converted.;
   %return;
 %end;
 
@@ -3012,7 +3012,7 @@ quit;
 )/*/STORE SOURCE*/;
 
 %if not %sysfunc(exist(&ds)) %then %do;
-  %put WARNING:  &ds does not exist;
+  %put %str(WARN)ING:  &ds does not exist;
   %return;
 %end;
 
@@ -6257,7 +6257,7 @@ run;
 %end;
 
 %if &syscc ge 4 %then %do;
-  %put WARNING:  SYSCC=&syscc, exiting &sysmacroname;
+  %put %str(WARN)ING:  SYSCC=&syscc, exiting &sysmacroname;
   %return;
 %end;
 
@@ -6616,7 +6616,7 @@ run;
   run;
 
   %if %length(&open_passthrough)>0 %then %do;
-    %put WARNING:  Passthrough option for postgres not yet supported;
+    %put %str(WARN)ING: Passthrough option for postgres not yet supported;
     %return;
   %end;
   %else %do;
@@ -6739,8 +6739,8 @@ run;
   %return;
 %end;
 %else %do;
-  %put WARNING: Engine &engine is currently unsupported;
-  %put WARNING- Please contact your support team.;
+  %put %str(WARN)ING: Engine &engine is currently unsupported;
+  %put %str(WARN)ING- Please contact your support team.;
   %return;
 %end;
 
@@ -7432,7 +7432,7 @@ data _null_;
   putlog (_all_)(=);
 run;
 %if &checktype = SASLibrary %then %do;
-  %put WARNING: Library (&liburi) already exists with libname (&libname)  ;
+  %put %str(WARN)ING: Library (&liburi) already exists with libname (&libname);
   %return;
 %end;
 
@@ -7447,7 +7447,7 @@ data _null_;
   putlog (_all_)(=);
 run;
 %if &checktype = SASLibrary %then %do;
-  %put WARNING: Library (&liburi) already exists with libref (&libref)  ;
+  %put %str(WARN)ING: Library (&liburi) already exists with libref (&libref)  ;
   %return;
 %end;
 
@@ -7467,7 +7467,7 @@ data _null_;
   call symputx('treeuri',uri,'l');
 run;
 %if &foldertype ne Tree %then %do;
-  %put WARNING: Tree &tree does not exist!;
+  %put %str(WARN)ING: Tree &tree does not exist!;
   %return;
 %end;
 
@@ -7575,7 +7575,7 @@ filename &frefout temp;
     *  check SAS version
     */
   %if %sysevalf(&sysver lt 9.3) %then %do;
-    %put WARNING: Version 9.3 or later required;
+    %put %str(WARN)ING: Version 9.3 or later required;
     %return;
   %end;
 
@@ -7783,7 +7783,7 @@ data _null_;
   call symputx('treeuri',uri,'l');
 run;
 %if &foldertype ne Tree %then %do;
-  %put WARNING: Tree &tree does not exist!;
+  %put %str(WARN)ING: Tree &tree does not exist!;
   %return;
 %end;
 
@@ -7798,7 +7798,7 @@ data _null_;
   call symputx('stpuri',uri,'l');
 run;
 %if &cmtype = ClassifierMap %then %do;
-  %put WARNING: Stored Process &stpname already exists in &tree!;
+  %put %str(WARN)ING: Stored Process &stpname already exists in &tree!;
   %return;
 %end;
 
@@ -7806,14 +7806,14 @@ run;
   * Check that the physical file exists
   */
 %if %sysfunc(fileexist(&directory/&filename)) ne 1 %then %do;
-  %put WARNING: FILE *&directory/&filename* NOT FOUND!;
+  %put %str(WARN)ING: FILE *&directory/&filename* NOT FOUND!;
   %return;
 %end;
 
 %if &stptype=1 %then %do;
   /* type 1 STP - where code is stored on filesystem */
   %if %sysevalf(&sysver lt 9.2) %then %do;
-    %put WARNING: Version 9.2 or later required;
+    %put %str(WARN)ING: Version 9.2 or later required;
     %return;
   %end;
 
@@ -7827,7 +7827,7 @@ run;
   %if &checkdirtype ne Directory %then %do;
     %mm_getdirectories(path=&directory,outds=&outds ,mDebug=&mDebug)
     %if %mf_nobs(&outds)=0 or %sysfunc(exist(&outds))=0 %then %do;
-      %put WARNING: The directory object does not exist for &directory;
+      %put %str(WARN)ING: The directory object does not exist for &directory;
       %return;
     %end;
   %end;
@@ -7845,12 +7845,12 @@ run;
     length id $20 type $256;
     __rc=metadata_resolve("&treeuri",type,id);
     if type ne 'Tree' then do;
-      putlog "WARNING:  Invalid tree URI: &treeuri";
+      putlog "%str(WARN)ING:  Invalid tree URI: &treeuri";
       stopme=1;
     end;
     __rc=metadata_resolve(directoryuri,type,id);
     if type ne 'Directory' then do;
-      putlog 'WARNING:  Invalid directory URI: ' directoryuri;
+      putlog "%str(WARN)ING:  Invalid directory URI: " directoryuri;
       stopme=1;
     end;
 
@@ -7859,7 +7859,7 @@ run;
     if type ne 'LogicalServer' then do;
       __rc=metadata_getnobj("omsobj:LogicalServer?@Name='&server'",1,serveruri);
       if serveruri='' then do;
-        putlog "WARNING:  Invalid server: &server";
+        putlog "%str(WARN)ING:  Invalid server: &server";
         stopme=1;
       end;
     end;
@@ -7882,7 +7882,7 @@ run;
     rc6 = METADATA_SETATTR(prompturi, 'GroupInfo',groupinfo);
 
     if sum(of rc1-rc6) ne 0 then do;
-      putlog 'WARNING: Issue creating prompt.';
+      putlog "%str(WARN)ING: Issue creating prompt.";
       if prompturi ne . then do;
         putlog '  Removing orphan: ' prompturi;
         rc = METADATA_DELOBJ(prompturi);
@@ -7897,7 +7897,7 @@ run;
     rc9=METADATA_SETATTR(fileuri, 'IsARelativeName','1');
     rc10=METADATA_SETASSN(fileuri, 'Directories','MODIFY',directoryuri);
     if sum(of rc7-rc10) ne 0 then do;
-      putlog 'WARNING: Issue creating file.';
+      putlog "%str(WARN)ING: Issue creating file.";
       if fileuri ne . then do;
         putlog '  Removing orphans:' prompturi fileuri;
         rc = METADATA_DELOBJ(prompturi);
@@ -7916,7 +7916,7 @@ run;
       !!"<OutputParameters/></StoredProcess>";
     rc14= METADATA_SETATTR(texturi, 'StoredText',storedtext);
     if sum(of rc11-rc14) ne 0 then do;
-      putlog 'WARNING: Issue creating TextStore.';
+      putlog "%str(WARN)ING: Issue creating TextStore.";
       if texturi ne . then do;
         putlog '  Removing orphans: ' prompturi fileuri texturi;
         rc = METADATA_DELOBJ(prompturi);
@@ -7964,7 +7964,7 @@ run;
 %else %if &stptype=2 %then %do;
   /* type 2 stp - code is stored in metadata */
   %if %sysevalf(&sysver lt 9.3) %then %do;
-    %put WARNING: SAS version 9.3 or later required to create type2 STPs;
+    %put %str(WARN)ING: SAS version 9.3 or later required to create type2 STPs;
     %return;
   %end;
   /* check we have the correct ServerContext */
@@ -7976,7 +7976,7 @@ run;
     call symputx('serveruri',serveruri);
   run;
   %if &serveruri=NOTFOUND %then %do;
-    %put WARNING: ServerContext *&server* not found!;
+    %put %str(WARN)ING: ServerContext *&server* not found!;
     %return;
   %end;
 
@@ -8047,7 +8047,7 @@ run;
 
 %end;
 %else %do;
-  %put WARNING:  STPTYPE=*&stptype* not recognised!;
+  %put %str(WARN)ING:  STPTYPE=*&stptype* not recognised!;
 %end;
 
 %mend;/**
@@ -8494,7 +8494,7 @@ data _null_;
   call symputx('stpuri',uri,'l');
 run;
 %if &type ne Document %then %do;
-  %put WARNING: No Document found at &target;
+  %put %str(WARN)ING: No Document found at &target;
   %return;
 %end;
 
@@ -9108,7 +9108,7 @@ data _null_;
           when ('&#x0d;') rec='0D'x;
           when ('&#36;' ) rec='$'  ;
           when ('&#x09;') rec='09'x;
-          otherwise putlog "WARNING: missing value for " entity=;
+          otherwise putlog "%str(WARN)ING: missing value for " entity=;
         end;
         rc =fput(fileid, substr(rec,1,1));
         rc =fwrite(fileid);
@@ -10908,7 +10908,7 @@ run;
           when ('&#x0d;') rec='0D'x;
           when ('&#36;' ) rec='$'  ;
           when ('&#x09;') rec='09'x;
-          otherwise putlog "WARNING: missing value for " entity=;
+          otherwise putlog "%str(WARN)ING: missing value for " entity=;
         end;
         rc =fput(fileid, substr(rec,1,1));
         rc =fwrite(fileid);
@@ -11307,7 +11307,7 @@ data _null_;
 run;
 
 %if &appuri=stopifempty %then %do;
-  %put WARNING:  &app.(Application) not found!;
+  %put %str(WARN)ING:  &app.(Application) not found!;
   %return;
 %end;
 
@@ -11428,12 +11428,12 @@ data _null_;
 run;
 
 %if &tsuri=stopifempty %then %do;
-  %put WARNING:  &path/&name.(Document) not found!;
+  %put %str(WARN)ING:  &path/&name.(Document) not found!;
   %return;
 %end;
 
 %if %length(&text)<2 %then %do;
-  %put WARNING:  No text supplied!!;
+  %put %str(WARN)ING:  No text supplied!!;
   %return;
 %end;
 
@@ -11519,7 +11519,7 @@ data _null_;
   call symputx('stpuri',uri,'l');
 run;
 %if &cmtype ne ClassifierMap %then %do;
-  %put WARNING: No Stored Process found at &target;
+  %put %str(WARN)ING: No Stored Process found at &target;
   %return;
 %end;
 
@@ -11620,12 +11620,12 @@ data _null_;
 run;
 
 %if &tsuri=stopifempty %then %do;
-  %put WARNING:  &stp.(StoredProcess) not found!;
+  %put %str(WARN)ING:  &stp.(StoredProcess) not found!;
   %return;
 %end;
 
 %if %length(&stpcode)<2 %then %do;
-  %put WARNING:  No SAS code supplied!!;
+  %put %str(WARN)ING:  No SAS code supplied!!;
   %return;
 %end;
 

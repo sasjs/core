@@ -99,7 +99,7 @@ run;
           when ('&#x0d;') rec='0D'x;
           when ('&#36;' ) rec='$'  ;
           when ('&#x09;') rec='09'x;
-          otherwise putlog "WARNING: missing value for " entity=;
+          otherwise putlog "%str(WARN)ING: missing value for " entity=;
         end;
         rc =fput(fileid, substr(rec,1,1));
         rc =fwrite(fileid);

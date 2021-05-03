@@ -32,7 +32,7 @@ data _null_;
   call symputx('stpuri',uri,'l');
 run;
 %if &type ne Document %then %do;
-  %put WARNING: No Document found at &target;
+  %put %str(WARN)ING: No Document found at &target;
   %return;
 %end;
 

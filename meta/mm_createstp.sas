@@ -118,7 +118,7 @@ data _null_;
   call symputx('treeuri',uri,'l');
 run;
 %if &foldertype ne Tree %then %do;
-  %put WARNING: Tree &tree does not exist!;
+  %put %str(WARN)ING: Tree &tree does not exist!;
   %return;
 %end;
 
@@ -133,7 +133,7 @@ data _null_;
   call symputx('stpuri',uri,'l');
 run;
 %if &cmtype = ClassifierMap %then %do;
-  %put WARNING: Stored Process &stpname already exists in &tree!;
+  %put %str(WARN)ING: Stored Process &stpname already exists in &tree!;
   %return;
 %end;
 
@@ -141,14 +141,14 @@ run;
   * Check that the physical file exists
   */
 %if %sysfunc(fileexist(&directory/&filename)) ne 1 %then %do;
-  %put WARNING: FILE *&directory/&filename* NOT FOUND!;
+  %put %str(WARN)ING: FILE *&directory/&filename* NOT FOUND!;
   %return;
 %end;
 
 %if &stptype=1 %then %do;
   /* type 1 STP - where code is stored on filesystem */
   %if %sysevalf(&sysver lt 9.2) %then %do;
-    %put WARNING: Version 9.2 or later required;
+    %put %str(WARN)ING: Version 9.2 or later required;
     %return;
   %end;
 
@@ -162,7 +162,7 @@ run;
   %if &checkdirtype ne Directory %then %do;
     %mm_getdirectories(path=&directory,outds=&outds ,mDebug=&mDebug)
     %if %mf_nobs(&outds)=0 or %sysfunc(exist(&outds))=0 %then %do;
-      %put WARNING: The directory object does not exist for &directory;
+      %put %str(WARN)ING: The directory object does not exist for &directory;
       %return;
     %end;
   %end;
@@ -180,12 +180,12 @@ run;
     length id $20 type $256;
     __rc=metadata_resolve("&treeuri",type,id);
     if type ne 'Tree' then do;
-      putlog "WARNING:  Invalid tree URI: &treeuri";
+      putlog "%str(WARN)ING:  Invalid tree URI: &treeuri";
       stopme=1;
     end;
     __rc=metadata_resolve(directoryuri,type,id);
     if type ne 'Directory' then do;
-      putlog 'WARNING:  Invalid directory URI: ' directoryuri;
+      putlog "%str(WARN)ING:  Invalid directory URI: " directoryuri;
       stopme=1;
     end;
 
@@ -194,7 +194,7 @@ run;
     if type ne 'LogicalServer' then do;
       __rc=metadata_getnobj("omsobj:LogicalServer?@Name='&server'",1,serveruri);
       if serveruri='' then do;
-        putlog "WARNING:  Invalid server: &server";
+        putlog "%str(WARN)ING:  Invalid server: &server";
         stopme=1;
       end;
     end;
@@ -217,7 +217,7 @@ run;
     rc6 = METADATA_SETATTR(prompturi, 'GroupInfo',groupinfo);
 
     if sum(of rc1-rc6) ne 0 then do;
-      putlog 'WARNING: Issue creating prompt.';
+      putlog "%str(WARN)ING: Issue creating prompt.";
       if prompturi ne . then do;
         putlog '  Removing orphan: ' prompturi;
         rc = METADATA_DELOBJ(prompturi);
@@ -232,7 +232,7 @@ run;
     rc9=METADATA_SETATTR(fileuri, 'IsARelativeName','1');
     rc10=METADATA_SETASSN(fileuri, 'Directories','MODIFY',directoryuri);
     if sum(of rc7-rc10) ne 0 then do;
-      putlog 'WARNING: Issue creating file.';
+      putlog "%str(WARN)ING: Issue creating file.";
       if fileuri ne . then do;
         putlog '  Removing orphans:' prompturi fileuri;
         rc = METADATA_DELOBJ(prompturi);
@@ -251,7 +251,7 @@ run;
       !!"<OutputParameters/></StoredProcess>";
     rc14= METADATA_SETATTR(texturi, 'StoredText',storedtext);
     if sum(of rc11-rc14) ne 0 then do;
-      putlog 'WARNING: Issue creating TextStore.';
+      putlog "%str(WARN)ING: Issue creating TextStore.";
       if texturi ne . then do;
         putlog '  Removing orphans: ' prompturi fileuri texturi;
         rc = METADATA_DELOBJ(prompturi);
@@ -299,7 +299,7 @@ run;
 %else %if &stptype=2 %then %do;
   /* type 2 stp - code is stored in metadata */
   %if %sysevalf(&sysver lt 9.3) %then %do;
-    %put WARNING: SAS version 9.3 or later required to create type2 STPs;
+    %put %str(WARN)ING: SAS version 9.3 or later required to create type2 STPs;
     %return;
   %end;
   /* check we have the correct ServerContext */
@@ -311,7 +311,7 @@ run;
     call symputx('serveruri',serveruri);
   run;
   %if &serveruri=NOTFOUND %then %do;
-    %put WARNING: ServerContext *&server* not found!;
+    %put %str(WARN)ING: ServerContext *&server* not found!;
     %return;
   %end;
 
@@ -382,7 +382,7 @@ run;
 
 %end;
 %else %do;
-  %put WARNING:  STPTYPE=*&stptype* not recognised!;
+  %put %str(WARN)ING:  STPTYPE=*&stptype* not recognised!;
 %end;
 
 %mend;

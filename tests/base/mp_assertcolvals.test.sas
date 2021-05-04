@@ -30,7 +30,3 @@ run;
   test=ALLVALS
 )
 
-
-%webout(OPEN)
-%webout(OBJ, TEST_RESULTS)
-%webout(CLOSE)

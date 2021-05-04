@@ -17,7 +17,22 @@
     }
   },
   "serviceConfig": {
-    "initProgram": "tests/testinit.sas"
+    "initProgram": "tests/testinit.sas",
+    "termProgram": "tests/testterm.sas",
+    "serviceFolders": [
+      "tests/base",
+      "tests/viya"
+    ],
+    "macroVars": {
+      "mcTestAppLoc": "/Public/temp/macrocore"
+    }
+  },
+  "testConfig": {
+    "initProgram": "tests/testinit.sas",
+    "termProgram": "tests/testterm.sas",
+    "macroVars": {
+      "mcTestAppLoc": "/Public/temp/macrocore"
+    }
   },
   "defaultTarget": "viya",
   "targets": [
@@ -26,15 +41,6 @@
       "serverUrl": "https://sas.analytium.co.uk",
       "serverType": "SASVIYA",
       "appLoc": "/Public/temp/macrocore",
-      "serviceConfig": {
-        "serviceFolders": [
-          "tests/base",
-          "tests/viya"
-        ],
-        "macroVars": {
-          "mcTestAppLoc": "/Public/temp/macrocore"
-        }
-      },
       "deployConfig": {
         "deployServicePack": true
       },

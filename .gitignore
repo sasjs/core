@@ -1,6 +1,7 @@
 node_modules
 .DS_Store
 sasjsbuild/
+sasjsresults/
 
 # avoid filenames with spaces being committed to source control
 **\ **

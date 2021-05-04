@@ -2,9 +2,9 @@
   @file
   @brief Checks if a set of variables ALL exist in a data set.
   @details Returns 0 if ANY of the variables do not exist, or 1 if they ALL do.
-    Usage:
+  Usage:
 
-        %put %mf_existVarList(sashelp.class, age sex name dummyvar)
+      %put %mf_existVarList(sashelp.class, age sex name dummyvar);
 
   <h4> SAS Macros </h4>
   @li mf_abort.sas

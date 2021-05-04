@@ -66,7 +66,3 @@ run;
   outds=work.test_results
 )
 
-
-%webout(OPEN)
-%webout(OBJ, TEST_RESULTS)
-%webout(CLOSE)

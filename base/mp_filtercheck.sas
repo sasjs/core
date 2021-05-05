@@ -147,7 +147,7 @@ data _null_;
   stop;
 run;
 
-%mp_abort(iftrue=(&abort=YES)
+%mp_abort(iftrue=(&abort=YES),
   mac=&sysmacroname,
   msg=%str(Filter issues in &inds, first was &reason_cd, details in &outds)
 )

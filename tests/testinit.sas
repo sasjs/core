@@ -5,4 +5,4 @@
 **/
 
 /* location in metadata or SAS Drive for temporary files */
-%let mcTestAppLoc=/Public/temp/test;
+%let mcTestAppLoc=/Public/temp/macrocore;

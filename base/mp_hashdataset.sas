@@ -56,7 +56,7 @@
       retain &prevkeyvar;
       set &libds end=&lastvar;
       /* hash should include previous row */
-      if _n_>1 then &keyvar=put(md5(&prevkeyvar
+      &keyvar=put(md5(&prevkeyvar
       /* loop every column, hashing every individual value */
     %do i=1 %to %sysfunc(countw(&varlist));
       %let var=%scan(&varlist,&i,%str( ));

@@ -70,7 +70,7 @@
   * quotes, commas, periods and spaces.
   * Only numeric values should remain
   */
-
+%local reason_cd;
 data &outds;
   set &inds;
   length reason_cd $32;
@@ -147,9 +147,9 @@ data _null_;
   stop;
 run;
 
-%mp_abort(iftrue=(&abort=YES),
+%mp_abort(iftrue=(&abort=YES and %mf_nobs(&outds)>0),
   mac=&sysmacroname,
-  msg=%str(Filter issues in &inds, first was &reason_cd, details in &outds)
+  msg=%str(Filter issues in &inds, reason: &reason_cd, details in &outds)
 )
 
 %if %mf_nobs(&outds)>0 %then %do;

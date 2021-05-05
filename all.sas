@@ -1808,6 +1808,7 @@ Usage:
   <h4> SAS Macros </h4>
   @li mf_existds.sas
   @li mf_existvarlist.sas
+  @li mf_getvarlist.sas
   @li mf_wordsinstr1butnotstr2.sas
   @li mp_abort.sas
 
@@ -3334,18 +3335,18 @@ data &outds;
 
 run;
 
+data _null_;
+  set &outds;
+  call symputx('REASON_CD',reason_cd,'l');
+  stop;
+run;
+
+%mp_abort(iftrue=(&abort=YES)
+  mac=&sysmacroname,
+  msg=%str(Filter issues in &inds, first was &reason_cd, details in &outds)
+)
+
 %if %mf_nobs(&outds)>0 %then %do;
-  %if &abort=YES %then %do;
-    data _null_;
-      set &outds;
-      call symputx('REASON_CD',reason_cd,'l');
-      stop;
-    run;
-    %mp_abort(
-      mac=&sysmacroname,
-      msg=%str(Filter issues in &inds, first was &reason_cd, details in &outds)
-    )
-  %end;
   %let syscc=1008;
   %return;
 %end;
@@ -5787,8 +5788,20 @@ proc sql
 %let contentype=%upcase(&contenttype);
 %local platform; %let platform=%mf_getplatform();
 
+
+/**
+  * check engine type to avoid the below err message:
+  * > Function is only valid for filerefs using the CACHE access method.
+  */
+%local streamweb;
+%let streamweb=0;
+data _null_;
+  set sashelp.vextfl(where=(upcase(fileref)="_WEBOUT"));
+  if xengine='STREAM' then call symputx('streamweb',1,'l');
+run;
+
 %if &contentype=ZIP %then %do;
-  %if &platform=SASMETA %then %do;
+  %if &platform=SASMETA and &streamweb=1 %then %do;
     data _null_;
       rc=stpsrv_header('Content-type','application/zip');
       rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
@@ -5802,7 +5815,7 @@ proc sql
 %end;
 %else %if &contentype=EXCEL %then %do;
   /* suitable for XLS format */
-  %if &platform=SASMETA %then %do;
+  %if &platform=SASMETA and &streamweb=1 %then %do;
     data _null_;
       rc=stpsrv_header('Content-type','application/vnd.ms-excel');
       rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
@@ -5815,7 +5828,7 @@ proc sql
   %end;
 %end;
 %else %if &contentype=XLSX %then %do;
-  %if &platform=SASMETA %then %do;
+  %if &platform=SASMETA and &streamweb=1 %then %do;
     data _null_;
       rc=stpsrv_header('Content-type',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -5830,7 +5843,7 @@ proc sql
   %end;
 %end;
 %else %if &contentype=TEXT %then %do;
-  %if &platform=SASMETA %then %do;
+  %if &platform=SASMETA and &streamweb=1 %then %do;
     data _null_;
       rc=stpsrv_header('Content-type','application/text');
       rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
@@ -5843,7 +5856,7 @@ proc sql
   %end;
 %end;
 %else %if &contentype=CSV %then %do;
-  %if &platform=SASMETA %then %do;
+  %if &platform=SASMETA and &streamweb=1 %then %do;
     data _null_;
       rc=stpsrv_header('Content-type','application/csv');
       rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
@@ -5873,7 +5886,8 @@ proc sql
   %mp_binarycopy(inloc="&inloc",outref=_webout)
 %end;
 
-%mend;/**
+%mend;
+/**
   @file
   @brief Runs arbitrary code for a specified amount of time
   @details Executes a series of procs and data steps to enable performance
@@ -5963,6 +5977,117 @@ run;
 quit;
 libname &lib clear;
 
+
+%mend;/**
+  @file mp_testservice.sas
+  @brief Will execute a test against a SASjs web service on SAS 9 or Viya
+  @details Prepares the input files and retrieves the resulting datasets from
+  the response JSON.
+
+      %mp_testjob(
+        duration=60*5
+      )
+
+  Note - the _webout fileref should NOT be assigned prior to running this macro.
+
+  @param [in] program The _PROGRAM endpoint to test
+  @param [in] inputfiles= A list of space seperated fileref:filename pairs as
+  follows:
+      inputfiles=inref:filename inref2:filename2
+  @param [in] debug= (log) Provide the _debug value
+  @param [out] outlib= (0) Output libref to contain the final tables.  Set to
+    0 if the service output is not in JSON format.
+  @param [out] outref= (0) Output fileref to create, to contain the full _webout
+    response.
+
+  <h4> SAS Macros </h4>
+  @li mf_getuniquefileref.sas
+  @li mf_getuniquename.sas
+
+  @version 9.4
+  @author Allan Bowe
+
+**/
+
+%macro mp_testservice(program,
+  inputfiles=,
+  debug=log,
+  outlib=0,
+  outref=0
+)/*/STORE SOURCE*/;
+
+/* parse the input files */
+%local webcount i var;
+%let webcount=%sysfunc(countw(&inputfiles));
+%do i=1 %to &webcount;
+  %let var=%scan(&inputfiles,&i,%str( ));
+  %local webfref&i webname&i;
+  %let webref&i=%scan(&var,1,%str(:));
+  %let webname&i=%scan(&var,2,%str(:));
+%end;
+
+%local fref1 ;
+%let fref1=%mf_getuniquefileref();
+filename _webout "%sysfunc(pathname(work))/%mf_getuniquename().txt";
+
+%local platform;
+%let platform=%mf_getplatform();
+%if &platform=SASMETA %then %do;
+  proc stp program="&program"
+  %do i=1 %to &webcount;
+    %if &webcount=1 %then %do;
+      _webin_fileref="&&webref&i"
+      _webin_name="&&webname&i"
+    %end;
+    %else %do;
+      _webin_fileref&i="&&webref&i"
+      _webin_name&i="&&webname&i"
+    %end;
+  %end;
+    _webin_file_count="&webcount"
+    _debug="&debug";
+    outputfile=_webout;
+  run;
+
+  data _null_;
+    infile _webout;
+    file &fref1;
+    input;
+    length line $10000;
+    if index(_infile_,'>>weboutBEGIN<<') then do;
+        line=tranwrd(_infile_,'>>weboutBEGIN<<','');
+        put line;
+    end;
+    else if index(_infile_,'>>weboutEND<<') then do;
+        line=tranwrd(_infile_,'>>weboutEND<<','');
+        put line;
+        stop;
+    end;
+    else put _infile_;
+  run;
+  data _null_;
+    infile &fref1;
+    input;
+    put _infile_;
+  run;
+  %if &outlib ne 0 %then %do;
+    libname &outlib json (&fref1);
+  %end;
+  %if &outref ne 0 %then %do;
+    filename &outref temp;
+    %mp_binarycopy(inref=_webout,outref=&outref)
+  %end;
+  filename _webout clear;
+
+%end;
+%else %if &platform=SASVIYA %then %do;
+
+%end;
+%else %do;
+  %put %str(ERR)OR: Unrecognised platform:  &platform;
+%end;
+
+filename _webout clear;
 
 %mend;/**
   @file mp_testwritespeedlibrary.sas

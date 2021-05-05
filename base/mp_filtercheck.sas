@@ -141,18 +141,18 @@ data &outds;
 
 run;
 
+data _null_;
+  set &outds;
+  call symputx('REASON_CD',reason_cd,'l');
+  stop;
+run;
+
+%mp_abort(iftrue=(&abort=YES)
+  mac=&sysmacroname,
+  msg=%str(Filter issues in &inds, first was &reason_cd, details in &outds)
+)
+
 %if %mf_nobs(&outds)>0 %then %do;
-  %if &abort=YES %then %do;
-    data _null_;
-      set &outds;
-      call symputx('REASON_CD',reason_cd,'l');
-      stop;
-    run;
-    %mp_abort(
-      mac=&sysmacroname,
-      msg=%str(Filter issues in &inds, first was &reason_cd, details in &outds)
-    )
-  %end;
   %let syscc=1008;
   %return;
 %end;

@@ -25,6 +25,7 @@
   <h4> SAS Macros </h4>
   @li mf_existds.sas
   @li mf_existvarlist.sas
+  @li mf_getvarlist.sas
   @li mf_wordsinstr1butnotstr2.sas
   @li mp_abort.sas
 

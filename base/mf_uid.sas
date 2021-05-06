@@ -18,4 +18,4 @@
 
   &today._&now._&sysjobid._%sysevalf(%sysfunc(ranuni(0))*999,CEIL)
 
-%mend;
+%mend mf_uid;

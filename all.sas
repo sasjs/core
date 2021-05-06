@@ -1505,7 +1505,7 @@ Usage:
 
   &today._&now._&sysjobid._%sysevalf(%sysfunc(ranuni(0))*999,CEIL)
 
-%mend;/**
+%mend mf_uid;/**
   @file
   @brief Checks if a set of macro variables exist / contain values.
   @details Writes ERROR to log if abortType is SOFT, else will call %mf_abort.
@@ -3264,7 +3264,7 @@ run;
   * quotes, commas, periods and spaces.
   * Only numeric values should remain
   */
-
+%local reason_cd;
 data &outds;
   set &inds;
   length reason_cd $32;
@@ -3341,9 +3341,9 @@ data _null_;
   stop;
 run;
 
-%mp_abort(iftrue=(&abort=YES),
+%mp_abort(iftrue=(&abort=YES and %mf_nobs(&outds)>0),
   mac=&sysmacroname,
-  msg=%str(Filter issues in &inds, first was &reason_cd, details in &outds)
+  msg=%str(Filter issues in &inds, reason: &reason_cd, details in &outds)
 )
 
 %if %mf_nobs(&outds)>0 %then %do;
@@ -4775,7 +4775,7 @@ create table &outds (rename=(
       retain &prevkeyvar;
       set &libds end=&lastvar;
       /* hash should include previous row */
-      if _n_>1 then &keyvar=put(md5(&prevkeyvar
+      &keyvar=put(md5(&prevkeyvar
       /* loop every column, hashing every individual value */
     %do i=1 %to %sysfunc(countw(&varlist));
       %let var=%scan(&varlist,&i,%str( ));
@@ -5991,9 +5991,16 @@ libname &lib clear;
   Note - the _webout fileref should NOT be assigned prior to running this macro.
 
   @param [in] program The _PROGRAM endpoint to test
-  @param [in] inputfiles= A list of space seperated fileref:filename pairs as
-  follows:
-      inputfiles=inref:filename inref2:filename2
+  @param [in] inputfiles=(0) A list of space seperated fileref:filename pairs as
+    follows:
+        inputfiles=inref:filename inref2:filename2
+  @param [in] inputparams=(0) A dataset containing name/value pairs in the
+    following format:
+    |name:$32|value:$1000|
+    |---|---|
+    |stpmacname|some value|
+    |mustbevalidname|can be anything, oops, %abort!!|
+
   @param [in] debug= (log) Provide the _debug value
   @param [out] outlib= (0) Output libref to contain the final tables.  Set to
     0 if the service output is not in JSON format.
@@ -6001,8 +6008,13 @@ libname &lib clear;
     response.
 
   <h4> SAS Macros </h4>
+  @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
   @li mf_getuniquename.sas
+  @li mp_abort.sas
+  @li mp_binarycopy.sas
+  @li mv_getjobresult.sas
+  @li mv_jobflow.sas
 
   @version 9.4
   @author Allan Bowe
@@ -6010,30 +6022,62 @@ libname &lib clear;
 **/
 
 %macro mp_testservice(program,
-  inputfiles=,
+  inputfiles=0,
+  inputparams=0,
   debug=log,
   outlib=0,
   outref=0
 )/*/STORE SOURCE*/;
 
-/* parse the input files */
-%local webcount i var;
-%let webcount=%sysfunc(countw(&inputfiles));
-%do i=1 %to &webcount;
-  %let var=%scan(&inputfiles,&i,%str( ));
-  %local webfref&i webname&i;
-  %let webref&i=%scan(&var,1,%str(:));
-  %let webname&i=%scan(&var,2,%str(:));
+/* sanitise inputparams */
+%local pcnt;
+%let pcnt=0;
+%if &inputparams ne 0 %then %do;
+  data _null_;
+    set &inputparams;
+    if not nvalid(name,'v7') then putlog (_all_)(=);
+    else if name in (
+      'program','inputfiles','inputparams','debug','outlib','outref'
+    ) then putlog (_all_)(=);
+    else do;
+      x+1;
+      call symputx(name,quote(cats(value)),'l');
+      call symputx('pval'!!left(x),name,'l');
+      call symputx('pcnt',x,'l');
+    end;
+  run;
+  %mp_abort(iftrue= (%mf_nobs(&inputparams) ne &pcnt)
+    ,mac=&sysmacroname
+    ,msg=%str(Invalid values in &inputparams)
+  )
 %end;
 
-%local fref1 ;
+/* parse the input files */
+%local webcount i var;
+%if %quote(&inputfiles) ne 0 %then %do;
+  %let webcount=%sysfunc(countw(&inputfiles));
+  %put &=webcount;
+  %do i=1 %to &webcount;
+    %let var=%scan(&inputfiles,&i,%str( ));
+    %local webfref&i webname&i;
+    %let webref&i=%scan(&var,1,%str(:));
+    %let webname&i=%scan(&var,2,%str(:));
+    %put webref&i=&&webref&i;
+    %put webname&i=&&webname&i;
+  %end;
+%end;
+%else %let webcount=0;
+
+
+%local fref1 webref;
 %let fref1=%mf_getuniquefileref();
-filename _webout "%sysfunc(pathname(work))/%mf_getuniquename().txt";
+%let webref=%mf_getuniquefileref();
 
 %local platform;
 %let platform=%mf_getplatform();
 %if &platform=SASMETA %then %do;
-  proc stp program="&program"
+  proc stp program="&program";
+    inputparam _program="&program"
   %do i=1 %to &webcount;
     %if &webcount=1 %then %do;
       _webin_fileref="&&webref&i"
@@ -6045,12 +6089,20 @@ filename _webout "%sysfunc(pathname(work))/%mf_getuniquename().txt";
     %end;
   %end;
     _webin_file_count="&webcount"
-    _debug="&debug";
-    outputfile=_webout;
+    _debug="&debug"
+  %do i=1 %to &pcnt;
+    /* resolve name only, proc stp fetches value */
+    &&pval&i=&&&&&&pval&i
+  %end;
+    ;
+  %do i=1 %to &webcount;
+    inputfile &&webref&i;
+  %end;
+    outputfile _webout=&webref;
   run;
 
   data _null_;
-    infile _webout;
+    infile &webref;
     file &fref1;
     input;
     length line $10000;
@@ -6075,19 +6127,44 @@ filename _webout "%sysfunc(pathname(work))/%mf_getuniquename().txt";
   %end;
   %if &outref ne 0 %then %do;
     filename &outref temp;
-    %mp_binarycopy(inref=_webout,outref=&outref)
+    %mp_binarycopy(inref=&webref,outref=&outref)
   %end;
-  filename _webout clear;
 
 %end;
 %else %if &platform=SASVIYA %then %do;
+  data ;
+    _program="&program";
+  run;
+
+  %mv_jobflow(inds=&syslast
+    ,maxconcurrency=1
+    ,outds=work.results
+    ,outref=&fref1
+  )
+  /* show the log */
+  data _null_;
+    infile &fref1;
+    input;
+    putlog _infile_;
+  run;
+  /* get the uri to fetch results */
+  data _null_;
+    set work.results;
+    call symputx('uri',uri);
+  run;
+  /* fetch results from webout.json */
+  %mv_getjobresult(uri=&uri,
+    result=WEBOUT_JSON,
+    outref=&outref,
+    outlib=&outlib
+  )
 
 %end;
 %else %do;
   %put %str(ERR)OR: Unrecognised platform:  &platform;
 %end;
 
-filename _webout clear;
+filename &webref clear;
 
 %mend;/**
   @file mp_testwritespeedlibrary.sas
@@ -6399,6 +6476,7 @@ alter table &libds modify &var char(&len);
 
   @param [in] incol The column to be validated
   @param [in] rule The rule to apply.  Current rules:
+    @li ISNUM - checks if the variable is numeric
     @li LIBDS - matches LIBREF.DATASET format
   @param [out] outcol The variable to create, with the results of the match
 
@@ -6439,7 +6517,7 @@ alter table &libds modify &var char(&len);
   else &outcol=0;
 %end;
 
-%mend;
+%mend mp_validatecol;
 /**
   @file
   @brief Creates a zip file
@@ -10481,21 +10559,24 @@ filename __mc2 clear;
 
 %mend;/**
   @file
-  @brief Writes the code of an to an external file, or the log if none provided
-  @details Get the
+  @brief Writes the code of an STP to an external file
+  @details Fetches the SAS code from a Stored Process where the code is stored
+  in metadata.
 
-  usage:
+  Usage:
 
       %mm_getstpcode(tree=/some/meta/path
         ,name=someSTP
         ,outloc=/some/unquoted/filename.ext
       )
 
-  @param tree= The metadata path of the Stored Process (can also contain name)
-  @param name= Stored Process name.  Leave blank if included above.
-  @param outloc= full and unquoted path to the desired text file.  This will be
-    overwritten if it already exists.  If not provided, the code will be written
-    to the log.
+  @param [in] tree= The metadata path of the Stored Process (can also contain
+    name)
+  @param [in] name= Stored Process name.  Leave blank if included above.
+  @param [out] outloc= (0) full and unquoted path to the desired text file.
+    This will be overwritten if it already exists.
+  @param [out] outref= (0) Fileref to which to write the code.
+  @param [out] showlog=(NO) Set to YES to print log to the window
 
   @author Allan Bowe
 
@@ -10504,8 +10585,10 @@ filename __mc2 clear;
 %macro mm_getstpcode(
     tree=/User Folders/sasdemo/somestp
     ,name=
-    ,outloc=
+    ,outloc=0
+    ,outref=0
     ,mDebug=1
+    ,showlog=NO
     );
 
 %local mD;
@@ -10573,14 +10656,18 @@ data _null_;
   stop;
 
 %local outeng;
-%if %length(&outloc)=0 %then %let outeng=TEMP;
+%if "&outloc"="0" %then %let outeng=TEMP;
 %else %let outeng="&outloc";
+%local fref;
+%if &outref=0 %then %let fref=%mf_getuniquefileref();
+%else %let fref=&outref;
+
 /* read the content, byte by byte, resolving escaped chars */
-filename __outdoc &outeng lrecl=100000;
+filename &fref &outeng lrecl=100000;
 data _null_;
   length filein 8 fileid 8;
   filein = fopen("__getdoc","I",1,"B");
-  fileid = fopen("__outdoc","O",1,"B");
+  fileid = fopen("&fref","O",1,"B");
   rec = "20"x;
   length entity $6;
   do while(fread(filein)=0);
@@ -10621,9 +10708,9 @@ data _null_;
   rc=fclose(fileid);
 run;
 
-%if &outeng=TEMP %then %do;
+%if &showlog=YES %then %do;
   data _null_;
-    infile __outdoc lrecl=32767 end=last;
+    infile &fref lrecl=32767 end=last;
     input;
     if _n_=1 then putlog '>>stpcodeBEGIN<<';
     putlog _infile_;
@@ -10632,9 +10719,11 @@ run;
 %end;
 
 filename __getdoc clear;
-filename __outdoc clear;
+%if &outref=0 %then %do;
+  filename &fref clear;
+%end;
 
-%mend;
+%mend mm_getstpcode;
 /**
   @file
   @brief Returns a dataset with all Stored Processes, or just those in a
@@ -14550,13 +14639,14 @@ filename &fname3 clear;
   convenient way to wait for the job to finish before fetching the log.
 
 
-  @param [in] access_token_var= The global macro variable to contain the access token
+  @param [in] access_token_var= The global macro variable to contain the access
+    token
   @param [in] mdebug= set to 1 to enable DEBUG messages
   @param [in] grant_type= valid values:
     @li password
     @li authorization_code
-    @li detect - will check if access_token exists, if not will use sas_services if
-        a SASStudioV session else authorization_code.  Default option.
+    @li detect - will check if access_token exists, if not will use sas_services
+      if a SASStudioV session else authorization_code.  Default option.
     @li sas_services - will use oauth_bearer=sas_services.
   @param [in] uri= The uri of the running job for which to fetch the status,
     in the format `/jobExecution/jobs/$UUID/state` (unquoted).
@@ -14762,6 +14852,213 @@ run;
 
 
 
+/**
+  @file
+  @brief Extract the result from a completed SAS Viya Job
+  @details Extracts result from a Viya job and writes it out to a fileref
+  and/or a JSON-engine library.
+
+  To query the job, you need the URI.  Sample code for achieving this
+  is provided below.
+
+  ## Example
+
+  First, compile the macros:
+
+      filename mc url
+        "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      %inc mc;
+
+  Next, create a job (in this case, a web service):
+
+      filename ft15f001 temp;
+      parmcards4;
+        data test;
+          rand=ranuni(0)*1000;
+          do x=1 to rand;
+            y=rand*4;
+            output;
+          end;
+        run;
+        proc sort data=&syslast
+          by descending y;
+        run;
+        %webout(OPEN)
+        %webout(OBJ, test)
+        %webout(CLOSE)
+      ;;;;
+      %mv_createwebservice(path=/Public/temp,name=demo)
+
+  Execute it:
+
+      %mv_jobexecute(path=/Public/temp
+        ,name=demo
+        ,outds=work.info
+      )
+
+  Wait for it to finish, and grab the uri:
+
+      data _null_;
+        set work.info;
+        if method='GET' and rel='self';
+        call symputx('uri',uri);
+      run;
+
+  Finally, fetch the result (In this case, WEBOUT):
+
+      %mv_getjobresult(uri=&uri,result=WEBOUT_JSON,outref=myweb,outlib=myweblib)
+
+
+  @param [in] access_token_var= The global macro variable containing the access
+    token
+  @param [in] mdebug= set to 1 to enable DEBUG messages
+  @param [in] grant_type= valid values:
+    @li password
+    @li authorization_code
+    @li detect - will check if access_token exists, if not will use sas_services
+        if a SASStudioV session else authorization_code.  Default option.
+    @li sas_services - will use oauth_bearer=sas_services.
+  @param [in] uri= The uri of the running job for which to fetch the status,
+    in the format `/jobExecution/jobs/$UUID` (unquoted).
+
+  @param [out] result= (WEBOUT_JSON) The result type to capture.  Resolves
+  to "_[column name]" from the results table when parsed with the JSON libname
+  engine.
+
+  @param [out] outref= (0) The output fileref to which to write the results
+  @param [out] outlib= (0) The output library to which to assign the results
+    (assumes the data is in JSON format)
+
+
+  @version VIYA V.03.05
+  @author Allan Bowe, source: https://github.com/sasjs/core
+
+  <h4> SAS Macros </h4>
+  @li mp_abort.sas
+  @li mp_binarycopy.sas
+  @li mf_getplatform.sas
+  @li mf_existfileref.sas
+
+**/
+
+%macro mv_getjobresult(uri=0
+    ,contextName=SAS Job Execution compute context
+    ,access_token_var=ACCESS_TOKEN
+    ,grant_type=sas_services
+    ,mdebug=0
+    ,result=WEBOUT_JSON
+    ,outref=0
+    ,outlib=0
+  );
+%local oauth_bearer;
+%if &grant_type=detect %then %do;
+  %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
+  %else %let grant_type=sas_services;
+%end;
+%if &grant_type=sas_services %then %do;
+    %let oauth_bearer=oauth_bearer=sas_services;
+    %let &access_token_var=;
+%end;
+
+%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
+    and &grant_type ne sas_services
+  )
+  ,mac=&sysmacroname
+  ,msg=%str(Invalid value for grant_type: &grant_type)
+)
+
+
+/* validation in datastep for better character safety */
+%local errmsg errflg;
+data _null_;
+  uri=symget('uri');
+  if length(uri)<12 then do;
+    call symputx('errflg',1);
+    call symputx('errmsg',"URI is invalid (too short) - '&uri'",'l');
+  end;
+  if scan(uri,-1)='state' or scan(uri,1) ne 'jobExecution' then do;
+    call symputx('errflg',1);
+    call symputx('errmsg',
+      "URI should be in format /jobExecution/jobs/$$$$UUID$$$$"
+      !!" but is actually like: &uri",'l');
+  end;
+run;
+
+%mp_abort(iftrue=(&errflg=1)
+  ,mac=&sysmacroname
+  ,msg=%str(&errmsg)
+)
+
+%if &outref ne 0 and %mf_existfileref(&outref) ne 1 %then %do;
+  filename &outref temp;
+%end;
+
+options noquotelenmax;
+%local base_uri; /* location of rest apis */
+%let base_uri=%mf_getplatform(VIYARESTAPI);
+
+/* fetch job info */
+%local fname1;
+%let fname1=%mf_getuniquefileref();
+proc http method='GET' out=&fname1 &oauth_bearer
+  url="&base_uri&uri";
+  headers "Accept"="application/json"
+  %if &grant_type=authorization_code %then %do;
+          "Authorization"="Bearer &&&access_token_var"
+  %end;
+  ;
+run;
+%if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201 %then
+%do;
+  data _null_;infile &fname1;input;putlog _infile_;run;
+  %mp_abort(mac=&sysmacroname
+    ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
+  )
+%end;
+
+/* extract results link */
+%local lib1 resuri;
+%let lib1=%mf_getuniquelibref();
+libname &lib1 JSON fileref=&fname1;
+data _null_;
+  set &lib1..results;
+  call symputx('resuri',_&result,'l');
+  putlog (_all_)(=);
+run;
+%mp_abort(iftrue=("&resuri"=".")
+  ,mac=&sysmacroname
+  ,msg=%str(Variable _&result did not exist in the response json)
+)
+
+/* extract results */
+%local fname2;
+%let fname2=%mf_getuniquefileref();
+proc http method='GET' out=&fname2 &oauth_bearer
+  url="&base_uri&resuri/content?limit=10000";
+  headers "Accept"="application/json"
+  %if &grant_type=authorization_code %then %do;
+          "Authorization"="Bearer &&&access_token_var"
+  %end;
+  ;
+run;
+
+%if &outref ne 0 %then %do;
+  filename &outref temp;
+  %mp_binarycopy(inref=&fname2,outref=&outref)
+%end;
+%if &outlib ne 0 %then %do;
+  libname &outlib JSON fileref=&fname2;
+%end;
+
+%if &mdebug=0 %then %do;
+  filename &fname1 clear;
+  filename &fname2 clear;
+  libname &lib1 clear;
+%end;
+%else %do;
+  %put _local_;
+%end;
+%mend;
 /**
   @file
   @brief Extract the status from a running SAS Viya job

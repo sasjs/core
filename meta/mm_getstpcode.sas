@@ -1,20 +1,23 @@
 /**
   @file
-  @brief Writes the code of an to an external file, or the log if none provided
-  @details Get the
+  @brief Writes the code of an STP to an external file
+  @details Fetches the SAS code from a Stored Process where the code is stored
+  in metadata.
 
-  usage:
+  Usage:
 
       %mm_getstpcode(tree=/some/meta/path
         ,name=someSTP
         ,outloc=/some/unquoted/filename.ext
       )
 
-  @param tree= The metadata path of the Stored Process (can also contain name)
-  @param name= Stored Process name.  Leave blank if included above.
-  @param outloc= full and unquoted path to the desired text file.  This will be
-    overwritten if it already exists.  If not provided, the code will be written
-    to the log.
+  @param [in] tree= The metadata path of the Stored Process (can also contain
+    name)
+  @param [in] name= Stored Process name.  Leave blank if included above.
+  @param [out] outloc= (0) full and unquoted path to the desired text file.
+    This will be overwritten if it already exists.
+  @param [out] outref= (0) Fileref to which to write the code.
+  @param [out] showlog=(NO) Set to YES to print log to the window
 
   @author Allan Bowe
 
@@ -23,8 +26,10 @@
 %macro mm_getstpcode(
     tree=/User Folders/sasdemo/somestp
     ,name=
-    ,outloc=
+    ,outloc=0
+    ,outref=0
     ,mDebug=1
+    ,showlog=NO
     );
 
 %local mD;
@@ -92,14 +97,18 @@ data _null_;
   stop;
 
 %local outeng;
-%if %length(&outloc)=0 %then %let outeng=TEMP;
+%if "&outloc"="0" %then %let outeng=TEMP;
 %else %let outeng="&outloc";
+%local fref;
+%if &outref=0 %then %let fref=%mf_getuniquefileref();
+%else %let fref=&outref;
+
 /* read the content, byte by byte, resolving escaped chars */
-filename __outdoc &outeng lrecl=100000;
+filename &fref &outeng lrecl=100000;
 data _null_;
   length filein 8 fileid 8;
   filein = fopen("__getdoc","I",1,"B");
-  fileid = fopen("__outdoc","O",1,"B");
+  fileid = fopen("&fref","O",1,"B");
   rec = "20"x;
   length entity $6;
   do while(fread(filein)=0);
@@ -140,9 +149,9 @@ data _null_;
   rc=fclose(fileid);
 run;
 
-%if &outeng=TEMP %then %do;
+%if &showlog=YES %then %do;
   data _null_;
-    infile __outdoc lrecl=32767 end=last;
+    infile &fref lrecl=32767 end=last;
     input;
     if _n_=1 then putlog '>>stpcodeBEGIN<<';
     putlog _infile_;
@@ -151,6 +160,8 @@ run;
 %end;
 
 filename __getdoc clear;
-filename __outdoc clear;
+%if &outref=0 %then %do;
+  filename &fref clear;
+%end;
 
-%mend;
+%mend mm_getstpcode;

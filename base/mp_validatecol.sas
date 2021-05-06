@@ -22,6 +22,7 @@
 
   @param [in] incol The column to be validated
   @param [in] rule The rule to apply.  Current rules:
+    @li ISNUM - checks if the variable is numeric
     @li LIBDS - matches LIBREF.DATASET format
   @param [out] outcol The variable to create, with the results of the match
 
@@ -62,4 +63,4 @@
   else &outcol=0;
 %end;
 
-%mend;
+%mend mp_validatecol;

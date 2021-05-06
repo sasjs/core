@@ -19,6 +19,9 @@
   @param [out] outref= (0) Fileref to which to write the code.
   @param [out] showlog=(NO) Set to YES to print log to the window
 
+  <h4> SAS Macros </h4>
+  @li mf_getuniquefileref.sas
+
   @author Allan Bowe
 
 **/

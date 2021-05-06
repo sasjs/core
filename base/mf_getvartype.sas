@@ -45,4 +45,4 @@ Usage:
   %let rc = %sysfunc(close(&dsid));
   /* Return variable type */
   &vtype
-%mend;
+%mend mf_getvartype;

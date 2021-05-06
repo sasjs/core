@@ -44,6 +44,7 @@
   @li mp_abort.sas
   @li mf_getuniquefileref.sas
   @li mf_getvarlist.sas
+  @li mf_getvartype.sas
   @li mf_nobs.sas
   @li mp_filtergenerate.sas
   @li mp_filtervalidate.sas
@@ -65,6 +66,20 @@
   ,msg=%str(syscc=&syscc - on macro entry)
 )
 
+/* Validate input column */
+%local vtype;
+%let vtype=%mf_getvartype(&inds,RAW_VALUE);
+%mp_abort(iftrue=(&abort=YES and &vtype ne C),
+  mac=&sysmacroname,
+  msg=%str(%str(ERR)OR: RAW_VALUE must be character)
+)
+%if &vtype ne C %then %do;
+  %put &sysmacroname: RAW_VALUE must be character;
+  %let syscc=42;
+  %return;
+%end;
+
+
 /**
   * Sanitise the values based on valid value lists, then strip out
   * quotes, commas, periods and spaces.
@@ -72,6 +87,8 @@
   */
 %local reason_cd;
 data &outds;
+  /*length GROUP_LOGIC SUBGROUP_LOGIC $3 SUBGROUP_ID 8 VARIABLE_NM $32
+    OPERATOR_NM $10 RAW_VALUE $4000;*/
   set &inds;
   length reason_cd $32;
 
@@ -168,4 +185,4 @@ run;
 /* this macro will also set syscc to 1008 if any issues found */
 %mp_filtervalidate(&fref1,&targetds,outds=&outds,abort=&abort)
 
-%mend;
+%mend mp_filtercheck;

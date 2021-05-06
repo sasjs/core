@@ -17,7 +17,7 @@ data test1;
   input;
   libds=_infile_;
   %mp_validatecol(libds,LIBDS,is_libds)
-  if libds=1;
+  if is_libds=1;
 datalines4;
 some.libname
 !lib.blah

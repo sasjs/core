@@ -1051,6 +1051,10 @@ options noquotelenmax;
   @param [in] dlm= ( ) Provide a delimiter (eg comma or space) to separate the
     variables
   @param [in] quote= (none) use either DOUBLE or SINGLE to quote the results
+  @param [in] typefilter= (A) Filter for certain types of column.  Valid values:
+    @li A Return All columns
+    @li C Return Character columns
+    @li N Return Numeric columns
 
   @version 9.2
   @author Allan Bowe
@@ -1060,9 +1064,10 @@ options noquotelenmax;
 %macro mf_getvarlist(libds
       ,dlm=%str( )
       ,quote=no
+      ,typefilter=A
 )/*/STORE SOURCE*/;
   /* declare local vars */
-  %local outvar dsid nvars x rc dlm q var;
+  %local outvar dsid nvars x rc dlm q var vtype;
 
   /* credit Rowland Hale  - byte34 is double quote, 39 is single quote */
   %if %upcase(&quote)=DOUBLE %then %let q=%qsysfunc(byte(34));
@@ -1070,21 +1075,22 @@ options noquotelenmax;
   /* open dataset in macro */
   %let dsid=%sysfunc(open(&libds));
 
-
   %if &dsid %then %do;
     %let nvars=%sysfunc(attrn(&dsid,NVARS));
     %if &nvars>0 %then %do;
-      /* add first dataset variable to global macro variable */
-      %let outvar=&q.%sysfunc(varname(&dsid,1))&q.;
-      /* add remaining variables with supplied delimeter */
+      /* add variables with supplied delimeter */
       %do x=1 %to &nvars;
-        %let var=&q.%sysfunc(varname(&dsid,&x))&q.;
-        %if &var=&q&q %then %do;
-          %put &sysmacroname: Empty column found in &libds!;
-          %let var=&q. &q.;
+        /* get variable type */
+        %let vtype=%sysfunc(vartype(&dsid,&x));
+        %if &vtype=&typefilter or &typefilter=A %then %do;
+          %let var=&q.%sysfunc(varname(&dsid,&x))&q.;
+          %if &var=&q&q %then %do;
+            %put &sysmacroname: Empty column found in &libds!;
+            %let var=&q. &q.;
+          %end;
+          %if %quote(&outvar)=%quote() %then %let outvar=&var;
+          %else %let outvar=&outvar.&dlm.&var.;
         %end;
-        %if &x=1 %then %let outvar=&var;
-        %else %let outvar=&outvar.&dlm.&var.;
       %end;
     %end;
     %let rc=%sysfunc(close(&dsid));
@@ -1094,7 +1100,7 @@ options noquotelenmax;
     %let rc=%sysfunc(close(&dsid));
   %end;
   &outvar
-%mend;/**
+%mend mf_getvarlist;/**
   @file
   @brief Returns the position of a variable in dataset (varnum attribute).
   @details Uses varnum function to determine position.
@@ -1194,7 +1200,7 @@ Usage:
   %let rc = %sysfunc(close(&dsid));
   /* Return variable type */
   &vtype
-%mend;/**
+%mend mf_getvartype;/**
   @file
   @brief Returns the engine type of a SAS fileref
   @details Queries sashelp.vextfl to get the xengine value.
@@ -1782,6 +1788,61 @@ Usage:
 %mend;
 
 /** @endcond *//**
+  @file
+  @brief Generic assertion
+  @details Useful in the context of writing sasjs tests.  The results of the
+  test are _appended_ to the &outds. table.
+
+  Example usage:
+
+      %mp_assert(iftrue=(1=1),
+        desc=Obviously true
+      )
+
+      %mp_assert(iftrue=(1=0),
+        desc=Will fail
+      )
+
+  @param [in] iftrue= (1=1) A condition where, if true, the test is a PASS.
+  Else, the test is a fail.
+
+  @param [in] desc= (Testing observations) The user provided test description
+  @param [out] outds= (work.test_results) The output dataset to contain the
+  results.  If it does not exist, it will be created, with the following format:
+  |TEST_DESCRIPTION:$256|TEST_RESULT:$4|TEST_COMMENTS:$256|
+  |---|---|---|
+  |User Provided description|PASS|Column &inds contained ALL columns|
+
+  @version 9.2
+  @author Allan Bowe
+
+**/
+
+%macro mp_assert(iftrue=(1=1),
+  desc=0,
+  outds=work.test_results
+)/*/STORE SOURCE*/;
+
+  data ;
+    length test_description $256 test_result $4 test_comments $256;
+    test_description=symget('desc');
+    test_comments="&sysmacroname: Test result of "!!symget('iftrue');
+  %if %eval(%unquote(&iftrue)) %then %do;
+    test_result='PASS';
+  %end;
+  %else %do;
+    test_result='FAIL';
+  %end;
+  run;
+
+  %local ds ;
+  %let ds=&syslast;
+  proc append base=&outds data=&ds;
+  run;
+  proc sql;
+  drop table &ds;
+
+%mend mp_assert;/**
   @file
   @brief Asserts the existence (or not) of columns
   @details Useful in the context of writing sasjs tests.  The results of the
@@ -3238,6 +3299,7 @@ run;
   @li mp_abort.sas
   @li mf_getuniquefileref.sas
   @li mf_getvarlist.sas
+  @li mf_getvartype.sas
   @li mf_nobs.sas
   @li mp_filtergenerate.sas
   @li mp_filtervalidate.sas
@@ -3259,6 +3321,20 @@ run;
   ,msg=%str(syscc=&syscc - on macro entry)
 )
 
+/* Validate input column */
+%local vtype;
+%let vtype=%mf_getvartype(&inds,RAW_VALUE);
+%mp_abort(iftrue=(&abort=YES and &vtype ne C),
+  mac=&sysmacroname,
+  msg=%str(%str(ERR)OR: RAW_VALUE must be character)
+)
+%if &vtype ne C %then %do;
+  %put &sysmacroname: RAW_VALUE must be character;
+  %let syscc=42;
+  %return;
+%end;
+
+
 /**
   * Sanitise the values based on valid value lists, then strip out
   * quotes, commas, periods and spaces.
@@ -3266,6 +3342,8 @@ run;
   */
 %local reason_cd;
 data &outds;
+  /*length GROUP_LOGIC SUBGROUP_LOGIC $3 SUBGROUP_ID 8 VARIABLE_NM $32
+    OPERATOR_NM $10 RAW_VALUE $4000;*/
   set &inds;
   length reason_cd $32;
 
@@ -3362,7 +3440,7 @@ run;
 /* this macro will also set syscc to 1008 if any issues found */
 %mp_filtervalidate(&fref1,&targetds,outds=&outds,abort=&abort)
 
-%mend;
+%mend mp_filtercheck;
 /**
   @file
   @brief Generates a filter clause from an input table, to a fileref

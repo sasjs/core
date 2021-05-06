@@ -5,6 +5,7 @@
   <h4> SAS Macros </h4>
   @li mp_filtercheck.sas
   @li mp_assertdsobs.sas
+  @li mp_assert.sas
 
 **/
 
@@ -125,3 +126,23 @@ run;
   outds=work.test_results
 )
 
+/* Supply variables with incorrect types */
+data work.inds;
+  infile datalines4 dsd;
+  input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
+    OPERATOR_NM:$10. RAW_VALUE:8;
+datalines4;
+AND,AND,1,age,=,0
+;;;;
+run;
+%let syscc=0;
+%mp_filtercheck(work.inds,
+  targetds=sashelp.class,
+  outds=work.badrecords,
+  abort=NO
+)
+%mp_assert(iftrue=(&syscc=42),
+  desc=Throw error if RAW_VALUE is incorrect,
+  outds=work.test_results
+)
+%let syscc=0;

@@ -16,24 +16,6 @@
       "readMe": "../../README.md"
     }
   },
-  "serviceConfig": {
-    "initProgram": "tests/testinit.sas",
-    "termProgram": "tests/testterm.sas",
-    "serviceFolders": [
-      "tests/base",
-      "tests/viya"
-    ],
-    "macroVars": {
-      "mcTestAppLoc": "/Public/temp/macrocore"
-    }
-  },
-  "testConfig": {
-    "initProgram": "tests/testinit.sas",
-    "termProgram": "tests/testterm.sas",
-    "macroVars": {
-      "mcTestAppLoc": "/Public/temp/macrocore"
-    }
-  },
   "defaultTarget": "viya",
   "targets": [
     {
@@ -44,7 +26,23 @@
       "deployConfig": {
         "deployServicePack": true
       },
-      "contextName": "SAS Job Execution compute context"
+      "macroFolders": [
+        "base",
+        "meta",
+        "metax",
+        "viya",
+        "lua",
+        "tests/base",
+        "tests/viya"
+      ],
+      "contextName": "SAS Job Execution compute context",
+      "testConfig": {
+        "initProgram": "tests/testinit.sas",
+        "termProgram": "tests/testterm.sas",
+        "macroVars": {
+          "mcTestAppLoc": "/Public/temp/macrocore"
+        }
+      }
     }
   ]
 }

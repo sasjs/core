@@ -39,23 +39,26 @@
   @li mf_isblank.sas
   @li mv_deletejes.sas
 
-  @param path= The full path (on SAS Drive) where the service will be created
-  @param name= The name of the service
-  @param desc= The description of the service
-  @param precode= Space separated list of filerefs, pointing to the code that
-    needs to be attached to the beginning of the service
-  @param code= Fileref(s) of the actual code to be added
-  @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= valid values are "password" or "authorization_code"
+  @param [in] path= The full path (on SAS Drive) where the service will be
+    created
+  @param [in] name= The name of the service
+  @param [in] desc= The description of the service
+  @param [in] precode= Space separated list of filerefs, pointing to the code
+    that needs to be attached to the beginning of the service
+  @param [in] code= Fileref(s) of the actual code to be added
+  @param [in] access_token_var= The global macro variable to contain the access
+    token
+  @param [in] grant_type= valid values are "password" or "authorization_code"
     (unquoted). The default is authorization_code.
-  @param replace= select NO to avoid replacing any existing service in that
-    location
-  @param adapter= the macro uses the sasjs adapter by default.  To use another
-    adapter, add a (different) fileref here.
-  @param contextname= Choose a specific context on which to run the Job.  Leave
+  @param [in] replace=(YES) Select NO to avoid replacing any existing service in
+    that location
+  @param [in] adapter= the macro uses the sasjs adapter by default.  To use
+    another adapter, add a (different) fileref here.
+  @param [in] contextname= Choose a specific context on which to run the Job.  Leave
     blank to use the default context.  From Viya 3.5 it is possible to configure
     a shared context - see
 https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5pyhn1wg3ja0drdl6h.htm&docsetVersion=3.5&locale=en
+  @param [in] mdebug=(0) set to 1 to enable DEBUG messages
 
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
@@ -71,9 +74,17 @@ https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5p
     ,grant_type=sas_services
     ,replace=YES
     ,adapter=sasjs
-    ,debug=0
+    ,mdebug=0
     ,contextname=
+    ,debug=0 /* @TODO - Deprecate */
   );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
@@ -126,7 +137,7 @@ proc http method='GET' out=&fname1 &oauth_bearer
   headers "Authorization"="Bearer &&&access_token_var";
 %end;
 run;
-%if &debug %then %do;
+%if &mdebug=1 %then %do;
   data _null_;
     infile &fname1;
     input;
@@ -165,7 +176,7 @@ proc http method='GET'
   %end;
             'Accept'='application/vnd.sas.collection+json'
             'Accept-Language'='string';
-%if &debug=1 %then %do;
+%if &mdebug=1 %then %do;
   debug level = 3;
 %end;
 run;
@@ -220,9 +231,9 @@ run;
   * These put statements are auto generated - to change the macro, change the
   * source (mv_webout) and run `build.py`
   */
-filename sasjs temp lrecl=3000;
+filename &adapter temp lrecl=3000;
 data _null_;
-  file sasjs;
+  file &adapter;
   put "/* Created on %sysfunc(datetime(),datetime19.) by &sysuserid */";
 /* WEBOUT BEGIN */
   put ' ';
@@ -561,11 +572,12 @@ data _null_;
 run;
 
 /* insert the code, escaping double quotes and carriage returns */
+%&dbg.put &sysmacroname: Creating final input file;
 %local x fref freflist;
 %let freflist= &adapter &precode &code ;
 %do x=1 %to %sysfunc(countw(&freflist));
   %let fref=%scan(&freflist,&x);
-  %put &sysmacroname: adding &fref;
+  %&dbg.put &sysmacroname: adding &fref fileref;
   data _null_;
     length filein 8 fileid 8;
     filein = fopen("&fref","I",1,"B");
@@ -617,7 +629,12 @@ data _null_;
   put '"}';
 run;
 
-/* now we can create the job!! */
+%if &mdebug=1 and &SYS_PROCHTTP_STATUS_CODE ne 201 %then %do;
+  %put &sysmacroname: input about to be POSTed;
+  data _null_;infile &fname3;input;putlog _infile_;run;
+%end;
+
+%&dbg.put &sysmacroname: Creating the actual service!;
 %local fname4;
 %let fname4=%mf_getuniquefileref();
 proc http method='POST'
@@ -630,22 +647,18 @@ proc http method='POST'
             "Authorization"="Bearer &&&access_token_var"
   %end;
             "Accept"="application/vnd.sas.job.definition+json";
-%if &debug=1 %then %do;
+%if &mdebug=1 %then %do;
     debug level = 3;
 %end;
 run;
-/*data _null_;infile &fname4;input;putlog _infile_;run;*/
+%if &mdebug=1 and &SYS_PROCHTTP_STATUS_CODE ne 201 %then %do;
+  %put &sysmacroname: output from POSTing job definition;
+  data _null_;infile &fname4;input;putlog _infile_;run;
+%end;
 %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 201)
   ,mac=&sysmacroname
   ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
 )
-/* clear refs */
-filename &fname1 clear;
-filename &fname2 clear;
-filename &fname3 clear;
-filename &fname4 clear;
-filename &adapter clear;
-libname &libref1 clear;
 
 /* get the url so we can give a helpful log message */
 %local url;
@@ -660,6 +673,19 @@ data _null_;
   call symputx('url',url);
 run;
 
+%if &mdebug=1 %then %do;
+  %put &sysmacroname exit vars:;
+  %put _local_;
+%end;
+%else %do;
+  /* clear refs */
+  filename &fname1 clear;
+  filename &fname2 clear;
+  filename &fname3 clear;
+  filename &fname4 clear;
+  filename &adapter clear;
+  libname &libref1 clear;
+%end;
 
 %put &sysmacroname: Job &name successfully created in &path;
 %put &sysmacroname:;
@@ -669,4 +695,4 @@ run;
 %put &sysmacroname:;
 %put &sysmacroname:;
 
-%mend;
+%mend mv_createwebservice;

@@ -18,20 +18,20 @@ data _null_;
   file testref;
   put '01'x;
 run;
+%put TEST1: creating web service;
 %mv_createwebservice(
   path=&mcTestAppLoc/temp/macros,
-  code=testref,
-  name=mv_createwebservice
+  name=mv_createwebservice,
+  code=testref
 )
-
-filename compare temp;
+%put TEST1: fetching web service code;
 %mv_getjobcode(
-  path=&mcTestAppLoc/temp/macros
-  ,name=mv_createwebservice
-  ,outref=compare;
+  path=&mcTestAppLoc/temp/macros,
+  name=mv_createwebservice,
+  outref=compare
 )
-
-data test_results;
+%put TEST1: checking web service code;
+data work.test_results;
   length test_description $256 test_result $4 test_comments $256;
   infile compare end=eof;
   input;

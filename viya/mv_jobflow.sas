@@ -136,6 +136,13 @@
     ,raise_err=0
     ,mdebug=0
   );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
@@ -293,6 +300,7 @@ data;run;%let jdswaitfor=&syslast;
           ,name=&jobname
           ,paramstring=%superq(jparams&jid)
           ,outds=&jdsapp
+          ,mdebug=&mdebug
         )
         data &jdsapp;
           format jobparams $32767.;
@@ -313,8 +321,13 @@ data;run;%let jdswaitfor=&syslast;
     %end;
     %if &jid=&jcnt %then %do;
       /* we are at the end of the loop - time to see which jobs have finished */
-      %mv_jobwaitfor(ANY,inds=&jdsrunning,outds=&jdswaitfor,outref=&outref
-                    ,raise_err=&raise_err)
+      %mv_jobwaitfor(ANY
+        ,inds=&jdsrunning
+        ,outds=&jdswaitfor
+        ,outref=&outref
+        ,raise_err=&raise_err
+        ,mdebug=&mdebug
+      )
       %local done;
       %let done=%mf_nobs(&jdswaitfor);
       %if &done>0 %then %do;
@@ -346,7 +359,8 @@ data;run;%let jdswaitfor=&syslast;
 %end;
 
 %if &mdebug=1 %then %do;
+  %put &sysmacroname exit vars:;
   %put _local_;
 %end;
 
-%mend;
+%mend mv_jobflow;

@@ -69,7 +69,9 @@
 
   @param [out] result= (WEBOUT_JSON) The result type to capture.  Resolves
   to "_[column name]" from the results table when parsed with the JSON libname
-  engine.
+  engine.  Example values:
+    @li WEBOUT_JSON
+    @li WEBOUT_TXT
 
   @param [out] outref= (0) The output fileref to which to write the results
   @param [out] outlib= (0) The output library to which to assign the results
@@ -96,6 +98,13 @@
     ,outref=0
     ,outlib=0
   );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
@@ -161,6 +170,13 @@ run;
     ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
   )
 %end;
+%if &mdebug=1 %then %do;
+  data _null_;
+    infile &fname1 lrecl=32767;
+    input;
+    putlog _infile_;
+  run;
+%end;
 
 /* extract results link */
 %local lib1 resuri;
@@ -169,7 +185,7 @@ libname &lib1 JSON fileref=&fname1;
 data _null_;
   set &lib1..results;
   call symputx('resuri',_&result,'l');
-  putlog (_all_)(=);
+  &dbg putlog "&sysmacroname results: " (_all_)(=);
 run;
 %mp_abort(iftrue=("&resuri"=".")
   ,mac=&sysmacroname
@@ -187,6 +203,13 @@ proc http method='GET' out=&fname2 &oauth_bearer
   %end;
   ;
 run;
+%if &mdebug=1 %then %do;
+  data _null_;
+    infile &fname2 lrecl=32767;
+    input;
+    putlog _infile_;
+  run;
+%end;
 
 %if &outref ne 0 %then %do;
   filename &outref temp;
@@ -202,6 +225,8 @@ run;
   libname &lib1 clear;
 %end;
 %else %do;
+  %put &sysmacroname exit vars:;
   %put _local_;
 %end;
-%mend;
+
+%mend mv_getjobresult;

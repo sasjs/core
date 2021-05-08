@@ -6080,6 +6080,8 @@ libname &lib clear;
     |mustbevalidname|can be anything, oops, %abort!!|
 
   @param [in] debug= (log) Provide the _debug value
+  @param [in] viyaresult=(WEBOUT_JSON) The Viya result type to return.  For
+    more info, see mv_getjobresult.sas
   @param [out] outlib= (0) Output libref to contain the final tables.  Set to
     0 if the service output is not in JSON format.
   @param [out] outref= (0) Output fileref to create, to contain the full _webout
@@ -6104,8 +6106,16 @@ libname &lib clear;
   inputparams=0,
   debug=log,
   outlib=0,
-  outref=0
+  outref=0,
+  viyaresult=WEBOUT_JSON
 )/*/STORE SOURCE*/;
+%local mdebug;
+%if &debug ne 0 %then %do;
+  %let mdebug=1;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let mdebug=0;
 
 /* sanitise inputparams */
 %local pcnt;
@@ -6130,22 +6140,6 @@ libname &lib clear;
   )
 %end;
 
-/* parse the input files */
-%local webcount i var;
-%if %quote(&inputfiles) ne 0 %then %do;
-  %let webcount=%sysfunc(countw(&inputfiles));
-  %put &=webcount;
-  %do i=1 %to &webcount;
-    %let var=%scan(&inputfiles,&i,%str( ));
-    %local webfref&i webname&i;
-    %let webref&i=%scan(&var,1,%str(:));
-    %let webname&i=%scan(&var,2,%str(:));
-    %put webref&i=&&webref&i;
-    %put webname&i=&&webname&i;
-  %end;
-%end;
-%else %let webcount=0;
-
 
 %local fref1 webref;
 %let fref1=%mf_getuniquefileref();
@@ -6154,6 +6148,23 @@ libname &lib clear;
 %local platform;
 %let platform=%mf_getplatform();
 %if &platform=SASMETA %then %do;
+
+  /* parse the input files */
+  %local webcount i var;
+  %if %quote(&inputfiles) ne 0 %then %do;
+    %let webcount=%sysfunc(countw(&inputfiles));
+    %put &=webcount;
+    %do i=1 %to &webcount;
+      %let var=%scan(&inputfiles,&i,%str( ));
+      %local webfref&i webname&i;
+      %let webref&i=%scan(&var,1,%str(:));
+      %let webname&i=%scan(&var,2,%str(:));
+      %put webref&i=&&webref&i;
+      %put webname&i=&&webname&i;
+    %end;
+  %end;
+  %else %let webcount=0;
+
   proc stp program="&program";
     inputparam _program="&program"
   %do i=1 %to &webcount;
@@ -6210,14 +6221,65 @@ libname &lib clear;
 
 %end;
 %else %if &platform=SASVIYA %then %do;
-  data ;
-    _program="&program";
+
+  /* prepare inputparams */
+  %local ds1;
+  %let ds1=%mf_getuniquename();
+  %if "&inputparams" ne "0" %then %do;
+    proc transpose data=&inputparams out=&ds1;
+      id name;
+      var value;
+    run;
+  %end;
+  %else %do;
+    data &ds1;run;
+  %end;
+
+  /* parse the input files - convert to sasjs params */
+  %local webcount i var sasjs_tables;
+  %if %quote(&inputfiles) ne 0 %then %do;
+    %let webcount=%sysfunc(countw(&inputfiles));
+    %put &=webcount;
+    %do i=1 %to &webcount;
+      %let var=%scan(&inputfiles,&i,%str( ));
+      %local webfref&i webname&i sasjs&i.data;
+      %let webref&i=%scan(&var,1,%str(:));
+      %let webname&i=%scan(&var,2,%str(:));
+      %put webref&i=&&webref&i;
+      %put webname&i=&&webname&i;
+
+      %let sasjs_tables=&sasjs_tables &&webname&i;
+      data _null_;
+        infile &&webref&i lrecl=32767;
+        input;
+        if _n_=1 then call symputx("sasjs&i.data",_infile_);
+        else call symputx(
+          "sasjs&i.data",cats(symget("sasjs&i.data"),'0D0A'x,_infile_)
+        );
+        putlog "&sysmacroname infile: " _infile_;
+      run;
+      data &ds1;
+        set &ds1;
+        length sasjs&i.data $32767 sasjs_tables $1000;
+        sasjs&i.data=symget("sasjs&i.data");
+        sasjs_tables=symget("sasjs_tables");
+      run;
+    %end;
+  %end;
+  %else %let webcount=0;
+
+  data &ds1;
+    retain _program "&program";
+    set &ds1;
+    putlog "&sysmacroname inputparams:";
+    putlog (_all_)(=);
   run;
 
-  %mv_jobflow(inds=&syslast
+  %mv_jobflow(inds=&ds1
     ,maxconcurrency=1
     ,outds=work.results
     ,outref=&fref1
+    ,mdebug=&mdebug
   )
   /* show the log */
   data _null_;
@@ -6229,12 +6291,14 @@ libname &lib clear;
   data _null_;
     set work.results;
     call symputx('uri',uri);
+    putlog "&sysmacroname: fetching results for " uri;
   run;
   /* fetch results from webout.json */
   %mv_getjobresult(uri=&uri,
-    result=WEBOUT_JSON,
+    result=&viyaresult,
     outref=&outref,
-    outlib=&outlib
+    outlib=&outlib,
+    mdebug=&mdebug
   )
 
 %end;
@@ -6242,9 +6306,15 @@ libname &lib clear;
   %put %str(ERR)OR: Unrecognised platform:  &platform;
 %end;
 
-filename &webref clear;
+%if &mdebug=0 %then %do;
+  filename &webref clear;
+%end;
+%else %do;
+  %put &sysmacroname exit vars:;
+  %put _local_;
+%end;
 
-%mend;/**
+%mend mp_testservice;/**
   @file mp_testwritespeedlibrary.sas
   @brief Tests the write speed of a new table in a SAS library
   @details Will create a new table of a certain size in an
@@ -12985,23 +13055,26 @@ run;
   @li mf_isblank.sas
   @li mv_deletejes.sas
 
-  @param path= The full path (on SAS Drive) where the service will be created
-  @param name= The name of the service
-  @param desc= The description of the service
-  @param precode= Space separated list of filerefs, pointing to the code that
-    needs to be attached to the beginning of the service
-  @param code= Fileref(s) of the actual code to be added
-  @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= valid values are "password" or "authorization_code"
+  @param [in] path= The full path (on SAS Drive) where the service will be
+    created
+  @param [in] name= The name of the service
+  @param [in] desc= The description of the service
+  @param [in] precode= Space separated list of filerefs, pointing to the code
+    that needs to be attached to the beginning of the service
+  @param [in] code= Fileref(s) of the actual code to be added
+  @param [in] access_token_var= The global macro variable to contain the access
+    token
+  @param [in] grant_type= valid values are "password" or "authorization_code"
     (unquoted). The default is authorization_code.
-  @param replace= select NO to avoid replacing any existing service in that
-    location
-  @param adapter= the macro uses the sasjs adapter by default.  To use another
-    adapter, add a (different) fileref here.
-  @param contextname= Choose a specific context on which to run the Job.  Leave
+  @param [in] replace=(YES) Select NO to avoid replacing any existing service in
+    that location
+  @param [in] adapter= the macro uses the sasjs adapter by default.  To use
+    another adapter, add a (different) fileref here.
+  @param [in] contextname= Choose a specific context on which to run the Job.  Leave
     blank to use the default context.  From Viya 3.5 it is possible to configure
     a shared context - see
 https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5pyhn1wg3ja0drdl6h.htm&docsetVersion=3.5&locale=en
+  @param [in] mdebug=(0) set to 1 to enable DEBUG messages
 
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
@@ -13017,9 +13090,17 @@ https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5p
     ,grant_type=sas_services
     ,replace=YES
     ,adapter=sasjs
-    ,debug=0
+    ,mdebug=0
     ,contextname=
+    ,debug=0 /* @TODO - Deprecate */
   );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
@@ -13072,7 +13153,7 @@ proc http method='GET' out=&fname1 &oauth_bearer
   headers "Authorization"="Bearer &&&access_token_var";
 %end;
 run;
-%if &debug %then %do;
+%if &mdebug=1 %then %do;
   data _null_;
     infile &fname1;
     input;
@@ -13111,7 +13192,7 @@ proc http method='GET'
   %end;
             'Accept'='application/vnd.sas.collection+json'
             'Accept-Language'='string';
-%if &debug=1 %then %do;
+%if &mdebug=1 %then %do;
   debug level = 3;
 %end;
 run;
@@ -13166,9 +13247,9 @@ run;
   * These put statements are auto generated - to change the macro, change the
   * source (mv_webout) and run `build.py`
   */
-filename sasjs temp lrecl=3000;
+filename &adapter temp lrecl=3000;
 data _null_;
-  file sasjs;
+  file &adapter;
   put "/* Created on %sysfunc(datetime(),datetime19.) by &sysuserid */";
 /* WEBOUT BEGIN */
   put ' ';
@@ -13507,11 +13588,12 @@ data _null_;
 run;
 
 /* insert the code, escaping double quotes and carriage returns */
+%&dbg.put &sysmacroname: Creating final input file;
 %local x fref freflist;
 %let freflist= &adapter &precode &code ;
 %do x=1 %to %sysfunc(countw(&freflist));
   %let fref=%scan(&freflist,&x);
-  %put &sysmacroname: adding &fref;
+  %&dbg.put &sysmacroname: adding &fref fileref;
   data _null_;
     length filein 8 fileid 8;
     filein = fopen("&fref","I",1,"B");
@@ -13563,7 +13645,12 @@ data _null_;
   put '"}';
 run;
 
-/* now we can create the job!! */
+%if &mdebug=1 and &SYS_PROCHTTP_STATUS_CODE ne 201 %then %do;
+  %put &sysmacroname: input about to be POSTed;
+  data _null_;infile &fname3;input;putlog _infile_;run;
+%end;
+
+%&dbg.put &sysmacroname: Creating the actual service!;
 %local fname4;
 %let fname4=%mf_getuniquefileref();
 proc http method='POST'
@@ -13576,22 +13663,18 @@ proc http method='POST'
             "Authorization"="Bearer &&&access_token_var"
   %end;
             "Accept"="application/vnd.sas.job.definition+json";
-%if &debug=1 %then %do;
+%if &mdebug=1 %then %do;
     debug level = 3;
 %end;
 run;
-/*data _null_;infile &fname4;input;putlog _infile_;run;*/
+%if &mdebug=1 and &SYS_PROCHTTP_STATUS_CODE ne 201 %then %do;
+  %put &sysmacroname: output from POSTing job definition;
+  data _null_;infile &fname4;input;putlog _infile_;run;
+%end;
 %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 201)
   ,mac=&sysmacroname
   ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
 )
-/* clear refs */
-filename &fname1 clear;
-filename &fname2 clear;
-filename &fname3 clear;
-filename &fname4 clear;
-filename &adapter clear;
-libname &libref1 clear;
 
 /* get the url so we can give a helpful log message */
 %local url;
@@ -13606,6 +13689,19 @@ data _null_;
   call symputx('url',url);
 run;
 
+%if &mdebug=1 %then %do;
+  %put &sysmacroname exit vars:;
+  %put _local_;
+%end;
+%else %do;
+  /* clear refs */
+  filename &fname1 clear;
+  filename &fname2 clear;
+  filename &fname3 clear;
+  filename &fname4 clear;
+  filename &adapter clear;
+  libname &libref1 clear;
+%end;
 
 %put &sysmacroname: Job &name successfully created in &path;
 %put &sysmacroname:;
@@ -13615,7 +13711,7 @@ run;
 %put &sysmacroname:;
 %put &sysmacroname:;
 
-%mend;
+%mend mv_createwebservice;
 /**
   @file mv_deletefoldermember.sas
   @brief Deletes an item in a Viya folder
@@ -14526,17 +14622,20 @@ libname &libref1 clear;
         ,outfile=/tmp/some_job.sas
       )
 
-  @param [in] access_token_var= The global macro variable to contain the access token
+  @param [in] access_token_var= The global macro variable to contain the access
+    token
   @param [in] grant_type= valid values:
-      * password
-      * authorization_code
-      * detect - will check if access_token exists, if not will use sas_services if
-        a SASStudioV session else authorization_code.  Default option.
-      * sas_services - will use oauth_bearer=sas_services
+    @li password
+    @liauthorization_code
+    @li detect - will check if access_token exists, if not will use sas_services
+      if a SASStudioV session else authorization_code.  Default option.
+    @li  sas_services - will use oauth_bearer=sas_services
   @param [in] path= The SAS Drive path of the job
   @param [in] name= The name of the job
-  @param [out] outref= A fileref to which to write the source code
-  @param [out] outfile= A file to which to write the source code
+  @param [in] mdebug=(0) set to 1 to enable DEBUG messages
+  @param [out] outref=(0) A fileref to which to write the source code (will be
+    created with a TEMP engine)
+  @param [out] outfile=(0) A file to which to write the source code
 
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
@@ -14555,7 +14654,15 @@ libname &libref1 clear;
     ,contextName=SAS Job Execution compute context
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
+    ,mdebug=0
   );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
@@ -14649,21 +14756,33 @@ data _null_;
 run;
 %inc "&fpath3..lua";
 /* export to desired destination */
-data _null_;
-  %if &outref=0 %then %do;
+%if "&outref"="0" %then %do;
+  data _null_;
     file "&outfile" lrecl=32767;
-  %end;
-  %else %do;
+%end;
+%else %do;
+  filename &outref temp;
+  data _null_;
     file &outref;
-  %end;
+%end;
   infile &fname2;
   input;
   put _infile_;
+  &dbg. putlog _infile_;
 run;
-filename &fname1 clear;
-filename &fname2 clear;
-filename &fname3 clear;
-%mend;
+
+%if &mdebug=1 %then %do;
+  %put &sysmacroname exit vars:;
+  %put _local_;
+%end;
+%else %do;
+  /* clear refs */
+  filename &fname1 clear;
+  filename &fname2 clear;
+  filename &fname3 clear;
+%end;
+
+%mend mv_getjobcode;
 /**
   @file
   @brief Extract the log from a completed SAS Viya Job
@@ -14752,6 +14871,13 @@ filename &fname3 clear;
     ,grant_type=sas_services
     ,mdebug=0
   );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
@@ -14927,9 +15053,10 @@ run;
   filename &fname3 clear;
 %end;
 %else %do;
+  %put &sysmacroname exit vars:;
   %put _local_;
 %end;
-%mend;
+%mend mv_getjoblog;
 
 
 
@@ -15004,7 +15131,9 @@ run;
 
   @param [out] result= (WEBOUT_JSON) The result type to capture.  Resolves
   to "_[column name]" from the results table when parsed with the JSON libname
-  engine.
+  engine.  Example values:
+    @li WEBOUT_JSON
+    @li WEBOUT_TXT
 
   @param [out] outref= (0) The output fileref to which to write the results
   @param [out] outlib= (0) The output library to which to assign the results
@@ -15031,6 +15160,13 @@ run;
     ,outref=0
     ,outlib=0
   );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
@@ -15096,6 +15232,13 @@ run;
     ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
   )
 %end;
+%if &mdebug=1 %then %do;
+  data _null_;
+    infile &fname1 lrecl=32767;
+    input;
+    putlog _infile_;
+  run;
+%end;
 
 /* extract results link */
 %local lib1 resuri;
@@ -15104,7 +15247,7 @@ libname &lib1 JSON fileref=&fname1;
 data _null_;
   set &lib1..results;
   call symputx('resuri',_&result,'l');
-  putlog (_all_)(=);
+  &dbg putlog "&sysmacroname results: " (_all_)(=);
 run;
 %mp_abort(iftrue=("&resuri"=".")
   ,mac=&sysmacroname
@@ -15122,6 +15265,13 @@ proc http method='GET' out=&fname2 &oauth_bearer
   %end;
   ;
 run;
+%if &mdebug=1 %then %do;
+  data _null_;
+    infile &fname2 lrecl=32767;
+    input;
+    putlog _infile_;
+  run;
+%end;
 
 %if &outref ne 0 %then %do;
   filename &outref temp;
@@ -15137,9 +15287,11 @@ run;
   libname &lib1 clear;
 %end;
 %else %do;
+  %put &sysmacroname exit vars:;
   %put _local_;
 %end;
-%mend;
+
+%mend mv_getjobresult;
 /**
   @file
   @brief Extract the status from a running SAS Viya job
@@ -15572,24 +15724,25 @@ libname &libref1 clear;
         ,paramstring=%str("macvarname":"macvarvalue","answer":42)
       )
 
-  @param [in] access_token_var= The global macro variable to contain the access token
+  @param [in] access_token_var= The global macro variable to contain the access
+    token
   @param [in] grant_type= valid values:
-
-    * password
-    * authorization_code
-    * detect - will check if access_token exists, if not will use sas_services if
-      a SASStudioV session else authorization_code.  Default option.
-    * sas_services - will use oauth_bearer=sas_services
+    @li password
+    @li authorization_code
+    @li detect - will check if access_token exists, if not will use sas_services
+      if a SASStudioV session else authorization_code.  Default option.
+    @li sas_services - will use oauth_bearer=sas_services
 
   @param [in] path= The SAS Drive path to the job being executed
   @param [in] name= The name of the job to execute
-  @param [in] paramstring= A JSON fragment with name:value pairs, eg: `"name":"value"`
-  or "name":"value","name2":42`.  This will need to be wrapped in `%str()`.
+  @param [in] paramstring= A JSON fragment with name:value pairs, eg:
+    `"name":"value"` or "name":"value","name2":42`.  This will need to be
+    wrapped in `%str()`.
 
   @param [in] contextName= Context name with which to run the job.
     Default = `SAS Job Execution compute context`
-
-  @param [out] outds= The output dataset containing links (Default=work.mv_jobexecute)
+  @param [in] mdebug= set to 1 to enable DEBUG messages
+  @param [out] outds= (work.mv_jobexecute) The output dataset containing links
 
 
   @version VIYA V.03.04
@@ -15611,7 +15764,15 @@ libname &libref1 clear;
     ,grant_type=sas_services
     ,paramstring=0
     ,outds=work.mv_jobexecute
+    ,mdebug=0
   );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
@@ -15713,12 +15874,17 @@ data &outds;
   _program="&path/&name";
 run;
 
-/* clear refs */
-filename &fname0 clear;
-filename &fname1 clear;
-libname &libref;
-
-%mend;/**
+%if &mdebug=1 %then %do;
+  %put &sysmacroname exit vars:;
+  %put _local_;
+%end;
+%else %do;
+  /* clear refs */
+  filename &fname0 clear;
+  filename &fname1 clear;
+  libname &libref;
+%end;
+%mend mv_jobexecute;/**
   @file
   @brief Execute a series of job flows
   @details Very (very) simple flow manager.  Jobs execute in sequential waves,
@@ -15856,6 +16022,13 @@ libname &libref;
     ,raise_err=0
     ,mdebug=0
   );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
@@ -16013,6 +16186,7 @@ data;run;%let jdswaitfor=&syslast;
           ,name=&jobname
           ,paramstring=%superq(jparams&jid)
           ,outds=&jdsapp
+          ,mdebug=&mdebug
         )
         data &jdsapp;
           format jobparams $32767.;
@@ -16033,8 +16207,13 @@ data;run;%let jdswaitfor=&syslast;
     %end;
     %if &jid=&jcnt %then %do;
       /* we are at the end of the loop - time to see which jobs have finished */
-      %mv_jobwaitfor(ANY,inds=&jdsrunning,outds=&jdswaitfor,outref=&outref
-                    ,raise_err=&raise_err)
+      %mv_jobwaitfor(ANY
+        ,inds=&jdsrunning
+        ,outds=&jdswaitfor
+        ,outref=&outref
+        ,raise_err=&raise_err
+        ,mdebug=&mdebug
+      )
       %local done;
       %let done=%mf_nobs(&jdswaitfor);
       %if &done>0 %then %do;
@@ -16066,13 +16245,14 @@ data;run;%let jdswaitfor=&syslast;
 %end;
 
 %if &mdebug=1 %then %do;
+  %put &sysmacroname exit vars:;
   %put _local_;
 %end;
 
-%mend;
+%mend mv_jobflow;
 /**
   @file
-  @brief Takes a dataset of running jobs and waits for ANY or ALL of them to complete
+  @brief Takes a table of running jobs and waits for ANY/ALL of them to complete
   @details Will poll `/jobs/{jobId}/state` at set intervals until ANY or ALL
   jobs are completed.  Completion is determined by reference to the returned
   _state_, as per the following table:
@@ -16127,13 +16307,14 @@ data;run;%let jdswaitfor=&syslast;
 
       %mv_deletejes(path=/Public/temp,name=demo)
 
-  @param [in] access_token_var= The global macro variable to contain the access token
+  @param [in] access_token_var= The global macro variable to contain the access
+    token
   @param [in] grant_type= valid values:
 
       - password
       - authorization_code
-      - detect - will check if access_token exists, if not will use sas_services if
-        a SASStudioV session else authorization_code.  Default option.
+      - detect - will check if access_token exists, if not will use sas_services
+        if a SASStudioV session else authorization_code.  Default option.
       - sas_services - will use oauth_bearer=sas_services
 
   @param [in] action=Either ALL (to wait for every job) or ANY (if one job
@@ -16144,9 +16325,11 @@ data;run;%let jdswaitfor=&syslast;
     should be in a `_program` variable.
   @param [in] raise_err=0 Set to 1 to raise SYSCC when a job does not complete
               succcessfully
+  @param [in] mdebug= set to 1 to enable DEBUG messages
   @param [out] outds= The output dataset containing the list of states by job
     (default=work.mv_jobexecute)
-  @param [out] outref= A fileref to which the spawned job logs should be appended.
+  @param [out] outref= A fileref to which the spawned job logs should be
+    appended.
 
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
@@ -16169,7 +16352,15 @@ data;run;%let jdswaitfor=&syslast;
     ,outds=work.mv_jobwaitfor
     ,outref=0
     ,raise_err=0
+    ,mdebug=0
   );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
@@ -16227,7 +16418,8 @@ run;
 %let fname0=%mf_getuniquefileref();
 
 data &outds;
-  format _program uri $128. state $32. stateDetails $32. timestamp datetime19. jobparams $32767.;
+  format _program uri $128. state $32. stateDetails $32. timestamp datetime19.
+    jobparams $32767.;
   stop;
 run;
 
@@ -16240,8 +16432,8 @@ run;
               "Authorization"="Bearer &&&access_token_var"
       %end;  ;
     run;
-    %if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201 %then
-    %do;
+    %if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201
+    %then %do;
       data _null_;infile &fname0;input;putlog _infile_;run;
       %mp_abort(mac=&sysmacroname
         ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
@@ -16277,7 +16469,7 @@ run;
       %let joburi&i=0; /* do not re-check */
       /* fetch log */
       %if %str(&outref) ne 0 %then %do;
-        %mv_getjoblog(uri=&plainuri,outref=&outref)
+        %mv_getjoblog(uri=&plainuri,outref=&outref,mdebug=&mdebug)
       %end;
     %end;
     %else %if &status=idle or &status=pending or &status=running %then %do;
@@ -16292,10 +16484,11 @@ run;
     %end;
 
     %if (&raise_err) %then %do;
-      %if (&status = canceled or &status = failed or %length(&stateDetails)>0) %then %do;
+      %if (&status = canceled or &status = failed or %length(&stateDetails)>0)
+      %then %do;
         %if ("&stateDetails" = "%str(war)ning") %then %let SYSCC=4;
         %else %let SYSCC=5;
-        %put %str(ERR)OR: Job &&jobname&i. did not complete successfully. &stateDetails;
+        %put %str(ERR)OR: Job &&jobname&i. did not complete. &stateDetails;
         %return;
       %end;
     %end;
@@ -16310,10 +16503,15 @@ run;
   %end;
 %end;
 
-/* clear refs */
-filename &fname0 clear;
-
-%mend;/**
+%if &mdebug=1 %then %do;
+  %put &sysmacroname exit vars:;
+  %put _local_;
+%end;
+%else %do;
+  /* clear refs */
+  filename &fname0 clear;
+%end;
+%mend mv_jobwaitfor;/**
   @file mv_registerclient.sas
   @brief Register Client and Secret (admin task)
   @details When building apps on SAS Viya, an client id and secret is required.

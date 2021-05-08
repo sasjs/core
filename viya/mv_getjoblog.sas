@@ -86,6 +86,13 @@
     ,grant_type=sas_services
     ,mdebug=0
   );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
@@ -261,9 +268,10 @@ run;
   filename &fname3 clear;
 %end;
 %else %do;
+  %put &sysmacroname exit vars:;
   %put _local_;
 %end;
-%mend;
+%mend mv_getjoblog;
 
 
 

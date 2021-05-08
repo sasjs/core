@@ -22,6 +22,8 @@
     |mustbevalidname|can be anything, oops, %abort!!|
 
   @param [in] debug= (log) Provide the _debug value
+  @param [in] viyaresult=(WEBOUT_JSON) The Viya result type to return.  For
+    more info, see mv_getjobresult.sas
   @param [out] outlib= (0) Output libref to contain the final tables.  Set to
     0 if the service output is not in JSON format.
   @param [out] outref= (0) Output fileref to create, to contain the full _webout
@@ -46,8 +48,16 @@
   inputparams=0,
   debug=log,
   outlib=0,
-  outref=0
+  outref=0,
+  viyaresult=WEBOUT_JSON
 )/*/STORE SOURCE*/;
+%local mdebug;
+%if &debug ne 0 %then %do;
+  %let mdebug=1;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let mdebug=0;
 
 /* sanitise inputparams */
 %local pcnt;
@@ -72,22 +82,6 @@
   )
 %end;
 
-/* parse the input files */
-%local webcount i var;
-%if %quote(&inputfiles) ne 0 %then %do;
-  %let webcount=%sysfunc(countw(&inputfiles));
-  %put &=webcount;
-  %do i=1 %to &webcount;
-    %let var=%scan(&inputfiles,&i,%str( ));
-    %local webfref&i webname&i;
-    %let webref&i=%scan(&var,1,%str(:));
-    %let webname&i=%scan(&var,2,%str(:));
-    %put webref&i=&&webref&i;
-    %put webname&i=&&webname&i;
-  %end;
-%end;
-%else %let webcount=0;
-
 
 %local fref1 webref;
 %let fref1=%mf_getuniquefileref();
@@ -96,6 +90,23 @@
 %local platform;
 %let platform=%mf_getplatform();
 %if &platform=SASMETA %then %do;
+
+  /* parse the input files */
+  %local webcount i var;
+  %if %quote(&inputfiles) ne 0 %then %do;
+    %let webcount=%sysfunc(countw(&inputfiles));
+    %put &=webcount;
+    %do i=1 %to &webcount;
+      %let var=%scan(&inputfiles,&i,%str( ));
+      %local webfref&i webname&i;
+      %let webref&i=%scan(&var,1,%str(:));
+      %let webname&i=%scan(&var,2,%str(:));
+      %put webref&i=&&webref&i;
+      %put webname&i=&&webname&i;
+    %end;
+  %end;
+  %else %let webcount=0;
+
   proc stp program="&program";
     inputparam _program="&program"
   %do i=1 %to &webcount;
@@ -152,14 +163,65 @@
 
 %end;
 %else %if &platform=SASVIYA %then %do;
-  data ;
-    _program="&program";
+
+  /* prepare inputparams */
+  %local ds1;
+  %let ds1=%mf_getuniquename();
+  %if "&inputparams" ne "0" %then %do;
+    proc transpose data=&inputparams out=&ds1;
+      id name;
+      var value;
+    run;
+  %end;
+  %else %do;
+    data &ds1;run;
+  %end;
+
+  /* parse the input files - convert to sasjs params */
+  %local webcount i var sasjs_tables;
+  %if %quote(&inputfiles) ne 0 %then %do;
+    %let webcount=%sysfunc(countw(&inputfiles));
+    %put &=webcount;
+    %do i=1 %to &webcount;
+      %let var=%scan(&inputfiles,&i,%str( ));
+      %local webfref&i webname&i sasjs&i.data;
+      %let webref&i=%scan(&var,1,%str(:));
+      %let webname&i=%scan(&var,2,%str(:));
+      %put webref&i=&&webref&i;
+      %put webname&i=&&webname&i;
+
+      %let sasjs_tables=&sasjs_tables &&webname&i;
+      data _null_;
+        infile &&webref&i lrecl=32767;
+        input;
+        if _n_=1 then call symputx("sasjs&i.data",_infile_);
+        else call symputx(
+          "sasjs&i.data",cats(symget("sasjs&i.data"),'0D0A'x,_infile_)
+        );
+        putlog "&sysmacroname infile: " _infile_;
+      run;
+      data &ds1;
+        set &ds1;
+        length sasjs&i.data $32767 sasjs_tables $1000;
+        sasjs&i.data=symget("sasjs&i.data");
+        sasjs_tables=symget("sasjs_tables");
+      run;
+    %end;
+  %end;
+  %else %let webcount=0;
+
+  data &ds1;
+    retain _program "&program";
+    set &ds1;
+    putlog "&sysmacroname inputparams:";
+    putlog (_all_)(=);
   run;
 
-  %mv_jobflow(inds=&syslast
+  %mv_jobflow(inds=&ds1
     ,maxconcurrency=1
     ,outds=work.results
     ,outref=&fref1
+    ,mdebug=&mdebug
   )
   /* show the log */
   data _null_;
@@ -171,12 +233,14 @@
   data _null_;
     set work.results;
     call symputx('uri',uri);
+    putlog "&sysmacroname: fetching results for " uri;
   run;
   /* fetch results from webout.json */
   %mv_getjobresult(uri=&uri,
-    result=WEBOUT_JSON,
+    result=&viyaresult,
     outref=&outref,
-    outlib=&outlib
+    outlib=&outlib,
+    mdebug=&mdebug
   )
 
 %end;
@@ -184,6 +248,12 @@
   %put %str(ERR)OR: Unrecognised platform:  &platform;
 %end;
 
-filename &webref clear;
+%if &mdebug=0 %then %do;
+  filename &webref clear;
+%end;
+%else %do;
+  %put &sysmacroname exit vars:;
+  %put _local_;
+%end;
 
-%mend;
+%mend mp_testservice;

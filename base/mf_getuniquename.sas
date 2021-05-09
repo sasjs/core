@@ -18,5 +18,5 @@
 
 
 %macro mf_getuniquename(prefix=MC);
-  &prefix.%substr(%sysfunc(compress(%sysfunc(uuidgen()),-)),1,32-%length(&prefix))
-%mend;
+&prefix.%substr(%sysfunc(compress(%sysfunc(uuidgen()),-)),1,32-%length(&prefix))
+%mend mf_getuniquename;

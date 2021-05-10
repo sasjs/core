@@ -1,23 +1,11 @@
 /**
   @file
-  @brief abort gracefully according to context
-  @details Do not use directly!  See bottom of explanation for details.
+  @brief to be deprecated
+  @details We will deprecate this macro in 2022
 
-  Configures an abort mechanism according to site specific policies or the
-    particulars of an environment.  For instance, can stream custom
-    results back to the client in an STP Web App context, or completely stop
-    in the case of a batch run.
+  As you can see, it's not a macro function.
 
-  For the sharp eyed readers - this is no longer a macro function!! It became
-  a macro procedure during a project and now it's kinda stuck that way until
-  that project is updated (if it's ever updated).  In the meantime we created
-  `mp_abort` which is just a wrapper for this one, and so we recomend you use
-  that for forwards compatibility reasons.
-
-  @param mac= to contain the name of the calling macro
-  @param type= deprecated.  Not used.
-  @param msg= message to be returned
-  @param iftrue= supply a condition under which the macro should be executed.
+  Use mp_abort.sas instead.
 
   @version 9.2
   @author Allan Bowe

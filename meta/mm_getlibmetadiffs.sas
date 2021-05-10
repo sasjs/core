@@ -48,7 +48,7 @@
   #### &prefix.added
   |name:$32.|metaID:$17.|SAStabName:$32.|
   |---|---|---|
-  | |DATA1|
+  | | |DATA1|
 
   #### &prefix.deleted
   |name:$32.|metaID:$17.|SAStabName:$32.|

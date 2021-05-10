@@ -128,12 +128,13 @@
       if debug ge '"131"' then put '>>weboutEND<<';
     run;
 
-    %let syscc=0;
     %if %symexist(_metaport) %then %do;
       data _null_;
-        if symexist('sysprocessmode')
-          then if symget("sysprocessmode")="SAS Stored Process Server"
-            then rc=stpsrvset('program error', 0);
+        if symexist('sysprocessmode') then
+          if symget("sysprocessmode")="SAS Stored Process Server" then do;
+            rc=stpsrvset('program error', 0);
+            call symputx("syscc",0,"g");
+          end;
       run;
     %end;
     /**

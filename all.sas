@@ -10310,7 +10310,7 @@ run;
   |tabName:$32.|tabMetaID:$17.|SAStabName:$32.|metaName:$32.|metaID:$17.|sasname:$32.|metaType:$16.|change:$64.|
   |---|---|---|---|---|---|---|---|
   |TABLE2|A5XLSNXI.BK0001HN|TABLE2|c|A5XLSNXI.BM000MA9|c|Column|Deleted|
-  | | | |d||d|Column|Added|
+  | | | |d| |d|Column|Added|
 
   #### &prefix.meta
   |Label1:$28.|cValue1:$1.|nValue1:D12.3|

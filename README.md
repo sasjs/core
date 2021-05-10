@@ -116,19 +116,19 @@ The **Macro Core** documentation is created using [doxygen](http://www.doxygen.n
 All macros must be commented in the doxygen format, to enable the [online documentation](https://core.sasjs.io).
 
 ### Dependencies
-SAS code can contain one of two types of dependency - SAS Macros, and SAS Programs.  When compiling projects using the [SASjs CLI](https://cli.sasjs.io) the doxygen header is scanned for `  @li` items under the following headers:
+SAS code can contain one of two types of dependency - SAS Macros, and SAS Includes.  When compiling projects using the [SASjs CLI](https://cli.sasjs.io) the doxygen header is scanned for `  @li` items under the following headers:
 
 ```sas
   <h4> SAS Macros </h4>
   @li mf_nobs.sas
   @li mm_assignlib.sas
 
-  <h4> SAS Programs </h4>
+  <h4> SAS Includes </h4>
   @li somefile.ddl SOMEFREF
   @li someprogram.sas FREFTWO
 ```
 
-The CLI can then extract all the dependencies and insert as precode (SAS Macros) or in a temp engine fileref (SAS Programs) when creating SAS Jobs and Services.
+The CLI can then extract all the dependencies and insert as precode (SAS Macros) or in a temp engine fileref (SAS Includes) when creating SAS Jobs and Services.
 
 When contributing to this library, it is therefore important to ensure that all dependencies are listed in the header in this format.
 

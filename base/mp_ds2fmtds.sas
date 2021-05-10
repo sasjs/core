@@ -6,10 +6,13 @@
 
   Usage:
 
-      %mp_ds2fmtds(sashelp.cars,work.cards)
+      %mp_ds2fmtds(sashelp.cars,work.cars)
 
   @param [in] libds The library.dataset to be converted
   @param [out] outds The dataset to create.
+
+  <h4> Related Macros <h4>
+  @li mp_jsonout.sas
 
   @version 9.2
   @author Allan Bowe

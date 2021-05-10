@@ -1748,12 +1748,13 @@ Usage:
       if debug ge '"131"' then put '>>weboutEND<<';
     run;
 
-    %let syscc=0;
     %if %symexist(_metaport) %then %do;
       data _null_;
-        if symexist('sysprocessmode')
-          then if symget("sysprocessmode")="SAS Stored Process Server"
-            then rc=stpsrvset('program error', 0);
+        if symexist('sysprocessmode') then
+          if symget("sysprocessmode")="SAS Stored Process Server" then do;
+            rc=stpsrvset('program error', 0);
+            call symputx("syscc",0,"g");
+          end;
       run;
     %end;
     /**
@@ -10298,7 +10299,7 @@ run;
   #### &prefix.added
   |name:$32.|metaID:$17.|SAStabName:$32.|
   |---|---|---|
-  |||DATA1|
+  | |DATA1|
 
   #### &prefix.deleted
   |name:$32.|metaID:$17.|SAStabName:$32.|
@@ -10309,7 +10310,7 @@ run;
   |tabName:$32.|tabMetaID:$17.|SAStabName:$32.|metaName:$32.|metaID:$17.|sasname:$32.|metaType:$16.|change:$64.|
   |---|---|---|---|---|---|---|---|
   |TABLE2|A5XLSNXI.BK0001HN|TABLE2|c|A5XLSNXI.BM000MA9|c|Column|Deleted|
-  ||||d||d|Column|Added|
+  | | | |d||d|Column|Added|
 
   #### &prefix.meta
   |Label1:$28.|cValue1:$1.|nValue1:D12.3|
@@ -10330,9 +10331,8 @@ run;
   such as dangling metadata, embedded passwords, security issues and more.
 
   @param [in] libname= the metadata name of the library to be compared
-  @param [out] outlib= The output library in which to store the output tables.
-  Default=WORK.
-  @param [out] prefix The prefix for the four tables created. Default=metadiff.
+  @param [out] outlib=(work) The library in which to store the output tables.
+  @param [out] prefix=(metadiff) The prefix for the four tables created.
 
   @version 9.3
   @author Allan Bowe

@@ -21,7 +21,7 @@ options noquotelenmax;
   @brief abort gracefully according to context
   @details Do not use directly!  See bottom of explanation for details.
 
-   Configures an abort mechanism according to site specific policies or the
+  Configures an abort mechanism according to site specific policies or the
     particulars of an environment.  For instance, can stream custom
     results back to the client in an STP Web App context, or completely stop
     in the case of a batch run.
@@ -67,7 +67,10 @@ options noquotelenmax;
         input; putlog _infile_;
         i=1;
         retain logonce 0;
-        if (_infile_=:"%str(WARN)ING" or _infile_=:"%str(ERR)OR") and logonce=0 then do;
+        if (
+            _infile_=:"%str(WARN)ING" or _infile_=:"%str(ERR)OR"
+          ) and logonce=0
+        then do;
           call symputx('logline',_n_);
           logonce+1;
         end;
@@ -130,21 +133,22 @@ options noquotelenmax;
     %let syscc=0;
     %if %symexist(SYS_JES_JOB_URI) %then %do;
       /* refer web service output to file service in one hit */
-      filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name="_webout.json";
+      filename _webout filesrvc parenturi="&SYS_JES_JOB_URI"
+        name="_webout.json";
       %let rc=%sysfunc(fcopy(_web,_webout));
     %end;
     %else %do;
       data _null_;
         if symexist('sysprocessmode')
-         then if symget("sysprocessmode")="SAS Stored Process Server"
-          then rc=stpsrvset('program error', 0);
+          then if symget("sysprocessmode")="SAS Stored Process Server"
+            then rc=stpsrvset('program error', 0);
       run;
     %end;
     /**
-     * endsas is reliable but kills some deployments.
-     * Abort variants are ungraceful (non zero return code)
-     * This approach lets SAS run silently until the end :-)
-     */
+      * endsas is reliable but kills some deployments.
+      * Abort variants are ungraceful (non zero return code)
+      * This approach lets SAS run silently until the end :-)
+      */
     %put _all_;
     filename skip temp;
     data _null_;
@@ -294,9 +298,9 @@ options noquotelenmax;
   @file
   @brief Checks if a set of variables ALL exist in a data set.
   @details Returns 0 if ANY of the variables do not exist, or 1 if they ALL do.
-    Usage:
+  Usage:
 
-        %put %mf_existVarList(sashelp.class, age sex name dummyvar)
+      %put %mf_existVarList(sashelp.class, age sex name dummyvar);
 
   <h4> SAS Macros </h4>
   @li mf_abort.sas
@@ -321,7 +325,7 @@ options noquotelenmax;
   %let dsid=%sysfunc(open(&libds,is));
 
   %if &dsid=0 %then %do;
-    %put WARNING:  unable to open &libds in mf_existvarlist (&dsid);
+    %put %str(WARN)ING:  unable to open &libds in mf_existvarlist (&dsid);
   %end;
 
   %if %sysfunc(attrn(&dsid,NVARS))=0 %then %do;
@@ -367,13 +371,13 @@ options noquotelenmax;
 **/
 
 %macro mf_getattrc(
-     libds
+    libds
     ,attr
 )/*/STORE SOURCE*/;
   %local dsid rc;
   %let dsid=%sysfunc(open(&libds,is));
   %if &dsid = 0 %then %do;
-    %put WARNING: Cannot open %trim(&libds), system message below;
+    %put %str(WARN)ING: Cannot open %trim(&libds), system message below;
     %put %sysfunc(sysmsg());
     -1
   %end;
@@ -391,7 +395,7 @@ options noquotelenmax;
 
   @param libds library.dataset
   @param attr Common values are NLOBS and NVARS, full list in [documentation](
-    http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000212040.htm)
+  http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000212040.htm)
   @return output returns result of the attrn value supplied, or -1 and log
     message if error.
 
@@ -400,7 +404,7 @@ options noquotelenmax;
 **/
 
 %macro mf_getattrn(
-     libds
+    libds
     ,attr
 )/*/STORE SOURCE*/;
   %local dsid rc;
@@ -438,6 +442,9 @@ options noquotelenmax;
   @version 9.2
   @author Allan Bowe
 
+  <h4> Related Macros </h4>
+  @li mf_getxengine.sas
+
 **/
 /** @cond */
 
@@ -448,7 +455,9 @@ options noquotelenmax;
   /* in case the parameter is a libref.tablename, pull off just the libref */
   %let libref = %upcase(%scan(&libref, 1, %str(.)));
 
-  %let dsid=%sysfunc(open(sashelp.vlibnam(where=(libname="%upcase(&libref)")),i));
+  %let dsid=%sysfunc(
+    open(sashelp.vlibnam(where=(libname="%upcase(&libref)")),i)
+  );
   %if (&dsid ^= 0) %then %do;
     %let engnum=%sysfunc(varnum(&dsid,ENGINE));
     %let rc=%sysfunc(fetch(&dsid));
@@ -457,7 +466,7 @@ options noquotelenmax;
     %let rc= %sysfunc(close(&dsid));
   %end;
 
- &engine
+  &engine
 
 %mend;
 
@@ -501,7 +510,7 @@ options noquotelenmax;
   %let rc=%sysfunc(filename(fref));
 
   %if &format=NO %then %do;
-     &bytes
+    &bytes
   %end;
   %else %do;
     %sysfunc(INPUTN(&bytes, best.),sizekmg.)
@@ -525,7 +534,7 @@ options noquotelenmax;
 
 %macro mf_getkeyvalue(key,libds=work.mp_setkeyvalue
 )/*/STORE SOURCE*/;
- %local ds dsid key valc valn type rc;
+%local ds dsid key valc valn type rc;
 %let dsid=%sysfunc(open(&libds(where=(key="&key"))));
 %syscall set(dsid);
 %let rc = %sysfunc(fetch(&dsid));
@@ -563,25 +572,27 @@ options noquotelenmax;
 %local a b c;
 %if &switch.NONE=NONE %then %do;
   %if %symexist(sysprocessmode) %then %do;
-    %if "&sysprocessmode"="SAS Object Server" 
+    %if "&sysprocessmode"="SAS Object Server"
     or "&sysprocessmode"= "SAS Compute Server" %then %do;
         SASVIYA
     %end;
-    %else %if "&sysprocessmode"="SAS Stored Process Server" %then %do;
+    %else %if "&sysprocessmode"="SAS Stored Process Server"
+      or "&sysprocessmode"="SAS Workspace Server"
+    %then %do;
       SASMETA
       %return;
     %end;
     %else %do;
-      SAS
+      BASESAS
       %return;
     %end;
   %end;
-  %else %if %symexist(_metaport) %then %do;
+  %else %if %symexist(_metaport) or %symexist(_metauser) %then %do;
     SASMETA
     %return;
   %end;
   %else %do;
-    SAS
+    BASESAS
     %return;
   %end;
 %end;
@@ -790,12 +801,12 @@ options noquotelenmax;
 
 
 %macro mf_getuniquename(prefix=MC);
-  &prefix.%substr(%sysfunc(compress(%sysfunc(uuidgen()),-)),1,32-%length(&prefix))
-%mend;/**
+&prefix.%substr(%sysfunc(compress(%sysfunc(uuidgen()),-)),1,32-%length(&prefix))
+%mend mf_getuniquename;/**
   @file
   @brief Returns a userid according to session context
   @details In a workspace session, a user is generally represented by <code>
-    &sysuserid</code> or <code>SYS_COMPUTE_SESSION_OWNER</code> if it exists.  
+    &sysuserid</code> or <code>SYS_COMPUTE_SESSION_OWNER</code> if it exists.
     In a Stored Process session, <code>&sysuserid</code>
     resolves to a system account (default=sassrv) and instead there are several
     metadata username variables to choose from (_metauser, _metaperson
@@ -805,7 +816,7 @@ options noquotelenmax;
 
         %let user= %mf_getUser();
         %put &user;
-        
+
   @param type - do not use, may be deprecated in a future release
 
   @return SYSUSERID (if workspace server)
@@ -855,7 +866,7 @@ options noquotelenmax;
 
 %macro mf_getvalue(libds,variable,filter=1
 )/*/STORE SOURCE*/;
- %if %mf_getattrn(&libds,NLOBS)>0 %then %do;
+  %if %mf_getattrn(&libds,NLOBS)>0 %then %do;
     %local dsid rc &variable;
     %let dsid=%sysfunc(open(&libds(where=(&filter))));
     %syscall set(dsid);
@@ -903,9 +914,9 @@ options noquotelenmax;
   Usage:
 
       data test;
-         format str1 $1.  num1 datetime19.;
-         str2='hello mum!'; num2=666;
-         stop;
+        format str1 $1.  num1 datetime19.;
+        str2='hello mum!'; num2=666;
+        stop;
       run;
       %put %mf_getVarFormat(test,str1);
       %put %mf_getVarFormat(work.test,num1);
@@ -921,9 +932,9 @@ options noquotelenmax;
       8.
       NOTE: Variable renegade does not exist in test
 
-  @param libds Two part dataset (or view) reference.
-  @param var Variable name for which a format should be returned
-  @param force Set to 1 to supply a default if the variable has no format
+  @param [in] libds Two part dataset (or view) reference.
+  @param [in] var Variable name for which a format should be returned
+  @param [in] force=(0) Set to 1 to supply a default if the variable has no format
   @returns outputs format
 
   @author Allan Bowe
@@ -943,9 +954,9 @@ options noquotelenmax;
     /* Get variable format */
     %if(&vnum > 0) %then %let vformat=%sysfunc(varfmt(&dsid, &vnum));
     %else %do;
-       %put NOTE: Variable &var does not exist in &libds;
-       %let rc = %sysfunc(close(&dsid));
-       %return;
+      %put NOTE: Variable &var does not exist in &libds;
+      %let rc = %sysfunc(close(&dsid));
+      %return;
     %end;
   %end;
   %else %do;
@@ -958,7 +969,7 @@ options noquotelenmax;
     %let vlen = %sysfunc(varlen(&dsid, &vnum));
     %let vtype = %sysfunc(vartype(&dsid, &vnum.));
     %if &vtype=C %then %let vformat=$&vlen..;
-    %else %let vformat=8.;
+    %else %let vformat=best.;
   %end;
 
 
@@ -966,15 +977,15 @@ options noquotelenmax;
   %let rc = %sysfunc(close(&dsid));
   /* Return variable format */
   &vformat
-%mend;/**
+%mend mf_getVarFormat;/**
   @file
   @brief Returns the length of a variable
   @details Uses varlen function to identify the length of a particular variable.
   Usage:
 
       data test;
-         format str $1.  num datetime19.;
-         stop;
+        format str $1.  num datetime19.;
+        stop;
       run;
       %put %mf_getVarLen(test,str);
       %put %mf_getVarLen(work.test,num);
@@ -1007,8 +1018,8 @@ options noquotelenmax;
     /* Get variable format */
     %if(&vnum > 0) %then %let vlen = %sysfunc(varlen(&dsid, &vnum));
     %else %do;
-       %put NOTE: Variable &var does not exist in &libds;
-       %let vlen = %str( );
+      %put NOTE: Variable &var does not exist in &libds;
+      %let vlen = %str( );
     %end;
   %end;
   %else %put dataset &libds not opened! (rc=&dsid);
@@ -1029,14 +1040,21 @@ options noquotelenmax;
   returns:
   > List of Variables=Name Sex Age Height Weight
 
+  For a seperated list of column values:
+
         %put %mf_getvarlist(sashelp.class,dlm=%str(,),quote=double);
 
   returns:
   > "Name","Sex","Age","Height","Weight"
 
-  @param libds Two part dataset (or view) reference.
-  @param dlm= provide a delimiter (eg comma or space) to separate the vars
-  @param quote= use either DOUBLE or SINGLE to quote the results
+  @param [in] libds Two part dataset (or view) reference.
+  @param [in] dlm= ( ) Provide a delimiter (eg comma or space) to separate the
+    variables
+  @param [in] quote= (none) use either DOUBLE or SINGLE to quote the results
+  @param [in] typefilter= (A) Filter for certain types of column.  Valid values:
+    @li A Return All columns
+    @li C Return Character columns
+    @li N Return Numeric columns
 
   @version 9.2
   @author Allan Bowe
@@ -1046,9 +1064,10 @@ options noquotelenmax;
 %macro mf_getvarlist(libds
       ,dlm=%str( )
       ,quote=no
+      ,typefilter=A
 )/*/STORE SOURCE*/;
   /* declare local vars */
-  %local outvar dsid nvars x rc dlm q var;
+  %local outvar dsid nvars x rc dlm q var vtype;
 
   /* credit Rowland Hale  - byte34 is double quote, 39 is single quote */
   %if %upcase(&quote)=DOUBLE %then %let q=%qsysfunc(byte(34));
@@ -1056,21 +1075,22 @@ options noquotelenmax;
   /* open dataset in macro */
   %let dsid=%sysfunc(open(&libds));
 
-
   %if &dsid %then %do;
     %let nvars=%sysfunc(attrn(&dsid,NVARS));
     %if &nvars>0 %then %do;
-      /* add first dataset variable to global macro variable */
-      %let outvar=&q.%sysfunc(varname(&dsid,1))&q.;
-      /* add remaining variables with supplied delimeter */
+      /* add variables with supplied delimeter */
       %do x=1 %to &nvars;
-        %let var=&q.%sysfunc(varname(&dsid,&x))&q.;
-        %if &var=&q&q %then %do;
-          %put &sysmacroname: Empty column found in &libds!;
-          %let var=&q. &q.;
+        /* get variable type */
+        %let vtype=%sysfunc(vartype(&dsid,&x));
+        %if &vtype=&typefilter or &typefilter=A %then %do;
+          %let var=&q.%sysfunc(varname(&dsid,&x))&q.;
+          %if &var=&q&q %then %do;
+            %put &sysmacroname: Empty column found in &libds!;
+            %let var=&q. &q.;
+          %end;
+          %if %quote(&outvar)=%quote() %then %let outvar=&var;
+          %else %let outvar=&outvar.&dlm.&var.;
         %end;
-        %if &x=1 %then %let outvar=&var;
-        %else %let outvar=&outvar.&dlm.&var.;
       %end;
     %end;
     %let rc=%sysfunc(close(&dsid));
@@ -1080,7 +1100,7 @@ options noquotelenmax;
     %let rc=%sysfunc(close(&dsid));
   %end;
   &outvar
-%mend;/**
+%mend mf_getvarlist;/**
   @file
   @brief Returns the position of a variable in dataset (varnum attribute).
   @details Uses varnum function to determine position.
@@ -1088,8 +1108,8 @@ options noquotelenmax;
 Usage:
 
     data work.test;
-       format str $1.  num datetime19.;
-       stop;
+      format str $1.  num datetime19.;
+      stop;
     run;
     %put %mf_getVarNum(work.test,str);
     %put %mf_getVarNum(work.test,num);
@@ -1121,8 +1141,8 @@ returns:
     /* Get variable number */
     %let vnum = %sysfunc(varnum(&dsid, &var));
     %if(&vnum <= 0) %then %do;
-       %put NOTE: Variable &var does not exist in &libds;
-       %let vnum = %str( );
+      %put NOTE: Variable &var does not exist in &libds;
+      %let vnum = %str( );
     %end;
   %end;
   %else %put dataset &ds not opened! (rc=&dsid);
@@ -1140,8 +1160,8 @@ returns:
 Usage:
 
       data test;
-         length str $1.  num 8.;
-         stop;
+        length str $1.  num 8.;
+        stop;
       run;
       %put %mf_getvartype(test,str);
       %put %mf_getvartype(work.test,num);
@@ -1170,8 +1190,8 @@ Usage:
     /* Get variable type (C/N) */
     %if(&vnum. > 0) %then %let vtype = %sysfunc(vartype(&dsid, &vnum.));
     %else %do;
-       %put NOTE: Variable &var does not exist in &libds;
-       %let vtype = %str( );
+      %put NOTE: Variable &var does not exist in &libds;
+      %let vtype = %str( );
     %end;
   %end;
   %else %put dataset &libds not opened! (rc=&dsid);
@@ -1180,7 +1200,50 @@ Usage:
   %let rc = %sysfunc(close(&dsid));
   /* Return variable type */
   &vtype
-%mend;/**
+%mend mf_getvartype;/**
+  @file
+  @brief Returns the engine type of a SAS fileref
+  @details Queries sashelp.vextfl to get the xengine value.
+  Usage:
+
+      filename feng temp;
+      %put %mf_getxengine(feng);
+
+  returns:
+  > TEMP
+
+  @param fref The fileref to check
+
+  @returns The XENGINE value in sashelp.vextfl or 0 if not found.
+
+  @version 9.2
+  @author Allan Bowe
+
+  <h4> Related Macros </h4>
+  @li mf_getengine.sas
+
+**/
+
+%macro mf_getxengine(fref
+)/*/STORE SOURCE*/;
+  %local dsid engnum rc engine;
+
+  %let dsid=%sysfunc(
+    open(sashelp.vextfl(where=(fileref="%upcase(&fref)")),i)
+  );
+  %if (&dsid ^= 0) %then %do;
+    %let engnum=%sysfunc(varnum(&dsid,XENGINE));
+    %let rc=%sysfunc(fetch(&dsid));
+    %let engine=%sysfunc(getvarc(&dsid,&engnum));
+    %* put &fref. ENGINE is &engine.;
+    %let rc= %sysfunc(close(&dsid));
+  %end;
+  %else %let engine=0;
+
+  &engine
+
+%mend;
+/**
   @file mf_isblank.sas
   @brief Checks whether a macro variable is empty (blank)
   @details Simply performs:
@@ -1188,12 +1251,13 @@ Usage:
       %sysevalf(%superq(param)=,boolean)
 
   Usage:
-     
-     %put mf_isblank(&var);
 
-  inspiration:  https://support.sas.com/resources/papers/proceedings09/022-2009.pdf
+      %put mf_isblank(&var);
 
-  @param param VALUE to be checked 
+  inspiration:
+  https://support.sas.com/resources/papers/proceedings09/022-2009.pdf
+
+  @param param VALUE to be checked
 
   @return output returns 1 (if blank) else 0
 
@@ -1213,7 +1277,8 @@ Usage:
 
       %let isdir=%mf_isdir(/tmp);
 
-  With thanks and full credit to Andrea Defronzo - https://www.linkedin.com/in/andrea-defronzo-b1a47460/
+  With thanks and full credit to Andrea Defronzo -
+  https://www.linkedin.com/in/andrea-defronzo-b1a47460/
 
   @param path full path of the file/directory to be checked
 
@@ -1224,18 +1289,18 @@ Usage:
 
 %macro mf_isdir(path
 )/*/STORE SOURCE*/;
-	%local rc did is_directory fref_t;
+  %local rc did is_directory fref_t;
 
-	%let is_directory = 0;
-	%let rc = %sysfunc(filename(fref_t, %superq(path)));
-	%let did = %sysfunc(dopen(&fref_t.));
-	%if &did. ^= 0 %then %do;
-	   %let is_directory = 1;
-	   %let rc = %sysfunc(dclose(&did.));
-	%end;
-	%let rc = %sysfunc(filename(fref_t));
+  %let is_directory = 0;
+  %let rc = %sysfunc(filename(fref_t, %superq(path)));
+  %let did = %sysfunc(dopen(&fref_t.));
+  %if &did. ^= 0 %then %do;
+    %let is_directory = 1;
+    %let rc = %sysfunc(dclose(&did.));
+  %end;
+  %let rc = %sysfunc(filename(fref_t));
 
-	&is_directory
+  &is_directory
 
 %mend;/**
   @file
@@ -1314,8 +1379,8 @@ Usage:
     */
 
     %if (%length(&dir) gt %length(&child)) %then %do;
-       %let parent = %substr(&dir, 1, %length(&dir)-%length(&child));
-       %mf_mkdir(&parent)
+      %let parent = %substr(&dir, 1, %length(&dir)-%length(&child));
+      %mf_mkdir(&parent)
     %end;
 
     /*
@@ -1324,11 +1389,11 @@ Usage:
 
     %let dname = %sysfunc(dcreate(&child, &parent));
     %if (%bquote(&dname) eq ) %then %do;
-       %put %str(ERR)OR: could not create &parent + &child;
-       %abort cancel;
+      %put %str(ERR)OR: could not create &parent + &child;
+      %abort cancel;
     %end;
     %else %do;
-       %put Directory created:  &dir;
+      %put Directory created:  &dir;
     %end;
   %end;
   /* exit quietly if directory did exist.*/
@@ -1336,8 +1401,9 @@ Usage:
 /**
   @file mf_mval.sas
   @brief Returns a macro variable value if the variable exists
-  @details Use this macro to avoid repetitive use of `%if %symexist(MACVAR) %then`
-  type logic.  
+  @details
+  Use this macro to avoid repetitive use of `%if %symexist(MACVAR) %then`
+  type logic.
   Usage:
 
       %if %mf_mval(maynotexist)=itdid %then %do;
@@ -1379,7 +1445,7 @@ Usage:
 %mend;/**
   @file mf_trimstr.sas
   @brief Removes character(s) from the end, if they exist
-  @details If the designated characters exist at the end of the string, they 
+  @details If the designated characters exist at the end of the string, they
   are removed
 
         %put %mf_trimstr(/blah/,/); * /blah;
@@ -1390,7 +1456,8 @@ Usage:
 
 
   @param basestr The string to be modified
-  @param trimstr The string to be removed from the end of `basestr`, if it exists
+  @param trimstr The string to be removed from the end of `basestr`, if it
+    exists
 
   @return output returns result with the value of `trimstr` removed from the end
 
@@ -1426,12 +1493,12 @@ Usage:
 
 %mend;/**
   @file
-  @brief Creates a Unique ID based on system time in a friendly format
+  @brief Creates a unique ID based on system time in friendly format
   @details format = YYYYMMDD_HHMMSSmmm_<sysjobid>_<3randomDigits>
 
         %put %mf_uid();
 
-  @version 9.2
+  @version 9.3
   @author Allan Bowe
 
 **/
@@ -1440,11 +1507,11 @@ Usage:
 )/*/STORE SOURCE*/;
   %local today now;
   %let today=%sysfunc(today(),yymmddn8.);
-  %let now=%sysfunc(compress(%sysfunc(time(),time12.3),:.));
+  %let now=%sysfunc(compress(%sysfunc(time(),tod12.3),:.));
 
   &today._&now._&sysjobid._%sysevalf(%sysfunc(ranuni(0))*999,CEIL)
 
-%mend;/**
+%mend mf_uid;/**
   @file
   @brief Checks if a set of macro variables exist / contain values.
   @details Writes ERROR to log if abortType is SOFT, else will call %mf_abort.
@@ -1481,7 +1548,7 @@ Usage:
 
 
 %macro mf_verifymacvars(
-     verifyVars  /* list of macro variable NAMES */
+    verifyVars  /* list of macro variable NAMES */
     ,makeUpcase=NO  /* set to YES to make all the variable VALUES uppercase */
     ,mAbort=SOFT
 )/*/STORE SOURCE*/;
@@ -1517,7 +1584,7 @@ Usage:
   Usage:
 
       %let x= %mf_wordsInStr1ButNotStr2(
-         Str1=blah sss blaaah brah bram boo
+        Str1=blah sss blaaah brah bram boo
         ,Str2=   blah blaaah brah ssss
       );
 
@@ -1535,13 +1602,13 @@ Usage:
 **/
 
 %macro mf_wordsInStr1ButNotStr2(
-    Str1= /* string containing words to extract */
-   ,Str2= /* used to compare with the extract string */
+  Str1= /* string containing words to extract */
+  ,Str2= /* used to compare with the extract string */
 )/*/STORE SOURCE*/;
 
 %local count_base count_extr i i2 extr_word base_word match outvar;
 %if %length(&str1)=0 or %length(&str2)=0 %then %do;
-  %put WARNING: empty string provided!;
+  %put %str(WARN)ING: empty string provided!;
   %put base string (str1)= &str1;
   %put compare string (str2) = &str2;
   %return;
@@ -1571,11 +1638,11 @@ Usage:
     results back to the client in an STP Web App context, or completely stop
     in the case of a batch run.
 
-  Using SAS Abort Cancel mechanisms can cause hung sessions in some Stored Process
-  environments.  This macro takes a unique approach - we set the SAS syscc to 0,
-  run `stpsrvset('program error', 0)` (if SAS 9) and then - we open a macro
-  but don't close it!  This provides a graceful abort for SAS web services in all
-  web enabled environments.
+  Using SAS Abort Cancel mechanisms can cause hung sessions in some Stored
+  Process environments.  This macro takes a unique approach - we set the SAS
+  syscc to 0, run `stpsrvset('program error', 0)` (if SAS 9) and then - we open
+  a macro but don't close it!  This provides a graceful abort for SAS web
+  services in all web enabled environments.
 
   @param mac= to contain the name of the calling macro
   @param msg= message to be returned
@@ -1613,7 +1680,10 @@ Usage:
         input; putlog _infile_;
         i=1;
         retain logonce 0;
-        if (_infile_=:"%str(WARN)ING" or _infile_=:"%str(ERR)OR") and logonce=0 then do;
+        if (
+            _infile_=:"%str(WARN)ING" or _infile_=:"%str(ERR)OR"
+          ) and logonce=0 then
+        do;
           call symputx('logline',_n_);
           logonce+1;
         end;
@@ -1694,15 +1764,15 @@ Usage:
     %if %symexist(_metaport) %then %do;
       data _null_;
         if symexist('sysprocessmode')
-         then if symget("sysprocessmode")="SAS Stored Process Server"
-          then rc=stpsrvset('program error', 0);
+          then if symget("sysprocessmode")="SAS Stored Process Server"
+            then rc=stpsrvset('program error', 0);
       run;
     %end;
     /**
-     * endsas is reliable but kills some deployments.
-     * Abort variants are ungraceful (non zero return code)
-     * This approach lets SAS run silently until the end :-)
-     */
+      * endsas is reliable but kills some deployments.
+      * Abort variants are ungraceful (non zero return code)
+      * This approach lets SAS run silently until the end :-)
+      */
     %put _all_;
     filename skip temp;
     data _null_;
@@ -1719,11 +1789,445 @@ Usage:
 
 /** @endcond *//**
   @file
+  @brief Generic assertion
+  @details Useful in the context of writing sasjs tests.  The results of the
+  test are _appended_ to the &outds. table.
+
+  Example usage:
+
+      %mp_assert(iftrue=(1=1),
+        desc=Obviously true
+      )
+
+      %mp_assert(iftrue=(1=0),
+        desc=Will fail
+      )
+
+  @param [in] iftrue= (1=1) A condition where, if true, the test is a PASS.
+  Else, the test is a fail.
+
+  @param [in] desc= (Testing observations) The user provided test description
+  @param [out] outds= (work.test_results) The output dataset to contain the
+  results.  If it does not exist, it will be created, with the following format:
+  |TEST_DESCRIPTION:$256|TEST_RESULT:$4|TEST_COMMENTS:$256|
+  |---|---|---|
+  |User Provided description|PASS|Column &inds contained ALL columns|
+
+  @version 9.2
+  @author Allan Bowe
+
+**/
+
+%macro mp_assert(iftrue=(1=1),
+  desc=0,
+  outds=work.test_results
+)/*/STORE SOURCE*/;
+
+  data ;
+    length test_description $256 test_result $4 test_comments $256;
+    test_description=symget('desc');
+    test_comments="&sysmacroname: Test result of "!!symget('iftrue');
+  %if %eval(%unquote(&iftrue)) %then %do;
+    test_result='PASS';
+  %end;
+  %else %do;
+    test_result='FAIL';
+  %end;
+  run;
+
+  %local ds ;
+  %let ds=&syslast;
+  proc append base=&outds data=&ds;
+  run;
+  proc sql;
+  drop table &ds;
+
+%mend mp_assert;/**
+  @file
+  @brief Asserts the existence (or not) of columns
+  @details Useful in the context of writing sasjs tests.  The results of the
+  test are _appended_ to the &outds. table.
+
+  Example usage:
+
+      %mp_assertcols(sashelp.class,
+        cols=name age sex,
+        test=ALL,
+        desc=check all columns exist
+      )
+
+      %mp_assertcols(sashelp.class,
+        cols=a b c,
+        test=NONE
+      )
+
+      %mp_assertcols(sashelp.class,
+        cols=age depth,
+        test=ANY
+      )
+
+  <h4> SAS Macros </h4>
+  @li mf_existds.sas
+  @li mf_existvarlist.sas
+  @li mf_getvarlist.sas
+  @li mf_wordsinstr1butnotstr2.sas
+  @li mp_abort.sas
+
+
+  @param [in] inds The input library.dataset to test for values
+  @param [in] cols= The list of columns to check for
+  @param [in] desc= (Testing observations) The user provided test description
+  @param [in] test= (ALL) The test to apply.  Valid values are:
+    @li ALL - Test is a PASS if ALL columns exist in &inds
+    @li ANY - Test is a PASS if ANY of the columns exist in &inds
+    @li NONE - Test is a PASS if NONE of the columns exist in &inds
+  @param [out] outds= (work.test_results) The output dataset to contain the
+  results.  If it does not exist, it will be created, with the following format:
+  |TEST_DESCRIPTION:$256|TEST_RESULT:$4|TEST_COMMENTS:$256|
+  |---|---|---|
+  |User Provided description|PASS|Column &inds contained ALL columns|
+
+
+  <h4> Related Macros </h4>
+  @li mp_assertdsobs.sas
+  @li mp_assertcolvals.sas
+  @li mp_assertdsobs.sas
+
+  @version 9.2
+  @author Allan Bowe
+
+**/
+
+%macro mp_assertcols(inds,
+  cols=0,
+  test=ALL,
+  desc=0,
+  outds=work.test_results
+)/*/STORE SOURCE*/;
+
+  %mp_abort(iftrue= (&syscc ne 0)
+    ,mac=&sysmacroname
+    ,msg=%str(syscc=&syscc - on macro entry)
+  )
+
+  %local lib ds ;
+  %let lib=%scan(&inds,1,%str(.));
+  %let ds=%scan(&inds,2,%str(.));
+  %let cols=%upcase(&cols);
+
+  %mp_abort(iftrue= (%mf_existds(&lib..&ds)=0)
+    ,mac=&sysmacroname
+    ,msg=%str(&lib..&ds not found!)
+  )
+
+  %mp_abort(iftrue= (&cols=0)
+    ,mac=&sysmacroname
+    ,msg=%str(No cols provided)
+  )
+
+
+  %let test=%upcase(&test);
+
+  %if &test ne ANY and &test ne ALL and &test ne NONE %then %do;
+    %mp_abort(
+      mac=&sysmacroname,
+      msg=%str(Invalid test - &test)
+    )
+  %end;
+
+  /**
+    * now do the actual test!
+    */
+  %local result;
+  %if %mf_existVarList(&inds,&cols)=1 %then %let result=ALL;
+  %else %do;
+    %local targetcols compare;
+    %let targetcols=%upcase(%mf_getvarlist(&inds));
+    %let compare=%mf_wordsinstr1butnotstr2(
+        Str1=&cols,
+        Str2=&targetcols
+      );
+    %if %cmpres(&compare)=%cmpres(&cols) %then %let result=NONE;
+    %else %let result=SOME;
+  %end;
+
+  data;
+    length test_description $256 test_result $4 test_comments $256;
+    test_description=symget('desc');
+    if test_description='0'
+    then test_description="Testing &inds for existence of &test of: &cols";
+
+    test_result='FAIL';
+    test_comments="&sysmacroname: &inds has &result columns ";
+  %if &test=ALL %then %do;
+    %if &result=ALL %then %do;
+      test_result='PASS';
+    %end;
+  %end;
+  %else %if &test=ANY %then %do;
+    %if &result=SOME %then %do;
+      test_result='PASS';
+    %end;
+  %end;
+  %else %if &test=NONE %then %do;
+    %if &result=NONE %then %do;
+      test_result='PASS';
+    %end;
+  %end;
+  %else %do;
+    test_comments="&sysmacroname: Unsatisfied test condition - &test";
+  %end;
+  run;
+
+  %local ds;
+  %let ds=&syslast;
+  proc append base=&outds data=&ds;
+  run;
+  proc sql;
+  drop table &ds;
+
+%mend;/**
+  @file
+  @brief Asserts the values in a column
+  @details Useful in the context of writing sasjs tests.  The results of the
+  test are _appended_ to the &outds. table.
+
+  Example usage:
+
+      data work.checkds;
+        do checkval='Jane','James','Jill';
+          output;
+        end;
+      run;
+      %mp_assertcolvals(sashelp.class.name,
+        checkvals=work.checkds.checkval,
+        desc=At least one value has a match,
+        test=ANYVAL
+      )
+
+      data work.check;
+        do val='M','F';
+          output;
+        end;
+      run;
+      %mp_assertcolvals(sashelp.class.sex,
+        checkvals=work.check.val,
+        desc=All values have a match,
+        test=ALLVALS
+      )
+
+  <h4> SAS Macros </h4>
+  @li mf_existds.sas
+  @li mf_nobs.sas
+  @li mp_abort.sas
+
+
+  @param [in] indscol The input library.dataset.column to test for values
+  @param [in] checkvals= A library.dataset.column value containing a UNIQUE
+    list of values to be compared against the source (indscol).
+  @param [in] desc= (Testing observations) The user provided test description
+  @param [in] test= (ALLVALS) The test to apply.  Valid values are:
+    @li ALLVALS - Test is a PASS if ALL values have a match in checkvals
+    @li ANYVAL - Test is a PASS if at least 1 value has a match in checkvals
+  @param [out] outds= (work.test_results) The output dataset to contain the
+  results.  If it does not exist, it will be created, with the following format:
+  |TEST_DESCRIPTION:$256|TEST_RESULT:$4|TEST_COMMENTS:$256|
+  |---|---|---|
+  |User Provided description|PASS|Column &indscol contained ALL target vals|
+
+
+  <h4> Related Macros </h4>
+  @li mp_assertdsobs.sas
+
+  @version 9.2
+  @author Allan Bowe
+
+**/
+
+%macro mp_assertcolvals(indscol,
+  checkvals=0,
+  test=ALLVALS,
+  desc=mp_assertcolvals - no desc provided,
+  outds=work.test_results
+)/*/STORE SOURCE*/;
+
+  %mp_abort(iftrue= (&syscc ne 0)
+    ,mac=&sysmacroname
+    ,msg=%str(syscc=&syscc - on macro entry)
+  )
+
+  %local lib ds col clib cds ccol nobs;
+  %let lib=%scan(&indscol,1,%str(.));
+  %let ds=%scan(&indscol,2,%str(.));
+  %let col=%scan(&indscol,3,%str(.));
+  %mp_abort(iftrue= (%mf_existds(&lib..&ds)=0)
+    ,mac=&sysmacroname
+    ,msg=%str(&lib..&ds not found!)
+  )
+
+  %mp_abort(iftrue= (&checkvals=0)
+    ,mac=&sysmacroname
+    ,msg=%str(Set CHECKVALS to a library.dataset.column containing check vals)
+  )
+  %let clib=%scan(&checkvals,1,%str(.));
+  %let cds=%scan(&checkvals,2,%str(.));
+  %let ccol=%scan(&checkvals,3,%str(.));
+  %mp_abort(iftrue= (%mf_existds(&clib..&cds)=0)
+    ,mac=&sysmacroname
+    ,msg=%str(&clib..&cds not found!)
+  )
+  %let nobs=%mf_nobs(&clib..&cds);
+  %mp_abort(iftrue= (&nobs=0)
+    ,mac=&sysmacroname
+    ,msg=%str(&clib..&cds is empty!)
+  )
+
+  %let test=%upcase(&test);
+
+  %if &test ne ALLVALS and &test ne ANYVAL %then %do;
+    %mp_abort(
+      mac=&sysmacroname,
+      msg=%str(Invalid test - &test)
+    )
+  %end;
+
+  %local result orig;
+  %let result=-1;
+  %let orig=-1;
+  proc sql noprint;
+  select count(*) into: result
+    from &lib..&ds
+    where &col not in (
+      select &ccol from &clib..&cds
+    );
+  select count(*) into: orig from &lib..&ds;
+  quit;
+
+  %mp_abort(iftrue= (&syscc ne 0)
+    ,mac=&sysmacroname
+    ,msg=%str(syscc=&syscc after macro query)
+  )
+
+  data;
+    length test_description $256 test_result $4 test_comments $256;
+    test_description=symget('desc');
+    test_result='FAIL';
+    test_comments="&sysmacroname: &lib..&ds..&col has &result values "
+      !!"not in &clib..&cds..&ccol ";
+  %if &test=ANYVAL %then %do;
+    if &result < &orig then test_result='PASS';
+  %end;
+  %else %if &test=ALLVALS %then %do;
+    if &result=0 then test_result='PASS';
+  %end;
+  %else %do;
+    test_comments="&sysmacroname: Unsatisfied test condition - &test";
+  %end;
+  run;
+
+  %local ds;
+  %let ds=&syslast;
+  proc append base=&outds data=&ds;
+  run;
+  proc sql;
+  drop table &ds;
+
+%mend;/**
+  @file
+  @brief Asserts the number of observations in a dataset
+  @details Useful in the context of writing sasjs tests.  The results of the
+  test are _appended_ to the &outds. table.
+
+  Example usage:
+
+      %mp_assertdsobs(sashelp.class) %* tests if any observations are present;
+
+  <h4> SAS Macros </h4>
+  @li mf_nobs.sas
+  @li mp_abort.sas
+
+
+  @param [in] inds input dataset to test for presence of observations
+  @param [in] desc= (Testing observations) The user provided test description
+  @param [in] test= (HASOBS) The test to apply.  Valid values are:
+    @li HASOBS - Test is a PASS if the input dataset has any observations
+    @li EMPTY - Test is a PASS if input dataset is empty
+    @li EQUALS [integer] - Test passes if obs count matches the provided integer
+  @param [out] outds= (work.test_results) The output dataset to contain the
+  results.  If it does not exist, it will be created, with the following format:
+  |TEST_DESCRIPTION:$256|TEST_RESULT:$4|TEST_COMMENTS:$256|
+  |---|---|---|
+  |User Provided description|PASS|Dataset &inds has XX obs|
+
+  <h4> Related Macros </h4>
+  @li mp_assertcolvals.sas
+
+  @version 9.2
+  @author Allan Bowe
+
+**/
+
+%macro mp_assertdsobs(inds,
+  test=HASOBS,
+  desc=Testing observations,
+  outds=work.test_results
+)/*/STORE SOURCE*/;
+
+  %local nobs;
+  %let nobs=%mf_nobs(&inds);
+  %let test=%upcase(&test);
+
+  %if %substr(&test.xxxxx,1,6)=EQUALS %then %do;
+    %let val=%scan(&test,2,%str( ));
+    %mp_abort(iftrue= (%DATATYP(&val)=CHAR)
+      ,mac=&sysmacroname
+      ,msg=%str(Invalid test - &test, expected EQUALS [integer])
+    )
+    %let test=EQUALS;
+  %end;
+  %else %if &test ne HASOBS and &test ne EMPTY %then %do;
+    %mp_abort(
+      mac=&sysmacroname,
+      msg=%str(Invalid test - &test)
+    )
+  %end;
+
+  data;
+    length test_description $256 test_result $4 test_comments $256;
+    test_description=symget('desc');
+    test_result='FAIL';
+    test_comments="&sysmacroname: Dataset &inds has &nobs observations";
+  %if &test=HASOBS %then %do;
+    if &nobs>0 then test_result='PASS';
+  %end;
+  %else %if &test=EMPTY %then %do;
+    if &nobs=0 then test_result='PASS';
+  %end;
+  %else %if &test=EQUALS %then %do;
+    if &nobs=&val then test_result='PASS';
+  %end;
+  %else %do;
+    test_comments="&sysmacroname: Unsatisfied test condition - &test";
+  %end;
+  run;
+
+  %local ds;
+  %let ds=&syslast;
+
+  proc append base=&outds data=&ds;
+  run;
+
+  proc sql;
+  drop table &ds;
+
+%mend;/**
+  @file
   @brief Copy any file using binary input / output streams
   @details Reads in a file byte by byte and writes it back out.  Is an
-    os-independent method to copy files.  In case of naming collision, the
-    default filerefs can be modified.
-    Based on http://stackoverflow.com/questions/13046116/using-sas-to-copy-a-text-file
+  os-independent method to copy files.  In case of naming collision, the
+  default filerefs can be modified.
+  Based on:
+  https://stackoverflow.com/questions/13046116/using-sas-to-copy-a-text-file
 
         %mp_binarycopy(inloc="/home/me/blah.txt", outref=_webout)
 
@@ -1738,12 +2242,12 @@ Usage:
 **/
 
 %macro mp_binarycopy(
-     inloc=           /* full path and filename of the object to be copied */
+    inloc=           /* full path and filename of the object to be copied */
     ,outloc=          /* full path and filename of object to be created */
     ,inref=____in   /* override default to use own filerefs */
     ,outref=____out /* override default to use own filerefs */
 )/*/STORE SOURCE*/;
-   /* these IN and OUT filerefs can point to anything */
+  /* these IN and OUT filerefs can point to anything */
   %if &inref = ____in %then %do;
     filename &inref &inloc lrecl=1048576 ;
   %end;
@@ -1751,20 +2255,20 @@ Usage:
     filename &outref &outloc lrecl=1048576 ;
   %end;
 
-   /* copy the file byte-for-byte  */
-   data _null_;
-     length filein 8 fileid 8;
-     filein = fopen("&inref",'I',1,'B');
-     fileid = fopen("&outref",'O',1,'B');
-     rec = '20'x;
-     do while(fread(filein)=0);
-        rc = fget(filein,rec,1);
-        rc = fput(fileid, rec);
-        rc =fwrite(fileid);
-     end;
-     rc = fclose(filein);
-     rc = fclose(fileid);
-   run;
+  /* copy the file byte-for-byte  */
+  data _null_;
+    length filein 8 fileid 8;
+    filein = fopen("&inref",'I',1,'B');
+    fileid = fopen("&outref",'O',1,'B');
+    rec = '20'x;
+    do while(fread(filein)=0);
+      rc = fget(filein,rec,1);
+      rc = fput(fileid, rec);
+      rc =fwrite(fileid);
+    end;
+    rc = fclose(filein);
+    rc = fclose(fileid);
+  run;
   %if &inref = ____in %then %do;
     filename &inref clear;
   %end;
@@ -1775,10 +2279,10 @@ Usage:
   @file mp_cleancsv.sas
   @brief Fixes embedded cr / lf / crlf in CSV
   @details CSVs will sometimes contain lf or crlf within quotes (eg when
-    saved by excel).  When the termstr is ALSO lf or crlf that can be tricky
-    to process using SAS defaults.
-    This macro converts any csv to follow the convention of a windows excel file,
-    applying CRLF line endings and converting embedded cr and crlf to lf.
+  saved by excel).  When the termstr is ALSO lf or crlf that can be tricky
+  to process using SAS defaults.
+  This macro converts any csv to follow the convention of a windows excel file,
+  applying CRLF line endings and converting embedded cr and crlf to lf.
 
   usage:
 
@@ -1796,7 +2300,7 @@ Usage:
 
 %macro mp_cleancsv(in=NOTPROVIDED,out=NOTPROVIDED,qchar='22'x);
 %if "&in"="NOTPROVIDED" or "&out"="NOTPROVIDED" %then %do;
-  %put %str(ERR)OR: Please provide valid input (&in) and output (&out) locations;
+  %put %str(ERR)OR: Please provide valid input (&in) & output (&out) locations;
   %return;
 %end;
 
@@ -1805,9 +2309,9 @@ Usage:
 %if %index(&out,.) %then %let out="&out";
 
 /**
- * convert all cr and crlf within quotes to lf
- * convert all other cr or lf to crlf
- */
+  * convert all cr and crlf within quotes to lf
+  * convert all other cr or lf to crlf
+  */
   data _null_;
     infile &in recfm=n ;
     file &out recfm=n;
@@ -1856,7 +2360,7 @@ Usage:
           constraint unq unique(tx_from, dd_type),
           constraint nnn not null(DD_SHORTDESC)
         );
-      
+
       %mp_getconstraints(lib=work,ds=example,outds=work.constraints)
       %mp_deleteconstraints(inds=work.constraints,outds=dropped,execute=YES)
       %mp_createconstraints(inds=work.constraints,outds=created,execute=YES)
@@ -1891,7 +2395,7 @@ data &outds;
     else type=constraint_type;
     create_statement=catx(" ","alter table",libref,".",table_name
       ,"add constraint",constraint_name,type,"(");
-    if last.constraint_name then 
+    if last.constraint_name then
       create_statement=cats(create_statement,column_name,");");
     else create_statement=cats(create_statement,column_name,",");
     if "&execute"="YES" then call execute(create_statement);
@@ -1923,7 +2427,7 @@ Usage:
     filename ft15f001 temp;
     parmcards4;
         %* fetch any data from frontend ;
-        %webout(FETCH) 
+        %webout(FETCH)
         data example1 example2;
           set sashelp.class;
         run;
@@ -2054,8 +2558,8 @@ Usage:
 %local hasheader; %let hasheader=0;
 data _null_;
   if _N_ > 1 then do;
-     call symputx('hasheader',1,'l');
-     stop;
+    call symputx('hasheader',1,'l');
+    stop;
   end;
   infile &inref;
   input;
@@ -2123,7 +2627,7 @@ run;
 /* import the CSV */
 data &outds
   %if %upcase(&view)=YES %then %do;
-   /view=&outds
+    /view=&outds
   %end;
   ;
   infile &inref dsd firstobs=2;
@@ -2148,7 +2652,7 @@ run;
           constraint unq unique(tx_from, dd_type),
           constraint nnn not null(DD_SHORTDESC)
         );
-      
+
       %mp_getconstraints(lib=work,ds=example,outds=work.constraints)
       %mp_deleteconstraints(inds=work.constraints,outds=dropped,execute=YES)
 
@@ -2224,13 +2728,13 @@ run;
 
 
   @returns outds contains the following variables:
-   - directory (containing folder)
-   - file_or_folder (file / folder)
-   - filepath (path/to/file.name)
-   - filename (just the file name)
-   - ext (.extension)
-   - msg (system message if any issues)
-   - OS SPECIFIC variables, if <code>getattrs=</code> is used.
+    - directory (containing folder)
+    - file_or_folder (file / folder)
+    - filepath (path/to/file.name)
+    - filename (just the file name)
+    - ext (.extension)
+    - msg (system message if any issues)
+    - OS SPECIFIC variables, if <code>getattrs=</code> is used.
 
   @version 9.2
   @author Allan Bowe
@@ -2243,8 +2747,11 @@ run;
 )/*/STORE SOURCE*/;
 %let getattrs=%upcase(&getattrs)XX;
 
-data &outds (compress=no keep=file_or_folder filepath filename ext msg directory);
-  length directory filepath $500 fref fref2 $8 file_or_folder $6 filename $80 ext $20 msg $200;
+data &outds(compress=no
+    keep=file_or_folder filepath filename ext msg directory
+  );
+  length directory filepath $500 fref fref2 $8 file_or_folder $6 filename $80
+    ext $20 msg $200;
   %if &fref=0 %then %do;
     rc = filename(fref, "&path");
   %end;
@@ -2253,15 +2760,15 @@ data &outds (compress=no keep=file_or_folder filepath filename ext msg directory
     rc=0;
   %end;
   if rc = 0 then do;
-     did = dopen(fref);
-     directory=dinfo(did,'Directory');
-     if did=0 then do;
-        putlog "NOTE: This directory is empty - " directory;
-        msg=sysmsg();
-        put _all_;
-        stop;
-     end;
-     rc = filename(fref);
+    did = dopen(fref);
+    directory=dinfo(did,'Directory');
+    if did=0 then do;
+      putlog "NOTE: This directory is empty - " directory;
+      msg=sysmsg();
+      put _all_;
+      stop;
+    end;
+    rc = filename(fref);
   end;
   else do;
     msg=sysmsg();
@@ -2284,7 +2791,7 @@ data &outds (compress=no keep=file_or_folder filepath filename ext msg directory
 
     if index(fmsg,'File is in use') or index(dmsg,'is not a directory')
       then file_or_folder='file';
-    else if index(fmsg, 'Insufficient authorization') then file_or_folder='file';
+    else if index(fmsg,'Insufficient authorization') then file_or_folder='file';
     else if file_or_folder='' then file_or_folder='locked';
 
     if file_or_folder='file' then do;
@@ -2371,7 +2878,7 @@ run;
 **/
 
 %macro mp_distinctfmtvalues(
-     libds=
+    libds=
     ,var=
     ,outvar=formatted_value
     ,outds=work.mp_distinctfmtvalues
@@ -2386,7 +2893,7 @@ run;
   create table &outds as
     select distinct
     %if &vtype=C & %trim(&fmt)=%str() %then %do;
-       &var
+      &var
     %end;
     %else %if &vtype=C %then %do;
       put(&var,&fmt)
@@ -2397,7 +2904,7 @@ run;
     %else %do;
       put(&var,&fmt)
     %end;
-       as &outvar length=&varlen
+        as &outvar length=&varlen
     from &libds;
 %mend;/**
   @file
@@ -2423,7 +2930,7 @@ run;
 **/
 
 %macro mp_dropmembers(
-     list /* space separated list of datasets / views */
+    list /* space separated list of datasets / views */
     ,libref=WORK  /* can only drop from a single library at a time */
 )/*/STORE SOURCE*/;
 
@@ -2448,20 +2955,22 @@ run;
         , maxobs=5)
 
   TODO:
-     - labelling the dataset
-     - explicity setting a unix LF
-     - constraints / indexes etc
+    - labelling the dataset
+    - explicity setting a unix LF
+    - constraints / indexes etc
 
-  @param [in] base_ds= Should be two level - eg work.blah.  This is the table that
-                   is converted to a cards file.
-  @param [in] tgt_ds= Table that the generated cards file would create. Optional -
-                  if omitted, will be same as BASE_DS.
+  @param [in] base_ds= Should be two level - eg work.blah.  This is the table
+                  that is converted to a cards file.
+  @param [in] tgt_ds= Table that the generated cards file would create.
+    Optional - if omitted, will be same as BASE_DS.
   @param [out] cards_file= Location in which to write the (.sas) cards file
-  @param [in] maxobs= to limit output to the first <code>maxobs</code> observations
-  @param [in] showlog= whether to show generated cards file in the SAS log (YES/NO)
+  @param [in] maxobs= to limit output to the first <code>maxobs</code>
+    observations
+  @param [in] showlog= whether to show generated cards file in the SAS log
+    (YES/NO)
   @param [in] outencoding= provide encoding value for file statement (eg utf-8)
-  @param [in] append= If NO then will rebuild the cards file if it already exists,
-  otherwise will append to it.  Used by the mp_lib2cards.sas macro.
+  @param [in] append= If NO then will rebuild the cards file if it already
+    exists, otherwise will append to it.  Used by the mp_lib2cards.sas macro.
 
 
   @version 9.2
@@ -2479,8 +2988,8 @@ run;
 %local i setds nvars;
 
 %if not %sysfunc(exist(&base_ds)) %then %do;
-   %put WARNING:  &base_ds does not exist;
-   %return;
+  %put %str(WARN)ING:  &base_ds does not exist;
+  %return;
 %end;
 
 %if %index(&base_ds,.)=0 %then %let base_ds=WORK.&base_ds;
@@ -2497,15 +3006,17 @@ select count(*) into: nvars from dictionary.columns
   where libname="%scan(%upcase(&base_ds),1)"
     and memname="%scan(%upcase(&base_ds),2)";
 %if &nvars=0 %then %do;
-  %put WARNING:  Dataset &base_ds has no variables!  It will not be converted.;
+  %put %str(WARN)ING: Dataset &base_ds has no variables, will not be converted.;
   %return;
 %end;
 
 /* get indexes */
-proc sort data=sashelp.vindex
-    (where=(upcase(libname)="%scan(%upcase(&base_ds),1)"
-       and upcase(memname)="%scan(%upcase(&base_ds),2)"))
-	out=_data_;
+proc sort
+  data=sashelp.vindex(
+    where=(upcase(libname)="%scan(%upcase(&base_ds),1)"
+      and upcase(memname)="%scan(%upcase(&base_ds),2)")
+    )
+  out=_data_;
   by indxname indxpos;
 run;
 
@@ -2520,7 +3031,7 @@ data _null_;
     idxcnt+1;
     nom='';
     uni='';
-  	vars=name;
+    vars=name;
   end;
   else vars=catx(' ',vars,name);
   if last.indxname then do;
@@ -2548,8 +3059,8 @@ proc sql
   ;
 reset outobs=max;
 create table datalines1 as
-   select name,type,length,varnum,format,label from dictionary.columns
-   where libname="%upcase(%scan(&base_ds,1))"
+  select name,type,length,varnum,format,label from dictionary.columns
+  where libname="%upcase(%scan(&base_ds,1))"
     and memname="%upcase(%scan(&base_ds,2))";
 
 /**
@@ -2564,7 +3075,7 @@ create table datalines1 as
 
 data datalines_2;
   format dataline $32000.;
- set datalines1 (where=(upcase(name) not in
+  set datalines1 (where=(upcase(name) not in
     ('PROCESSED_DTTM','VALID_FROM_DTTM','VALID_TO_DTTM')));
   if type='num' then dataline=
     cats('ifc(int(',name,')=',name,'
@@ -2578,9 +3089,9 @@ proc sql noprint;
 select dataline into: datalines separated by ',' from datalines_2;
 
 %local
-   process_dttm_flg
-   valid_from_dttm_flg
-   valid_to_dttm_flg
+  process_dttm_flg
+  valid_from_dttm_flg
+  valid_to_dttm_flg
 ;
 %let process_dttm_flg = N;
 %let valid_from_dttm_flg = N;
@@ -2650,7 +3161,7 @@ data _null_;
       put "input ";
       %do i = 1 %to &nvars.;
         %if(%length(&&input_stmt_&i..)) %then
-           put "   &&input_stmt_&i..";
+          put "   &&input_stmt_&i..";
         ;
       %end;
       put ";";
@@ -2706,8 +3217,8 @@ quit;
 )/*/STORE SOURCE*/;
 
 %if not %sysfunc(exist(&ds)) %then %do;
-   %put WARNING:  &ds does not exist;
-   %return;
+  %put %str(WARN)ING:  &ds does not exist;
+  %return;
 %end;
 
 %if %index(&ds,.)=0 %then %let ds=WORK.&ds;
@@ -2723,26 +3234,517 @@ quit;
 
 /* first get headers */
 data _null_;
-   file &outloc dlm=',' dsd &outencoding lrecl=32767;
-   length header $ 2000;
-   dsid=open("&ds.","i");
-   num=attrn(dsid,"nvars");
-   do i=1 to num;
-      header = trim(left(coalescec(varlabel(dsid,i),varname(dsid,i))));
-      put header @;
-   end;
-   rc=close(dsid);
+  file &outloc dlm=',' dsd &outencoding lrecl=32767;
+  length header $ 2000;
+  dsid=open("&ds.","i");
+  num=attrn(dsid,"nvars");
+  do i=1 to num;
+    header = trim(left(coalescec(varlabel(dsid,i),varname(dsid,i))));
+    put header @;
+  end;
+  rc=close(dsid);
 run;
 
 /* next, export data */
 data _null_;
-   set &ds.;
-   file &outloc mod dlm=',' dsd &outencoding lrecl=32767;
-   put (_all_) (+0);
+  set &ds.;
+  file &outloc mod dlm=',' dsd &outencoding lrecl=32767;
+  put (_all_) (+0);
 run;
 
 
 %mend;/**
+  @file
+  @brief Converts every value in a dataset to it's formatted value
+  @details Converts every value to it's formatted value.  All variables will
+  become character, and will be in the same order.
+
+  Usage:
+
+      %mp_ds2fmtds(sashelp.cars,work.cars)
+
+  @param [in] libds The library.dataset to be converted
+  @param [out] outds The dataset to create.
+
+  <h4> Related Macros <h4>
+  @li mp_jsonout.sas
+
+  @version 9.2
+  @author Allan Bowe
+**/
+
+%macro mp_ds2fmtds(libds, outds
+)/*/STORE SOURCE*/;
+
+/* validations */
+%if not %sysfunc(exist(&libds)) %then %do;
+  %put %str(WARN)ING:  &libds does not exist;
+  %return;
+%end;
+%if %index(&libds,.)=0 %then %let libds=WORK.&libds;
+
+/* grab metadata */
+proc contents noprint data=&libds
+  out=_data_(keep=name type length format formatl formatd varnum);
+run;
+proc sort;
+  by varnum;
+run;
+
+/* prepare formats and varnames */
+data _null_;
+  set &syslast end=last;
+  name=upcase(name);
+  /* fix formats */
+  if type=2 or type=6 then do;
+    length fmt $49.;
+    if format='' then fmt=cats('$',length,'.');
+    else if formatl=0 then fmt=cats(format,'.');
+    else fmt=cats(format,formatl,'.');
+    newlen=max(formatl,length);
+  end;
+  else do;
+    if format='' then fmt='best.';
+    else if formatl=0 then fmt=cats(format,'.');
+    else if formatd=0 then fmt=cats(format,formatl,'.');
+    else fmt=cats(format,formatl,'.',formatd);
+    /* needs to be wide, for datetimes etc */
+    newlen=max(length,formatl,24);
+  end;
+  /* 32 char unique name */
+  newname='sasjs'!!substr(cats(put(md5(name),$hex32.)),1,27);
+
+  call symputx(cats('name',_n_),name,'l');
+  call symputx(cats('newname',_n_),newname,'l');
+  call symputx(cats('len',_n_),newlen,'l');
+  call symputx(cats('fmt',_n_),fmt,'l');
+  call symputx(cats('type',_n_),type,'l');
+  if last then call symputx('nobs',_n_,'l');
+run;
+
+/* clean up */
+proc sql;
+drop table &syslast;
+
+%if &nobs=0 %then %do;
+  %put Dataset &libds has no columns!
+  data &outds;
+    set &libds;
+  run;
+  %return;
+%end;
+
+data &outds;
+  /* rename on entry */
+  set &libds(rename=(
+%local i;
+%do i=1 %to &nobs;
+  &&name&i=&&newname&i
+%end;
+  ));
+%do i=1 %to &nobs;
+  length &&name&i $&&len&i;
+  &&name&i=left(put(&&newname&i,&&fmt&i));
+  drop &&newname&i;
+%end;
+  if _error_ then call symputx('syscc',1012);
+run;
+
+%mend mp_ds2fmtds;/**
+  @file
+  @brief Checks an input filter table for validity
+  @details Performs checks on the input table to ensure it arrives in the
+  correct format.  This is necessary to prevent code injection.  Will update
+  SYSCC to 1008 if bad records are found, and call mp_abort.sas for a
+  graceful service exit (configurable).
+
+  Used for dynamic filtering in [Data Controller for SAS&reg;](https://datacontroller.io).
+
+  Usage:
+
+      %mp_filtercheck(work.filter,targetds=sashelp.class,outds=work.badrecords)
+
+  The input table should have the following format:
+
+  |GROUP_LOGIC:$3|SUBGROUP_LOGIC:$3|SUBGROUP_ID:8.|VARIABLE_NM:$32|OPERATOR_NM:$10|RAW_VALUE:$4000|
+  |---|---|---|---|---|---|
+  |AND|AND|1|AGE|=|12|
+  |AND|AND|1|SEX|<=|'M'|
+  |AND|OR|2|Name|NOT IN|('Jane','Alfred')|
+  |AND|OR|2|Weight|>=|7|
+
+  Rules applied:
+
+  @li GROUP_LOGIC - only AND/OR
+  @li SUBGROUP_LOGIC - only AND/OR
+  @li SUBGROUP_ID - only integers
+  @li VARIABLE_NM - must be in the target table
+  @li OPERATOR_NM - only =/>/</<=/>=/BETWEEN/IN/NOT IN/NE/CONTAINS
+  @li RAW_VALUE - no unquoted values except integers, commas and spaces.
+
+  @returns The &outds table containing any bad rows, plus a REASON_CD column.
+
+  @param [in] inds The table to be checked, with the format above
+  @param [in] targetds= The target dataset against which to verify VARIABLE_NM
+  @param [out] abort= (YES) If YES will call mp_abort.sas on any exceptions
+  @param [out] outds= The output table, which is a copy of the &inds. table
+  plus a REASON_CD column, containing only bad records.  If bad records found,
+  the SYSCC value will be set to 1008 (general data problem).  Downstream
+  processes should check this table (and return code) before continuing.
+
+  <h4> SAS Macros </h4>
+  @li mp_abort.sas
+  @li mf_getuniquefileref.sas
+  @li mf_getvarlist.sas
+  @li mf_getvartype.sas
+  @li mf_nobs.sas
+  @li mp_filtergenerate.sas
+  @li mp_filtervalidate.sas
+
+  <h4> Related Macros </h4>
+  @li mp_filtergenerate.sas
+  @li mp_filtervalidate.sas
+
+  @version 9.3
+  @author Allan Bowe
+
+  @todo Support date / hex / name literals and exponents in RAW_VALUE field
+**/
+
+%macro mp_filtercheck(inds,targetds=,outds=work.badrecords,abort=YES);
+
+%mp_abort(iftrue= (&syscc ne 0)
+  ,mac=&sysmacroname
+  ,msg=%str(syscc=&syscc - on macro entry)
+)
+
+/* Validate input column */
+%local vtype;
+%let vtype=%mf_getvartype(&inds,RAW_VALUE);
+%mp_abort(iftrue=(&abort=YES and &vtype ne C),
+  mac=&sysmacroname,
+  msg=%str(%str(ERR)OR: RAW_VALUE must be character)
+)
+%if &vtype ne C %then %do;
+  %put &sysmacroname: RAW_VALUE must be character;
+  %let syscc=42;
+  %return;
+%end;
+
+
+/**
+  * Sanitise the values based on valid value lists, then strip out
+  * quotes, commas, periods and spaces.
+  * Only numeric values should remain
+  */
+%local reason_cd;
+data &outds;
+  /*length GROUP_LOGIC SUBGROUP_LOGIC $3 SUBGROUP_ID 8 VARIABLE_NM $32
+    OPERATOR_NM $10 RAW_VALUE $4000;*/
+  set &inds;
+  length reason_cd $32;
+
+  /* closed list checks */
+  if GROUP_LOGIC not in ('AND','OR') then do;
+    REASON_CD='GROUP_LOGIC should be either AND or OR';
+    putlog REASON_CD= GROUP_LOGIC=;
+    output;
+  end;
+  if SUBGROUP_LOGIC not in ('AND','OR') then do;
+    REASON_CD='SUBGROUP_LOGIC should be either AND or OR';
+    putlog REASON_CD= SUBGROUP_LOGIC=;
+    output;
+  end;
+  if mod(SUBGROUP_ID,1) ne 0 then do;
+    REASON_CD='SUBGROUP_ID should be integer';
+    putlog REASON_CD= SUBGROUP_ID=;
+    output;
+  end;
+  if upcase(VARIABLE_NM) not in
+  (%upcase(%mf_getvarlist(&targetds,dlm=%str(,),quote=SINGLE)))
+  then do;
+    REASON_CD="VARIABLE_NM not in &targetds";
+    putlog REASON_CD= VARIABLE_NM=;
+    output;
+  end;
+  if OPERATOR_NM not in
+  ('=','>','<','<=','>=','BETWEEN','IN','NOT IN','NE','CONTAINS')
+  then do;
+    REASON_CD='Invalid OPERATOR_NM';
+    putlog REASON_CD= OPERATOR_NM=;
+    output;
+  end;
+
+  /* special logic */
+  if OPERATOR_NM='BETWEEN' then raw_value1=tranwrd(raw_value,' AND ','');
+  else if OPERATOR_NM in ('IN','NOT IN') then do;
+    if substr(raw_value,1,1) ne '('
+    or substr(cats(reverse(raw_value)),1,1) ne ')'
+    then do;
+      REASON_CD='Missing brackets in RAW_VALUE';
+      putlog REASON_CD= OPERATOR_NM= raw_value= raw_value1= ;
+      output;
+    end;
+    else raw_value1=substr(raw_value,2,max(length(raw_value)-2,0));
+  end;
+  else raw_value1=raw_value;
+
+  /* remove nested literals eg '' */
+  raw_value1=tranwrd(raw_value1,"''",'');
+
+  /* now match string literals (always single quotes) */
+  raw_value2=raw_value1;
+  regex = prxparse("s/(\').*?(\')//");
+  call prxchange(regex,-1,raw_value2);
+
+  /* remove commas and periods*/
+  raw_value3=compress(raw_value2,',.');
+
+  /* output records that contain values other than digits and spaces */
+  if notdigit(compress(raw_value3,' '))>0 then do;
+    putlog raw_value3= $hex32.;
+    REASON_CD='Invalid RAW_VALUE';
+    putlog REASON_CD= raw_value= raw_value1= raw_value2= raw_value3=;
+    output;
+  end;
+
+run;
+
+data _null_;
+  set &outds;
+  call symputx('REASON_CD',reason_cd,'l');
+  stop;
+run;
+
+%mp_abort(iftrue=(&abort=YES and %mf_nobs(&outds)>0),
+  mac=&sysmacroname,
+  msg=%str(Filter issues in &inds, reason: &reason_cd, details in &outds)
+)
+
+%if %mf_nobs(&outds)>0 %then %do;
+  %let syscc=1008;
+  %return;
+%end;
+
+/**
+  * syntax checking passed but it does not mean the filter is valid
+  * for that we can run a proc sql validate query
+  */
+%local fref1;
+%let fref1=%mf_getuniquefileref();
+%mp_filtergenerate(&inds,outref=&fref1)
+
+/* this macro will also set syscc to 1008 if any issues found */
+%mp_filtervalidate(&fref1,&targetds,outds=&outds,abort=&abort)
+
+%mend mp_filtercheck;
+/**
+  @file
+  @brief Generates a filter clause from an input table, to a fileref
+  @details Uses the input table to generate an output filter clause.
+  This feature is used to create dynamic dropdowns in [Data Controller for SAS&reg](
+  https://datacontroller.io). The input table should be in the format below:
+
+  |GROUP_LOGIC:$3|SUBGROUP_LOGIC:$3|SUBGROUP_ID:8.|VARIABLE_NM:$32|OPERATOR_NM:$10|RAW_VALUE:$4000|
+  |---|---|---|---|---|---|
+  |AND|AND|1|AGE|=|12|
+  |AND|AND|1|SEX|<=|'M'|
+  |AND|OR|2|Name|NOT IN|('Jane','Alfred')|
+  |AND|OR|2|Weight|>=|7|
+
+  Note - if the above table is received from an external client, the values
+  should first be validated using the mp_filtercheck.sas macro to avoid risk
+  of SQL injection.
+
+  To generate the filter, run the following code:
+
+      data work.filtertable;
+        infile datalines4 dsd;
+        input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
+          OPERATOR_NM:$10. RAW_VALUE:$4000.;
+      datalines4;
+      AND,AND,1,AGE,=,12
+      AND,AND,1,SEX,<=,"'M'"
+      AND,OR,2,Name,NOT IN,"('Jane','Alfred')"
+      AND,OR,2,Weight,>=,7
+      ;;;;
+      run;
+
+      %mp_filtergenerate(work.filtertable,outref=myfilter)
+
+      data _null_;
+        infile myfilter;
+        input;
+        put _infile_;
+      run;
+
+  Will write the following query to the log:
+
+  > (
+  >     AGE = 12
+  >   AND
+  >     SEX <= 'M'
+  > ) AND (
+  >     Name NOT IN ('Jane','Alfred')
+  >   OR
+  >     Weight >= 7
+  > )
+
+  @param [in] inds The input table with query values
+  @param [out] outref= The output fileref to contain the filter clause.  Will
+    be created (or replaced).
+
+  <h4> Related Macros </h4>
+  @li mp_filtercheck.sas
+  @li mp_filtervalidate.sas
+
+  <h4> SAS Macros </h4>
+  @li mp_abort.sas
+  @li mf_nobs.sas
+
+  @version 9.3
+  @author Allan Bowe
+
+**/
+
+%macro mp_filtergenerate(inds,outref=filter);
+
+%mp_abort(iftrue= (&syscc ne 0)
+  ,mac=&sysmacroname
+  ,msg=%str(syscc=&syscc - on macro entry)
+)
+
+filename &outref temp;
+
+%if %mf_nobs(&inds)=0 %then %do;
+  /* ensure we have a default filter */
+  data _null_;
+    file &outref;
+    put '1=1';
+  run;
+%end;
+%else %do;
+  data _null_;
+    file &outref lrecl=32800;
+    set &inds end=last;
+    by SUBGROUP_ID;
+    if _n_=1 then put '((';
+    else if first.SUBGROUP_ID then put +1 GROUP_LOGIC '(';
+    else put +2 SUBGROUP_LOGIC;
+
+    put +4 VARIABLE_NM OPERATOR_NM RAW_VALUE;
+
+    if last.SUBGROUP_ID then put ')'@;
+    if last then put ')';
+  run;
+%end;
+
+%mend;
+/**
+  @file
+  @brief Checks a generated filter query for validity
+  @details Runs a generated filter in proc sql with the validate option.
+  Used in mp_filtercheck.sas in an fcmp container.
+
+  Built to support dynamic filtering in
+  [Data Controller for SAS&reg;](https://datacontroller.io).
+
+  Usage:
+
+      data work.filtertable;
+        infile datalines4 dsd;
+        input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
+          OPERATOR_NM:$10. RAW_VALUE:$4000.;
+      datalines4;
+      AND,AND,1,AGE,=,12
+      AND,AND,1,SEX,<=,"'M'"
+      AND,OR,2,Name,NOT IN,"('Jane','Alfred')"
+      AND,OR,2,Weight,>=,7
+      ;;;;
+      run;
+
+      %mp_filtergenerate(work.filtertable,outref=myfilter)
+
+      %mp_filtervalidate(myfilter,sashelp.class)
+
+
+  @returns The SYSCC value will be 1008 if there are validation issues.
+
+  @param [in] inref The input fileref to validate (generated by
+    mp_filtergenerate.sas)
+  @param [in] targetds The target dataset against which to verify the query
+  @param [out] abort= (YES) If YES will call mp_abort.sas on any exceptions
+  @param [out] outds= (work.mp_filtervalidate) Output dataset containing the
+  error / warning message, if one exists.  If this table contains any rows,
+  there are problems!
+
+  <h4> SAS Macros </h4>
+  @li mf_getuniquefileref.sas
+  @li mf_nobs.sas
+  @li mp_abort.sas
+
+  <h4> Related Macros </h4>
+  @li mp_filtercheck.sas
+  @li mp_filtergenerate.sas
+
+  @version 9.3
+  @author Allan Bowe
+
+**/
+
+%macro mp_filtervalidate(inref,targetds,abort=YES,outds=work.mp_filtervalidate);
+
+%mp_abort(iftrue= (&syscc ne 0 or &syserr ne 0)
+  ,mac=&sysmacroname
+  ,msg=%str(syscc=&syscc / syserr=&syserr - on macro entry)
+)
+
+%local fref1;
+%let fref1=%mf_getuniquefileref();
+
+data _null_;
+  file &fref1;
+  infile &inref end=eof;
+  if _n_=1 then do;
+    put "proc sql;";
+    put "validate select * from &targetds";
+    put "where " ;
+  end;
+  input;
+  put _infile_;
+  putlog _infile_;
+  if eof then put ";quit;";
+run;
+
+%inc &fref1;
+
+data &outds;
+  if &sqlrc or &syscc or &syserr then do;
+    REASON_CD=coalescec(symget('SYSERRORTEXT'),symget('SYSWARNINGTEXT'));
+    output;
+  end;
+  else stop;
+run;
+
+filename &fref1 clear;
+
+%if %mf_nobs(&outds)>0 %then %do;
+  %if &abort=YES %then %do;
+    data _null_;
+      set &outds;
+      call symputx('REASON_CD',reason_cd,'l');
+      stop;
+    run;
+    %mp_abort(
+      mac=&sysmacroname,
+      msg=%str(Filter issues in &inref: %quote(&reason_cd))
+    )
+  %end;
+  %let syscc=1008;
+%end;
+
+%mend;
+/**
   @file mp_getconstraints.sas
   @brief Get constraint details at column level
   @details Useful for capturing constraints before they are dropped / reapplied
@@ -2758,7 +3760,7 @@ run;
           constraint unq unique(tx_from, dd_type),
           constraint nnn not null(DD_SHORTDESC)
         );
-      
+
       %mp_getconstraints(lib=work,ds=example,outds=work.constraints)
 
   @param lib= The target library (default=WORK)
@@ -2793,8 +3795,8 @@ create table &outds as
   on a.TABLE_CATALOG=b.TABLE_CATALOG
     and a.TABLE_NAME=b.TABLE_NAME
     and a.constraint_name=b.constraint_name
-  where a.TABLE_CATALOG="&lib"  
-    and b.TABLE_CATALOG="&lib"  
+  where a.TABLE_CATALOG="&lib"
+    and b.TABLE_CATALOG="&lib"
   %if "&ds" ne "" %then %do;
     and a.TABLE_NAME="&ds"
     and b.TABLE_NAME="&ds"
@@ -2936,7 +3938,9 @@ run;
 
     if notnull='yes' then notnul=' not null';
     if notnull='no' and missing(label) then put '  ' name typ;
-    else if notnull='yes' and missing(label) then put '  ' name typ '[' notnul ']';
+    else if notnull='yes' and missing(label) then do;
+      put '  ' name typ '[' notnul ']';
+    end;
     else if notnull='no' then put '  ' name typ '[' lab ']';
     else put '  ' name typ '[' notnul ',' lab ']';
 
@@ -2969,7 +3973,7 @@ run;
       call symputx('constcheck',1);
     end;
 
-    if last then call symputx('constraints_used',cats(upcase(constraints_used)));
+    if last then call symput('constraints_used',cats(upcase(constraints_used)));
 
     length curds const col $39;
     curds="&curds";
@@ -2979,7 +3983,8 @@ run;
 
   proc append base=&pkds data=&syslast;run;
 
-  /* Create Unique Indexes, but only if they were not already defined within the Constraints section. */
+  /* Create Unique Indexes, but only if they were not already defined within
+    the Constraints section. */
   data _data_(keep=curds const col);
     set &idxinfo (where=(
       libname="%scan(&curds,1,.)"
@@ -2990,7 +3995,7 @@ run;
     file &outref mod;
     by idxusage indxname;
     name=upcase(name);
-    if &constcheck=1 then stop; /* in fact we only care about PKs so stop if we have */
+    if &constcheck=1 then stop; /* we only care about PKs so stop if we have */
     if _n_=1 and &constcheck=0 then put / '  indexes {';
 
     length cols $5000;
@@ -3020,8 +4025,8 @@ run;
 %end;
 
 /**
- * now we need to figure out the relationships
- */
+  * now we need to figure out the relationships
+  */
 
 /* sort alphabetically so we can have one set of unique cols per table */
 proc sort data=&pkds nodupkey;
@@ -3029,7 +4034,7 @@ proc sort data=&pkds nodupkey;
 run;
 
 data &pkds.1 (keep=curds col)
-     &pkds.2 (keep=curds cols);
+    &pkds.2 (keep=curds cols);
   set &pkds;
   by curds const;
   length retconst $39 cols $5000;
@@ -3064,7 +4069,11 @@ run;
       line='Ref: "'!!"&curds"
         !!cats('".(',"%mf_getquotedstr(&pkcols,dlm=%str(,),quote=%str( ))",')')
         !!' - '
-        !!cats(quote(trim(curds)),'.(',"%mf_getquotedstr(&pkcols,dlm=%str(,),quote=%str( ))",')');
+        !!cats(quote(trim(curds))
+            ,'.('
+            ,"%mf_getquotedstr(&pkcols,dlm=%str(,),quote=%str( ))"
+            ,')'
+          );
       put line;
     run;
 
@@ -3085,7 +4094,9 @@ run;
     create table &pkds.5b as
       select curds,count(*) as cnt
       from &pkds.5a
-      where curds not in (select curds from &pkds.2 where cols="&pkcols") /* not a one to one match */
+      where curds not in (
+          select curds from &pkds.2 where cols="&pkcols"
+        ) /* not a one to one match */
         and curds ne "&curds" /* exclude self */
       group by 1;
     create table &pkds.6 as
@@ -3155,7 +4166,7 @@ run;
   @param schema= Choose a preferred schema name (default is to use actual schema
     ,else libref)
   @param applydttm= for non SAS DDL, choose if columns are created with native
-   datetime2 format or regular decimal type
+    datetime2 format or regular decimal type
   @version 9.3
   @author Allan Bowe
 **/
@@ -3214,7 +4225,9 @@ create table _data_ as
   %global constraints_used;
   data _null_;
     length ctype $11 constraint_name_orig $256 constraints_used $5000;
-    set &colconst (where=(table_name="&curds" and constraint_type in ('PRIMARY','UNIQUE'))) end=last;
+    set &colconst(
+        where=(table_name="&curds" and constraint_type in ('PRIMARY','UNIQUE'))
+      ) end=last;
     file &fref mod;
     by constraint_type constraint_name;
     retain constraints_used;
@@ -3289,10 +4302,19 @@ run;
       put ');';
     run;
 
-    /* Create Unique Indexes, but only if they were not already defined within the Constraints section. */
+    /* Create Unique Indexes, but only if they were not already defined within
+      the Constraints section. */
     data _null_;
       *length ds $128;
-      set &idxinfo (where=(memname="&curds" and unique='yes' and indxname not in (%sysfunc(tranwrd("&constraints_used",%str( ),%str(","))))));
+      set &idxinfo(
+        where=(
+          memname="&curds"
+          and unique='yes'
+          and indxname not in (
+              %sysfunc(tranwrd("&constraints_used",%str( ),%str(",")))
+              )
+          )
+        );
       file &fref mod;
       by idxusage indxname;
 /*       ds=cats(libname,'.',memname); */
@@ -3356,10 +4378,19 @@ run;
     /* Extra step for data constraints */
     %addConst()
 
-    /* Create Unique Indexes, but only if they were not already defined within the Constraints section. */
+    /* Create Unique Indexes, but only if they were not already defined within
+      the Constraints section. */
     data _null_;
       *length ds $128;
-      set &idxinfo (where=(memname="&curds" and unique='yes' and indxname not in (%sysfunc(tranwrd("&constraints_used",%str( ),%str(","))))));
+      set &idxinfo(
+        where=(
+          memname="&curds"
+          and unique='yes'
+          and indxname not in (
+            %sysfunc(tranwrd("&constraints_used",%str( ),%str(",")))
+          )
+        )
+      );
       file &fref mod;
       by idxusage indxname;
       *ds=cats(libname,'.',memname);
@@ -3448,15 +4479,24 @@ run;
       put ');';
     run;
 
-    /* Create Unique Indexes, but only if they were not already defined within the Constraints section. */
+    /* Create Unique Indexes, but only if they were not already defined within
+      the Constraints section. */
     data _null_;
       *length ds $128;
-      set &idxinfo (where=(memname="&curds" and unique='yes' and indxname not in (%sysfunc(tranwrd("&constraints_used",%str( ),%str(","))))));
+      set &idxinfo(
+        where=(
+          memname="&curds"
+          and unique='yes'
+          and indxname not in (
+            %sysfunc(tranwrd("&constraints_used",%str( ),%str(",")))
+          )
+        )
+      );
       file &fref mod;
       by idxusage indxname;
 /*       ds=cats(libname,'.',memname); */
       if first.indxname then do;
-          put 'CREATE UNIQUE INDEX "' indxname +(-1) '" ' "ON &schema..&curds (" ;
+          put 'CREATE UNIQUE INDEX "' indxname +(-1) '" ' "ON &schema..&curds(";
           put '  "' name +(-1) '"' ;
       end;
       else put '  ,"' name +(-1) '"';
@@ -3480,17 +4520,18 @@ run;
 %mend;/**
   @file mp_getmaxvarlengths.sas
   @brief Scans a dataset to find the max length of the variable values
-  @details  
+  @details
   This macro will scan a base dataset and produce an output dataset with two
   columns:
 
   - NAME    Name of the base dataset column
   - MAXLEN Maximum length of the data contained therein.
 
-  Character fields may be allocated very large widths (eg 32000) of which the maximum
-    value is likely to be much narrower.  This macro was designed to enable a HTML
-    table to be appropriately sized however this could be used as part of a data
-    audit to ensure we aren't over-sizing our tables in relation to the data therein.
+  Character fields may be allocated very large widths (eg 32000) of which the
+  maximum  value is likely to be much narrower.  This macro was designed to
+  enable a HTML table to be appropriately sized however this could be used as
+  part of a data audit to ensure we aren't over-sizing our tables in relation to
+  the data therein.
 
   Numeric fields are converted using the relevant format to determine the width.
   Usage:
@@ -3512,7 +4553,7 @@ run;
 
 %macro mp_getmaxvarlengths(
     libds      /* libref.dataset to analyse */
-   ,outds=work.mp_getmaxvarlengths /* name of output dataset to create */
+    ,outds=work.mp_getmaxvarlengths /* name of output dataset to create */
 )/*/STORE SOURCE*/;
 
 %local vars x var fmt;
@@ -3852,13 +4893,90 @@ create table &outds (rename=(
   %end;
 
 %mend;/**
+  @file
+  @brief Returns a unique hash for a dataset
+  @details Ignores metadata attributes, used only to hash values. Compared
+  datasets must be in the same order.
+
+      %mp_hashdataset(sashelp.class,outds=myhash)
+
+      data _null_;
+        set work.myhash;
+        put hashkey=;
+      run;
+
+  ![sas md5 hash dataset log results](https://i.imgur.com/MqF98vk.png)
+
+  <h4> SAS Macros </h4>
+  @li mf_getattrn.sas
+  @li mf_getuniquename.sas
+  @li mf_getvarlist.sas
+  @li mf_getvartype.sas
+
+  @param [in] libds dataset to hash
+  @param [out] outds= (work.mf_hashdataset) The output dataset to create. This
+  will contain one column (hashkey) with one observation (a hex32.
+  representation of the input hash)
+  |hashkey:$32.|
+  |---|
+  |28ABC74ABFC45F50794237BA5566E6CA|
+
+  @version 9.2
+  @author Allan Bowe
+**/
+
+%macro mp_hashdataset(
+  libds,
+  outds=
+)/*/STORE SOURCE*/;
+  %if %mf_getattrn(&libds,NLOBS)=0 %then %do;
+    %put %str(WARN)ING: Dataset &libds is empty;, or is not a dataset;
+  %end;
+  %else %if %mf_getattrn(&libds,NLOBS)<0 %then %do;
+    %put %str(ERR)OR: Dataset &libds is not a dataset;
+  %end;
+  %else %do;
+    %local keyvar /* roll up the md5 */
+      prevkeyvar /* retain prev record md5 */
+      lastvar /* last var in input ds */
+      varlist var i;
+    /* avoid naming conflict for hash key vars */
+    %let keyvar=%mf_getuniquename();
+    %let prevkeyvar=%mf_getuniquename();
+    %let lastvar=%mf_getuniquename();
+    %let varlist=%mf_getvarlist(&libds);
+    data &outds(rename=(&keyvar=hashkey) keep=&keyvar);
+      length &prevkeyvar &keyvar $32;
+      retain &prevkeyvar;
+      set &libds end=&lastvar;
+      /* hash should include previous row */
+      &keyvar=put(md5(&prevkeyvar
+      /* loop every column, hashing every individual value */
+    %do i=1 %to %sysfunc(countw(&varlist));
+      %let var=%scan(&varlist,&i,%str( ));
+      %if %mf_getvartype(&libds,&var)=C %then %do;
+          !!put(md5(trim(&var)),$hex32.)
+      %end;
+      %else %do;
+          !!put(md5(trim(put(&var*1,binary64.))),$hex32.)
+      %end;
+    %end;
+      ),$hex32.);
+      &prevkeyvar=&keyvar;
+      if &lastvar then output;
+    run;
+  %end;
+%mend;/**
   @file mp_jsonout.sas
   @brief Writes JSON in SASjs format to a fileref
   @details PROC JSON is faster but will produce errs like the ones below if
   special chars are encountered.
 
-     >An object or array close is not valid at this point in the JSON text.
-     >Date value out of range
+  > ERROR: Some code points did not transcode.
+
+  > An object or array close is not valid at this point in the JSON text.
+
+  > Date value out of range
 
   If this happens, try running with ENGINE=DATASTEP.
 
@@ -3866,8 +4984,10 @@ create table &outds (rename=(
 
         filename tmp temp;
         data class; set sashelp.class;run;
-        
+
+        %mp_jsonout(OPEN,jref=tmp)
         %mp_jsonout(OBJ,class,jref=tmp)
+        %mp_jsonout(CLOSE,jref=tmp)
 
         data _null_;
         infile tmp;
@@ -3875,27 +4995,29 @@ create table &outds (rename=(
         run;
 
   If you are building web apps with SAS then you are strongly encouraged to use
-  the mX_createwebservice macros in combination with the 
+  the mX_createwebservice macros in combination with the
   [sasjs adapter](https://github.com/sasjs/adapter).
   For more information see https://sasjs.io
 
   @param action Valid values:
-    * OPEN - opens the JSON
-    * OBJ - sends a table with each row as an object
-    * ARR - sends a table with each row in an array
-    * CLOSE - closes the JSON
+    @li OPEN - opens the JSON
+    @li OBJ - sends a table with each row as an object
+    @li ARR - sends a table with each row in an array
+    @li CLOSE - closes the JSON
 
   @param ds the dataset to send.  Must be a work table.
   @param jref= the fileref to which to send the JSON
   @param dslabel= the name to give the table in the exported JSON
   @param fmt= Whether to keep or strip formats from the table
-  @param engine= Which engine to use to send the JSON, options are:
-  * PROCJSON (default)
-  * DATASTEP 
+  @param engine= Which engine to use to send the JSON, valid options are:
+    @li PROCJSON (default)
+    @li DATASTEP (more reliable when data has non standard characters)
 
   @param dbg= DEPRECATED - was used to conditionally add PRETTY to
     proc json but this can cause line truncation in large files.
-    
+
+  <h4> Related Macros <h4>
+  @li mp_ds2fmtds.sas
 
   @version 9.2
   @author Allan Bowe
@@ -3903,10 +5025,11 @@ create table &outds (rename=(
 
 **/
 
-%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=PROCJSON,dbg=0
+%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=DATASTEP,dbg=0
 )/*/STORE SOURCE*/;
 %put output location=&jref;
 %if &action=OPEN %then %do;
+  OPTIONS NOBOMFILE;
   data _null_;file &jref encoding='utf-8';
     put '{"START_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '"';
   run;
@@ -3919,7 +5042,7 @@ create table &outds (rename=(
   %if &engine=PROCJSON %then %do;
     data;run;%let tempds=&syslast;
     proc sql;drop table &tempds;
-    data &tempds /view=&tempds;set &ds; 
+    data &tempds /view=&tempds;set &ds;
     %if &fmt=N %then format _numeric_ best32.;;
     proc json out=&jref pretty
         %if &action=ARR %then nokeys ;
@@ -3934,13 +5057,72 @@ create table &outds (rename=(
       %put &sysmacroname:  &ds NOT FOUND!!!;
       %return;
     %end;
-    data _null_;file &jref mod ; 
+    %if &fmt=Y %then %do;
+      %put converting every variable to a formatted variable;
+      /* see mp_ds2fmtds.sas for source */
+      proc contents noprint data=&ds
+        out=_data_(keep=name type length format formatl formatd varnum);
+      run;
+      proc sort;
+        by varnum;
+      run;
+      %local fmtds;
+      %let fmtds=%scan(&syslast,2,.);
+      /* prepare formats and varnames */
+      data _null_;
+        set &fmtds end=last;
+        name=upcase(name);
+        /* fix formats */
+        if type=2 or type=6 then do;
+          length fmt $49.;
+          if format='' then fmt=cats('$',length,'.');
+          else if formatl=0 then fmt=cats(format,'.');
+          else fmt=cats(format,formatl,'.');
+          newlen=max(formatl,length);
+        end;
+        else do;
+          if format='' then fmt='best.';
+          else if formatl=0 then fmt=cats(format,'.');
+          else if formatd=0 then fmt=cats(format,formatl,'.');
+          else fmt=cats(format,formatl,'.',formatd);
+          /* needs to be wide, for datetimes etc */
+          newlen=max(length,formatl,24);
+        end;
+        /* 32 char unique name */
+        newname='sasjs'!!substr(cats(put(md5(name),$hex32.)),1,27);
+
+        call symputx(cats('name',_n_),name,'l');
+        call symputx(cats('newname',_n_),newname,'l');
+        call symputx(cats('len',_n_),newlen,'l');
+        call symputx(cats('fmt',_n_),fmt,'l');
+        call symputx(cats('type',_n_),type,'l');
+        if last then call symputx('nobs',_n_,'l');
+      run;
+      data &fmtds;
+        /* rename on entry */
+        set &ds(rename=(
+      %local i;
+      %do i=1 %to &nobs;
+        &&name&i=&&newname&i
+      %end;
+        ));
+      %do i=1 %to &nobs;
+        length &&name&i $&&len&i;
+        &&name&i=left(put(&&newname&i,&&fmt&i));
+        drop &&newname&i;
+      %end;
+        if _error_ then call symputx('syscc',1012);
+      run;
+      %let ds=&fmtds;
+    %end; /* &fmt=Y */
+    data _null_;file &jref mod ;
       put "["; call symputx('cols',0,'l');
-    proc sort data=sashelp.vcolumn(where=(libname='WORK' & memname="%upcase(&ds)"))
+    proc sort
+      data=sashelp.vcolumn(where=(libname='WORK' & memname="%upcase(&ds)"))
       out=_data_;
       by varnum;
 
-    data _null_; 
+    data _null_;
       set _last_ end=last;
       call symputx(cats('name',_n_),name,'l');
       call symputx(cats('type',_n_),type,'l');
@@ -3974,8 +5156,9 @@ create table &outds (rename=(
         )))))!!'"';
       %end;
     %end;
-    run; 
-    /* write to temp loc to avoid _webout truncation - https://support.sas.com/kb/49/325.html */
+    run;
+    /* write to temp loc to avoid _webout truncation
+      - https://support.sas.com/kb/49/325.html */
     filename _sjs temp lrecl=131068 encoding='utf-8';
     data _null_; file _sjs lrecl=131068 encoding='utf-8' mod;
       set &tempds;
@@ -3984,7 +5167,7 @@ create table &outds (rename=(
       %do i=1 %to &cols;
         %if &i>1 %then  "," ;
         %if &action=OBJ %then """&&name&i"":" ;
-        &&name&i 
+        &&name&i
       %end;
       %if &action=ARR %then "]" ; %else "}" ; ;
     proc sql;
@@ -4011,11 +5194,12 @@ create table &outds (rename=(
 %end;
 
 %else %if &action=CLOSE %then %do;
-  data _null_;file &jref encoding='utf-8';
+  data _null_;file &jref encoding='utf-8' mod;
     put "}";
   run;
 %end;
-%mend;/**
+%mend mp_jsonout;
+/**
   @file
   @brief Convert all library members to CARDS files
   @details Gets list of members then calls the <code>%mp_ds2cards()</code> macro.
@@ -4094,6 +5278,103 @@ select distinct lowcase(memname)
 
 %mend;/**
   @file
+  @brief Create a Markdown Table from a dataset
+  @details A markdown table is a simple table representation for use in
+  documents written in markdown format.
+
+  An online generator is available here:
+  https://www.tablesgenerator.com/markdown_tables
+
+  This structure is also used by the Macro Core library for documenting input/
+  output datasets, as well as the sasjs/cli tool for documenting inputs/outputs
+  for web services.
+
+  We take the standard definition one step further by embedding the informat
+  in the table header row, like so:
+
+      |var1:$|var2:best.|var3:date9.|
+      |---|---|---|
+      |some text|42|01JAN1960|
+      |blah|1|31DEC1999|
+
+  Which resolves to:
+
+  |var1:$|var2:best.|var3:date9.|
+  |---|---|---|
+  |some text|42|01JAN1960|
+  |blah|1|31DEC1999|
+
+
+  Usage:
+
+      %mp_mdtablewrite(libds=sashelp.class,showlog=YES)
+
+
+  <h4> SAS Macros </h4>
+  @li mf_getvarlist.sas
+  @li mf_getvarformat.sas
+
+  @param [in] libds= the library / dataset to create or read from.
+  @param [out] fref= Fileref to contain the markdown. Default=mdtable.
+  @param [out] showlog= set to YES to show the markdown in the log. Default=NO.
+
+  @version 9.3
+  @author Allan Bowe
+**/
+
+%macro mp_mdtablewrite(
+  libds=,
+  fref=mdtable,
+  showlog=NO
+)/*/STORE SOURCE*/;
+
+/* check fileref is assigned */
+%if %sysfunc(fileref(&fref)) > 0 %then %do;
+  filename &fref temp;
+%end;
+
+%local vars;
+%let vars=%mf_getvarlist(&libds);
+
+/* create the header row */
+data _null_;
+  file &fref;
+  length line $32767;
+  put '|'
+%local i var fmt;
+%do i=1 %to %sysfunc(countw(&vars));
+  %let var=%scan(&vars,&i);
+  %let fmt=%mf_getvarformat(&libds,&var,force=1);
+  "&var:&fmt|"
+%end;
+  ;
+  put '|'
+%do i=1 %to %sysfunc(countw(&vars));
+  "---|"
+%end;
+  ;
+run;
+
+/* write out the data */
+data _null_;
+  file &fref mod dlm='|' lrecl=32767;
+  set &libds ;
+  length line $32767;
+  line=cats('|',%mf_getvarlist(&libds,dlm=%str(,'|',)),'|');
+  put line;
+run;
+
+%if %upcase(&showlog)=YES %then %do;
+  options ps=max;
+  data _null_;
+    infile &fref;
+    input;
+    putlog _infile_;
+  run;
+%end;
+
+%mend mp_mdtablewrite;/**
+  @file
   @brief Logs the time the macro was executed in a control dataset.
   @details If the dataset does not exist, it is created.  Usage:
 
@@ -4151,13 +5432,13 @@ select distinct lowcase(memname)
         %mp_prevobs(INIT,history=2)
         if _n_ =10 then do;
           %* fetch previous but 1 record;
-          %mp_prevobs(FETCH,-2) 
-          put _n_= name= age= calc_var=; 
+          %mp_prevobs(FETCH,-2)
+          put _n_= name= age= calc_var=;
           %* fetch previous record;
-          %mp_prevobs(FETCH,-1) 
-          put _n_= name= age= calc_var=; 
+          %mp_prevobs(FETCH,-1)
+          put _n_= name= age= calc_var=;
           %* reinstate current record ;
-          %mp_prevobs(FETCH,0) 
+          %mp_prevobs(FETCH,0)
           put _n_= name= age= calc_var=;
         end;
       run;
@@ -4170,11 +5451,11 @@ select distinct lowcase(memname)
   https://www.lexjansen.com/pharmasug/2008/cc/CC08.pdf
 
   @param action Either FETCH a current or previous record, or INITialise.
-  @param record The relative (to current) position of the previous observation 
-   to return.  
+  @param record The relative (to current) position of the previous observation
+    to return.
   @param history= The number of records to retain in the hash table. Default=5
   @param prefix= the prefix to give to the variables used to store the hash name
-   and index. Default=mp_prevobs
+    and index. Default=mp_prevobs
 
   @version 9.2
   @author Allan Bowe
@@ -4188,33 +5469,33 @@ select distinct lowcase(memname)
 %let record=%eval((&record+0) * -1);
 
 %if &action=INIT %then %do;
-    
-  if _n_ eq 1 then do; 
-    attrib &prefix._VAR length=$64; 
+
+  if _n_ eq 1 then do;
+    attrib &prefix._VAR length=$64;
     dcl hash &prefix._HASH(ordered:'Y');
     &prefix._KEY=0;
-    &prefix._HASH.defineKey("&prefix._KEY"); 
-    do while(1); 
-      call vnext(&prefix._VAR); 
+    &prefix._HASH.defineKey("&prefix._KEY");
+    do while(1);
+      call vnext(&prefix._VAR);
       if &prefix._VAR='' then leave;
-      if &prefix._VAR eq "&prefix._VAR" then continue; 
-      else if &prefix._VAR eq "&prefix._KEY" then continue; 
+      if &prefix._VAR eq "&prefix._VAR" then continue;
+      else if &prefix._VAR eq "&prefix._KEY" then continue;
       &prefix._HASH.defineData(&prefix._VAR);
-    end; 
-    &prefix._HASH.defineDone(); 
+    end;
+    &prefix._HASH.defineDone();
   end;
   /* this part has to happen before FETCHing */
   &prefix._KEY+1;
   &prefix._rc=&prefix._HASH.add();
   if &prefix._rc then putlog 'adding' &prefix._rc=;
   %if &history>0 %then %do;
-    if &prefix._key>&history+1 then 
+    if &prefix._key>&history+1 then
       &prefix._HASH.remove(key: &prefix._KEY - &history - 1);
     if &prefix._rc then putlog 'removing' &prefix._rc=;
   %end;
 %end;
 %else %if &action=FETCH %then %do;
-  if &record > &prefix._key then putlog "Not enough records in &Prefix._hash yet";
+  if &record>&prefix._key then putlog "Not enough records in &Prefix._hash yet";
   else &prefix._rc=&prefix._HASH.find(key: &prefix._KEY - &record);
   if &prefix._rc then putlog &prefix._rc= " when fetching " &prefix._KEY=
     "with record &record and " _n_=;
@@ -4254,9 +5535,9 @@ select distinct lowcase(memname)
 
 
   @returns outds contains the following variables:
-   - level (0 = top level)
-   - &parentvar
-   - &childvar (null if none found)
+    - level (0 = top level)
+    - &parentvar
+    - &childvar (null if none found)
 
   @version 9.2
   @author Allan Bowe
@@ -4313,7 +5594,8 @@ insert into &outds select distinct * from &append_ds;
 /**
   @file
   @brief Reset an option to original value
-  @details Inspired by the SAS Jedi - https://blogs.sas.com/content/sastraining/2012/08/14/jedi-sas-tricks-reset-sas-system-options/
+  @details Inspired by the SAS Jedi -
+https://blogs.sas.com/content/sastraining/2012/08/14/jedi-sas-tricks-reset-sas-system-options
     Called as follows:
 
     options obs=30;
@@ -4351,14 +5633,14 @@ run;
 
     rootlib
     |-- LIBREF1
-    |  |__ mytable.ddl
-    |  |__ someothertable.ddl
+    |   |__ mytable.ddl
+    |   |__ someothertable.ddl
     |-- LIBREF2
-    |  |__ table1.ddl
-    |  |__ table2.ddl
+    |   |__ table1.ddl
+    |   |__ table2.ddl
     |-- LIBREF3
-       |__ table3.ddl
-       |__ table4.ddl
+        |__ table3.ddl
+        |__ table4.ddl
 
   Only files with the .ddl suffix are executed.  The parent folder name is used
   as the libref.
@@ -4423,7 +5705,7 @@ create table _data_ as
   where upcase(libname) in ("IMPOSSIBLE",
   %local x;
   %do x=1 %to %sysfunc(countw(&libs));
-   "%upcase(%scan(&libs,&x))"
+    "%upcase(%scan(&libs,&x))"
   %end;
   )
 %end;
@@ -4465,7 +5747,7 @@ proc sort; by descending sumcols memname libname; run;
   @brief Searches all data in a library
   @details
   Scans an entire library and creates a copy of any table
-    containing a specific string OR numeric value.  Only 
+    containing a specific string OR numeric value.  Only
     matching records are written out.
     If both a string and numval are provided, the string
     will take precedence.
@@ -4482,9 +5764,10 @@ proc sort; by descending sumcols memname libname; run;
   @param ds= the dataset to search (leave blank to search entire library)
   @param string= the string value to search
   @param numval= the numeric value to search (must be exact)
-  @param outloc= the directory in which to create the output datasets with matching
-    rows.  Will default to a subfolder in the WORK library.
-  @param outobs= set to a positive integer to restrict the number of observations
+  @param outloc= the directory in which to create the output datasets with
+    matching rows.  Will default to a subfolder in the WORK library.
+  @param outobs= set to a positive integer to restrict the number of
+    observations
   @param filter_text= add a (valid) filter clause to further filter the results
 
   <h4> SAS Macros </h4>
@@ -4498,7 +5781,7 @@ proc sort; by descending sumcols memname libname; run;
 **/
 
 %macro mp_searchdata(lib=sashelp
-  ,ds= 
+  ,ds=
   ,string= /* the query will use a contains (?) operator */
   ,numval= /* numeric must match exactly */
   ,outloc=%sysfunc(pathname(work))/mpsearch
@@ -4506,7 +5789,8 @@ proc sort; by descending sumcols memname libname; run;
   ,filter_text=%str(1=1)
 )/*/STORE SOURCE*/;
 
-%local table_list table table_num table colnum col start_tm check_tm vars type coltype;
+%local table_list table table_num table colnum col start_tm check_tm vars type
+  coltype;
 %put process began at %sysfunc(datetime(),datetime19.);
 
 %if &syscc ge 4 %then %do;
@@ -4523,14 +5807,14 @@ libname mpsearch "&outloc";
 /* get the list of tables in the library */
 proc sql noprint;
 select distinct memname into: table_list separated by ' '
-  from dictionary.tables 
+  from dictionary.tables
   where upcase(libname)="%upcase(&lib)"
 %if &ds ne %then %do;
   and upcase(memname)=%upcase("&ds")
 %end;
   ;
 /* check that we have something to check */
-proc sql 
+proc sql
 %if &outobs>-1 %then %do;
   outobs=&outobs
 %end;
@@ -4547,7 +5831,7 @@ proc sql
     %let check_tm=%sysfunc(datetime());
     /* build sql statement */
     create table mpsearch.&table as select * from &lib..&table
-      where %unquote(&filter_text) and 
+      where %unquote(&filter_text) and
     (0
     /* loop through columns */
     %do colnum=1 %to %sysfunc(countw(&vars,%str( )));
@@ -4563,7 +5847,8 @@ proc sql
       %end;
     %end;
     );
-    %put Search query for &table took %sysevalf(%sysfunc(datetime())-&check_tm) seconds;
+    %put Search query for &table took
+      %sysevalf(%sysfunc(datetime())-&check_tm) seconds;
     %if &sqlrc ne 0 %then %do;
       %put %str(WAR)NING: SQLRC=&sqlrc when processing &table;
       %return;
@@ -4591,7 +5876,7 @@ proc sql
   @param key Provide a key on which to perform the lookup
   @param value Provide a value
   @param type= either C or N will populate valc and valn respectively.  C is
-               default.
+              default.
   @param libds= define the target table to hold the parameters
 
   @version 9.2
@@ -4631,12 +5916,13 @@ proc sql
 %mend;/**
   @file
   @brief Capture session start / finish times and request details
-  @details For details, see http://www.rawsas.com/2015/09/logging-of-stored-process-server.html.
+  @details For details, see
+  https://rawsas.com/event-logging-of-stored-process-server-sessions.
     Requires a base table in the following structure (name can be changed):
 
     proc sql;
     create table &libds(
-       request_dttm num not null format=datetime.
+      request_dttm num not null format=datetime.
       ,status_cd char(4) not null
       ,_metaperson varchar(100) not null
       ,_program varchar(500)
@@ -4708,7 +5994,8 @@ proc sql
 
   Usage:
 
-      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      filename mc url
+        "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
       %mp_streamfile(contenttype=csv,inloc=/some/where.txt,outname=myfile.txt)
@@ -4737,8 +6024,20 @@ proc sql
 %let contentype=%upcase(&contenttype);
 %local platform; %let platform=%mf_getplatform();
 
+
+/**
+  * check engine type to avoid the below err message:
+  * > Function is only valid for filerefs using the CACHE access method.
+  */
+%local streamweb;
+%let streamweb=0;
+data _null_;
+  set sashelp.vextfl(where=(upcase(fileref)="_WEBOUT"));
+  if xengine='STREAM' then call symputx('streamweb',1,'l');
+run;
+
 %if &contentype=ZIP %then %do;
-  %if &platform=SASMETA %then %do;
+  %if &platform=SASMETA and &streamweb=1 %then %do;
     data _null_;
       rc=stpsrv_header('Content-type','application/zip');
       rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
@@ -4752,7 +6051,7 @@ proc sql
 %end;
 %else %if &contentype=EXCEL %then %do;
   /* suitable for XLS format */
-  %if &platform=SASMETA %then %do;
+  %if &platform=SASMETA and &streamweb=1 %then %do;
     data _null_;
       rc=stpsrv_header('Content-type','application/vnd.ms-excel');
       rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
@@ -4765,20 +6064,22 @@ proc sql
   %end;
 %end;
 %else %if &contentype=XLSX %then %do;
-  %if &platform=SASMETA %then %do;
+  %if &platform=SASMETA and &streamweb=1 %then %do;
     data _null_;
-      rc=stpsrv_header('Content-type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      rc=stpsrv_header('Content-type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
     run;
   %end;
   %else %if &platform=SASVIYA %then %do;
     filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.xls'
-      contenttype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      contenttype=
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       contentdisp="attachment; filename=&outname";
   %end;
 %end;
 %else %if &contentype=TEXT %then %do;
-  %if &platform=SASMETA %then %do;
+  %if &platform=SASMETA and &streamweb=1 %then %do;
     data _null_;
       rc=stpsrv_header('Content-type','application/text');
       rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
@@ -4791,7 +6092,7 @@ proc sql
   %end;
 %end;
 %else %if &contentype=CSV %then %do;
-  %if &platform=SASMETA %then %do;
+  %if &platform=SASMETA and &streamweb=1 %then %do;
     data _null_;
       rc=stpsrv_header('Content-type','application/csv');
       rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
@@ -4815,20 +6116,21 @@ proc sql
 %end;
 
 %if &inref ne 0 %then %do;
- %mp_binarycopy(inref=&inref,outref=_webout)
+  %mp_binarycopy(inref=&inref,outref=_webout)
 %end;
 %else %do;
- %mp_binarycopy(inloc="&inloc",outref=_webout)
+  %mp_binarycopy(inloc="&inloc",outref=_webout)
 %end;
 
-%mend;/**
+%mend;
+/**
   @file
   @brief Runs arbitrary code for a specified amount of time
   @details Executes a series of procs and data steps to enable performance
   testing of arbitrary jobs.
 
       %mp_testjob(
-         duration=60*5
+        duration=60*5
       )
 
   @param [in] duration= the time in seconds which the job should run for. Actual
@@ -4913,12 +6215,270 @@ libname &lib clear;
 
 
 %mend;/**
+  @file mp_testservice.sas
+  @brief Will execute a test against a SASjs web service on SAS 9 or Viya
+  @details Prepares the input files and retrieves the resulting datasets from
+  the response JSON.
+
+      %mp_testjob(
+        duration=60*5
+      )
+
+  Note - the _webout fileref should NOT be assigned prior to running this macro.
+
+  @param [in] program The _PROGRAM endpoint to test
+  @param [in] inputfiles=(0) A list of space seperated fileref:filename pairs as
+    follows:
+        inputfiles=inref:filename inref2:filename2
+  @param [in] inputparams=(0) A dataset containing name/value pairs in the
+    following format:
+    |name:$32|value:$1000|
+    |---|---|
+    |stpmacname|some value|
+    |mustbevalidname|can be anything, oops, %abort!!|
+
+  @param [in] debug= (log) Provide the _debug value
+  @param [in] viyaresult=(WEBOUT_JSON) The Viya result type to return.  For
+    more info, see mv_getjobresult.sas
+  @param [out] outlib= (0) Output libref to contain the final tables.  Set to
+    0 if the service output is not in JSON format.
+  @param [out] outref= (0) Output fileref to create, to contain the full _webout
+    response.
+
+  <h4> SAS Macros </h4>
+  @li mf_getplatform.sas
+  @li mf_getuniquefileref.sas
+  @li mf_getuniquename.sas
+  @li mp_abort.sas
+  @li mp_binarycopy.sas
+  @li mv_getjobresult.sas
+  @li mv_jobflow.sas
+
+  @version 9.4
+  @author Allan Bowe
+
+**/
+
+%macro mp_testservice(program,
+  inputfiles=0,
+  inputparams=0,
+  debug=log,
+  outlib=0,
+  outref=0,
+  viyaresult=WEBOUT_JSON
+)/*/STORE SOURCE*/;
+%local mdebug;
+%if &debug ne 0 %then %do;
+  %let mdebug=1;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let mdebug=0;
+
+/* sanitise inputparams */
+%local pcnt;
+%let pcnt=0;
+%if &inputparams ne 0 %then %do;
+  data _null_;
+    set &inputparams;
+    if not nvalid(name,'v7') then putlog (_all_)(=);
+    else if name in (
+      'program','inputfiles','inputparams','debug','outlib','outref'
+    ) then putlog (_all_)(=);
+    else do;
+      x+1;
+      call symputx(name,quote(cats(value)),'l');
+      call symputx('pval'!!left(x),name,'l');
+      call symputx('pcnt',x,'l');
+    end;
+  run;
+  %mp_abort(iftrue= (%mf_nobs(&inputparams) ne &pcnt)
+    ,mac=&sysmacroname
+    ,msg=%str(Invalid values in &inputparams)
+  )
+%end;
+
+
+%local fref1 webref;
+%let fref1=%mf_getuniquefileref();
+%let webref=%mf_getuniquefileref();
+
+%local platform;
+%let platform=%mf_getplatform();
+%if &platform=SASMETA %then %do;
+
+  /* parse the input files */
+  %local webcount i var;
+  %if %quote(&inputfiles) ne 0 %then %do;
+    %let webcount=%sysfunc(countw(&inputfiles));
+    %put &=webcount;
+    %do i=1 %to &webcount;
+      %let var=%scan(&inputfiles,&i,%str( ));
+      %local webfref&i webname&i;
+      %let webref&i=%scan(&var,1,%str(:));
+      %let webname&i=%scan(&var,2,%str(:));
+      %put webref&i=&&webref&i;
+      %put webname&i=&&webname&i;
+    %end;
+  %end;
+  %else %let webcount=0;
+
+  proc stp program="&program";
+    inputparam _program="&program"
+  %do i=1 %to &webcount;
+    %if &webcount=1 %then %do;
+      _webin_fileref="&&webref&i"
+      _webin_name="&&webname&i"
+    %end;
+    %else %do;
+      _webin_fileref&i="&&webref&i"
+      _webin_name&i="&&webname&i"
+    %end;
+  %end;
+    _webin_file_count="&webcount"
+    _debug="&debug"
+  %do i=1 %to &pcnt;
+    /* resolve name only, proc stp fetches value */
+    &&pval&i=&&&&&&pval&i
+  %end;
+    ;
+  %do i=1 %to &webcount;
+    inputfile &&webref&i;
+  %end;
+    outputfile _webout=&webref;
+  run;
+
+  data _null_;
+    infile &webref;
+    file &fref1;
+    input;
+    length line $10000;
+    if index(_infile_,'>>weboutBEGIN<<') then do;
+        line=tranwrd(_infile_,'>>weboutBEGIN<<','');
+        put line;
+    end;
+    else if index(_infile_,'>>weboutEND<<') then do;
+        line=tranwrd(_infile_,'>>weboutEND<<','');
+        put line;
+        stop;
+    end;
+    else put _infile_;
+  run;
+  data _null_;
+    infile &fref1;
+    input;
+    put _infile_;
+  run;
+  %if &outlib ne 0 %then %do;
+    libname &outlib json (&fref1);
+  %end;
+  %if &outref ne 0 %then %do;
+    filename &outref temp;
+    %mp_binarycopy(inref=&webref,outref=&outref)
+  %end;
+
+%end;
+%else %if &platform=SASVIYA %then %do;
+
+  /* prepare inputparams */
+  %local ds1;
+  %let ds1=%mf_getuniquename();
+  %if "&inputparams" ne "0" %then %do;
+    proc transpose data=&inputparams out=&ds1;
+      id name;
+      var value;
+    run;
+  %end;
+  %else %do;
+    data &ds1;run;
+  %end;
+
+  /* parse the input files - convert to sasjs params */
+  %local webcount i var sasjs_tables;
+  %if %quote(&inputfiles) ne 0 %then %do;
+    %let webcount=%sysfunc(countw(&inputfiles));
+    %put &=webcount;
+    %do i=1 %to &webcount;
+      %let var=%scan(&inputfiles,&i,%str( ));
+      %local webfref&i webname&i sasjs&i.data;
+      %let webref&i=%scan(&var,1,%str(:));
+      %let webname&i=%scan(&var,2,%str(:));
+      %put webref&i=&&webref&i;
+      %put webname&i=&&webname&i;
+
+      %let sasjs_tables=&sasjs_tables &&webname&i;
+      data _null_;
+        infile &&webref&i lrecl=32767;
+        input;
+        if _n_=1 then call symputx("sasjs&i.data",_infile_);
+        else call symputx(
+          "sasjs&i.data",cats(symget("sasjs&i.data"),'0D0A'x,_infile_)
+        );
+        putlog "&sysmacroname infile: " _infile_;
+      run;
+      data &ds1;
+        set &ds1;
+        length sasjs&i.data $32767 sasjs_tables $1000;
+        sasjs&i.data=symget("sasjs&i.data");
+        sasjs_tables=symget("sasjs_tables");
+      run;
+    %end;
+  %end;
+  %else %let webcount=0;
+
+  data &ds1;
+    retain _program "&program";
+    set &ds1;
+    putlog "&sysmacroname inputparams:";
+    putlog (_all_)(=);
+  run;
+
+  %mv_jobflow(inds=&ds1
+    ,maxconcurrency=1
+    ,outds=work.results
+    ,outref=&fref1
+    ,mdebug=&mdebug
+  )
+  /* show the log */
+  data _null_;
+    infile &fref1;
+    input;
+    putlog _infile_;
+  run;
+  /* get the uri to fetch results */
+  data _null_;
+    set work.results;
+    call symputx('uri',uri);
+    putlog "&sysmacroname: fetching results for " uri;
+  run;
+  /* fetch results from webout.json */
+  %mv_getjobresult(uri=&uri,
+    result=&viyaresult,
+    outref=&outref,
+    outlib=&outlib,
+    mdebug=&mdebug
+  )
+
+%end;
+%else %do;
+  %put %str(ERR)OR: Unrecognised platform:  &platform;
+%end;
+
+%if &mdebug=0 %then %do;
+  filename &webref clear;
+%end;
+%else %do;
+  %put &sysmacroname exit vars:;
+  %put _local_;
+%end;
+
+%mend mp_testservice;/**
   @file mp_testwritespeedlibrary.sas
   @brief Tests the write speed of a new table in a SAS library
-  @details Will create a new table of a certain size in an 
+  @details Will create a new table of a certain size in an
   existing SAS library.  The table will have one column,
   and will be subsequently deleted.
-      
+
       %mp_testwritespeedlibrary(
         lib=work
         ,size=0.5
@@ -4980,8 +6540,11 @@ run;
 
   Credits:
 
-  * Roger Deangelis, https://communities.sas.com/t5/SAS-Programming/listing-all-files-within-a-directory-and-subdirectories/m-p/332616/highlight/true#M74887
-  * Tom, https://communities.sas.com/t5/SAS-Programming/listing-all-files-of-all-types-from-all-subdirectories/m-p/334113/highlight/true#M75419
+  Roger Deangelis:
+https://communities.sas.com/t5/SAS-Programming/listing-all-files-within-a-directory-and-subdirectories/m-p/332616/highlight/true#M74887
+
+  Tom:
+https://communities.sas.com/t5/SAS-Programming/listing-all-files-of-all-types-from-all-subdirectories/m-p/334113/highlight/true#M75419
 
 
   @param dir= Directory to be scanned (default=/tmp)
@@ -4989,13 +6552,13 @@ run;
 
   @returns outds contains the following variables:
 
-   - `dir`: a flag (1/0) to say whether it is a directory or not.  This is not
-     reliable - folders that you do not have permission to open will be flagged
-     as directories.
-   - `ext`: file extension
-   - `filename`: file name
-   - `dirname`: directory name
-   - `fullpath`: directory + file name
+    - `dir`: a flag (1/0) to say whether it is a directory or not.  This is not
+      reliable - folders that you do not have permission to open will be flagged
+      as directories.
+    - `ext`: file extension
+    - `filename`: file name
+    - `dirname`: directory name
+    - `fullpath`: directory + file name
 
   @version 9.2
 **/
@@ -5197,13 +6760,79 @@ alter table &libds modify &var char(&len);
 %mend;
 /**
   @file
+  @brief Used to validate variables in a dataset
+  @details Useful when sanitising inputs, to ensure that they arrive with a
+  certain pattern.
+  Usage:
+
+      data test;
+        infile datalines4 dsd;
+        input;
+        libds=_infile_;
+        %mp_validatecol(libds,LIBDS,is_libds)
+      datalines4;
+      some.libname
+      !lib.blah
+      %abort
+      definite.ok
+      not.ok!
+      nineletrs._
+      ;;;;
+      run;
+
+  @param [in] incol The column to be validated
+  @param [in] rule The rule to apply.  Current rules:
+    @li ISNUM - checks if the variable is numeric
+    @li LIBDS - matches LIBREF.DATASET format
+  @param [out] outcol The variable to create, with the results of the match
+
+  <h4> SAS Macros </h4>
+  @li mf_getuniquename.sas
+
+  @version 9.3
+**/
+
+%macro mp_validatecol(incol,rule,outcol);
+
+/* tempcol is given a unique name with every invocation */
+%local tempcol;
+%let tempcol=%mf_getuniquename();
+
+%if &rule=ISNUM %then %do;
+  /*
+    credit SØREN LASSEN
+    https://sasmacro.blogspot.com/2009/06/welcome-isnum-macro.html
+  */
+  &tempcol=input(&incol,?? best32.);
+  if missing(&tempcol) then &outcol=0;
+  else &outcol=1;
+  drop &tempcol;
+%end;
+%else %if &rule=LIBDS %then %do;
+  /* match libref.dataset */
+  if _n_=1 then do;
+    retain &tempcol;
+    &tempcol=prxparse('/^[_a-z]\w{0,7}\.[_a-z]\w{0,31}$/i');
+    if missing(&tempcol) then do;
+      putlog "%str(ERR)OR: Invalid expression for LIBDS";
+      stop;
+    end;
+    drop &tempcol;
+  end;
+  if prxmatch(&tempcol, trim(&incol)) then &outcol=1;
+  else &outcol=0;
+%end;
+
+%mend mp_validatecol;
+/**
+  @file
   @brief Creates a zip file
   @details For DIRECTORY usage, will ignore subfolders. For DATASET usage,
-    provide a column that contains the full file path to each file to be zipped.
+  provide a column that contains the full file path to each file to be zipped.
 
-    %mp_zip(in=myzips,type=directory,outname=myDir)
-    %mp_zip(in=/my/file/path.txt,type=FILE,outname=myFile)
-    %mp_zip(in=SOMEDS,incol=FPATH,type=DATASET,outname=myFile)
+      %mp_zip(in=myzips,type=directory,outname=myDir)
+      %mp_zip(in=/my/file/path.txt,type=FILE,outname=myFile)
+      %mp_zip(in=SOMEDS,incol=FPATH,type=DATASET,outname=myFile)
 
   If you are sending zipped output to the _webout destination as part of an STP
   be sure that _debug is not set (else the SPWA will send non zipped content
@@ -5345,7 +6974,7 @@ run;
 %end;
 
 %if &syscc ge 4 %then %do;
-  %put WARNING:  SYSCC=&syscc, exiting &sysmacroname;
+  %put %str(WARN)ING:  SYSCC=&syscc, exiting &sysmacroname;
   %return;
 %end;
 
@@ -5405,7 +7034,7 @@ filename __us2grp clear;
 **/
 
 %macro mm_assigndirectlib(
-     libref /* libref to assign from metadata */
+    libref /* libref to assign from metadata */
     ,open_passthrough= /* provide an alias to produce the
                           CONNECT TO statement for the
                           relevant external database */
@@ -5479,7 +7108,7 @@ run;
   run;
 
   %if %sysevalf(&sysver<9.4) %then %do;
-   libname &libref &filepath;
+    libname &libref &filepath;
   %end;
   %else %do;
     /* apply the new filelocks option to cater for temporary locks */
@@ -5489,7 +7118,8 @@ run;
 %end;
 %else %if &engine=REMOTE %then %do;
   data x;
-    length rcCon rcProp rc k 3 uriCon uriProp PropertyValue PropertyName Delimiter $256 properties $2048;
+    length rcCon rcProp rc k 3 uriCon uriProp PropertyValue PropertyName
+      Delimiter $256 properties $2048;
     retain properties;
     rcCon = metadata_getnasn("&liburi", "LibraryConnection", 1, uriCon);
 
@@ -5501,8 +7131,9 @@ run;
       rc = metadata_getattr(uriProp , "DefaultValue",PropertyValue);
       rc = metadata_getattr(uriProp , "PropertyName",PropertyName);
       rc = metadata_getattr(uriProp , "Delimiter",Delimiter);
-      properties = trim(properties) !! " " !! trim(PropertyName) !! trim(Delimiter) !! trim(PropertyValue);
-        output;
+      properties = trim(properties) !! " " !! trim(PropertyName)
+        !! trim(Delimiter) !! trim(PropertyValue);
+      output;
       k+1;
       rcProp = metadata_getnasn(uriCon, "Properties", k, uriProp);
     end;
@@ -5537,13 +7168,14 @@ run;
       rc=metadata_getnasn(connx_uri,'Properties',i,conprop_uri);
       rc2=metadata_getattr(conprop_uri,'Name',value);
       if value='Connection.OLE.Property.DATASOURCE.Name.xmlKey.txt' then do;
-         rc3=metadata_getattr(conprop_uri,'DefaultValue',datasource);
+        rc3=metadata_getattr(conprop_uri,'DefaultValue',datasource);
       end;
       else if value='Connection.OLE.Property.PROVIDER.Name.xmlKey.txt' then do;
-         rc4=metadata_getattr(conprop_uri,'DefaultValue',provider);
+        rc4=metadata_getattr(conprop_uri,'DefaultValue',provider);
       end;
-      else if value='Connection.OLE.Property.PROPERTIES.Name.xmlKey.txt' then do;
-         rc5=metadata_getattr(conprop_uri,'DefaultValue',properties);
+      else if value='Connection.OLE.Property.PROPERTIES.Name.xmlKey.txt' then
+      do;
+        rc5=metadata_getattr(conprop_uri,'DefaultValue',properties);
       end;
     end;
     &mD.putlog 'NOTE- dsn/provider/properties: ' /
@@ -5566,8 +7198,8 @@ run;
       /* need additional properties to make this work */
         properties=('Integrated Security'=SSPI
                     'Persist Security Info'=True
-                   %sysfunc(compress(%str(&SQL_properties),%str(())))
-                   )
+                  %sysfunc(compress(%str(&SQL_properties),%str(())))
+                  )
       DATASOURCE=&sql_dsn PROMPT=NO
       PROVIDER=&sql_provider SCHEMA=&sql_schema CONNECTION = GLOBAL);
   %end;
@@ -5575,9 +7207,9 @@ run;
     LIBNAME &libref OLEDB  PROPERTIES=&sql_properties
       DATASOURCE=&sql_dsn  PROVIDER=&sql_provider SCHEMA=&sql_schema
     %if %length(&sql_domain)>0 %then %do;
-       authdomain="&sql_domain"
+      authdomain="&sql_domain"
     %end;
-       connection=shared;
+      connection=shared;
   %end;
 %end;
 %else %if &engine=ODBC %then %do;
@@ -5594,8 +7226,8 @@ run;
       rc2=metadata_getnasn(connx_uri,'Properties',i,conprop_uri);
       rc3=metadata_getattr(conprop_uri,'Name',value);
       if value='Connection.ODBC.Property.DATASRC.Name.xmlKey.txt' then do;
-         rc4=metadata_getattr(conprop_uri,'DefaultValue',datasource);
-         rc2=-1;
+        rc4=metadata_getattr(conprop_uri,'DefaultValue',datasource);
+        rc2=-1;
       end;
     end;
     /* get SCHEMA */
@@ -5652,7 +7284,7 @@ run;
 
     /* get PRESERVE_TAB_NAMES value */
     /* be careful with PRESERVE_TAB_NAMES=YES - it will mean your table will
-       become case sensitive!! */
+      become case sensitive!! */
     prop='Library.DBMS.Property.PreserveTabNames.Name.xmlKey.txt';
     rc=metadata_getprop("&liburi",prop,preserve_tab_names,"");
     if preserve_tab_names^='' then preserve_tab_names=
@@ -5701,7 +7333,7 @@ run;
   run;
 
   %if %length(&open_passthrough)>0 %then %do;
-    %put WARNING:  Passthrough option for postgres not yet supported;
+    %put %str(WARN)ING: Passthrough option for postgres not yet supported;
     %return;
   %end;
   %else %do;
@@ -5729,7 +7361,8 @@ run;
     call symputx('authdomain',authdomain,'l');
 
     /* path */
-    rc=metadata_getprop(assocuri1,'Connection.Oracle.Property.PATH.Name.xmlKey.txt',path);
+    rc=metadata_getprop(assocuri1,
+      'Connection.Oracle.Property.PATH.Name.xmlKey.txt',path);
     call symputx('path',path,'l');
 
     /* schema */
@@ -5738,27 +7371,30 @@ run;
     call symputx('schema',schema,'l');
   run;
   %put NOTE: Executing the following:/; %put NOTE-;
-  %put NOTE- libname &libref ORACLE path=&path schema=&schema authdomain=&authdomain;
+  %put NOTE- libname &libref ORACLE path=&path schema=&schema;
+  %put NOTE-     authdomain=&authdomain;
   %put NOTE-;
   libname &libref ORACLE path=&path schema=&schema authdomain=&authdomain;
 %end;
 %else %if &engine=SQLSVR %then %do;
   %put NOTE: Obtaining &engine library details;
   data _null;
-    length assocuri1 assocuri2 assocuri3 authdomain path schema userid passwd $256;
+    length assocuri1 assocuri2 assocuri3 authdomain path schema userid
+      passwd $256;
     call missing (of _all_);
- 
+
     rc=metadata_getnasn("&liburi",'DefaultLogin',1,assocuri1);
     rc=metadata_getattr(assocuri1,"UserID",userid);
     rc=metadata_getattr(assocuri1,"Password",passwd);
     call symputx('user',userid,'l');
     call symputx('pass',passwd,'l');
- 
+
     /* path */
     rc=metadata_getnasn("&liburi",'LibraryConnection',1,assocuri2);
-    rc=metadata_getprop(assocuri2,'Connection.SQL.Property.Datasrc.Name.xmlKey.txt',path);
+    rc=metadata_getprop(assocuri2,
+      'Connection.SQL.Property.Datasrc.Name.xmlKey.txt',path);
     call symputx('path',path,'l');
- 
+
     /* schema */
     rc=metadata_getnasn("&liburi",'UsingPackages',1,assocuri3);
     rc=metadata_getattr(assocuri3,'SchemaName',schema);
@@ -5766,17 +7402,19 @@ run;
   run;
 
   %put NOTE: Executing the following:/; %put NOTE-;
-  %put NOTE- libname &libref SQLSVR datasrc=&path schema=&schema user="&user" pass="XXX";
+  %put NOTE- libname &libref SQLSVR datasrc=&path schema=&schema ;
+  %put NOTE-    user="&user" pass="XXX";
   %put NOTE-;
 
-  libname &libref SQLSVR datasrc=&path schema=&schema user="&user" pass="&pass" ;
+  libname &libref SQLSVR datasrc=&path schema=&schema user="&user" pass="&pass";
 %end;
 %else %if &engine=TERADATA %then %do;
   %put NOTE: Obtaining &engine library details;
   data _null;
-    length assocuri1 assocuri2 assocuri3 authdomain path schema userid passwd $256;
+    length assocuri1 assocuri2 assocuri3 authdomain path schema userid
+      passwd $256;
     call missing (of _all_);
- 
+
         /* get auth domain */
     rc=metadata_getnasn("&liburi",'LibraryConnection',1,assocuri1);
     rc=metadata_getnasn(assocuri1,'Domain',1,assocuri2);
@@ -5793,9 +7431,10 @@ run;
 
     /* path */
     rc=metadata_getnasn("&liburi",'LibraryConnection',1,assocuri2);
-    rc=metadata_getprop(assocuri2,'Connection.Teradata.Property.SERVER.Name.xmlKey.txt',path);
+    rc=metadata_getprop(assocuri2,
+      'Connection.Teradata.Property.SERVER.Name.xmlKey.txt',path);
     call symputx('path',path,'l');
- 
+
     /* schema */
     rc=metadata_getnasn("&liburi",'UsingPackages',1,assocuri3);
     rc=metadata_getattr(assocuri3,'SchemaName',schema);
@@ -5803,7 +7442,8 @@ run;
   run;
 
   %put NOTE: Executing the following:/; %put NOTE-;
-  %put NOTE- libname &libref TERADATA server=&path schema=&schema authdomain=&authdomain;
+  %put NOTE- libname &libref TERADATA server=&path schema=&schema ;
+  %put NOTe-   authdomain=&authdomain;
   %put NOTE-;
 
   libname &libref TERADATA server=&path schema=&schema authdomain=&authdomain;
@@ -5816,8 +7456,8 @@ run;
   %return;
 %end;
 %else %do;
-  %put WARNING: Engine &engine is currently unsupported;
-  %put WARNING- Please contact your support team.;
+  %put %str(WARN)ING: Engine &engine is currently unsupported;
+  %put %str(WARN)ING- Please contact your support team.;
   %return;
 %end;
 
@@ -5838,7 +7478,8 @@ run;
   @li mp_abort.sas
 
   @param libref the libref (not name) of the metadata library
-  @param mAbort= If not assigned, HARD will call %mp_abort(), SOFT will silently return
+  @param mAbort= If not assigned, HARD will call %mp_abort(), SOFT will
+    silently return
 
   @returns libname statement
 
@@ -5848,7 +7489,7 @@ run;
 **/
 
 %macro mm_assignlib(
-     libref
+    libref
     ,mAbort=HARD
 )/*/STORE SOURCE*/;
 
@@ -5914,7 +7555,9 @@ run;
         ,params= name1=value1&#x0a;name2=value2&#x0a;emptyvalue=
       )
 
-  @warning application components do not get deleted when removing the container folder!  be sure you have the administrative priviliges to remove this kind of metadata from the SMC plugin (or be ready to do to so programmatically).
+  @warning application components do not get deleted when removing the container
+  folder!  be sure you have the administrative priviliges to remove this kind of
+  metadata from the SMC plugin (or be ready to do to so programmatically).
 
   <h4> SAS Macros </h4>
   @li mp_abort.sas
@@ -5961,8 +7604,8 @@ run;
 %mf_verifymacvars(tree name)
 
 /**
- * check tree exists
- */
+  * check tree exists
+  */
 
 data _null_;
   length type uri $256;
@@ -5978,8 +7621,8 @@ run;
 )
 
 /**
- * Check object does not exist already
- */
+  * Check object does not exist already
+  */
 data _null_;
   length type uri $256;
   rc=metadata_pathobj("","&tree/&name","Application",type,uri);
@@ -5995,8 +7638,8 @@ run;
 
 
 /**
- * Now we can create the application
- */
+  * Now we can create the application
+  */
 filename &frefin temp;
 
 /* write header XML */
@@ -6185,8 +7828,8 @@ run;
 %mf_verifymacvars(tree name)
 
 /**
- * check tree exists
- */
+  * check tree exists
+  */
 
 data _null_;
   length type uri $256;
@@ -6202,8 +7845,8 @@ run;
 )
 
 /**
- * Check object does not exist already
- */
+  * Check object does not exist already
+  */
 data _null_;
   length type uri $256;
   rc=metadata_pathobj("","&tree/&name","Note",type,uri);
@@ -6218,8 +7861,8 @@ run;
 %end;
 
 /**
- * Now we can create the document
- */
+  * Now we can create the document
+  */
 filename &frefin temp;
 
 /* write header XML */
@@ -6314,7 +7957,7 @@ data _null_;
 
   * must have a starting slash ;
   if ( substr(folderPath,1,1) ne '/' ) then do;
-    put "%str(ERR)OR: &sysmacroname PATH parameter value must have starting slash";
+    put "%str(ERR)OR: &sysmacroname PATH param value must have starting slash";
     stop;
   end;
 
@@ -6334,8 +7977,8 @@ data _null_;
   * check that root folder exists ;
   root=cats('/',scan(folderpath,1,'/'),"(Folder)");
   if metadata_pathobj('',root,"",objType,parentId)<1 then do;
-     put "%str(ERR)OR: " root " does not exist!";
-     stop;
+    put "%str(ERR)OR: " root " does not exist!";
+    stop;
   end;
 
   * check that parent folder exists ;
@@ -6345,21 +7988,21 @@ data _null_;
   if rc<1 then do;
     putlog 'The following folders will be created:';
     /* folder does not exist - so start from top and work down */
-     length newpath $1000;
-     paths=0;
-     do x=2 to countw(folderpath,'/');
-       newpath='';
-       do i=1 to x;
-         newpath=cats(newpath,'/',scan(folderpath,i,'/'));
-       end;
-       rc=metadata_pathobj('',cats(newpath,"(Folder)"),"",objType,parentId);
-       if rc<1 then do;
-         paths+1;
-         call symputx(cats('path',paths),newpath);
-         putlog newpath;
-       end;
-       call symputx('paths',paths);
-     end;
+    length newpath $1000;
+    paths=0;
+    do x=2 to countw(folderpath,'/');
+      newpath='';
+      do i=1 to x;
+        newpath=cats(newpath,'/',scan(folderpath,i,'/'));
+      end;
+      rc=metadata_pathobj('',cats(newpath,"(Folder)"),"",objType,parentId);
+      if rc<1 then do;
+        paths+1;
+        call symputx(cats('path',paths),newpath);
+        putlog newpath;
+      end;
+      call symputx('paths',paths);
+    end;
   end;
   else putlog "parent " parent " exists";
 
@@ -6374,7 +8017,7 @@ run;
 
 %if &paths>0 %then %do x=1 %to &paths;
   %put executing recursive call for &&path&x;
-   %mm_createfolder(path=&&path&x)
+  %mm_createfolder(path=&&path&x)
 %end;
 %else %do;
   filename __newdir temp;
@@ -6382,9 +8025,10 @@ run;
   %local inmeta;
   %put creating: &path;
   %let inmeta=<AddMetadata><Reposid>$METAREPOSITORY</Reposid><Metadata>
-    <Tree Name='&child' PublicType='Folder' TreeType='BIP Folder' UsageVersion='1000000'>
-    <ParentTree><Tree ObjRef='&parentFolderObjId'/></ParentTree></Tree></Metadata>
-    <NS>SAS</NS><Flags>268435456</Flags></AddMetadata>;
+    <Tree Name='&child' PublicType='Folder' TreeType='BIP Folder'
+    UsageVersion='1000000'><ParentTree><Tree ObjRef='&parentFolderObjId'/>
+    </ParentTree></Tree></Metadata><NS>SAS</NS><Flags>268435456</Flags>
+    </AddMetadata>;
 
   proc metadata in="&inmeta" out=__newdir verbose;
   run ;
@@ -6473,7 +8117,7 @@ run;
 **/
 
 %macro mm_createlibrary(
-     libname=My New Library
+    libname=My New Library
     ,libref=mynewlib
     ,libdesc=Created automatically using the mm_createlibrary macro
     ,engine=BASE
@@ -6495,8 +8139,8 @@ run;
 %let libref=%upcase(&libref);
 
 /**
- * Check Library does not exist already with this libname
- */
+  * Check Library does not exist already with this libname
+  */
 data _null_;
   length type uri $256;
   rc=metadata_resolve("omsobj:SASLibrary?@Name='&libname'",type,uri);
@@ -6505,13 +8149,13 @@ data _null_;
   putlog (_all_)(=);
 run;
 %if &checktype = SASLibrary %then %do;
-  %put WARNING: Library (&liburi) already exists with libname (&libname)  ;
+  %put %str(WARN)ING: Library (&liburi) already exists with libname (&libname);
   %return;
 %end;
 
 /**
- * Check Library does not exist already with this libref
- */
+  * Check Library does not exist already with this libref
+  */
 data _null_;
   length type uri $256;
   rc=metadata_resolve("omsobj:SASLibrary?@Libref='&libref'",type,uri);
@@ -6520,19 +8164,19 @@ data _null_;
   putlog (_all_)(=);
 run;
 %if &checktype = SASLibrary %then %do;
-  %put WARNING: Library (&liburi) already exists with libref (&libref)  ;
+  %put %str(WARN)ING: Library (&liburi) already exists with libref (&libref)  ;
   %return;
 %end;
 
 
 /**
- * Attempt to create tree
- */
+  * Attempt to create tree
+  */
 %mm_createfolder(path=&tree)
 
 /**
- * check tree exists
- */
+  * check tree exists
+  */
 data _null_;
   length type uri $256;
   rc=metadata_pathobj("","&tree","Folder",type,uri);
@@ -6540,13 +8184,13 @@ data _null_;
   call symputx('treeuri',uri,'l');
 run;
 %if &foldertype ne Tree %then %do;
-  %put WARNING: Tree &tree does not exist!;
+  %put %str(WARN)ING: Tree &tree does not exist!;
   %return;
 %end;
 
 /**
- * Create filerefs for proc metadata call
- */
+  * Create filerefs for proc metadata call
+  */
 filename &frefin temp;
 filename &frefout temp;
 
@@ -6557,8 +8201,8 @@ filename &frefout temp;
 
 
   /**
-   * Check that the ServerContext exists
-   */
+    * Check that the ServerContext exists
+    */
   data _null_;
     length type uri $256;
     rc=metadata_resolve("omsobj:ServerContext?@Name='&ServerContext'",type,uri);
@@ -6572,8 +8216,8 @@ filename &frefout temp;
   %end;
 
   /**
-   * Get prototype info
-   */
+    * Get prototype info
+    */
   data _null_;
     length type uri str $256;
     str="omsobj:Prototype?@Name='Library.SAS.Prototype.Name.xmlKey.txt'";
@@ -6583,21 +8227,21 @@ filename &frefout temp;
     putlog (_all_)(=);
   run;
   %if &checktype ne Prototype %then %do;
-    %put %str(ERR)OR: Prototype (Library.SAS.Prototype.Name.xmlKey.txt) not found!;
+    %put %str(ERR)OR: Prototype Library.SAS.Prototype.Name.xmlKey.txt not found;
     %return;
   %end;
 
   /**
-   * Check that Physical location exists
-   */
+    * Check that Physical location exists
+    */
   %if %sysfunc(fileexist(&directory))=0 %then %do;
     %put %str(ERR)OR: Physical directory (&directory) does not appear to exist!;
     %return;
   %end;
 
   /**
-   * Check that Directory Object exists in metadata
-   */
+    * Check that Directory Object exists in metadata
+    */
   data _null_;
     length type uri $256;
     rc=metadata_resolve("omsobj:Directory?@DirectoryRole='LibraryPath'"
@@ -6645,16 +8289,16 @@ filename &frefout temp;
   %end;
 
   /**
-   *  check SAS version
-   */
+    *  check SAS version
+    */
   %if %sysevalf(&sysver lt 9.3) %then %do;
-    %put WARNING: Version 9.3 or later required;
+    %put %str(WARN)ING: Version 9.3 or later required;
     %return;
   %end;
 
   /**
-   * Prepare the XML and create the library
-   */
+    * Prepare the XML and create the library
+    */
   data _null_;
     file &frefin;
     treeuri=quote(symget('treeuri'));
@@ -6728,8 +8372,8 @@ filename &frefout temp;
 
 
 /**
- * Wrap up
- */
+  * Wrap up
+  */
 %if &mdebug ne 1 %then %do;
   filename &frefin clear;
   filename &frefout clear;
@@ -6810,10 +8454,10 @@ filename &frefout temp;
     foundation repo then select a different one here
 
   @returns outds  dataset containing the following columns:
-   - stpuri
-   - prompturi
-   - fileuri
-   - texturi
+    - stpuri
+    - prompturi
+    - fileuri
+    - texturi
 
   @version 9.2
   @author Allan Bowe
@@ -6821,7 +8465,7 @@ filename &frefout temp;
 **/
 
 %macro mm_createstp(
-     stpname=Macro People STP
+    stpname=Macro People STP
     ,stpdesc=This stp was created automatically by the mm_createstp macro
     ,filename=mm_createstp.sas
     ,directory=SASEnvironment/SASCode
@@ -6847,8 +8491,8 @@ filename &frefout temp;
 %mp_dropmembers(%scan(&outds,2,.))
 
 /**
- * check tree exists
- */
+  * check tree exists
+  */
 data _null_;
   length type uri $256;
   rc=metadata_pathobj("","&tree","Folder",type,uri);
@@ -6856,13 +8500,13 @@ data _null_;
   call symputx('treeuri',uri,'l');
 run;
 %if &foldertype ne Tree %then %do;
-  %put WARNING: Tree &tree does not exist!;
+  %put %str(WARN)ING: Tree &tree does not exist!;
   %return;
 %end;
 
 /**
- * Check STP does not exist already
- */
+  * Check STP does not exist already
+  */
 %local cmtype;
 data _null_;
   length type uri $256;
@@ -6871,22 +8515,22 @@ data _null_;
   call symputx('stpuri',uri,'l');
 run;
 %if &cmtype = ClassifierMap %then %do;
-  %put WARNING: Stored Process &stpname already exists in &tree!;
+  %put %str(WARN)ING: Stored Process &stpname already exists in &tree!;
   %return;
 %end;
 
 /**
- * Check that the physical file exists
- */
+  * Check that the physical file exists
+  */
 %if %sysfunc(fileexist(&directory/&filename)) ne 1 %then %do;
-  %put WARNING: FILE *&directory/&filename* NOT FOUND!;
+  %put %str(WARN)ING: FILE *&directory/&filename* NOT FOUND!;
   %return;
 %end;
 
 %if &stptype=1 %then %do;
   /* type 1 STP - where code is stored on filesystem */
   %if %sysevalf(&sysver lt 9.2) %then %do;
-    %put WARNING: Version 9.2 or later required;
+    %put %str(WARN)ING: Version 9.2 or later required;
     %return;
   %end;
 
@@ -6900,7 +8544,7 @@ run;
   %if &checkdirtype ne Directory %then %do;
     %mm_getdirectories(path=&directory,outds=&outds ,mDebug=&mDebug)
     %if %mf_nobs(&outds)=0 or %sysfunc(exist(&outds))=0 %then %do;
-      %put WARNING: The directory object does not exist for &directory;
+      %put %str(WARN)ING: The directory object does not exist for &directory;
       %return;
     %end;
   %end;
@@ -6918,12 +8562,12 @@ run;
     length id $20 type $256;
     __rc=metadata_resolve("&treeuri",type,id);
     if type ne 'Tree' then do;
-      putlog "WARNING:  Invalid tree URI: &treeuri";
+      putlog "%str(WARN)ING:  Invalid tree URI: &treeuri";
       stopme=1;
     end;
     __rc=metadata_resolve(directoryuri,type,id);
     if type ne 'Directory' then do;
-      putlog 'WARNING:  Invalid directory URI: ' directoryuri;
+      putlog "%str(WARN)ING:  Invalid directory URI: " directoryuri;
       stopme=1;
     end;
 
@@ -6932,7 +8576,7 @@ run;
     if type ne 'LogicalServer' then do;
       __rc=metadata_getnobj("omsobj:LogicalServer?@Name='&server'",1,serveruri);
       if serveruri='' then do;
-        putlog "WARNING:  Invalid server: &server";
+        putlog "%str(WARN)ING:  Invalid server: &server";
         stopme=1;
       end;
     end;
@@ -6948,13 +8592,14 @@ run;
     rc3=METADATA_SETATTR(prompturi, 'GroupType','2');
     rc4=METADATA_SETATTR(prompturi, 'Name','Parameters');
     rc5=METADATA_SETATTR(prompturi, 'PublicType','Embedded:PromptGroup');
-    GroupInfo="<PromptGroup promptId='PromptGroup_%sysfunc(datetime())_&sysprocessid'"
+    GroupInfo=
+      "<PromptGroup promptId='PromptGroup_%sysfunc(datetime())_&sysprocessid'"
       !!" version='1.0'><Label><Text xml:lang='en-GB'>Parameters</Text>"
       !!"</Label></PromptGroup>";
     rc6 = METADATA_SETATTR(prompturi, 'GroupInfo',groupinfo);
 
     if sum(of rc1-rc6) ne 0 then do;
-      putlog 'WARNING: Issue creating prompt.';
+      putlog "%str(WARN)ING: Issue creating prompt.";
       if prompturi ne . then do;
         putlog '  Removing orphan: ' prompturi;
         rc = METADATA_DELOBJ(prompturi);
@@ -6969,7 +8614,7 @@ run;
     rc9=METADATA_SETATTR(fileuri, 'IsARelativeName','1');
     rc10=METADATA_SETASSN(fileuri, 'Directories','MODIFY',directoryuri);
     if sum(of rc7-rc10) ne 0 then do;
-      putlog 'WARNING: Issue creating file.';
+      putlog "%str(WARN)ING: Issue creating file.";
       if fileuri ne . then do;
         putlog '  Removing orphans:' prompturi fileuri;
         rc = METADATA_DELOBJ(prompturi);
@@ -6988,7 +8633,7 @@ run;
       !!"<OutputParameters/></StoredProcess>";
     rc14= METADATA_SETATTR(texturi, 'StoredText',storedtext);
     if sum(of rc11-rc14) ne 0 then do;
-      putlog 'WARNING: Issue creating TextStore.';
+      putlog "%str(WARN)ING: Issue creating TextStore.";
       if texturi ne . then do;
         putlog '  Removing orphans: ' prompturi fileuri texturi;
         rc = METADATA_DELOBJ(prompturi);
@@ -7036,7 +8681,7 @@ run;
 %else %if &stptype=2 %then %do;
   /* type 2 stp - code is stored in metadata */
   %if %sysevalf(&sysver lt 9.3) %then %do;
-    %put WARNING: SAS version 9.3 or later required to create type2 STPs;
+    %put %str(WARN)ING: SAS version 9.3 or later required to create type2 STPs;
     %return;
   %end;
   /* check we have the correct ServerContext */
@@ -7048,13 +8693,13 @@ run;
     call symputx('serveruri',serveruri);
   run;
   %if &serveruri=NOTFOUND %then %do;
-    %put WARNING: ServerContext *&server* not found!;
+    %put %str(WARN)ING: ServerContext *&server* not found!;
     %return;
   %end;
 
   /**
-   * First, create a Hello World type 2 stored process
-   */
+    * First, create a Hello World type 2 stored process
+    */
   filename &frefin temp;
   data _null_;
     file &frefin;
@@ -7109,19 +8754,17 @@ run;
   %end;
 
   /**
-   * Next, add the source code
-   */
+    * Next, add the source code
+    */
   %mm_updatestpsourcecode(stp=&tree/&stpname
     ,stpcode="&directory/&filename"
-    ,frefin=&frefin.
-    ,frefout=&frefout.
     ,mdebug=&mdebug
     ,minify=&minify)
 
 
 %end;
 %else %do;
-  %put WARNING:  STPTYPE=*&stptype* not recognised!;
+  %put %str(WARN)ING:  STPTYPE=*&stptype* not recognised!;
 %end;
 
 %mend;/**
@@ -7148,7 +8791,7 @@ Usage:
         %webout(OBJ,example2) * Object format, easier to work with ;
         %webout(CLOSE)
     ;;;;
-    %mm_createwebservice(path=/Public/app/common,name=appInit,code=ft15f001,replace=YES)
+    %mm_createwebservice(path=/Public/app/common,name=appInit)
 
   <h4> SAS Macros </h4>
   @li mm_createstp.sas
@@ -7202,20 +8845,21 @@ Usage:
   %let path=%substr(&path,1,%length(&path)-1);
 
 /**
- * Add webout macro
- * These put statements are auto generated - to change the macro, change the
- * source (mm_webout) and run `build.py`
- */
+  * Add webout macro
+  * These put statements are auto generated - to change the macro, change the
+  * source (mm_webout) and run `build.py`
+  */
 filename sasjs temp;
 data _null_;
   file sasjs lrecl=3000 ;
   put "/* Created on %sysfunc(datetime(),datetime19.) by %mf_getuser() */";
 /* WEBOUT BEGIN */
   put ' ';
-  put '%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=PROCJSON,dbg=0 ';
+  put '%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=DATASTEP,dbg=0 ';
   put ')/*/STORE SOURCE*/; ';
   put '%put output location=&jref; ';
   put '%if &action=OPEN %then %do; ';
+  put '  OPTIONS NOBOMFILE; ';
   put '  data _null_;file &jref encoding=''utf-8''; ';
   put '    put ''{"START_DTTM" : "'' "%sysfunc(datetime(),datetime20.3)" ''"''; ';
   put '  run; ';
@@ -7243,9 +8887,68 @@ data _null_;
   put '      %put &sysmacroname:  &ds NOT FOUND!!!; ';
   put '      %return; ';
   put '    %end; ';
+  put '    %if &fmt=Y %then %do; ';
+  put '      %put converting every variable to a formatted variable; ';
+  put '      /* see mp_ds2fmtds.sas for source */ ';
+  put '      proc contents noprint data=&ds ';
+  put '        out=_data_(keep=name type length format formatl formatd varnum); ';
+  put '      run; ';
+  put '      proc sort; ';
+  put '        by varnum; ';
+  put '      run; ';
+  put '      %local fmtds; ';
+  put '      %let fmtds=%scan(&syslast,2,.); ';
+  put '      /* prepare formats and varnames */ ';
+  put '      data _null_; ';
+  put '        set &fmtds end=last; ';
+  put '        name=upcase(name); ';
+  put '        /* fix formats */ ';
+  put '        if type=2 or type=6 then do; ';
+  put '          length fmt $49.; ';
+  put '          if format='''' then fmt=cats(''$'',length,''.''); ';
+  put '          else if formatl=0 then fmt=cats(format,''.''); ';
+  put '          else fmt=cats(format,formatl,''.''); ';
+  put '          newlen=max(formatl,length); ';
+  put '        end; ';
+  put '        else do; ';
+  put '          if format='''' then fmt=''best.''; ';
+  put '          else if formatl=0 then fmt=cats(format,''.''); ';
+  put '          else if formatd=0 then fmt=cats(format,formatl,''.''); ';
+  put '          else fmt=cats(format,formatl,''.'',formatd); ';
+  put '          /* needs to be wide, for datetimes etc */ ';
+  put '          newlen=max(length,formatl,24); ';
+  put '        end; ';
+  put '        /* 32 char unique name */ ';
+  put '        newname=''sasjs''!!substr(cats(put(md5(name),$hex32.)),1,27); ';
+  put ' ';
+  put '        call symputx(cats(''name'',_n_),name,''l''); ';
+  put '        call symputx(cats(''newname'',_n_),newname,''l''); ';
+  put '        call symputx(cats(''len'',_n_),newlen,''l''); ';
+  put '        call symputx(cats(''fmt'',_n_),fmt,''l''); ';
+  put '        call symputx(cats(''type'',_n_),type,''l''); ';
+  put '        if last then call symputx(''nobs'',_n_,''l''); ';
+  put '      run; ';
+  put '      data &fmtds; ';
+  put '        /* rename on entry */ ';
+  put '        set &ds(rename=( ';
+  put '      %local i; ';
+  put '      %do i=1 %to &nobs; ';
+  put '        &&name&i=&&newname&i ';
+  put '      %end; ';
+  put '        )); ';
+  put '      %do i=1 %to &nobs; ';
+  put '        length &&name&i $&&len&i; ';
+  put '        &&name&i=left(put(&&newname&i,&&fmt&i)); ';
+  put '        drop &&newname&i; ';
+  put '      %end; ';
+  put '        if _error_ then call symputx(''syscc'',1012); ';
+  put '      run; ';
+  put '      %let ds=&fmtds; ';
+  put '    %end; /* &fmt=Y */ ';
   put '    data _null_;file &jref mod ; ';
   put '      put "["; call symputx(''cols'',0,''l''); ';
-  put '    proc sort data=sashelp.vcolumn(where=(libname=''WORK'' & memname="%upcase(&ds)")) ';
+  put '    proc sort ';
+  put '      data=sashelp.vcolumn(where=(libname=''WORK'' & memname="%upcase(&ds)")) ';
   put '      out=_data_; ';
   put '      by varnum; ';
   put ' ';
@@ -7284,7 +8987,8 @@ data _null_;
   put '      %end; ';
   put '    %end; ';
   put '    run; ';
-  put '    /* write to temp loc to avoid _webout truncation - https://support.sas.com/kb/49/325.html */ ';
+  put '    /* write to temp loc to avoid _webout truncation ';
+  put '      - https://support.sas.com/kb/49/325.html */ ';
   put '    filename _sjs temp lrecl=131068 encoding=''utf-8''; ';
   put '    data _null_; file _sjs lrecl=131068 encoding=''utf-8'' mod; ';
   put '      set &tempds; ';
@@ -7320,11 +9024,11 @@ data _null_;
   put '%end; ';
   put ' ';
   put '%else %if &action=CLOSE %then %do; ';
-  put '  data _null_;file &jref encoding=''utf-8''; ';
+  put '  data _null_;file &jref encoding=''utf-8'' mod; ';
   put '    put "}"; ';
   put '  run; ';
   put '%end; ';
-  put '%mend; ';
+  put '%mend mp_jsonout; ';
   put '%macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y); ';
   put '%global _webin_file_count _webin_fileref1 _webin_name1 _program _debug ';
   put '  sasjs_tables; ';
@@ -7361,8 +9065,16 @@ data _null_;
   put '%else %if &action=OPEN %then %do; ';
   put '  /* fix encoding */ ';
   put '  OPTIONS NOBOMFILE; ';
+  put ' ';
+  put '  /** ';
+  put '    * check engine type to avoid the below err message: ';
+  put '    * > Function is only valid for filerefs using the CACHE access method. ';
+  put '    */ ';
   put '  data _null_; ';
-  put '    rc = stpsrv_header(''Content-type'',"text/html; encoding=utf-8"); ';
+  put '    set sashelp.vextfl(where=(fileref="_WEBOUT")); ';
+  put '    if xengine=''STREAM'' then do; ';
+  put '      rc=stpsrv_header(''Content-type'',"text/html; encoding=utf-8"); ';
+  put '    end; ';
   put '  run; ';
   put ' ';
   put '  /* setup json */ ';
@@ -7376,16 +9088,9 @@ data _null_;
   put '%end; ';
   put ' ';
   put '%else %if &action=ARR or &action=OBJ %then %do; ';
-  put '  %if &sysver=9.4 %then %do; ';
-  put '    %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt ';
-  put '      ,engine=PROCJSON,dbg=%str(&_debug) ';
-  put '    ) ';
-  put '  %end; ';
-  put '  %else %do; ';
-  put '    %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt ';
-  put '      ,engine=DATASTEP,dbg=%str(&_debug) ';
-  put '    ) ';
-  put '  %end; ';
+  put '  %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt ';
+  put '    ,engine=DATASTEP,dbg=%str(&_debug) ';
+  put '  ) ';
   put '%end; ';
   put '%else %if &action=CLOSE %then %do; ';
   put '  %if %str(&_debug) ge 131 %then %do; ';
@@ -7401,14 +9106,14 @@ data _null_;
   put '      i+1; ';
   put '      call symputx(''wt''!!left(i),name,''l''); ';
   put '      call symputx(''wtcnt'',i,''l''); ';
-  put '    data _null_; file &fref encoding=''utf-8''; ';
+  put '    data _null_; file &fref mod encoding=''utf-8''; ';
   put '      put ",""WORK"":{"; ';
   put '    %do i=1 %to &wtcnt; ';
   put '      %let wt=&&wt&i; ';
   put '      proc contents noprint data=&wt ';
   put '        out=_data_ (keep=name type length format:); ';
   put '      run;%let tempds=%scan(&syslast,2,.); ';
-  put '      data _null_; file &fref encoding=''utf-8''; ';
+  put '      data _null_; file &fref mod encoding=''utf-8''; ';
   put '        dsid=open("WORK.&wt",''is''); ';
   put '        nlobs=attrn(dsid,''NLOBS''); ';
   put '        nvars=attrn(dsid,''NVARS''); ';
@@ -7419,10 +9124,10 @@ data _null_;
   put '        put '',"nvars":'' nvars; ';
   put '      %mp_jsonout(OBJ,&tempds,jref=&fref,dslabel=colattrs,engine=DATASTEP) ';
   put '      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,engine=DATASTEP) ';
-  put '      data _null_; file &fref encoding=''utf-8''; ';
+  put '      data _null_; file &fref mod encoding=''utf-8''; ';
   put '        put "}"; ';
   put '    %end; ';
-  put '    data _null_; file &fref encoding=''utf-8''; ';
+  put '    data _null_; file &fref mod encoding=''utf-8''; ';
   put '      put "}"; ';
   put '    run; ';
   put '  %end; ';
@@ -7551,12 +9256,12 @@ run;
 **/
 
 %macro mm_deletedocument(
-     target=
+    target=
 )/*/STORE SOURCE*/;
 
 /**
- * Check document exist
- */
+  * Check document exist
+  */
 %local type;
 data _null_;
   length type uri $256;
@@ -7565,17 +9270,17 @@ data _null_;
   call symputx('stpuri',uri,'l');
 run;
 %if &type ne Document %then %do;
-  %put WARNING: No Document found at &target;
+  %put %str(WARN)ING: No Document found at &target;
   %return;
 %end;
 
 filename __in temp lrecl=10000;
 filename __out temp lrecl=10000;
 data _null_ ;
-   file __in ;
-   put "<DeleteMetadata><Metadata><Document Id='&stpuri'/>";
-   put "</Metadata><NS>SAS</NS><Flags>268436480</Flags><Options/>";
-   put "</DeleteMetadata>";
+  file __in ;
+  put "<DeleteMetadata><Metadata><Document Id='&stpuri'/>";
+  put "</Metadata><NS>SAS</NS><Flags>268436480</Flags><Options/>";
+  put "</DeleteMetadata>";
 run ;
 proc metadata in=__in out=__out verbose;run;
 
@@ -7586,8 +9291,8 @@ filename __in clear;
 filename __out clear;
 
 /**
- * Check deletion
- */
+  * Check deletion
+  */
 %local isgone;
 data _null_;
   length type uri $256;
@@ -7600,6 +9305,98 @@ run;
   %let syscc=4;
   %return;
 %end;
+
+%mend;
+/**
+  @file
+  @brief Deletes a library by Name
+
+  @details  Used to delete a library.
+  Usage:
+
+      %* create a library in the home directory ;
+      %mm_createlibrary(
+        libname=My Temp Library,
+        libref=XXTEMPXX,
+        tree=/User Folders/&sysuserid,
+        directory=%sysfunc(pathname(work))
+      )
+
+      %* delete the library ;
+      %mm_deletelibrary(name=My Temp Library)
+
+  After running the above, the following will be shown in the log:
+
+  ![](https://i.imgur.com/Y4Tog24.png)
+
+  @param [in] name= the name (not libref) of the library to be deleted
+
+  <h4> SAS Macros </h4>
+  @li mf_getuniquefileref.sas
+  @li mp_abort.sas
+
+
+  @version 9.4
+  @author Allan Bowe
+
+**/
+
+%macro mm_deletelibrary(
+      name=
+)/*/STORE SOURCE*/;
+
+
+/**
+  * Check if library exists and get uri
+  */
+data _null_;
+  length type uri $256;
+  rc=metadata_resolve("omsobj:SASLibrary?@Name='&name'",type,uri);
+  call symputx('checktype',type,'l');
+  call symputx('liburi',uri,'l');
+  putlog (_all_)(=);
+run;
+%if &checktype ne SASLibrary %then %do;
+  %put &sysmacroname: Library (&name) was not found, and so will not be deleted;
+  %return;
+%end;
+
+%local fname1 fname2;
+%let fname1=%mf_getuniquefileref();
+%let fname2=%mf_getuniquefileref();
+
+filename &fname1 temp lrecl=10000;
+filename &fname2 temp lrecl=10000;
+data _null_ ;
+  file &fname1 ;
+  put "<DeleteMetadata><Metadata><SASLibrary Id='&liburi'/>";
+  put "</Metadata><NS>SAS</NS><Flags>268436480</Flags><Options/>";
+  put "</DeleteMetadata>";
+run ;
+proc metadata in=&fname1 out=&fname2 verbose;run;
+
+/* list the result */
+data _null_;infile &fname2; input; list; run;
+
+filename &fname1 clear;
+filename &fname2 clear;
+
+/**
+  * Check deletion
+  */
+%local isgone;
+data _null_;
+  length type uri $256;
+  rc=metadata_resolve("omsobj:SASLibrary?@Id='&liburi'",type,uri);
+  call symputx('isgone',type,'l');
+run;
+
+%mp_abort(iftrue=(&isgone = SASLibrary)
+  ,mac=&sysmacroname
+  ,msg=%str(Library (&name) NOT deleted)
+)
+
+%put &sysmacroname: Library &name (&liburi) was successfully deleted;
 
 %mend;
 /**
@@ -7621,12 +9418,12 @@ run;
 **/
 
 %macro mm_deletestp(
-     target=
+    target=
 )/*/STORE SOURCE*/;
 
 /**
- * Check STP does exist
- */
+  * Check STP does exist
+  */
 %local cmtype;
 data _null_;
   length type uri $256;
@@ -7642,10 +9439,10 @@ run;
 filename __in temp lrecl=10000;
 filename __out temp lrecl=10000;
 data _null_ ;
-   file __in ;
-   put "<DeleteMetadata><Metadata><ClassifierMap Id='&stpuri'/>";
-   put "</Metadata><NS>SAS</NS><Flags>268436480</Flags><Options/>";
-   put "</DeleteMetadata>";
+  file __in ;
+  put "<DeleteMetadata><Metadata><ClassifierMap Id='&stpuri'/>";
+  put "</Metadata><NS>SAS</NS><Flags>268436480</Flags><Options/>";
+  put "</DeleteMetadata>";
 run ;
 proc metadata in=__in out=__out verbose;run;
 
@@ -7656,8 +9453,8 @@ filename __in clear;
 filename __out clear;
 
 /**
- * Check deletion
- */
+  * Check deletion
+  */
 %local isgone;
 data _null_;
   length type uri $256;
@@ -7695,8 +9492,8 @@ run;
 )/*/STORE SOURCE*/;
 
 %if %length(&outds)>30 %then %do;
-  %put %str(ERR)OR: Temp tables are created with the &outds prefix, which therefore
-  needs to be 30 characters or less;
+  %put %str(ERR)OR: Temp tables are created with the &outds prefix, which
+    therefore needs to be 30 characters or less;
   %return;
 %end;
 %if %index(&outds,'.')>0 %then %do;
@@ -7732,11 +9529,11 @@ data _null_;
   put str;
   if last then do;
     /* collate attributes */
-	  str=cats("data &outds._logat; set &outds.da1-&outds.da",_n_,";run;");
-	  put str;
+    str=cats("data &outds._logat; set &outds.da1-&outds.da",_n_,";run;");
+    put str;
     /* collate associations */
-	  str=cats("data &outds._logas; set &outds.a1-&outds.a",_n_,";run;");
-	  put str;
+    str=cats("data &outds._logas; set &outds.a1-&outds.a",_n_,";run;");
+    put str;
     /* tidy up */
     str=cats("proc delete data=&outds.da1-&outds.da",_n_,";run;");
     put str;
@@ -7810,7 +9607,7 @@ filename &fileref clear;
 **/
 
 %macro mm_getcols(
-     tableuri=
+    tableuri=
     ,outds=work.mm_getcols
 )/*/STORE SOURCE*/;
 
@@ -7915,9 +9712,9 @@ run;
   @param mDebug= set to 1 to show debug messages in the log
 
   @returns outds  dataset containing the following columns:
-   - directoryuri
-   - groupname
-   - groupdesc
+    - directoryuri
+    - groupname
+    - groupdesc
 
   @version 9.2
   @author Allan Bowe
@@ -7925,7 +9722,7 @@ run;
 **/
 
 %macro mm_getDirectories(
-     path=
+    path=
     ,outds=work.mm_getDirectories
     ,mDebug=0
 )/*/STORE SOURCE*/;
@@ -7944,8 +9741,10 @@ data &outds (keep=directoryuri name directoryname directorydesc );
   do while
   (metadata_getnobj("omsobj:Directory?@Id contains '.'",__i,directoryuri)>0);
 %end; %else %do;
-  do while
-  (metadata_getnobj("omsobj:Directory?@DirectoryName='&path'",__i,directoryuri)>0);
+  do while(
+    metadata_getnobj("omsobj:Directory?@DirectoryName='&path'",__i,directoryuri)
+    >0
+  );
 %end;
     __rc1=metadata_getattr(directoryuri, "Name", name);
     __rc2=metadata_getattr(directoryuri, "DirectoryName", directoryname);
@@ -7997,8 +9796,8 @@ run;
 %&mD.put _local_;
 
 /**
- * check tree exists
- */
+  * check tree exists
+  */
 
 data _null_;
   length type uri $256;
@@ -8014,8 +9813,8 @@ run;
 )
 
 /**
- * Check object exists
- */
+  * Check object exists
+  */
 data _null_;
   length type docuri tsuri tsid $256 ;
   rc1=metadata_pathobj("","&tree/&name","Note",type,docuri);
@@ -8033,14 +9832,14 @@ run;
 )
 
 /**
- * Now we can extract the textstore
- */
+  * Now we can extract the textstore
+  */
 filename __getdoc temp lrecl=10000000;
 proc metadata
- in="<GetMetadata><Reposid>$METAREPOSITORY</Reposid>
-    <Metadata><TextStore Id='&tsid'/></Metadata>
-    <Ns>SAS</Ns><Flags>1</Flags><Options/></GetMetadata>"
- out=__getdoc ;
+  in="<GetMetadata><Reposid>$METAREPOSITORY</Reposid>
+      <Metadata><TextStore Id='&tsid'/></Metadata>
+      <Ns>SAS</Ns><Flags>1</Flags><Options/></GetMetadata>"
+  out=__getdoc ;
 run;
 
 /* find the beginning of the text */
@@ -8058,47 +9857,47 @@ data _null_;
 /* read the content, byte by byte, resolving escaped chars */
 filename __outdoc "&outref" lrecl=100000;
 data _null_;
- length filein 8 fileid 8;
- filein = fopen("__getdoc","I",1,"B");
- fileid = fopen("__outdoc","O",1,"B");
- rec = "20"x;
- length entity $6;
- do while(fread(filein)=0);
-   x+1;
-   if x>&start then do;
-    rc = fget(filein,rec,1);
-    if rec='"' then leave;
-    else if rec="&" then do;
-      entity=rec;
-      do until (rec=";");
-        if fread(filein) ne 0 then goto getout;
-        rc = fget(filein,rec,1);
-        entity=cats(entity,rec);
+  length filein 8 fileid 8;
+  filein = fopen("__getdoc","I",1,"B");
+  fileid = fopen("__outdoc","O",1,"B");
+  rec = "20"x;
+  length entity $6;
+  do while(fread(filein)=0);
+    x+1;
+    if x>&start then do;
+      rc = fget(filein,rec,1);
+      if rec='"' then leave;
+      else if rec="&" then do;
+        entity=rec;
+        do until (rec=";");
+          if fread(filein) ne 0 then goto getout;
+          rc = fget(filein,rec,1);
+          entity=cats(entity,rec);
+        end;
+        select (entity);
+          when ('&amp;' ) rec='&'  ;
+          when ('&lt;'  ) rec='<'  ;
+          when ('&gt;'  ) rec='>'  ;
+          when ('&apos;') rec="'"  ;
+          when ('&quot;') rec='"'  ;
+          when ('&#x0a;') rec='0A'x;
+          when ('&#x0d;') rec='0D'x;
+          when ('&#36;' ) rec='$'  ;
+          when ('&#x09;') rec='09'x;
+          otherwise putlog "%str(WARN)ING: missing value for " entity=;
+        end;
+        rc =fput(fileid, substr(rec,1,1));
+        rc =fwrite(fileid);
       end;
-      select (entity);
-        when ('&amp;' ) rec='&'  ;
-        when ('&lt;'  ) rec='<'  ;
-        when ('&gt;'  ) rec='>'  ;
-        when ('&apos;') rec="'"  ;
-        when ('&quot;') rec='"'  ;
-        when ('&#x0a;') rec='0A'x;
-        when ('&#x0d;') rec='0D'x;
-        when ('&#36;' ) rec='$'  ;
-        when ('&#x09;') rec='09'x;
-        otherwise putlog "WARNING: missing value for " entity=;
+      else do;
+        rc =fput(fileid,rec);
+        rc =fwrite(fileid);
       end;
-      rc =fput(fileid, substr(rec,1,1));
-      rc =fwrite(fileid);
     end;
-    else do;
-      rc =fput(fileid,rec);
-      rc =fwrite(fileid);
-    end;
-   end;
- end;
- getout:
- rc=fclose(filein);
- rc=fclose(fileid);
+  end;
+  getout:
+  rc=fclose(filein);
+  rc=fclose(fileid);
 run;
 filename __getdoc clear;
 filename __outdoc clear;
@@ -8117,7 +9916,8 @@ filename __outdoc clear;
       %mm_getfoldermembers(root=/User Folders/&sysuserid, outds=usercontent)
 
   @param [in] root= the parent folder under which to return all contents
-  @param [out] outds= the dataset to create that contains the list of directories
+  @param [out] outds= the dataset to create that contains the list of
+    directories
   @param [in] mDebug= set to 1 to show debug messages in the log
 
   <h4> Data Outputs </h4>
@@ -8126,11 +9926,11 @@ filename __outdoc clear;
 
   |metauri $17|metaname $256|metatype $32|
   |---|---|---|
-  |A5XLSNXI.AA000001|Products	|Folder|
-  |A5XLSNXI.AA000002|Shared Data	|Folder|
-  |A5XLSNXI.AA000003|User Folders	|Folder|
-  |A5XLSNXI.AA000004|System	|Folder|
-  |A5XLSNXI.AA00003K|30.SASApps	|Folder|
+  |A5XLSNXI.AA000001|Products  |Folder|
+  |A5XLSNXI.AA000002|Shared Data  |Folder|
+  |A5XLSNXI.AA000003|User Folders  |Folder|
+  |A5XLSNXI.AA000004|System  |Folder|
+  |A5XLSNXI.AA00003K|30.SASApps  |Folder|
   |A5XLSNXI.AA00006A|Public|Folder|
 
   <h4> SAS Macros </h4>
@@ -8143,7 +9943,7 @@ filename __outdoc clear;
 
 **/
 %macro mm_getfoldermembers(
-     root=
+    root=
     ,outds=work.mm_getfoldertree
 )/*/STORE SOURCE*/;
 
@@ -8214,7 +10014,8 @@ filename __outdoc clear;
     options notes source;
 
   @param [in] root= the parent folder under which to return all contents
-  @param [out] outds= the dataset to create that contains the list of directories
+  @param [out] outds= the dataset to create that contains the list of
+    directories
   @param [in] mDebug= set to 1 to show debug messages in the log
 
   <h4> SAS Macros </h4>
@@ -8224,7 +10025,7 @@ filename __outdoc clear;
 
 **/
 %macro mm_getfoldertree(
-     root=
+    root=
     ,outds=work.mm_getfoldertree
     ,mDebug=0
     ,depth=50 /* how many nested folders to query */
@@ -8293,11 +10094,11 @@ run;
   @file
   @brief Creates dataset with all members of a metadata group
   @details
-  
+
   usage:
-  
+
     %mm_getgroupmembers(someGroupName
-      ,outds=work.mm_getgroupmembers 
+      ,outds=work.mm_getgroupmembers
       ,emails=YES)
 
   @param group metadata group for which to bring back members
@@ -8374,14 +10175,15 @@ run;
 
   @param [in] user= the metadata user to return groups for.  Leave blank for all
     groups.
-  @param [in] repo= the metadata repository that contains the user/group information
+  @param [in] repo= the metadata repository that contains the user/group
+    information
   @param [in] mDebug= set to 1 to show debug messages in the log
   @param [out] outds= the dataset to create that contains the list of groups
 
   @returns outds  dataset containing all groups in a column named "metagroup"
-   - groupuri
-   - groupname
-   - groupdesc
+    - groupuri
+    - groupname
+    - groupdesc
 
   @version 9.2
   @author Allan Bowe
@@ -8389,7 +10191,7 @@ run;
 **/
 
 %macro mm_getGroups(
-     user=
+    user=
     ,outds=work.mm_getGroups
     ,repo=foundation
     ,mDebug=0
@@ -8402,7 +10204,8 @@ run;
 %&mD.put Executing mm_getGroups.sas;
 %&mD.put _local_;
 
-/* on some sites, user / group info is in a different metadata repo to the default */
+/* on some sites, user / group info is in a different metadata repo to the
+    default */
 %if &oldrepo ne &repo %then %do;
   options metarepository=&repo;
 %end;
@@ -8455,6 +10258,135 @@ run;
 
 %mend;/**
   @file
+  @brief Compares the metadata of a library with the physical tables
+  @details Creates a series of output tables that show the differences between
+  metadata and physical tables.
+  Each output can be created with an optional prefix.
+
+  Credit - Paul Homes
+  https://platformadmin.com/blogs/paul/2012/11/sas-proc-metalib-ods-output
+
+  Usage:
+
+      %* create (and assign) a library for testing purposes ;
+      %mm_createlibrary(
+        libname=My Temp Library,
+        libref=XXTEMPXX,
+        tree=/User Folders/&sysuserid,
+        directory=%sysfunc(pathname(work))
+      )
+
+      %* create some tables;
+      data work.table1 table2 table3;
+        a=1;b='two';c=3;
+      run;
+
+      %* register the tables;
+      proc metalib;
+        omr=(library="My Temp Library");
+        report(type=detail);
+        update_rule (delete);
+      run;
+
+      %* modify the tables;
+      proc sql;
+      drop table table3;
+      alter table table2 drop c;
+      alter table table2 add d num;
+
+      %* run the macro;
+      %mm_getlibmetadiffs(libname=My Temp Library)
+
+      %* delete the library ;
+      %mm_deletelibrary(name=My Temp Library)
+
+  The program will create four output tables, with the following structure (and
+  example data):
+
+  #### &prefix.added
+  |name:$32.|metaID:$17.|SAStabName:$32.|
+  |---|---|---|
+  |||DATA1|
+
+  #### &prefix.deleted
+  |name:$32.|metaID:$17.|SAStabName:$32.|
+  |---|---|---|
+  |TABLE3|A5XLSNXI.BK0001HO|TABLE3|
+
+  #### &prefix.updated
+  |tabName:$32.|tabMetaID:$17.|SAStabName:$32.|metaName:$32.|metaID:$17.|sasname:$32.|metaType:$16.|change:$64.|
+  |---|---|---|---|---|---|---|---|
+  |TABLE2|A5XLSNXI.BK0001HN|TABLE2|c|A5XLSNXI.BM000MA9|c|Column|Deleted|
+  ||||d||d|Column|Added|
+
+  #### &prefix.meta
+  |Label1:$28.|cValue1:$1.|nValue1:D12.3|
+  |---|---|---|
+  |Total tables analyzed|4|4|
+  |Tables to be Updated|1|1|
+  |Tables to be Deleted|1|1|
+  |Tables to be Added|1|1|
+  |Tables matching data source|1|1|
+  |Tables not processed|0|0|
+
+  If you are interested in more functionality like this (checking the health of
+  SAS metadata and your SAS 9 environment) then do contact [Allan Bowe](
+  https://www.linkedin.com/in/allanbowe) for details of our SAS 9 Health Check
+  service.
+
+  Our system scan will perform hundreds of checks to identify common issues,
+  such as dangling metadata, embedded passwords, security issues and more.
+
+  @param [in] libname= the metadata name of the library to be compared
+  @param [out] outlib= The output library in which to store the output tables.
+  Default=WORK.
+  @param [out] prefix The prefix for the four tables created. Default=metadiff.
+
+  @version 9.3
+  @author Allan Bowe
+
+**/
+
+%macro mm_getlibmetadiffs(
+  libname= ,
+  prefix=metadiff,
+  outlib=work
+)/*/STORE SOURCE*/;
+
+  /* create tempds */
+  data;run;
+  %local tempds;
+  %let tempds=&syslast;
+
+  /* save options */
+  proc optsave out=&tempds;
+  run;
+
+  options VALIDVARNAME=ANY VALIDMEMNAME=EXTEND;
+
+  ods output
+    factoid1=&outlib..&prefix.meta
+    updtab=&outlib..&prefix.updated
+    addtab=&outlib..&prefix.added
+    deltab=&outlib..&prefix.deleted
+  ;
+
+  proc metalib;
+    omr=(library="&libname");
+    noexec;
+    report(type=detail);
+    update_rule (delete);
+  run;
+
+  ods output close;
+
+  /* restore options */
+  proc optload data=&tempds;
+  run;
+
+%mend mm_getlibmetadiffs;
+/**
+  @file
   @brief Creates a dataset with all metadata libraries
   @details Will only show the libraries to which a user has the requisite
     metadata access.
@@ -8501,7 +10433,7 @@ run;
 filename response temp;
 /* get list of libraries */
 proc metadata in=
- '<GetMetadataObjects>
+  '<GetMetadataObjects>
   <Reposid>$METAREPOSITORY</Reposid>
   <Type>SASLibrary</Type>
   <Objects/>
@@ -8579,10 +10511,10 @@ libname _XML_ clear;
 filename response temp;
 /* get list of libraries */
 proc metadata in=
- "<GetMetadataObjects><Reposid>$METAREPOSITORY</Reposid>
-   <Type>&type</Type><Objects/><NS>SAS</NS>
-   <Flags>0</Flags><Options/></GetMetadataObjects>"
-  out=response;
+  "<GetMetadataObjects><Reposid>$METAREPOSITORY</Reposid>
+    <Type>&type</Type><Objects/><NS>SAS</NS>
+    <Flags>0</Flags><Options/></GetMetadataObjects>"
+    out=response;
 run;
 
 /* write the response to the log for debugging */
@@ -8597,7 +10529,8 @@ filename sxlemap temp;
 data _null_;
   file sxlemap;
   put '<SXLEMAP version="1.2" name="SASObjects"><TABLE name="SASObjects">';
-  put "<TABLE-PATH syntax='XPath'>/GetMetadataObjects/Objects/&type</TABLE-PATH>";
+  put "<TABLE-PATH syntax='XPath'>/GetMetadataObjects/Objects/&type";
+  put "</TABLE-PATH>";
   put '<COLUMN name="id">';
   put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/&type/@Id</PATH>";
   put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>200</LENGTH>";
@@ -8620,8 +10553,9 @@ libname _XML_ clear;
 %mend;/**
   @file mm_getpublictypes.sas
   @brief Creates a dataset with all deployable public types
-  @details More info: https://support.sas.com/documentation/cdl/en/bisag/65422/HTML/default/viewer.htm#n1nkrdzsq5iunln18bk2236istkb.htm
-  
+  @details More info:
+  https://support.sas.com/documentation/cdl/en/bisag/65422/HTML/default/viewer.htm#n1nkrdzsq5iunln18bk2236istkb.htm
+
   Usage:
 
         * dataset will contain one column - publictype ($64);
@@ -8729,8 +10663,8 @@ quit;
 filename response temp;
 /* get list of libraries */
 proc metadata in=
- "<GetRepositories><Repositories/><Flags>1</Flags><Options/></GetRepositories>"
-  out=response;
+  "<GetRepositories><Repositories/><Flags>1</Flags><Options/></GetRepositories>"
+    out=response;
 run;
 
 /* write the response to the log for debugging */
@@ -8747,61 +10681,76 @@ filename sxlemap temp;
 data _null_;
   file sxlemap;
   put '<SXLEMAP version="1.2" name="SASRepos"><TABLE name="SASRepos">';
-  put "<TABLE-PATH syntax='XPath'>/GetRepositories/Repositories/Repository</TABLE-PATH>";
+  put "<TABLE-PATH syntax='XPath'>/GetRepositories/Repositories/Repository";
+  put "</TABLE-PATH>";
   put '<COLUMN name="id">';
-  put "<PATH syntax='XPath'>/GetRepositories/Repositories/Repository/@Id</PATH>";
+  put "<PATH syntax='XPath'>/GetRepositories/Repositories/Repository/@Id";
+  put "</PATH>";
   put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>200</LENGTH>";
   put '</COLUMN>';
   put '<COLUMN name="name">';
-  put "<PATH syntax='XPath'>/GetRepositories/Repositories/Repository/@Name</PATH>";
+  put "<PATH syntax='XPath'>/GetRepositories/Repositories/Repository/@Name";
+  put "</PATH>";
   put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>200</LENGTH>";
   put '</COLUMN>';
   put '<COLUMN name="desc">';
-  put "<PATH syntax='XPath'>/GetRepositories/Repositories/Repository/@Desc</PATH>";
+  put "<PATH syntax='XPath'>/GetRepositories/Repositories/Repository/@Desc";
+  put "</PATH>";
   put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>200</LENGTH>";
   put '</COLUMN>';
   put '<COLUMN name="DefaultNS">';
-  put "<PATH syntax='XPath'>/GetRepositories/Repositories/Repository/@DefaultNS</PATH>";
+  put "<PATH syntax='XPath'>";
+  put "/GetRepositories/Repositories/Repository/@DefaultNS</PATH>";
   put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>200</LENGTH>";
   put '</COLUMN>';
   put '<COLUMN name="RepositoryType">';
-  put "<PATH syntax='XPath'>/GetRepositories/Repositories/Repository/@RepositoryType</PATH>";
+  put "<PATH syntax='XPath'>";
+  put "/GetRepositories/Repositories/Repository/@RepositoryType</PATH>";
   put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>20</LENGTH>";
   put '</COLUMN>';
   put '<COLUMN name="RepositoryFormat">';
-  put "<PATH syntax='XPath'>/GetRepositories/Repositories/Repository/@RepositoryFormat</PATH>";
+  put "<PATH syntax='XPath'>";
+  put "/GetRepositories/Repositories/Repository/@RepositoryFormat</PATH>";
   put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>10</LENGTH>";
   put '</COLUMN>';
   put '<COLUMN name="Access">';
-  put "<PATH syntax='XPath'>/GetRepositories/Repositories/Repository/@Access</PATH>";
+  put "<PATH syntax='XPath'>";
+  put "/GetRepositories/Repositories/Repository/@Access</PATH>";
   put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>16</LENGTH>";
   put '</COLUMN>';
   put '<COLUMN name="CurrentAccess">';
-  put "<PATH syntax='XPath'>/GetRepositories/Repositories/Repository/@CurrentAccess</PATH>";
+  put "<PATH syntax='XPath'>";
+  put "/GetRepositories/Repositories/Repository/@CurrentAccess</PATH>";
   put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>16</LENGTH>";
   put '</COLUMN>';
   put '<COLUMN name="PauseState">';
-  put "<PATH syntax='XPath'>/GetRepositories/Repositories/Repository/@PauseState</PATH>";
+  put "<PATH syntax='XPath'>";
+  put "/GetRepositories/Repositories/Repository/@PauseState</PATH>";
   put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>16</LENGTH>";
   put '</COLUMN>';
   put '<COLUMN name="Path">';
-  put "<PATH syntax='XPath'>/GetRepositories/Repositories/Repository/@Path</PATH>";
+  put "<PATH syntax='XPath'>/GetRepositories/Repositories/Repository/@Path";
+  put "</PATH>";
   put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>256</LENGTH>";
   put '</COLUMN>';
   put '<COLUMN name="Engine">';
-  put "<PATH syntax='XPath'>/GetRepositories/Repositories/Repository/@Engine</PATH>";
+  put "<PATH syntax='XPath'>/GetRepositories/Repositories/Repository/@Engine";
+  put "</PATH>";
   put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>8</LENGTH>";
   put '</COLUMN>';
   put '<COLUMN name="Options">';
-  put "<PATH syntax='XPath'>/GetRepositories/Repositories/Repository/@Options</PATH>";
+  put "<PATH syntax='XPath'>/GetRepositories/Repositories/Repository/@Options";
+  put "</PATH>";
   put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>32</LENGTH>";
   put '</COLUMN>';
   put '<COLUMN name="MetadataCreated">';
-  put "<PATH syntax='XPath'>/GetRepositories/Repositories/Repository/@MetadataCreated</PATH>";
+  put "<PATH syntax='XPath'>";
+  put "/GetRepositories/Repositories/Repository/@MetadataCreated</PATH>";
   put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>24</LENGTH>";
   put '</COLUMN>';
   put '<COLUMN name="MetadataUpdated">';
-  put "<PATH syntax='XPath'>/GetRepositories/Repositories/Repository/@MetadataUpdated</PATH>";
+  put "<PATH syntax='XPath'>";
+  put "/GetRepositories/Repositories/Repository/@MetadataUpdated</PATH>";
   put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>24</LENGTH>";
   put '</COLUMN>';
   put '</TABLE></SXLEMAP>';
@@ -8850,28 +10799,32 @@ libname _XML_ clear;
 filename response temp;
 options noquotelenmax;
 proc metadata in= '<GetMetadataObjects><Reposid>$METAREPOSITORY</Reposid>
- <Type>IdentityGroup</Type><NS>SAS</NS><Flags>388</Flags>
- <Options>
- <Templates><IdentityGroup Name="" Desc="" PublicType=""/></Templates>
- <XMLSelect search="@PublicType=''Role''"/>
- </Options>
- </GetMetadataObjects>'
-  out=response;
+  <Type>IdentityGroup</Type><NS>SAS</NS><Flags>388</Flags>
+  <Options>
+  <Templates><IdentityGroup Name="" Desc="" PublicType=""/></Templates>
+  <XMLSelect search="@PublicType=''Role''"/>
+  </Options>
+  </GetMetadataObjects>'
+    out=response;
 run;
 
 filename sxlemap temp;
 data _null_;
   file sxlemap;
   put '<SXLEMAP version="1.2" name="roles"><TABLE name="roles">';
-  put "<TABLE-PATH syntax='XPath'>/GetMetadataObjects/Objects/IdentityGroup</TABLE-PATH>";
+  put "<TABLE-PATH syntax='XPath'>/GetMetadataObjects/Objects/IdentityGroup";
+  put "</TABLE-PATH>";
   put '<COLUMN name="roleuri">';
-  put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/IdentityGroup/@Id</PATH>";
+  put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/IdentityGroup/@Id";
+  put "</PATH>";
   put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>32</LENGTH>";
   put '</COLUMN><COLUMN name="rolename">';
-  put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/IdentityGroup/@Name</PATH>";
+  put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/IdentityGroup/@Name";
+  put "</PATH>";
   put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>256</LENGTH>";
   put '</COLUMN><COLUMN name="roledesc">';
-  put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/IdentityGroup/@Desc</PATH>";
+  put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/IdentityGroup/@Desc";
+  put "</PATH>";
   put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>500</LENGTH>";
   put '</COLUMN></TABLE></SXLEMAP>';
 run;
@@ -8971,21 +10924,27 @@ filename __mc2 clear;
 
 %mend;/**
   @file
-  @brief Writes the code of an to an external file, or the log if none provided
-  @details Get the
+  @brief Writes the code of an STP to an external file
+  @details Fetches the SAS code from a Stored Process where the code is stored
+  in metadata.
 
-  usage:
+  Usage:
 
       %mm_getstpcode(tree=/some/meta/path
         ,name=someSTP
         ,outloc=/some/unquoted/filename.ext
       )
 
-  @param tree= The metadata path of the Stored Process (can also contain name)
-  @param name= Stored Process name.  Leave blank if included above.
-  @param outloc= full and unquoted path to the desired text file.  This will be
-    overwritten if it already exists.  If not provided, the code will be written
-    to the log.
+  @param [in] tree= The metadata path of the Stored Process (can also contain
+    name)
+  @param [in] name= Stored Process name.  Leave blank if included above.
+  @param [out] outloc= (0) full and unquoted path to the desired text file.
+    This will be overwritten if it already exists.
+  @param [out] outref= (0) Fileref to which to write the code.
+  @param [out] showlog=(NO) Set to YES to print log to the window
+
+  <h4> SAS Macros </h4>
+  @li mf_getuniquefileref.sas
 
   @author Allan Bowe
 
@@ -8994,8 +10953,10 @@ filename __mc2 clear;
 %macro mm_getstpcode(
     tree=/User Folders/sasdemo/somestp
     ,name=
-    ,outloc=
+    ,outloc=0
+    ,outref=0
     ,mDebug=1
+    ,showlog=NO
     );
 
 %local mD;
@@ -9040,14 +11001,14 @@ run;
 
 
 /**
- * Now we can extract the textstore
- */
+  * Now we can extract the textstore
+  */
 filename __getdoc temp lrecl=10000000;
 proc metadata
- in="<GetMetadata><Reposid>$METAREPOSITORY</Reposid>
-    <Metadata><TextStore Id='&tsuri'/></Metadata>
-    <Ns>SAS</Ns><Flags>1</Flags><Options/></GetMetadata>"
- out=__getdoc ;
+  in="<GetMetadata><Reposid>$METAREPOSITORY</Reposid>
+      <Metadata><TextStore Id='&tsuri'/></Metadata>
+      <Ns>SAS</Ns><Flags>1</Flags><Options/></GetMetadata>"
+  out=__getdoc ;
 run;
 
 /* find the beginning of the text */
@@ -9063,57 +11024,61 @@ data _null_;
   stop;
 
 %local outeng;
-%if %length(&outloc)=0 %then %let outeng=TEMP;
+%if "&outloc"="0" %then %let outeng=TEMP;
 %else %let outeng="&outloc";
+%local fref;
+%if &outref=0 %then %let fref=%mf_getuniquefileref();
+%else %let fref=&outref;
+
 /* read the content, byte by byte, resolving escaped chars */
-filename __outdoc &outeng lrecl=100000;
+filename &fref &outeng lrecl=100000;
 data _null_;
- length filein 8 fileid 8;
- filein = fopen("__getdoc","I",1,"B");
- fileid = fopen("__outdoc","O",1,"B");
- rec = "20"x;
- length entity $6;
- do while(fread(filein)=0);
-   x+1;
-   if x>&start then do;
-    rc = fget(filein,rec,1);
-    if rec='"' then leave;
-    else if rec="&" then do;
-      entity=rec;
-      do until (rec=";");
-        if fread(filein) ne 0 then goto getout;
-        rc = fget(filein,rec,1);
-        entity=cats(entity,rec);
+  length filein 8 fileid 8;
+  filein = fopen("__getdoc","I",1,"B");
+  fileid = fopen("&fref","O",1,"B");
+  rec = "20"x;
+  length entity $6;
+  do while(fread(filein)=0);
+    x+1;
+    if x>&start then do;
+      rc = fget(filein,rec,1);
+      if rec='"' then leave;
+      else if rec="&" then do;
+        entity=rec;
+        do until (rec=";");
+          if fread(filein) ne 0 then goto getout;
+          rc = fget(filein,rec,1);
+          entity=cats(entity,rec);
+        end;
+        select (entity);
+          when ('&amp;' ) rec='&'  ;
+          when ('&lt;'  ) rec='<'  ;
+          when ('&gt;'  ) rec='>'  ;
+          when ('&apos;') rec="'"  ;
+          when ('&quot;') rec='"'  ;
+          when ('&#x0a;') rec='0A'x;
+          when ('&#x0d;') rec='0D'x;
+          when ('&#36;' ) rec='$'  ;
+          when ('&#x09;') rec='09'x;
+          otherwise putlog "%str(WARN)ING: missing value for " entity=;
+        end;
+        rc =fput(fileid, substr(rec,1,1));
+        rc =fwrite(fileid);
       end;
-      select (entity);
-        when ('&amp;' ) rec='&'  ;
-        when ('&lt;'  ) rec='<'  ;
-        when ('&gt;'  ) rec='>'  ;
-        when ('&apos;') rec="'"  ;
-        when ('&quot;') rec='"'  ;
-        when ('&#x0a;') rec='0A'x;
-        when ('&#x0d;') rec='0D'x;
-        when ('&#36;' ) rec='$'  ;
-        when ('&#x09;') rec='09'x;
-        otherwise putlog "%str(WARN)ING: missing value for " entity=;
+      else do;
+        rc =fput(fileid,rec);
+        rc =fwrite(fileid);
       end;
-      rc =fput(fileid, substr(rec,1,1));
-      rc =fwrite(fileid);
     end;
-    else do;
-      rc =fput(fileid,rec);
-      rc =fwrite(fileid);
-    end;
-   end;
- end;
- getout:
- rc=fclose(filein);
- rc=fclose(fileid);
+  end;
+  getout:
+  rc=fclose(filein);
+  rc=fclose(fileid);
 run;
 
-%if &outeng=TEMP %then %do;
+%if &showlog=YES %then %do;
   data _null_;
-    infile __outdoc lrecl=32767 end=last;
+    infile &fref lrecl=32767 end=last;
     input;
     if _n_=1 then putlog '>>stpcodeBEGIN<<';
     putlog _infile_;
@@ -9122,9 +11087,11 @@ run;
 %end;
 
 filename __getdoc clear;
-filename __outdoc clear;
+%if &outref=0 %then %do;
+  filename &fref clear;
+%end;
 
-%mend;
+%mend mm_getstpcode;
 /**
   @file
   @brief Returns a dataset with all Stored Processes, or just those in a
@@ -9150,16 +11117,17 @@ filename __outdoc clear;
     combine with the <code>tree=</code> parameter.
   @param outds= the dataset to create that contains the list of stps.
   @param mDebug= set to 1 to show debug messages in the log
-  @param showDesc= provide a non blank value to return stored process descriptions
-  @param showUsageVersion= provide a non blank value to return the UsageVersion.  This
-    is either 1000000 (type 1, 9.2) or 2000000 (type2, 9.3 onwards).
+  @param showDesc= provide a non blank value to return stored process
+    descriptions
+  @param showUsageVersion= provide a non blank value to return the UsageVersion.
+    This is either 1000000 (type 1, 9.2) or 2000000 (type2, 9.3 onwards).
 
   @returns outds  dataset containing the following columns
-   - stpuri
-   - stpname
-   - treeuri
-   - stpdesc (if requested)
-   - usageversion (if requested)
+    - stpuri
+    - stpname
+    - treeuri
+    - stpdesc (if requested)
+    - usageversion (if requested)
 
   @version 9.2
   @author Allan Bowe
@@ -9167,7 +11135,7 @@ filename __outdoc clear;
 **/
 
 %macro mm_getstps(
-     tree=
+    tree=
     ,name=
     ,outds=work.mm_getstps
     ,mDebug=0
@@ -9237,7 +11205,7 @@ run;
 /**
   @file mm_gettableid.sas
   @brief Get the metadata id for a particular table
-  @details Provide a libref and table name to return the corresponding metadata id
+  @details Provide a libref and table name to return the corresponding metadata
   in an output datataset.
 
   Usage:
@@ -9258,7 +11226,7 @@ run;
 **/
 
 %macro mm_gettableid(
-     libref=
+    libref=
     ,ds=
     ,outds=work.mm_gettableid
     ,mDebug=0
@@ -9288,7 +11256,7 @@ data &outds;
 
   if type='DatabaseSchema' then tmpuri=usingpkguri;
   else tmpuri=uri;
-  
+
   t=1;
   do while(metadata_getnasn(tmpuri, "Tables", t, tableuri)>0);
     t+1;
@@ -9435,8 +11403,8 @@ run;
   @param mDebug= set to 1 to show debug messages in the log
 
   @returns outds  dataset containing the following columns:
-   - treeuri
-   - treepath
+      - treeuri
+      - treepath
 
   @version 9.2
   @author Allan Bowe
@@ -9444,7 +11412,7 @@ run;
 **/
 
 %macro mm_getTree(
-     tree=
+    tree=
     ,inds=
     ,outds=work.mm_getTree
     ,mDebug=0
@@ -9512,16 +11480,16 @@ run;
 filename response temp;
 /* get list of libraries */
 proc metadata in=
- '<GetTypes>
-   <Types/>
-   <NS>SAS</NS>
-   <!-- specify the OMI_SUCCINCT flag -->
-   <Flags>2048</Flags>
-   <Options>
-     <!-- include <REPOSID> XML element and a repository identifier -->
-     <Reposid>$METAREPOSITORY</Reposid>
-   </Options>
-</GetTypes>'
+  '<GetTypes>
+    <Types/>
+    <NS>SAS</NS>
+    <!-- specify the OMI_SUCCINCT flag -->
+    <Flags>2048</Flags>
+    <Options>
+      <!-- include <REPOSID> XML element and a repository identifier -->
+      <Reposid>$METAREPOSITORY</Reposid>
+    </Options>
+  </GetTypes>'
   out=response;
 run;
 
@@ -9591,16 +11559,16 @@ libname _XML_ clear;
 
 filename response temp;
 proc metadata in= '<GetMetadataObjects>
- <Reposid>$METAREPOSITORY</Reposid>
- <Type>Person</Type>
- <NS>SAS</NS>
- <Flags>0</Flags>
- <Options>
- <Templates>
- <Person Name=""/>
- </Templates>
- </Options>
- </GetMetadataObjects>'
+  <Reposid>$METAREPOSITORY</Reposid>
+  <Type>Person</Type>
+  <NS>SAS</NS>
+  <Flags>0</Flags>
+  <Options>
+  <Templates>
+  <Person Name=""/>
+  </Templates>
+  </Options>
+  </GetMetadataObjects>'
   out=response;
 run;
 
@@ -9608,7 +11576,8 @@ filename sxlemap temp;
 data _null_;
   file sxlemap;
   put '<SXLEMAP version="1.2" name="SASObjects"><TABLE name="SASObjects">';
-  put "<TABLE-PATH syntax='XPath'>/GetMetadataObjects/Objects/Person</TABLE-PATH>";
+  put "<TABLE-PATH syntax='XPath'>/GetMetadataObjects/Objects/Person";
+  put "</TABLE-PATH>";
   put '<COLUMN name="uri">';
   put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/Person/@Id</PATH>";
   put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>32</LENGTH>";
@@ -9663,23 +11632,23 @@ filename __in temp lrecl=10000;
 filename __out temp lrecl=10000;
 filename __shake temp lrecl=10000;
 data _null_ ;
-   file __in ;
-   put '<GetMetadataObjects>' ;
-   put '<Reposid>$METAREPOSITORY</Reposid>' ;
-   put '<Type>TextStore</Type>' ;
-   put '<NS>SAS</NS>' ;
-    put '<Flags>388</Flags>' ;
-   put '<Options>' ;
-    put '<XMLSelect search="TextStore[@Name='@@;
-    put "'Public Configuration Properties']" @@;
-     put '[Objects/SoftwareComponent[@ClassIdentifier=''webappsrv'']]' ;
-   put '"/>';
-   put '<Templates>' ;
-   put '<TextStore StoredText="">' ;
-   put '</TextStore>' ;
-   put '</Templates>' ;
-   put '</Options>' ;
-   put '</GetMetadataObjects>' ;
+  file __in ;
+  put '<GetMetadataObjects>' ;
+  put '<Reposid>$METAREPOSITORY</Reposid>' ;
+  put '<Type>TextStore</Type>' ;
+  put '<NS>SAS</NS>' ;
+  put '<Flags>388</Flags>' ;
+  put '<Options>' ;
+  put '<XMLSelect search="TextStore[@Name='@@;
+  put "'Public Configuration Properties']" @@;
+  put '[Objects/SoftwareComponent[@ClassIdentifier=''webappsrv'']]' ;
+  put '"/>';
+  put '<Templates>' ;
+  put '<TextStore StoredText="">' ;
+  put '</TextStore>' ;
+  put '</Templates>' ;
+  put '</Options>' ;
+  put '</GetMetadataObjects>' ;
 run ;
 proc metadata in=__in out=__out verbose;run;
 
@@ -9729,7 +11698,7 @@ run;
           when ('&#x0d;') rec='0D'x;
           when ('&#36;' ) rec='$'  ;
           when ('&#x09;') rec='09'x;
-          otherwise putlog "WARNING: missing value for " entity=;
+          otherwise putlog "%str(WARN)ING: missing value for " entity=;
         end;
         rc =fput(fileid, substr(rec,1,1));
         rc =fwrite(fileid);
@@ -9765,7 +11734,7 @@ filename __shake clear;
 %mend;/**
   @file mm_spkexport.sas
   @brief Creates an batch spk export command
-  @details Creates a script that will export everything in a metadata folder to 
+  @details Creates a script that will export everything in a metadata folder to
     a specified location.
     If you have XCMD enabled, then you can use mmx_spkexport (which performs
     the actual export)
@@ -9776,7 +11745,8 @@ filename __shake clear;
   Usage:
 
       %* import the macros (or make them available some other way);
-      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      filename mc url
+        "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
       %* create sample text file as input to the macro;
@@ -9798,7 +11768,7 @@ filename __shake clear;
 
       filename myref "/tmp/mmscript.sh";
       %mm_spkexport(metaloc=%str(/my/meta/loc)
-           outref=myref
+          outref=myref
           ,cmdoutloc=%str(/tmp)
           ,cmdoutname=mmx
       )
@@ -9820,9 +11790,9 @@ filename __shake clear;
   @param secureref= fileref containing the username / password (should point to
     a file in a secure location).  Leave blank to substitute $bash type vars.
   @param outref= fileref to which to write the command
-  @param cmdoutloc= the directory to which the command will write the SPK 
+  @param cmdoutloc= the directory to which the command will write the SPK
     (default=WORK)
-  @param cmdoutname= the name of the spk / log files to create (will be 
+  @param cmdoutname= the name of the spk / log files to create (will be
     identical just with .spk or .log extension)
 
   @version 9.4
@@ -9856,7 +11826,8 @@ filename __shake clear;
 %let port=%sysfunc(getoption(metaport));
 %let platform_object_path=%mf_loc(POF);
 
-%let connx_string=%str(-host &host -port &port -user &mmxuser -password &mmxpass);
+%let connx_string=%str(-host &host -port &port -user &mmxuser %trim(
+  )-password &mmxpass);
 
 %mm_tree(root=%str(&metaloc) ,types=EXPORTABLE ,outds=exportable)
 
@@ -9898,7 +11869,8 @@ run;
   Usage:
 
       %* load macros;
-      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      filename mc url
+        "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
       %* export everything;
@@ -9915,16 +11887,16 @@ run;
 
       %* with specific types;
       %mm_tree(root=%str(/my/folder)
-        ,types= 
-            DeployedJob 
-            ExternalFile 
-            Folder 
-            Folder.SecuredData 
-            GeneratedTransform 
-            InformationMap.Relational 
-            Job 
-            Library 
-            Prompt 
+        ,types=
+            DeployedJob
+            ExternalFile
+            Folder
+            Folder.SecuredData
+            GeneratedTransform
+            InformationMap.Relational
+            Job
+            Library
+            Prompt
             StoredProcess
             Table
         ,outds=morestuff)
@@ -9936,8 +11908,8 @@ run;
 
   @param root= the parent folder under which to return all contents
   @param outds= the dataset to create that contains the list of directories
-  @param types= Space-seperated, unquoted list of types for filtering the 
-    output.  Special types:  
+  @param types= Space-seperated, unquoted list of types for filtering the
+    output.  Special types:
 
     * ALl - return all types (the default)
     * EXPORTABLE - return only the content types that can be exported in an SPK
@@ -9947,7 +11919,7 @@ run;
 
 **/
 %macro mm_tree(
-     root=
+    root=
     ,types=ALL
     ,outds=work.mm_tree
 )/*/STORE SOURCE*/;
@@ -9967,12 +11939,12 @@ options noquotelenmax;
 filename response temp;
 /* get list of libraries */
 proc metadata in=
- '<GetMetadataObjects><Reposid>$METAREPOSITORY</Reposid>
-   <Type>Tree</Type><Objects/><NS>SAS</NS>
-   <Flags>384</Flags>
-   <XMLSelect search="*[@TreeType=&apos;BIP Folder&apos;]"/>
-   <Options/></GetMetadataObjects>'
-  out=response;
+  '<GetMetadataObjects><Reposid>$METAREPOSITORY</Reposid>
+    <Type>Tree</Type><Objects/><NS>SAS</NS>
+    <Flags>384</Flags>
+    <XMLSelect search="*[@TreeType=&apos;BIP Folder&apos;]"/>
+    <Options/></GetMetadataObjects>'
+    out=response;
 run;
 /*
 data _null_;
@@ -9987,7 +11959,8 @@ filename sxlemap temp;
 data _null_;
   file sxlemap;
   put '<SXLEMAP version="1.2" name="SASObjects"><TABLE name="SASObjects">';
-  put "<TABLE-PATH syntax='XPath'>/GetMetadataObjects/Objects/Tree</TABLE-PATH>";
+  put "<TABLE-PATH syntax='XPath'>/GetMetadataObjects/Objects/Tree";
+  put "</TABLE-PATH>";
   put '<COLUMN name="pathuri">';
   put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/Tree/@Id</PATH>";
   put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>64</LENGTH>";
@@ -10013,7 +11986,7 @@ data &outds;
     path=cats('/',pname,path);
     tmpuri=parenturi;
   end;
-  
+
   if path=:"&root";
 
   %if "&types"="ALL" or ("&types" ne "ALL" and "&types" ne "Folder") %then %do;
@@ -10124,7 +12097,7 @@ data _null_;
 run;
 
 %if &appuri=stopifempty %then %do;
-  %put WARNING:  &app.(Application) not found!;
+  %put %str(WARN)ING:  &app.(Application) not found!;
   %return;
 %end;
 
@@ -10245,12 +12218,12 @@ data _null_;
 run;
 
 %if &tsuri=stopifempty %then %do;
-  %put WARNING:  &path/&name.(Document) not found!;
+  %put %str(WARN)ING:  &path/&name.(Document) not found!;
   %return;
 %end;
 
 %if %length(&text)<2 %then %do;
-  %put WARNING:  No text supplied!!;
+  %put %str(WARN)ING:  No text supplied!!;
   %return;
 %end;
 
@@ -10312,8 +12285,8 @@ run;
 
 
   @param target= full path to the STP being deleted
-  @param type= Either WKS or STP depending on whether Workspace or Stored Process
-        type required
+  @param type= Either WKS or STP depending on whether Workspace or
+    Stored Process type required
 
   @version 9.4
   @author Allan Bowe
@@ -10326,8 +12299,8 @@ run;
 )/*/STORE SOURCE*/;
 
 /**
- * Check STP does exist
- */
+  * Check STP does exist
+  */
 %local cmtype;
 data _null_;
   length type uri $256;
@@ -10336,7 +12309,7 @@ data _null_;
   call symputx('stpuri',uri,'l');
 run;
 %if &cmtype ne ClassifierMap %then %do;
-  %put WARNING: No Stored Process found at &target;
+  %put %str(WARN)ING: No Stored Process found at &target;
   %return;
 %end;
 
@@ -10353,7 +12326,8 @@ data _null_;
     n+1;
     rc=metadata_getattr(uri,"Name",name);
     if name='Stored Process' then do;
-      rc = METADATA_SETATTR(uri,'StoredText','<?xml version="1.0" encoding="UTF-8"?>'
+      rc = METADATA_SETATTR(uri,'StoredText'
+        ,'<?xml version="1.0" encoding="UTF-8"?>'
         !!'<StoredProcess><ServerContext LogicalServerType="'!!"&newtype"
         !!'" OtherAllowed="false"/><ResultCapabilities Package="false" '
         !!' Streaming="true"/><OutputParameters/></StoredProcess>');
@@ -10436,12 +12410,12 @@ data _null_;
 run;
 
 %if &tsuri=stopifempty %then %do;
-  %put WARNING:  &stp.(StoredProcess) not found!;
+  %put %str(WARN)ING:  &stp.(StoredProcess) not found!;
   %return;
 %end;
 
 %if %length(&stpcode)<2 %then %do;
-  %put WARNING:  No SAS code supplied!!;
+  %put %str(WARN)ING:  No SAS code supplied!!;
   %return;
 %end;
 
@@ -10540,7 +12514,7 @@ run;
 
 **/
 %macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y);
-%global _webin_file_count _webin_fileref1 _webin_name1 _program _debug 
+%global _webin_file_count _webin_fileref1 _webin_name1 _program _debug
   sasjs_tables;
 %local i tempds;
 
@@ -10575,8 +12549,16 @@ run;
 %else %if &action=OPEN %then %do;
   /* fix encoding */
   OPTIONS NOBOMFILE;
+
+  /**
+    * check engine type to avoid the below err message:
+    * > Function is only valid for filerefs using the CACHE access method.
+    */
   data _null_;
-    rc = stpsrv_header('Content-type',"text/html; encoding=utf-8");
+    set sashelp.vextfl(where=(fileref="_WEBOUT"));
+    if xengine='STREAM' then do;
+      rc=stpsrv_header('Content-type',"text/html; encoding=utf-8");
+    end;
   run;
 
   /* setup json */
@@ -10590,16 +12572,9 @@ run;
 %end;
 
 %else %if &action=ARR or &action=OBJ %then %do;
-  %if &sysver=9.4 %then %do;
-    %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt
-      ,engine=PROCJSON,dbg=%str(&_debug)
-    )
-  %end;
-  %else %do;
-    %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt
-      ,engine=DATASTEP,dbg=%str(&_debug)
-    )
-  %end;
+  %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt
+    ,engine=DATASTEP,dbg=%str(&_debug)
+  )
 %end;
 %else %if &action=CLOSE %then %do;
   %if %str(&_debug) ge 131 %then %do;
@@ -10615,14 +12590,14 @@ run;
       i+1;
       call symputx('wt'!!left(i),name,'l');
       call symputx('wtcnt',i,'l');
-    data _null_; file &fref encoding='utf-8'; 
+    data _null_; file &fref mod encoding='utf-8';
       put ",""WORK"":{";
     %do i=1 %to &wtcnt;
       %let wt=&&wt&i;
       proc contents noprint data=&wt
         out=_data_ (keep=name type length format:);
       run;%let tempds=%scan(&syslast,2,.);
-      data _null_; file &fref encoding='utf-8';
+      data _null_; file &fref mod encoding='utf-8';
         dsid=open("WORK.&wt",'is');
         nlobs=attrn(dsid,'NLOBS');
         nvars=attrn(dsid,'NVARS');
@@ -10633,10 +12608,10 @@ run;
         put ',"nvars":' nvars;
       %mp_jsonout(OBJ,&tempds,jref=&fref,dslabel=colattrs,engine=DATASTEP)
       %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,engine=DATASTEP)
-      data _null_; file &fref encoding='utf-8';
+      data _null_; file &fref mod encoding='utf-8';
         put "}";
     %end;
-    data _null_; file &fref encoding='utf-8';
+    data _null_; file &fref mod encoding='utf-8';
       put "}";
     run;
   %end;
@@ -10727,7 +12702,8 @@ Usage:
     run;
 
     filename outref "%sysfunc(pathname(work))";
-    %mmx_spkexport(metaloc=%str(/30.Projects/3001.Internal/300115.DataController/dc1)
+    %mmx_spkexport(
+        metaloc=%str(/30.Projects/3001.Internal/300115.DataController/dc1)
         ,secureref=tmp
         ,outspkpath=%str(/tmp)
     )
@@ -10741,7 +12717,7 @@ Usage:
   @param metaloc= the metadata folder to export
   @param secureref= fileref containing the username / password (should point to
     a file in a secure location)
-  @param outspkname= name of the spk to be created (default is mmxport). 
+  @param outspkname= name of the spk to be created (default is mmxport).
   @param outspkpath= directory in which to create the SPK.  Default is WORK.
 
   @version 9.4
@@ -10763,7 +12739,8 @@ Usage:
 /* get creds */
 %inc &secureref/nosource;
 
-%let connx_string=%str(-host &host -port &port -user '&mmxuser' -password '&mmxpass');
+%let connx_string=
+  %str(-host &host -port &port -user '&mmxuser' -password '&mmxpass');
 
 %mm_tree(root=%str(&metaloc) ,types=EXPORTABLE ,outds=exportable)
 
@@ -10806,8 +12783,8 @@ run;
 
   @param path= The full path of the folder to be created
   @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= valid values are "password" or "authorization_code" (unquoted).
-    The default is authorization_code.
+  @param grant_type= (authorization_code) Valid values are "password" or
+    "authorization_code" (unquoted).
 
 
   @version VIYA V.03.04
@@ -10836,7 +12813,6 @@ run;
     %let &access_token_var=;
 %end;
 
-%put &sysmacroname: grant_type=&grant_type;
 %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )
@@ -10882,12 +12858,15 @@ options noquotelenmax;
   %local libref1;
   %let libref1=%mf_getuniquelibref();
   libname &libref1 JSON fileref=&fname1;
-  %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 404)
+  %mp_abort(
+    iftrue=(
+      &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 404
+    )
     ,mac=&sysmacroname
     ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
   )
   %if &SYS_PROCHTTP_STATUS_CODE=200 %then %do;
-    %put &sysmacroname &newpath exists so grab the follow on link ;
+    %*put &sysmacroname &newpath exists so grab the follow on link ;
     data _null_;
       set &libref1..links;
       if rel='createChild' then
@@ -10952,7 +12931,8 @@ options noquotelenmax;
   Code is passed in as one or more filerefs.
 
       %* Step 1 - compile macros ;
-      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      filename mc url
+        "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
       %* Step 2 - Create some SAS code and add it to a job;
@@ -10985,13 +12965,13 @@ options noquotelenmax;
     needs to be attached to the beginning of the job
   @param code= Fileref(s) of the actual code to be added
   @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= valid values are "password" or "authorization_code" (unquoted).
-    The default is authorization_code.
+  @param grant_type= valid values are "password" or "authorization_code"
+    (unquoted). The default is authorization_code.
   @param replace= select NO to avoid replacing any existing job in that location
   @param contextname= Choose a specific context on which to run the Job.  Leave
     blank to use the default context.  From Viya 3.5 it is possible to configure
     a shared context - see
-    https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5pyhn1wg3ja0drdl6h.htm&docsetVersion=3.5&locale=en
+https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5pyhn1wg3ja0drdl6h.htm&docsetVersion=3.5&locale=en
 
   @version VIYA V.03.04
   @author [Allan Bowe](https://www.linkedin.com/in/allanbowe)
@@ -11018,7 +12998,6 @@ options noquotelenmax;
     %let oauth_bearer=oauth_bearer=sas_services;
     %let &access_token_var=;
 %end;
-%put &sysmacroname: grant_type=&grant_type;
 
 /* initial validation checking */
 %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
@@ -11101,7 +13080,7 @@ proc http method='GET'
             'Accept'='application/vnd.sas.collection+json'
             'Accept-Language'='string';
 %if &debug=1 %then %do;
-   debug level = 3;
+    debug level = 3;
 %end;
 run;
 /*data _null_;infile &fname2;input;putlog _infile_;run;*/
@@ -11138,13 +13117,13 @@ data _null_;
   file &fname3 TERMSTR=' ';
   length string $32767;
   string=cats('{"version": 0,"name":"'
-  	,"&name"
-  	,'","type":"Compute","parameters":[{"name":"_addjesbeginendmacros"'
+    ,"&name"
+    ,'","type":"Compute","parameters":[{"name":"_addjesbeginendmacros"'
     ,',"type":"CHARACTER","defaultValue":"false"}');
   context=quote(cats(symget('contextname')));
   if context ne '""' then do;
     string=cats(string,',{"version": 1,"name": "_contextName","defaultValue":'
-     ,context,',"type":"CHARACTER","label":"Context Name","required": false}');
+      ,context,',"type":"CHARACTER","label":"Context Name","required": false}');
   end;
   string=cats(string,'],"code":"');
   put string;
@@ -11214,7 +13193,7 @@ proc http method='POST'
   %end;
             "Accept"="application/vnd.sas.job.definition+json";
 %if &debug=1 %then %do;
-   debug level = 3;
+    debug level = 3;
 %end;
 run;
 /*data _null_;infile &fname4;input;putlog _infile_;run;*/
@@ -11259,7 +13238,8 @@ run;
   Code is passed in as one or more filerefs.
 
       %* Step 1 - compile macros ;
-      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      filename mc url
+        "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
       %* Step 2 - Create some code and add it to a web service;
@@ -11272,7 +13252,7 @@ run;
           run;
           %* send data back;
           %webout(OPEN)
-          %webout(ARR,example1) * Array format, fast, suitable for large tables ;
+          %webout(ARR,example1) * Array format, fast, suitable for large tables;
           %webout(OBJ,example2) * Object format, easier to work with ;
           %webout(CLOSE)
       ;;;;
@@ -11292,21 +13272,26 @@ run;
   @li mf_isblank.sas
   @li mv_deletejes.sas
 
-  @param path= The full path (on SAS Drive) where the service will be created
-  @param name= The name of the service
-  @param desc= The description of the service
-  @param precode= Space separated list of filerefs, pointing to the code that
-    needs to be attached to the beginning of the service
-  @param code= Fileref(s) of the actual code to be added
-  @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= valid values are "password" or "authorization_code" (unquoted).
-    The default is authorization_code.
-  @param replace= select NO to avoid replacing any existing service in that location
-  @param adapter= the macro uses the sasjs adapter by default.  To use another
-    adapter, add a (different) fileref here.
-  @param contextname= Choose a specific context on which to run the Job.  Leave
+  @param [in] path= The full path (on SAS Drive) where the service will be
+    created
+  @param [in] name= The name of the service
+  @param [in] desc= The description of the service
+  @param [in] precode= Space separated list of filerefs, pointing to the code
+    that needs to be attached to the beginning of the service
+  @param [in] code= Fileref(s) of the actual code to be added
+  @param [in] access_token_var= The global macro variable to contain the access
+    token
+  @param [in] grant_type= valid values are "password" or "authorization_code"
+    (unquoted). The default is authorization_code.
+  @param [in] replace=(YES) Select NO to avoid replacing any existing service in
+    that location
+  @param [in] adapter= the macro uses the sasjs adapter by default.  To use
+    another adapter, add a (different) fileref here.
+  @param [in] contextname= Choose a specific context on which to run the Job.  Leave
     blank to use the default context.  From Viya 3.5 it is possible to configure
-    a shared context - see https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5pyhn1wg3ja0drdl6h.htm&docsetVersion=3.5&locale=en
+    a shared context - see
+https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5pyhn1wg3ja0drdl6h.htm&docsetVersion=3.5&locale=en
+  @param [in] mdebug=(0) set to 1 to enable DEBUG messages
 
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
@@ -11322,9 +13307,17 @@ run;
     ,grant_type=sas_services
     ,replace=YES
     ,adapter=sasjs
-    ,debug=0
+    ,mdebug=0
     ,contextname=
+    ,debug=0 /* @TODO - Deprecate */
   );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
@@ -11334,7 +13327,6 @@ run;
     %let oauth_bearer=oauth_bearer=sas_services;
     %let &access_token_var=;
 %end;
-%put &sysmacroname: grant_type=&grant_type;
 
 /* initial validation checking */
 %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
@@ -11378,7 +13370,7 @@ proc http method='GET' out=&fname1 &oauth_bearer
   headers "Authorization"="Bearer &&&access_token_var";
 %end;
 run;
-%if &debug %then %do;
+%if &mdebug=1 %then %do;
   data _null_;
     infile &fname1;
     input;
@@ -11397,7 +13389,8 @@ libname &libref1 JSON fileref=&fname1;
 
 data _null_;
   set &libref1..links;
-  if rel='members' then call symputx('membercheck',quote("&base_uri"!!trim(href)),'l');
+  if rel='members' then
+    call symputx('membercheck',quote("&base_uri"!!trim(href)),'l');
   else if rel='self' then call symputx('parentFolderUri',href,'l');
 run;
 data _null_;
@@ -11416,8 +13409,8 @@ proc http method='GET'
   %end;
             'Accept'='application/vnd.sas.collection+json'
             'Accept-Language'='string';
-%if &debug=1 %then %do;
-   debug level = 3;
+%if &mdebug=1 %then %do;
+  debug level = 3;
 %end;
 run;
 /*data _null_;infile &fname2;input;putlog _infile_;run;*/
@@ -11454,33 +13447,34 @@ data _null_;
   file &fname3 TERMSTR=' ';
   length string $32767;
   string=cats('{"version": 0,"name":"'
-  	,"&name"
-  	,'","type":"Compute","parameters":[{"name":"_addjesbeginendmacros"'
+    ,"&name"
+    ,'","type":"Compute","parameters":[{"name":"_addjesbeginendmacros"'
     ,',"type":"CHARACTER","defaultValue":"false"}');
   context=quote(cats(symget('contextname')));
   if context ne '""' then do;
     string=cats(string,',{"version": 1,"name": "_contextName","defaultValue":'
-     ,context,',"type":"CHARACTER","label":"Context Name","required": false}');
+      ,context,',"type":"CHARACTER","label":"Context Name","required": false}');
   end;
   string=cats(string,'],"code":"');
   put string;
 run;
 
 /**
- * Add webout macro
- * These put statements are auto generated - to change the macro, change the
- * source (mv_webout) and run `build.py`
- */
-filename sasjs temp lrecl=3000;
+  * Add webout macro
+  * These put statements are auto generated - to change the macro, change the
+  * source (mv_webout) and run `build.py`
+  */
+filename &adapter temp lrecl=3000;
 data _null_;
-  file sasjs;
+  file &adapter;
   put "/* Created on %sysfunc(datetime(),datetime19.) by &sysuserid */";
 /* WEBOUT BEGIN */
   put ' ';
-  put '%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=PROCJSON,dbg=0 ';
+  put '%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=DATASTEP,dbg=0 ';
   put ')/*/STORE SOURCE*/; ';
   put '%put output location=&jref; ';
   put '%if &action=OPEN %then %do; ';
+  put '  OPTIONS NOBOMFILE; ';
   put '  data _null_;file &jref encoding=''utf-8''; ';
   put '    put ''{"START_DTTM" : "'' "%sysfunc(datetime(),datetime20.3)" ''"''; ';
   put '  run; ';
@@ -11508,9 +13502,68 @@ data _null_;
   put '      %put &sysmacroname:  &ds NOT FOUND!!!; ';
   put '      %return; ';
   put '    %end; ';
+  put '    %if &fmt=Y %then %do; ';
+  put '      %put converting every variable to a formatted variable; ';
+  put '      /* see mp_ds2fmtds.sas for source */ ';
+  put '      proc contents noprint data=&ds ';
+  put '        out=_data_(keep=name type length format formatl formatd varnum); ';
+  put '      run; ';
+  put '      proc sort; ';
+  put '        by varnum; ';
+  put '      run; ';
+  put '      %local fmtds; ';
+  put '      %let fmtds=%scan(&syslast,2,.); ';
+  put '      /* prepare formats and varnames */ ';
+  put '      data _null_; ';
+  put '        set &fmtds end=last; ';
+  put '        name=upcase(name); ';
+  put '        /* fix formats */ ';
+  put '        if type=2 or type=6 then do; ';
+  put '          length fmt $49.; ';
+  put '          if format='''' then fmt=cats(''$'',length,''.''); ';
+  put '          else if formatl=0 then fmt=cats(format,''.''); ';
+  put '          else fmt=cats(format,formatl,''.''); ';
+  put '          newlen=max(formatl,length); ';
+  put '        end; ';
+  put '        else do; ';
+  put '          if format='''' then fmt=''best.''; ';
+  put '          else if formatl=0 then fmt=cats(format,''.''); ';
+  put '          else if formatd=0 then fmt=cats(format,formatl,''.''); ';
+  put '          else fmt=cats(format,formatl,''.'',formatd); ';
+  put '          /* needs to be wide, for datetimes etc */ ';
+  put '          newlen=max(length,formatl,24); ';
+  put '        end; ';
+  put '        /* 32 char unique name */ ';
+  put '        newname=''sasjs''!!substr(cats(put(md5(name),$hex32.)),1,27); ';
+  put ' ';
+  put '        call symputx(cats(''name'',_n_),name,''l''); ';
+  put '        call symputx(cats(''newname'',_n_),newname,''l''); ';
+  put '        call symputx(cats(''len'',_n_),newlen,''l''); ';
+  put '        call symputx(cats(''fmt'',_n_),fmt,''l''); ';
+  put '        call symputx(cats(''type'',_n_),type,''l''); ';
+  put '        if last then call symputx(''nobs'',_n_,''l''); ';
+  put '      run; ';
+  put '      data &fmtds; ';
+  put '        /* rename on entry */ ';
+  put '        set &ds(rename=( ';
+  put '      %local i; ';
+  put '      %do i=1 %to &nobs; ';
+  put '        &&name&i=&&newname&i ';
+  put '      %end; ';
+  put '        )); ';
+  put '      %do i=1 %to &nobs; ';
+  put '        length &&name&i $&&len&i; ';
+  put '        &&name&i=left(put(&&newname&i,&&fmt&i)); ';
+  put '        drop &&newname&i; ';
+  put '      %end; ';
+  put '        if _error_ then call symputx(''syscc'',1012); ';
+  put '      run; ';
+  put '      %let ds=&fmtds; ';
+  put '    %end; /* &fmt=Y */ ';
   put '    data _null_;file &jref mod ; ';
   put '      put "["; call symputx(''cols'',0,''l''); ';
-  put '    proc sort data=sashelp.vcolumn(where=(libname=''WORK'' & memname="%upcase(&ds)")) ';
+  put '    proc sort ';
+  put '      data=sashelp.vcolumn(where=(libname=''WORK'' & memname="%upcase(&ds)")) ';
   put '      out=_data_; ';
   put '      by varnum; ';
   put ' ';
@@ -11549,7 +13602,8 @@ data _null_;
   put '      %end; ';
   put '    %end; ';
   put '    run; ';
-  put '    /* write to temp loc to avoid _webout truncation - https://support.sas.com/kb/49/325.html */ ';
+  put '    /* write to temp loc to avoid _webout truncation ';
+  put '      - https://support.sas.com/kb/49/325.html */ ';
   put '    filename _sjs temp lrecl=131068 encoding=''utf-8''; ';
   put '    data _null_; file _sjs lrecl=131068 encoding=''utf-8'' mod; ';
   put '      set &tempds; ';
@@ -11585,11 +13639,11 @@ data _null_;
   put '%end; ';
   put ' ';
   put '%else %if &action=CLOSE %then %do; ';
-  put '  data _null_;file &jref encoding=''utf-8''; ';
+  put '  data _null_;file &jref encoding=''utf-8'' mod; ';
   put '    put "}"; ';
   put '  run; ';
   put '%end; ';
-  put '%mend; ';
+  put '%mend mp_jsonout; ';
   put '%macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=Y); ';
   put '%global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name ';
   put '  sasjs_tables SYS_JES_JOB_URI; ';
@@ -11664,7 +13718,8 @@ data _null_;
   put '        if _n_=1 then call symputx(''input_statement'',_infile_); ';
   put '        list; ';
   put '      data &table; ';
-  put '        infile "%sysfunc(pathname(work))/&table..csv" firstobs=2 dsd termstr=crlf; ';
+  put '        infile "%sysfunc(pathname(work))/&table..csv" firstobs=2 dsd ';
+  put '          termstr=crlf; ';
   put '        input &input_statement; ';
   put '      run; ';
   put '    %end; ';
@@ -11696,7 +13751,7 @@ data _null_;
   put '  /* setup webout */ ';
   put '  OPTIONS NOBOMFILE; ';
   put '  %if "X&SYS_JES_JOB_URI.X"="XX" %then %do; ';
-  put '     filename _webout temp lrecl=999999 mod; ';
+  put '    filename _webout temp lrecl=999999 mod; ';
   put '  %end; ';
   put '  %else %do; ';
   put '    filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" ';
@@ -11705,7 +13760,8 @@ data _null_;
   put ' ';
   put '  /* setup temp ref */ ';
   put '  %if %upcase(&fref) ne _WEBOUT %then %do; ';
-  put '    filename &fref temp lrecl=999999 permission=''A::u::rwx,A::g::rw-,A::o::---'' mod; ';
+  put '    filename &fref temp lrecl=999999 permission=''A::u::rwx,A::g::rw-,A::o::---'' ';
+  put '      mod; ';
   put '  %end; ';
   put ' ';
   put '  /* setup json */ ';
@@ -11715,7 +13771,7 @@ data _null_;
   put '%end; ';
   put '%else %if &action=ARR or &action=OBJ %then %do; ';
   put '    %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt ';
-  put '      ,jref=&fref,engine=PROCJSON,dbg=%str(&_debug) ';
+  put '      ,jref=&fref,engine=DATASTEP,dbg=%str(&_debug) ';
   put '    ) ';
   put '%end; ';
   put '%else %if &action=CLOSE %then %do; ';
@@ -11808,11 +13864,12 @@ data _null_;
 run;
 
 /* insert the code, escaping double quotes and carriage returns */
+%&dbg.put &sysmacroname: Creating final input file;
 %local x fref freflist;
 %let freflist= &adapter &precode &code ;
 %do x=1 %to %sysfunc(countw(&freflist));
   %let fref=%scan(&freflist,&x);
-  %put &sysmacroname: adding &fref;
+  %&dbg.put &sysmacroname: adding &fref fileref;
   data _null_;
     length filein 8 fileid 8;
     filein = fopen("&fref","I",1,"B");
@@ -11840,6 +13897,14 @@ run;
         rc =fput(fileid,'\');rc =fwrite(fileid);
         rc =fput(fileid,'\');rc =fwrite(fileid);
       end;
+      else if rec='01'x then do; /* Unprintable */
+        rc =fput(fileid,'\');rc =fwrite(fileid);
+        rc =fput(fileid,'u');rc =fwrite(fileid);
+        rc =fput(fileid,'0');rc =fwrite(fileid);
+        rc =fput(fileid,'0');rc =fwrite(fileid);
+        rc =fput(fileid,'0');rc =fwrite(fileid);
+        rc =fput(fileid,'1');rc =fwrite(fileid);
+      end;
       else do;
         rc =fput(fileid,rec);
         rc =fwrite(fileid);
@@ -11856,7 +13921,12 @@ data _null_;
   put '"}';
 run;
 
-/* now we can create the job!! */
+%if &mdebug=1 and &SYS_PROCHTTP_STATUS_CODE ne 201 %then %do;
+  %put &sysmacroname: input about to be POSTed;
+  data _null_;infile &fname3;input;putlog _infile_;run;
+%end;
+
+%&dbg.put &sysmacroname: Creating the actual service!;
 %local fname4;
 %let fname4=%mf_getuniquefileref();
 proc http method='POST'
@@ -11869,22 +13939,18 @@ proc http method='POST'
             "Authorization"="Bearer &&&access_token_var"
   %end;
             "Accept"="application/vnd.sas.job.definition+json";
-%if &debug=1 %then %do;
-   debug level = 3;
+%if &mdebug=1 %then %do;
+    debug level = 3;
 %end;
 run;
-/*data _null_;infile &fname4;input;putlog _infile_;run;*/
+%if &mdebug=1 and &SYS_PROCHTTP_STATUS_CODE ne 201 %then %do;
+  %put &sysmacroname: output from POSTing job definition;
+  data _null_;infile &fname4;input;putlog _infile_;run;
+%end;
 %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 201)
   ,mac=&sysmacroname
   ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
 )
-/* clear refs */
-filename &fname1 clear;
-filename &fname2 clear;
-filename &fname3 clear;
-filename &fname4 clear;
-filename &adapter clear;
-libname &libref1 clear;
 
 /* get the url so we can give a helpful log message */
 %local url;
@@ -11899,6 +13965,19 @@ data _null_;
   call symputx('url',url);
 run;
 
+%if &mdebug=1 %then %do;
+  %put &sysmacroname exit vars:;
+  %put _local_;
+%end;
+%else %do;
+  /* clear refs */
+  filename &fname1 clear;
+  filename &fname2 clear;
+  filename &fname3 clear;
+  filename &fname4 clear;
+  filename &adapter clear;
+  libname &libref1 clear;
+%end;
 
 %put &sysmacroname: Job &name successfully created in &path;
 %put &sysmacroname:;
@@ -11908,7 +13987,7 @@ run;
 %put &sysmacroname:;
 %put &sysmacroname:;
 
-%mend;
+%mend mv_createwebservice;
 /**
   @file mv_deletefoldermember.sas
   @brief Deletes an item in a Viya folder
@@ -12105,7 +14184,7 @@ libname &libref1a clear;
     %let oauth_bearer=oauth_bearer=sas_services;
     %let &access_token_var=;
 %end;
-%put &sysmacroname: grant_type=&grant_type;
+
 %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )
@@ -12247,7 +14326,7 @@ libname &libref1a clear;
     %let oauth_bearer=oauth_bearer=sas_services;
     %let &access_token_var=;
 %end;
-%put &sysmacroname: grant_type=&grant_type;
+
 %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )
@@ -12346,27 +14425,27 @@ filename &fname1 clear;
 filename &fname2 clear;
 libname &libref1 clear;
 
-%mend; /**
-   @file mv_getaccesstoken.sas
-   @brief deprecated - replaced by mv_tokenrefresh.sas
+%mend;/**
+  @file mv_getaccesstoken.sas
+  @brief deprecated - replaced by mv_tokenrefresh.sas
 
-   @version VIYA V.03.04
-   @author Allan Bowe, source: https://github.com/sasjs/core
+  @version VIYA V.03.04
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
-   <h4> SAS Macros </h4>
-   @li mv_tokenrefresh.sas
+  <h4> SAS Macros </h4>
+  @li mv_tokenrefresh.sas
 
- **/
+**/
 
- %macro mv_getaccesstoken(client_id=someclient
-     ,client_secret=somesecret
-     ,grant_type=authorization_code
-     ,code=
-     ,user=
-     ,pass=
-     ,access_token_var=ACCESS_TOKEN
-     ,refresh_token_var=REFRESH_TOKEN
-   );
+%macro mv_getaccesstoken(client_id=someclient
+    ,client_secret=somesecret
+    ,grant_type=authorization_code
+    ,code=
+    ,user=
+    ,pass=
+    ,access_token_var=ACCESS_TOKEN
+    ,refresh_token_var=REFRESH_TOKEN
+  );
 
 %mv_tokenrefresh(client_id=&client_id
   ,client_secret=&client_secret
@@ -12377,22 +14456,22 @@ libname &libref1 clear;
   ,refresh_token_var=&refresh_token_var
 )
 
-%mend; /**
-   @file
-   @brief deprecated - replaced by mv_registerclient.sas
+%mend;/**
+  @file
+  @brief deprecated - replaced by mv_registerclient.sas
 
-   @version VIYA V.03.04
-   @author Allan Bowe, source: https://github.com/sasjs/core
+  @version VIYA V.03.04
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
-   <h4> SAS Macros </h4>
-   @li mv_registerclient.sas
+  <h4> SAS Macros </h4>
+  @li mv_registerclient.sas
 
- **/
+**/
 
- %macro mv_getapptoken(client_id=someclient
-     ,client_secret=somesecret
-     ,grant_type=authorization_code
-   );
+%macro mv_getapptoken(client_id=someclient
+    ,client_secret=somesecret
+    ,grant_type=authorization_code
+  );
 
 %mv_registerclient(client_id=&client_id
   ,client_secret=&client_secret
@@ -12673,7 +14752,7 @@ libname &libref1 clear;
     %let oauth_bearer=oauth_bearer=sas_services;
     %let &access_token_var=;
 %end;
-%put &sysmacroname: grant_type=&grant_type;
+
 %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )
@@ -12814,22 +14893,25 @@ libname &libref1 clear;
   Example:
 
       %mv_getjobcode(
-         path=/Public/jobs
+        path=/Public/jobs
         ,name=some_job
         ,outfile=/tmp/some_job.sas
       )
 
-  @param [in] access_token_var= The global macro variable to contain the access token
+  @param [in] access_token_var= The global macro variable to contain the access
+    token
   @param [in] grant_type= valid values:
-      * password
-      * authorization_code
-      * detect - will check if access_token exists, if not will use sas_services if
-        a SASStudioV session else authorization_code.  Default option.
-      * sas_services - will use oauth_bearer=sas_services
+    @li password
+    @liauthorization_code
+    @li detect - will check if access_token exists, if not will use sas_services
+      if a SASStudioV session else authorization_code.  Default option.
+    @li  sas_services - will use oauth_bearer=sas_services
   @param [in] path= The SAS Drive path of the job
   @param [in] name= The name of the job
-  @param [out] outref= A fileref to which to write the source code
-  @param [out] outfile= A file to which to write the source code
+  @param [in] mdebug=(0) set to 1 to enable DEBUG messages
+  @param [out] outref=(0) A fileref to which to write the source code (will be
+    created with a TEMP engine)
+  @param [out] outfile=(0) A file to which to write the source code
 
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
@@ -12848,7 +14930,15 @@ libname &libref1 clear;
     ,contextName=SAS Job Execution compute context
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
+    ,mdebug=0
   );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
@@ -12938,25 +15028,37 @@ data _null_;
     outfile:write(job)
     io.close(infile)
     io.close(outfile)
-   ';
+  ';
 run;
 %inc "&fpath3..lua";
 /* export to desired destination */
-data _null_;
-  %if &outref=0 %then %do;
+%if "&outref"="0" %then %do;
+  data _null_;
     file "&outfile" lrecl=32767;
-  %end;
-  %else %do;
+%end;
+%else %do;
+  filename &outref temp;
+  data _null_;
     file &outref;
-  %end;
+%end;
   infile &fname2;
   input;
   put _infile_;
+  &dbg. putlog _infile_;
 run;
-filename &fname1 clear;
-filename &fname2 clear;
-filename &fname3 clear;
-%mend;
+
+%if &mdebug=1 %then %do;
+  %put &sysmacroname exit vars:;
+  %put _local_;
+%end;
+%else %do;
+  /* clear refs */
+  filename &fname1 clear;
+  filename &fname2 clear;
+  filename &fname3 clear;
+%end;
+
+%mend mv_getjobcode;
 /**
   @file
   @brief Extract the log from a completed SAS Viya Job
@@ -12969,7 +15071,8 @@ filename &fname3 clear;
 
   First, compile the macros:
 
-      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      filename mc url
+        "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
   Next, create a job (in this case, a web service):
@@ -13012,13 +15115,14 @@ filename &fname3 clear;
   convenient way to wait for the job to finish before fetching the log.
 
 
-  @param [in] access_token_var= The global macro variable to contain the access token
+  @param [in] access_token_var= The global macro variable to contain the access
+    token
   @param [in] mdebug= set to 1 to enable DEBUG messages
   @param [in] grant_type= valid values:
     @li password
     @li authorization_code
-    @li detect - will check if access_token exists, if not will use sas_services if
-        a SASStudioV session else authorization_code.  Default option.
+    @li detect - will check if access_token exists, if not will use sas_services
+      if a SASStudioV session else authorization_code.  Default option.
     @li sas_services - will use oauth_bearer=sas_services.
   @param [in] uri= The uri of the running job for which to fetch the status,
     in the format `/jobExecution/jobs/$UUID/state` (unquoted).
@@ -13043,6 +15147,13 @@ filename &fname3 clear;
     ,grant_type=sas_services
     ,mdebug=0
   );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
@@ -13133,7 +15244,7 @@ data _null_;
     outfile:write(logloc)
     io.close(infile)
     io.close(outfile)
-   ';
+  ';
 run;
 %inc "&fpath3..lua";
 /* get log path*/
@@ -13187,7 +15298,7 @@ data _null_;
     io.input(infile)
     local resp=json.decode(io.read())
     for i, v in pairs(resp["items"]) do
-	    outfile:write(v.line,"\n")
+      outfile:write(v.line,"\n")
     end
     io.close(infile)
     io.close(outfile)
@@ -13218,12 +15329,245 @@ run;
   filename &fname3 clear;
 %end;
 %else %do;
+  %put &sysmacroname exit vars:;
   %put _local_;
 %end;
-%mend;
+%mend mv_getjoblog;
 
 
 
+/**
+  @file
+  @brief Extract the result from a completed SAS Viya Job
+  @details Extracts result from a Viya job and writes it out to a fileref
+  and/or a JSON-engine library.
+
+  To query the job, you need the URI.  Sample code for achieving this
+  is provided below.
+
+  ## Example
+
+  First, compile the macros:
+
+      filename mc url
+        "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      %inc mc;
+
+  Next, create a job (in this case, a web service):
+
+      filename ft15f001 temp;
+      parmcards4;
+        data test;
+          rand=ranuni(0)*1000;
+          do x=1 to rand;
+            y=rand*4;
+            output;
+          end;
+        run;
+        proc sort data=&syslast
+          by descending y;
+        run;
+        %webout(OPEN)
+        %webout(OBJ, test)
+        %webout(CLOSE)
+      ;;;;
+      %mv_createwebservice(path=/Public/temp,name=demo)
+
+  Execute it:
+
+      %mv_jobexecute(path=/Public/temp
+        ,name=demo
+        ,outds=work.info
+      )
+
+  Wait for it to finish, and grab the uri:
+
+      data _null_;
+        set work.info;
+        if method='GET' and rel='self';
+        call symputx('uri',uri);
+      run;
+
+  Finally, fetch the result (In this case, WEBOUT):
+
+      %mv_getjobresult(uri=&uri,result=WEBOUT_JSON,outref=myweb,outlib=myweblib)
+
+
+  @param [in] access_token_var= The global macro variable containing the access
+    token
+  @param [in] mdebug= set to 1 to enable DEBUG messages
+  @param [in] grant_type= valid values:
+    @li password
+    @li authorization_code
+    @li detect - will check if access_token exists, if not will use sas_services
+        if a SASStudioV session else authorization_code.  Default option.
+    @li sas_services - will use oauth_bearer=sas_services.
+  @param [in] uri= The uri of the running job for which to fetch the status,
+    in the format `/jobExecution/jobs/$UUID` (unquoted).
+
+  @param [out] result= (WEBOUT_JSON) The result type to capture.  Resolves
+  to "_[column name]" from the results table when parsed with the JSON libname
+  engine.  Example values:
+    @li WEBOUT_JSON
+    @li WEBOUT_TXT
+
+  @param [out] outref= (0) The output fileref to which to write the results
+  @param [out] outlib= (0) The output library to which to assign the results
+    (assumes the data is in JSON format)
+
+
+  @version VIYA V.03.05
+  @author Allan Bowe, source: https://github.com/sasjs/core
+
+  <h4> SAS Macros </h4>
+  @li mp_abort.sas
+  @li mp_binarycopy.sas
+  @li mf_getplatform.sas
+  @li mf_existfileref.sas
+
+**/
+
+%macro mv_getjobresult(uri=0
+    ,contextName=SAS Job Execution compute context
+    ,access_token_var=ACCESS_TOKEN
+    ,grant_type=sas_services
+    ,mdebug=0
+    ,result=WEBOUT_JSON
+    ,outref=0
+    ,outlib=0
+  );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
+%local oauth_bearer;
+%if &grant_type=detect %then %do;
+  %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
+  %else %let grant_type=sas_services;
+%end;
+%if &grant_type=sas_services %then %do;
+    %let oauth_bearer=oauth_bearer=sas_services;
+    %let &access_token_var=;
+%end;
+
+%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
+    and &grant_type ne sas_services
+  )
+  ,mac=&sysmacroname
+  ,msg=%str(Invalid value for grant_type: &grant_type)
+)
+
+
+/* validation in datastep for better character safety */
+%local errmsg errflg;
+data _null_;
+  uri=symget('uri');
+  if length(uri)<12 then do;
+    call symputx('errflg',1);
+    call symputx('errmsg',"URI is invalid (too short) - '&uri'",'l');
+  end;
+  if scan(uri,-1)='state' or scan(uri,1) ne 'jobExecution' then do;
+    call symputx('errflg',1);
+    call symputx('errmsg',
+      "URI should be in format /jobExecution/jobs/$$$$UUID$$$$"
+      !!" but is actually like: &uri",'l');
+  end;
+run;
+
+%mp_abort(iftrue=(&errflg=1)
+  ,mac=&sysmacroname
+  ,msg=%str(&errmsg)
+)
+
+%if &outref ne 0 and %mf_existfileref(&outref) ne 1 %then %do;
+  filename &outref temp;
+%end;
+
+options noquotelenmax;
+%local base_uri; /* location of rest apis */
+%let base_uri=%mf_getplatform(VIYARESTAPI);
+
+/* fetch job info */
+%local fname1;
+%let fname1=%mf_getuniquefileref();
+proc http method='GET' out=&fname1 &oauth_bearer
+  url="&base_uri&uri";
+  headers "Accept"="application/json"
+  %if &grant_type=authorization_code %then %do;
+          "Authorization"="Bearer &&&access_token_var"
+  %end;
+  ;
+run;
+%if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201 %then
+%do;
+  data _null_;infile &fname1;input;putlog _infile_;run;
+  %mp_abort(mac=&sysmacroname
+    ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
+  )
+%end;
+%if &mdebug=1 %then %do;
+  data _null_;
+    infile &fname1 lrecl=32767;
+    input;
+    putlog _infile_;
+  run;
+%end;
+
+/* extract results link */
+%local lib1 resuri;
+%let lib1=%mf_getuniquelibref();
+libname &lib1 JSON fileref=&fname1;
+data _null_;
+  set &lib1..results;
+  call symputx('resuri',_&result,'l');
+  &dbg putlog "&sysmacroname results: " (_all_)(=);
+run;
+%mp_abort(iftrue=("&resuri"=".")
+  ,mac=&sysmacroname
+  ,msg=%str(Variable _&result did not exist in the response json)
+)
+
+/* extract results */
+%local fname2;
+%let fname2=%mf_getuniquefileref();
+proc http method='GET' out=&fname2 &oauth_bearer
+  url="&base_uri&resuri/content?limit=10000";
+  headers "Accept"="application/json"
+  %if &grant_type=authorization_code %then %do;
+          "Authorization"="Bearer &&&access_token_var"
+  %end;
+  ;
+run;
+%if &mdebug=1 %then %do;
+  data _null_;
+    infile &fname2 lrecl=32767;
+    input;
+    putlog _infile_;
+  run;
+%end;
+
+%if &outref ne 0 %then %do;
+  filename &outref temp;
+  %mp_binarycopy(inref=&fname2,outref=&outref)
+%end;
+%if &outlib ne 0 %then %do;
+  libname &outlib JSON fileref=&fname2;
+%end;
+
+%if &mdebug=0 %then %do;
+  filename &fname1 clear;
+  filename &fname2 clear;
+  libname &lib1 clear;
+%end;
+%else %do;
+  %put &sysmacroname exit vars:;
+  %put _local_;
+%end;
+
+%mend mv_getjobresult;
 /**
   @file
   @brief Extract the status from a running SAS Viya job
@@ -13393,27 +15737,27 @@ run;
 filename &fname0 clear;
 
 %mend;
- /**
-   @file mv_getrefreshtoken.sas
-   @brief deprecated - replaced by mv_tokenauth.sas
+/**
+  @file mv_getrefreshtoken.sas
+  @brief deprecated - replaced by mv_tokenauth.sas
 
-   @version VIYA V.03.04
-   @author Allan Bowe, source: https://github.com/sasjs/core
+  @version VIYA V.03.04
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
-   <h4> SAS Macros </h4>
-   @li mv_tokenauth.sas
+  <h4> SAS Macros </h4>
+  @li mv_tokenauth.sas
 
- **/
+**/
 
- %macro mv_getrefreshtoken(client_id=someclient
-     ,client_secret=somesecret
-     ,grant_type=authorization_code
-     ,code=
-     ,user=
-     ,pass=
-     ,access_token_var=ACCESS_TOKEN
-     ,refresh_token_var=REFRESH_TOKEN
-   );
+%macro mv_getrefreshtoken(client_id=someclient
+    ,client_secret=somesecret
+    ,grant_type=authorization_code
+    ,code=
+    ,user=
+    ,pass=
+    ,access_token_var=ACCESS_TOKEN
+    ,refresh_token_var=REFRESH_TOKEN
+  );
 
 %mv_tokenauth(client_id=&client_id
   ,client_secret=&client_secret
@@ -13492,7 +15836,7 @@ proc http method='GET' out=&fname1 &oauth_bearer
   url="&base_uri/identities/users/&user/memberships?limit=10000";
   headers
 %if &grant_type=authorization_code %then %do;
-         "Authorization"="Bearer &&&access_token_var"
+          "Authorization"="Bearer &&&access_token_var"
 %end;
           "Accept"="application/json";
 run;
@@ -13555,11 +15899,11 @@ libname &libref1 clear;
 
   @param access_token_var= The global macro variable to contain the access token
   @param grant_type= valid values:
-   * password
-   * authorization_code
-   * detect - will check if access_token exists, if not will use sas_services if
-    a SASStudioV session else authorization_code.  Default option.
-   * sas_services - will use oauth_bearer=sas_services
+    * password
+    * authorization_code
+    * detect - will check if access_token exists, if not will use sas_services if
+      a SASStudioV session else authorization_code.  Default option.
+    * sas_services - will use oauth_bearer=sas_services
 
   @param outds= The library.dataset to be created that contains the list of groups
 
@@ -13656,24 +16000,25 @@ libname &libref1 clear;
         ,paramstring=%str("macvarname":"macvarvalue","answer":42)
       )
 
-  @param [in] access_token_var= The global macro variable to contain the access token
+  @param [in] access_token_var= The global macro variable to contain the access
+    token
   @param [in] grant_type= valid values:
-
-    * password
-    * authorization_code
-    * detect - will check if access_token exists, if not will use sas_services if
-      a SASStudioV session else authorization_code.  Default option.
-    * sas_services - will use oauth_bearer=sas_services
+    @li password
+    @li authorization_code
+    @li detect - will check if access_token exists, if not will use sas_services
+      if a SASStudioV session else authorization_code.  Default option.
+    @li sas_services - will use oauth_bearer=sas_services
 
   @param [in] path= The SAS Drive path to the job being executed
   @param [in] name= The name of the job to execute
-  @param [in] paramstring= A JSON fragment with name:value pairs, eg: `"name":"value"`
-  or "name":"value","name2":42`.  This will need to be wrapped in `%str()`.
+  @param [in] paramstring= A JSON fragment with name:value pairs, eg:
+    `"name":"value"` or "name":"value","name2":42`.  This will need to be
+    wrapped in `%str()`.
 
   @param [in] contextName= Context name with which to run the job.
     Default = `SAS Job Execution compute context`
-
-  @param [out] outds= The output dataset containing links (Default=work.mv_jobexecute)
+  @param [in] mdebug= set to 1 to enable DEBUG messages
+  @param [out] outds= (work.mv_jobexecute) The output dataset containing links
 
 
   @version VIYA V.03.04
@@ -13695,7 +16040,15 @@ libname &libref1 clear;
     ,grant_type=sas_services
     ,paramstring=0
     ,outds=work.mv_jobexecute
+    ,mdebug=0
   );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
@@ -13797,12 +16150,17 @@ data &outds;
   _program="&path/&name";
 run;
 
-/* clear refs */
-filename &fname0 clear;
-filename &fname1 clear;
-libname &libref;
-
-%mend;/**
+%if &mdebug=1 %then %do;
+  %put &sysmacroname exit vars:;
+  %put _local_;
+%end;
+%else %do;
+  /* clear refs */
+  filename &fname0 clear;
+  filename &fname1 clear;
+  libname &libref;
+%end;
+%mend mv_jobexecute;/**
   @file
   @brief Execute a series of job flows
   @details Very (very) simple flow manager.  Jobs execute in sequential waves,
@@ -13817,7 +16175,7 @@ libname &libref;
   @li FLOW_ID - Numeric value, provides sequential ordering capability. Is
     optional, will default to 0 if not provided.
   @li _CONTEXTNAME - Dictates which context should be used to run the job. If
-    blank (or not provided), will default to `SAS Job Execution compute context`.
+    blank, or not provided, will default to `SAS Job Execution compute context`.
 
   Any additional variables provided in this table are converted into macro
   variables and passed into the relevant job.
@@ -13901,15 +16259,19 @@ libname &libref;
       run;
 
 
-  @param [in] access_token_var= The global macro variable to contain the access token
+  @param [in] access_token_var= The global macro variable to contain the access
+    token
   @param [in] grant_type= valid values:
       @li password
       @li authorization_code
-      @li detect - will check if access_token exists, if not will use sas_services if
-        a SASStudioV session else authorization_code.  Default option.
+      @li detect - will check if access_token exists, if not will use
+        sas_services if a SASStudioV session else authorization_code.  Default
+        option.
       @li sas_services - will use oauth_bearer=sas_services
   @param [in] inds= The input dataset containing a list of jobs and parameters
-  @param [in] maxconcurrency= The max number of parallel jobs to run.  Default=8.
+  @param [in] maxconcurrency= The max number of parallel jobs to run. Default=8.
+  @param [in] raise_err=0 Set to 1 to raise SYSCC when a job does not complete
+            succcessfully
   @param [in] mdebug= set to 1 to enable DEBUG messages
   @param [out] outds= The output dataset containing the results
   @param [out] outref= The output fileref to which to append the log file(s).
@@ -13933,8 +16295,16 @@ libname &libref;
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
     ,outref=0
+    ,raise_err=0
     ,mdebug=0
   );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
@@ -13986,7 +16356,7 @@ select count(*) into: missings
   where flow_id is null or _program is null;
 %mp_abort(iftrue=(&missings>0)
   ,mac=&sysmacroname
-  ,msg=%str(input dataset contains &missings missing values for FLOW_ID or _PROGRAM)
+  ,msg=%str(input dataset has &missings missing values for FLOW_ID or _PROGRAM)
 )
 
 %if %mf_nobs(&inds)=0 %then %do;
@@ -14085,12 +16455,14 @@ data;run;%let jdswaitfor=&syslast;
       %if "&&jobuid&jid"="0" and &concurrency<&maxconcurrency %then %do;
         %local jobname jobpath;
         %let jobname=%scan(&&job&jid,-1,/);
-        %let jobpath=%substr(&&job&jid,1,%length(&&job&jid)-%length(&jobname)-1);
+        %let jobpath=
+          %substr(&&job&jid,1,%length(&&job&jid)-%length(&jobname)-1);
         %put executing &jobpath/&jobname with paramstring &&jparams&jid;
         %mv_jobexecute(path=&jobpath
           ,name=&jobname
           ,paramstring=%superq(jparams&jid)
           ,outds=&jdsapp
+          ,mdebug=&mdebug
         )
         data &jdsapp;
           format jobparams $32767.;
@@ -14111,7 +16483,13 @@ data;run;%let jdswaitfor=&syslast;
     %end;
     %if &jid=&jcnt %then %do;
       /* we are at the end of the loop - time to see which jobs have finished */
-      %mv_jobwaitfor(ANY,inds=&jdsrunning,outds=&jdswaitfor,outref=&outref)
+      %mv_jobwaitfor(ANY
+        ,inds=&jdsrunning
+        ,outds=&jdswaitfor
+        ,outref=&outref
+        ,raise_err=&raise_err
+        ,mdebug=&mdebug
+      )
       %local done;
       %let done=%mf_nobs(&jdswaitfor);
       %if &done>0 %then %do;
@@ -14134,7 +16512,8 @@ data;run;%let jdswaitfor=&syslast;
       /* loop again if jobs are left */
       %if &completed < &jcnt %then %do;
         %let jid=0;
-        %put looping flow &fid again - &completed of &jcnt jobs completed, &concurrency jobs running;
+        %put looping flow &fid again - &completed of &jcnt jobs completed,
+          &concurrency jobs running;
       %end;
     %end;
   %end;
@@ -14142,13 +16521,14 @@ data;run;%let jdswaitfor=&syslast;
 %end;
 
 %if &mdebug=1 %then %do;
+  %put &sysmacroname exit vars:;
   %put _local_;
 %end;
 
-%mend;
+%mend mv_jobflow;
 /**
   @file
-  @brief Takes a dataset of running jobs and waits for ANY or ALL of them to complete
+  @brief Takes a table of running jobs and waits for ANY/ALL of them to complete
   @details Will poll `/jobs/{jobId}/state` at set intervals until ANY or ALL
   jobs are completed.  Completion is determined by reference to the returned
   _state_, as per the following table:
@@ -14203,13 +16583,14 @@ data;run;%let jdswaitfor=&syslast;
 
       %mv_deletejes(path=/Public/temp,name=demo)
 
-  @param [in] access_token_var= The global macro variable to contain the access token
+  @param [in] access_token_var= The global macro variable to contain the access
+    token
   @param [in] grant_type= valid values:
 
       - password
       - authorization_code
-      - detect - will check if access_token exists, if not will use sas_services if
-        a SASStudioV session else authorization_code.  Default option.
+      - detect - will check if access_token exists, if not will use sas_services
+        if a SASStudioV session else authorization_code.  Default option.
       - sas_services - will use oauth_bearer=sas_services
 
   @param [in] action=Either ALL (to wait for every job) or ANY (if one job
@@ -14218,9 +16599,13 @@ data;run;%let jdswaitfor=&syslast;
     following format:  `/jobExecution/jobs/&JOBID./state` and the corresponding
     job name.  The uri should be in a `uri` variable, and the job path/name
     should be in a `_program` variable.
+  @param [in] raise_err=0 Set to 1 to raise SYSCC when a job does not complete
+              succcessfully
+  @param [in] mdebug= set to 1 to enable DEBUG messages
   @param [out] outds= The output dataset containing the list of states by job
     (default=work.mv_jobexecute)
-  @param [out] outref= A fileref to which the spawned job logs should be appended.
+  @param [out] outref= A fileref to which the spawned job logs should be
+    appended.
 
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
@@ -14229,6 +16614,7 @@ data;run;%let jdswaitfor=&syslast;
   @li mp_abort.sas
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
+  @li mf_getuniquelibref.sas
   @li mf_existvar.sas
   @li mf_nobs.sas
   @li mv_getjoblog.sas
@@ -14241,7 +16627,16 @@ data;run;%let jdswaitfor=&syslast;
     ,inds=0
     ,outds=work.mv_jobwaitfor
     ,outref=0
+    ,raise_err=0
+    ,mdebug=0
   );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
@@ -14284,7 +16679,7 @@ options noquotelenmax;
 data _null_;
   length jobparams $32767;
   set &inds end=last;
-  call symputx(cats('joburi',_n_),substr(uri,1,55)!!'/state','l');
+  call symputx(cats('joburi',_n_),substr(uri,1,55),'l');
   call symputx(cats('jobname',_n_),_program,'l');
   call symputx(cats('jobparams',_n_),jobparams,'l');
   if last then call symputx('uricnt',_n_,'l');
@@ -14299,7 +16694,8 @@ run;
 %let fname0=%mf_getuniquefileref();
 
 data &outds;
-  format _program uri $128. state $32. timestamp datetime19. jobparams $32767.;
+  format _program uri $128. state $32. stateDetails $32. timestamp datetime19.
+    jobparams $32767.;
   stop;
 run;
 
@@ -14307,13 +16703,13 @@ run;
 %do i=1 %to &uricnt;
   %if "&&joburi&i" ne "0" %then %do;
     proc http method='GET' out=&fname0 &oauth_bearer url="&base_uri/&&joburi&i";
-      headers "Accept"="text/plain"
+      headers "Accept"="application/json"
       %if &grant_type=authorization_code %then %do;
               "Authorization"="Bearer &&&access_token_var"
       %end;  ;
     run;
-    %if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201 %then
-    %do;
+    %if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201
+    %then %do;
       data _null_;infile &fname0;input;putlog _infile_;run;
       %mp_abort(mac=&sysmacroname
         ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
@@ -14321,11 +16717,19 @@ run;
     %end;
 
     %let status=notset;
+
+    %local libref1;
+    %let libref1=%mf_getuniquelibref();
+    libname &libref1 json fileref=&fname0;
+
     data _null_;
-      infile &fname0;
-      input;
-      call symputx('status',_infile_,'l');
+      length state stateDetails $32;
+      set &libref1..root;
+      call symputx('status',state,'l');
+      call symputx('stateDetails',stateDetails,'l');
     run;
+
+    libname &libref1 clear;
 
     %if &status=completed or &status=failed or &status=canceled %then %do;
       %local plainuri;
@@ -14335,12 +16739,13 @@ run;
         _program="&&jobname&i",
         uri="&plainuri",
         state="&status",
+        stateDetails=symget("stateDetails"),
         timestamp=datetime(),
         jobparams=symget("jobparams&i");
       %let joburi&i=0; /* do not re-check */
       /* fetch log */
       %if %str(&outref) ne 0 %then %do;
-        %mv_getjoblog(uri=&plainuri,outref=&outref)
+        %mv_getjoblog(uri=&plainuri,outref=&outref,mdebug=&mdebug)
       %end;
     %end;
     %else %if &status=idle or &status=pending or &status=running %then %do;
@@ -14353,6 +16758,17 @@ run;
         ,msg=%str(status &status not expected!!)
       )
     %end;
+
+    %if (&raise_err) %then %do;
+      %if (&status = canceled or &status = failed or %length(&stateDetails)>0)
+      %then %do;
+        %if ("&stateDetails" = "%str(war)ning") %then %let SYSCC=4;
+        %else %let SYSCC=5;
+        %put %str(ERR)OR: Job &&jobname&i. did not complete. &stateDetails;
+        %return;
+      %end;
+    %end;
+
   %end;
   %if &i=&uricnt %then %do;
     %local goback;
@@ -14363,24 +16779,31 @@ run;
   %end;
 %end;
 
-/* clear refs */
-filename &fname0 clear;
-
-%mend;/**
+%if &mdebug=1 %then %do;
+  %put &sysmacroname exit vars:;
+  %put _local_;
+%end;
+%else %do;
+  /* clear refs */
+  filename &fname0 clear;
+%end;
+%mend mv_jobwaitfor;/**
   @file mv_registerclient.sas
   @brief Register Client and Secret (admin task)
   @details When building apps on SAS Viya, an client id and secret is required.
   This macro will obtain the Consul Token and use that to call the Web Service.
 
-    more info: https://developer.sas.com/reference/auth/#register
-    and: http://proc-x.com/2019/01/authentication-to-sas-viya-a-couple-of-approaches/
+  more info: https://developer.sas.com/reference/auth/#register
+  and:
+  http://proc-x.com/2019/01/authentication-to-sas-viya-a-couple-of-approaches
 
   The default viyaroot location is /opt/sas/viya/config
 
   Usage:
 
       %* compile macros;
-      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      filename mc url
+        "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
       %* specific client with just openid scope;
@@ -14401,7 +16824,8 @@ filename &fname0 clear;
   @param client_id= The client name.  Auto generated if blank.
   @param client_secret= Client secret  Auto generated if client is blank.
   @param scopes= list of space-seperated unquoted scopes (default is openid)
-  @param grant_type= valid values are "password" or "authorization_code" (unquoted)
+  @param grant_type= valid values are "password" or "authorization_code"
+    (unquoted)
   @param outds= the dataset to contain the registered client id and secret
   @param access_token_validity= The duration of validity of the access token
     in seconds.  A value of DEFAULT will omit the entry (and use system default)
@@ -14446,15 +16870,16 @@ filename &fname0 clear;
     ,refresh_token_validity=DEFAULT
     ,outjson=_null_
   );
-%local consul_token fname1 fname2 fname3 libref access_token url;
+%local consul_token fname1 fname2 fname3 libref access_token url tokloc;
 
 %if client_name=DEFAULT %then %let client_name=
   Generated by %mf_getuser() on %sysfunc(datetime(),datetime19.) using SASjs;
 
 options noquotelenmax;
 /* first, get consul token needed to get client id / secret */
+%let tokloc=/etc/SASSecurityCertificateFramework/tokens/consul/default;
 data _null_;
-  infile "%mf_loc(VIYACONFIG)/etc/SASSecurityCertificateFramework/tokens/consul/default/client.token";
+  infile "%mf_loc(VIYACONFIG)&tokloc/client.token";
   input token:$64.;
   call symputx('consul_token',token);
 run;
@@ -14465,8 +16890,9 @@ run;
 /* request the client details */
 %let fname1=%mf_getuniquefileref();
 proc http method='POST' out=&fname1
-    url="&base_uri/SASLogon/oauth/clients/consul?callback=false%str(&)serviceId=app";
-    headers "X-Consul-Token"="&consul_token";
+  url="&base_uri/SASLogon/oauth/clients/consul?callback=false%str(&)%trim(
+    )serviceId=app";
+  headers "X-Consul-Token"="&consul_token";
 run;
 
 %let libref=%mf_getuniquelibref();
@@ -14479,8 +16905,8 @@ data _null_;
 run;
 
 /**
- * register the new client
- */
+  * register the new client
+  */
 %let fname2=%mf_getuniquefileref();
 %if x&client_id.x=xx %then %do;
   %let client_id=client_%sysfunc(ranuni(0),hex16.);
@@ -14490,7 +16916,8 @@ run;
 %let scopes=%sysfunc(coalescec(&scopes,openid));
 %let scopes=%mf_getquotedstr(&scopes,QUOTE=D,indlm=|);
 %let grant_type=%mf_getquotedstr(&grant_type,QUOTE=D,indlm=|);
-%let required_user_groups=%mf_getquotedstr(&required_user_groups,QUOTE=D,indlm=|);
+%let required_user_groups=
+  %mf_getquotedstr(&required_user_groups,QUOTE=D,indlm=|);
 
 data _null_;
   file &fname2;
@@ -14507,9 +16934,11 @@ data _null_;
   if reqd_groups = '""' then reqd_groups ='';
   else reqd_groups=cats(',"required_user_groups":[',reqd_groups,']');
   autoapprove=trim(symget('autoapprove'));
-  if not missing(autoapprove) then autoapprove=cats(',"autoapprove":',autoapprove);
+  if not missing(autoapprove) then autoapprove=
+    cats(',"autoapprove":',autoapprove);
   use_session=trim(symget('use_session'));
-  if not missing(use_session) then use_session=cats(',"use_session":',use_session);
+  if not missing(use_session) then use_session=
+    cats(',"use_session":',use_session);
 
   put '{'  clientid  ;
   put clientsecret ;
@@ -14574,10 +17003,12 @@ run;
 %put GRANT_TYPE=&grant_type;
 %put;
 %if %index(%superq(grant_type),authorization_code) %then %do;
-  /* cannot use base_uri here as it includes the protocol which may be incorrect externally */
-  %put NOTE: The developer must also register below and select 'openid' to get the grant code:;
+  /* cannot use base_uri here as it includes the protocol which may be incorrect
+    externally */
+  %put NOTE: Visit the link below and select 'openid' to get the grant code:;
   %put NOTE- ;
-  %put NOTE- &url/SASLogon/oauth/authorize?client_id=&client_id%str(&)response_type=code;
+  %put NOTE- &url/SASLogon/oauth/authorize?client_id=&client_id%str(&)%trim(
+    )response_type=code;
   %put NOTE- ;
 %end;
 
@@ -14617,7 +17048,8 @@ libname &libref clear;
 
   Usage:
 
-      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      filename mc url
+        "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
 
@@ -14633,13 +17065,15 @@ libname &libref clear;
   @param outds= A dataset containing access_token and refresh_token
   @param client_id= The client name
   @param client_secret= client secret
-  @param grant_type= valid values are "password" or "authorization_code" (unquoted).
-    The default is authorization_code.
-  @param code= If grant_type=authorization_code then provide the necessary code here
+  @param grant_type= valid values are "password" or "authorization_code"
+    (unquoted). The default is authorization_code.
+  @param code= If grant_type=authorization_code then provide the necessary code
+    here
   @param user= If grant_type=password then provide the username here
   @param pass= If grant_type=password then provide the password here
   @param access_token_var= The global macro variable to contain the access token
-  @param refresh_token_var= The global macro variable to contain the refresh token
+  @param refresh_token_var= The global macro variable to contain the refresh
+    token
   @param base_uri= The Viya API server location
 
   @version VIYA V.03.04
@@ -14690,7 +17124,8 @@ libname &libref clear;
   ,msg=%str(Authorization code required)
 )
 
-%mp_abort(iftrue=(&grant_type=password and (%str(&user)=%str() or %str(&pass)=%str()))
+%mp_abort(iftrue=(
+  &grant_type=password and (%str(&user)=%str() or %str(&pass)=%str()))
   ,mac=&sysmacroname
   ,msg=%str(username / password required)
 )
@@ -14701,7 +17136,7 @@ libname &libref clear;
 data _null_;
   file &fref1;
   if "&grant_type"='authorization_code' then string=cats(
-   'grant_type=authorization_code&code=',symget('code'));
+    'grant_type=authorization_code&code=',symget('code'));
   else string=cats('grant_type=password&username=',symget('user')
     ,'&password=',symget(pass));
   call symputx('grantstring',cats("'",string,"'"));
@@ -14709,8 +17144,8 @@ run;
 /*data _null_;infile &fref1;input;put _infile_;run;*/
 
 /**
- * Request access token
- */
+  * Request access token
+  */
 %if &base_uri=#NOTSET# %then %let base_uri=%mf_getplatform(VIYARESTAPI);
 
 %let fref2=%mf_getuniquefileref();
@@ -14725,8 +17160,8 @@ run;
 /*data _null_;infile &fref2;input;put _infile_;run;*/
 
 /**
- * Extract access / refresh tokens
- */
+  * Extract access / refresh tokens
+  */
 
 %let libref=%mf_getuniquelibref();
 libname &libref JSON fileref=&fref2;
@@ -14777,12 +17212,13 @@ filename &fref2 clear;
   @param outds= A dataset containing access_token and refresh_token
   @param client_id= The client name (alternative to inds)
   @param client_secret= client secret (alternative to inds)
-  @param grant_type= valid values are "password" or "authorization_code" (unquoted).
-    The default is authorization_code.
+  @param grant_type= valid values are "password" or "authorization_code"
+    (unquoted).  The default is authorization_code.
   @param user= If grant_type=password then provide the username here
   @param pass= If grant_type=password then provide the password here
   @param access_token_var= The global macro variable to contain the access token
-  @param refresh_token_var= The global macro variable containing the refresh token
+  @param refresh_token_var= The global macro variable containing the refresh
+    token
 
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
@@ -14817,7 +17253,8 @@ options noquotelenmax;
   ,msg=%str(Invalid value for grant_type: &grant_type)
 )
 
-%mp_abort(iftrue=(&grant_type=password and (%str(&user)=%str() or %str(&pass)=%str()))
+%mp_abort(
+  iftrue=(&grant_type=password and (%str(&user)=%str() or %str(&pass)=%str()))
   ,mac=&sysmacroname
   ,msg=%str(username / password required)
 )
@@ -14837,8 +17274,8 @@ options noquotelenmax;
 )
 
 /**
- * Request access token
- */
+  * Request access token
+  */
 %local base_uri; /* location of rest apis */
 %let base_uri=%mf_getplatform(VIYARESTAPI);
 
@@ -14856,8 +17293,8 @@ run;
 /*data _null_;infile &fref1;input;put _infile_;run;*/
 
 /**
- * Extract access / refresh tokens
- */
+  * Extract access / refresh tokens
+  */
 
 %let libref=%mf_getuniquelibref();
 libname &libref JSON fileref=&fref1;
@@ -14874,7 +17311,7 @@ libname &libref clear;
 filename &fref1 clear;
 
 %mend;/**
-  @file mv_webout.sas
+  @file
   @brief Send data to/from the SAS Viya Job Execution Service
   @details This macro should be added to the start of each Job Execution
   Service, **immediately** followed by a call to:
@@ -14886,7 +17323,7 @@ filename &fref1 clear;
     following syntax:
 
         data some datasets; * make some data ;
-        retain some columns;
+          retain some columns;
         run;
 
         %mv_webout(OPEN)
@@ -14984,7 +17421,8 @@ filename &fref1 clear;
         if _n_=1 then call symputx('input_statement',_infile_);
         list;
       data &table;
-        infile "%sysfunc(pathname(work))/&table..csv" firstobs=2 dsd termstr=crlf;
+        infile "%sysfunc(pathname(work))/&table..csv" firstobs=2 dsd
+          termstr=crlf;
         input &input_statement;
       run;
     %end;
@@ -15016,7 +17454,7 @@ filename &fref1 clear;
   /* setup webout */
   OPTIONS NOBOMFILE;
   %if "X&SYS_JES_JOB_URI.X"="XX" %then %do;
-     filename _webout temp lrecl=999999 mod;
+    filename _webout temp lrecl=999999 mod;
   %end;
   %else %do;
     filename _webout filesrvc parenturi="&SYS_JES_JOB_URI"
@@ -15025,7 +17463,8 @@ filename &fref1 clear;
 
   /* setup temp ref */
   %if %upcase(&fref) ne _WEBOUT %then %do;
-    filename &fref temp lrecl=999999 permission='A::u::rwx,A::g::rw-,A::o::---' mod;
+    filename &fref temp lrecl=999999 permission='A::u::rwx,A::g::rw-,A::o::---'
+      mod;
   %end;
 
   /* setup json */
@@ -15035,7 +17474,7 @@ filename &fref1 clear;
 %end;
 %else %if &action=ARR or &action=OBJ %then %do;
     %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt
-      ,jref=&fref,engine=PROCJSON,dbg=%str(&_debug)
+      ,jref=&fref,engine=DATASTEP,dbg=%str(&_debug)
     )
 %end;
 %else %if &action=CLOSE %then %do;

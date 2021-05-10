@@ -1,3 +1,13 @@
 node_modules
 .DS_Store
 sasjsbuild/
+sasjsresults/
+
+# avoid filenames with spaces being committed to source control
+**\ **
+
+# ignore the mc_* files - containing macros for individual libraries
+mc_*
+
+# ignore .env files as they can contain sasjs access tokens
+*.env*

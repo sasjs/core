@@ -28,10 +28,10 @@
 filename response temp;
 /* get list of libraries */
 proc metadata in=
- "<GetMetadataObjects><Reposid>$METAREPOSITORY</Reposid>
-   <Type>&type</Type><Objects/><NS>SAS</NS>
-   <Flags>0</Flags><Options/></GetMetadataObjects>"
-  out=response;
+  "<GetMetadataObjects><Reposid>$METAREPOSITORY</Reposid>
+    <Type>&type</Type><Objects/><NS>SAS</NS>
+    <Flags>0</Flags><Options/></GetMetadataObjects>"
+    out=response;
 run;
 
 /* write the response to the log for debugging */
@@ -46,7 +46,8 @@ filename sxlemap temp;
 data _null_;
   file sxlemap;
   put '<SXLEMAP version="1.2" name="SASObjects"><TABLE name="SASObjects">';
-  put "<TABLE-PATH syntax='XPath'>/GetMetadataObjects/Objects/&type</TABLE-PATH>";
+  put "<TABLE-PATH syntax='XPath'>/GetMetadataObjects/Objects/&type";
+  put "</TABLE-PATH>";
   put '<COLUMN name="id">';
   put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/&type/@Id</PATH>";
   put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>200</LENGTH>";

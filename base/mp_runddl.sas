@@ -8,14 +8,14 @@
 
     rootlib
     |-- LIBREF1
-    |  |__ mytable.ddl
-    |  |__ someothertable.ddl
+    |   |__ mytable.ddl
+    |   |__ someothertable.ddl
     |-- LIBREF2
-    |  |__ table1.ddl
-    |  |__ table2.ddl
+    |   |__ table1.ddl
+    |   |__ table2.ddl
     |-- LIBREF3
-       |__ table3.ddl
-       |__ table4.ddl
+        |__ table3.ddl
+        |__ table4.ddl
 
   Only files with the .ddl suffix are executed.  The parent folder name is used
   as the libref.

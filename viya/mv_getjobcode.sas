@@ -5,22 +5,25 @@
   Example:
 
       %mv_getjobcode(
-         path=/Public/jobs
+        path=/Public/jobs
         ,name=some_job
         ,outfile=/tmp/some_job.sas
       )
 
-  @param [in] access_token_var= The global macro variable to contain the access token
+  @param [in] access_token_var= The global macro variable to contain the access
+    token
   @param [in] grant_type= valid values:
-      * password
-      * authorization_code
-      * detect - will check if access_token exists, if not will use sas_services if
-        a SASStudioV session else authorization_code.  Default option.
-      * sas_services - will use oauth_bearer=sas_services
+    @li password
+    @liauthorization_code
+    @li detect - will check if access_token exists, if not will use sas_services
+      if a SASStudioV session else authorization_code.  Default option.
+    @li  sas_services - will use oauth_bearer=sas_services
   @param [in] path= The SAS Drive path of the job
   @param [in] name= The name of the job
-  @param [out] outref= A fileref to which to write the source code
-  @param [out] outfile= A file to which to write the source code
+  @param [in] mdebug=(0) set to 1 to enable DEBUG messages
+  @param [out] outref=(0) A fileref to which to write the source code (will be
+    created with a TEMP engine)
+  @param [out] outfile=(0) A file to which to write the source code
 
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
@@ -39,7 +42,15 @@
     ,contextName=SAS Job Execution compute context
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
+    ,mdebug=0
   );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
@@ -129,22 +140,34 @@ data _null_;
     outfile:write(job)
     io.close(infile)
     io.close(outfile)
-   ';
+  ';
 run;
 %inc "&fpath3..lua";
 /* export to desired destination */
-data _null_;
-  %if &outref=0 %then %do;
+%if "&outref"="0" %then %do;
+  data _null_;
     file "&outfile" lrecl=32767;
-  %end;
-  %else %do;
+%end;
+%else %do;
+  filename &outref temp;
+  data _null_;
     file &outref;
-  %end;
+%end;
   infile &fname2;
   input;
   put _infile_;
+  &dbg. putlog _infile_;
 run;
-filename &fname1 clear;
-filename &fname2 clear;
-filename &fname3 clear;
-%mend;
+
+%if &mdebug=1 %then %do;
+  %put &sysmacroname exit vars:;
+  %put _local_;
+%end;
+%else %do;
+  /* clear refs */
+  filename &fname1 clear;
+  filename &fname2 clear;
+  filename &fname3 clear;
+%end;
+
+%mend mv_getjobcode;

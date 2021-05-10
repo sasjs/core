@@ -10,7 +10,8 @@
 
   First, compile the macros:
 
-      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      filename mc url
+        "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
   Next, create a job (in this case, a web service):
@@ -53,13 +54,14 @@
   convenient way to wait for the job to finish before fetching the log.
 
 
-  @param [in] access_token_var= The global macro variable to contain the access token
+  @param [in] access_token_var= The global macro variable to contain the access
+    token
   @param [in] mdebug= set to 1 to enable DEBUG messages
   @param [in] grant_type= valid values:
     @li password
     @li authorization_code
-    @li detect - will check if access_token exists, if not will use sas_services if
-        a SASStudioV session else authorization_code.  Default option.
+    @li detect - will check if access_token exists, if not will use sas_services
+      if a SASStudioV session else authorization_code.  Default option.
     @li sas_services - will use oauth_bearer=sas_services.
   @param [in] uri= The uri of the running job for which to fetch the status,
     in the format `/jobExecution/jobs/$UUID/state` (unquoted).
@@ -84,6 +86,13 @@
     ,grant_type=sas_services
     ,mdebug=0
   );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
@@ -174,7 +183,7 @@ data _null_;
     outfile:write(logloc)
     io.close(infile)
     io.close(outfile)
-   ';
+  ';
 run;
 %inc "&fpath3..lua";
 /* get log path*/
@@ -228,7 +237,7 @@ data _null_;
     io.input(infile)
     local resp=json.decode(io.read())
     for i, v in pairs(resp["items"]) do
-	    outfile:write(v.line,"\n")
+      outfile:write(v.line,"\n")
     end
     io.close(infile)
     io.close(outfile)
@@ -259,9 +268,10 @@ run;
   filename &fname3 clear;
 %end;
 %else %do;
+  %put &sysmacroname exit vars:;
   %put _local_;
 %end;
-%mend;
+%mend mv_getjoblog;
 
 
 

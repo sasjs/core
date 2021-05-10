@@ -6,8 +6,8 @@
 Usage:
 
     data work.test;
-       format str $1.  num datetime19.;
-       stop;
+      format str $1.  num datetime19.;
+      stop;
     run;
     %put %mf_getVarNum(work.test,str);
     %put %mf_getVarNum(work.test,num);
@@ -39,8 +39,8 @@ returns:
     /* Get variable number */
     %let vnum = %sysfunc(varnum(&dsid, &var));
     %if(&vnum <= 0) %then %do;
-       %put NOTE: Variable &var does not exist in &libds;
-       %let vnum = %str( );
+      %put NOTE: Variable &var does not exist in &libds;
+      %let vnum = %str( );
     %end;
   %end;
   %else %put dataset &ds not opened! (rc=&dsid);

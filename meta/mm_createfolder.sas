@@ -55,7 +55,7 @@ data _null_;
 
   * must have a starting slash ;
   if ( substr(folderPath,1,1) ne '/' ) then do;
-    put "%str(ERR)OR: &sysmacroname PATH parameter value must have starting slash";
+    put "%str(ERR)OR: &sysmacroname PATH param value must have starting slash";
     stop;
   end;
 
@@ -75,8 +75,8 @@ data _null_;
   * check that root folder exists ;
   root=cats('/',scan(folderpath,1,'/'),"(Folder)");
   if metadata_pathobj('',root,"",objType,parentId)<1 then do;
-     put "%str(ERR)OR: " root " does not exist!";
-     stop;
+    put "%str(ERR)OR: " root " does not exist!";
+    stop;
   end;
 
   * check that parent folder exists ;
@@ -86,21 +86,21 @@ data _null_;
   if rc<1 then do;
     putlog 'The following folders will be created:';
     /* folder does not exist - so start from top and work down */
-     length newpath $1000;
-     paths=0;
-     do x=2 to countw(folderpath,'/');
-       newpath='';
-       do i=1 to x;
-         newpath=cats(newpath,'/',scan(folderpath,i,'/'));
-       end;
-       rc=metadata_pathobj('',cats(newpath,"(Folder)"),"",objType,parentId);
-       if rc<1 then do;
-         paths+1;
-         call symputx(cats('path',paths),newpath);
-         putlog newpath;
-       end;
-       call symputx('paths',paths);
-     end;
+    length newpath $1000;
+    paths=0;
+    do x=2 to countw(folderpath,'/');
+      newpath='';
+      do i=1 to x;
+        newpath=cats(newpath,'/',scan(folderpath,i,'/'));
+      end;
+      rc=metadata_pathobj('',cats(newpath,"(Folder)"),"",objType,parentId);
+      if rc<1 then do;
+        paths+1;
+        call symputx(cats('path',paths),newpath);
+        putlog newpath;
+      end;
+      call symputx('paths',paths);
+    end;
   end;
   else putlog "parent " parent " exists";
 
@@ -115,7 +115,7 @@ run;
 
 %if &paths>0 %then %do x=1 %to &paths;
   %put executing recursive call for &&path&x;
-   %mm_createfolder(path=&&path&x)
+  %mm_createfolder(path=&&path&x)
 %end;
 %else %do;
   filename __newdir temp;
@@ -123,9 +123,10 @@ run;
   %local inmeta;
   %put creating: &path;
   %let inmeta=<AddMetadata><Reposid>$METAREPOSITORY</Reposid><Metadata>
-    <Tree Name='&child' PublicType='Folder' TreeType='BIP Folder' UsageVersion='1000000'>
-    <ParentTree><Tree ObjRef='&parentFolderObjId'/></ParentTree></Tree></Metadata>
-    <NS>SAS</NS><Flags>268435456</Flags></AddMetadata>;
+    <Tree Name='&child' PublicType='Folder' TreeType='BIP Folder'
+    UsageVersion='1000000'><ParentTree><Tree ObjRef='&parentFolderObjId'/>
+    </ParentTree></Tree></Metadata><NS>SAS</NS><Flags>268435456</Flags>
+    </AddMetadata>;
 
   proc metadata in="&inmeta" out=__newdir verbose;
   run ;

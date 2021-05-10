@@ -2,11 +2,11 @@
   @file
   @brief Creates a zip file
   @details For DIRECTORY usage, will ignore subfolders. For DATASET usage,
-    provide a column that contains the full file path to each file to be zipped.
+  provide a column that contains the full file path to each file to be zipped.
 
-    %mp_zip(in=myzips,type=directory,outname=myDir)
-    %mp_zip(in=/my/file/path.txt,type=FILE,outname=myFile)
-    %mp_zip(in=SOMEDS,incol=FPATH,type=DATASET,outname=myFile)
+      %mp_zip(in=myzips,type=directory,outname=myDir)
+      %mp_zip(in=/my/file/path.txt,type=FILE,outname=myFile)
+      %mp_zip(in=SOMEDS,incol=FPATH,type=DATASET,outname=myFile)
 
   If you are sending zipped output to the _webout destination as part of an STP
   be sure that _debug is not set (else the SPWA will send non zipped content

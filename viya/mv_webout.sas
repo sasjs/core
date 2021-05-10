@@ -1,5 +1,5 @@
 /**
-  @file mv_webout.sas
+  @file
   @brief Send data to/from the SAS Viya Job Execution Service
   @details This macro should be added to the start of each Job Execution
   Service, **immediately** followed by a call to:
@@ -11,7 +11,7 @@
     following syntax:
 
         data some datasets; * make some data ;
-        retain some columns;
+          retain some columns;
         run;
 
         %mv_webout(OPEN)
@@ -109,7 +109,8 @@
         if _n_=1 then call symputx('input_statement',_infile_);
         list;
       data &table;
-        infile "%sysfunc(pathname(work))/&table..csv" firstobs=2 dsd termstr=crlf;
+        infile "%sysfunc(pathname(work))/&table..csv" firstobs=2 dsd
+          termstr=crlf;
         input &input_statement;
       run;
     %end;
@@ -141,7 +142,7 @@
   /* setup webout */
   OPTIONS NOBOMFILE;
   %if "X&SYS_JES_JOB_URI.X"="XX" %then %do;
-     filename _webout temp lrecl=999999 mod;
+    filename _webout temp lrecl=999999 mod;
   %end;
   %else %do;
     filename _webout filesrvc parenturi="&SYS_JES_JOB_URI"
@@ -150,7 +151,8 @@
 
   /* setup temp ref */
   %if %upcase(&fref) ne _WEBOUT %then %do;
-    filename &fref temp lrecl=999999 permission='A::u::rwx,A::g::rw-,A::o::---' mod;
+    filename &fref temp lrecl=999999 permission='A::u::rwx,A::g::rw-,A::o::---'
+      mod;
   %end;
 
   /* setup json */
@@ -160,7 +162,7 @@
 %end;
 %else %if &action=ARR or &action=OBJ %then %do;
     %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt
-      ,jref=&fref,engine=PROCJSON,dbg=%str(&_debug)
+      ,jref=&fref,engine=DATASTEP,dbg=%str(&_debug)
     )
 %end;
 %else %if &action=CLOSE %then %do;

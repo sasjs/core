@@ -23,25 +23,27 @@
 %local a b c;
 %if &switch.NONE=NONE %then %do;
   %if %symexist(sysprocessmode) %then %do;
-    %if "&sysprocessmode"="SAS Object Server" 
+    %if "&sysprocessmode"="SAS Object Server"
     or "&sysprocessmode"= "SAS Compute Server" %then %do;
         SASVIYA
     %end;
-    %else %if "&sysprocessmode"="SAS Stored Process Server" %then %do;
+    %else %if "&sysprocessmode"="SAS Stored Process Server"
+      or "&sysprocessmode"="SAS Workspace Server"
+    %then %do;
       SASMETA
       %return;
     %end;
     %else %do;
-      SAS
+      BASESAS
       %return;
     %end;
   %end;
-  %else %if %symexist(_metaport) %then %do;
+  %else %if %symexist(_metaport) or %symexist(_metauser) %then %do;
     SASMETA
     %return;
   %end;
   %else %do;
-    SAS
+    BASESAS
     %return;
   %end;
 %end;

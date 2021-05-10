@@ -22,7 +22,7 @@ Usage:
         %webout(OBJ,example2) * Object format, easier to work with ;
         %webout(CLOSE)
     ;;;;
-    %mm_createwebservice(path=/Public/app/common,name=appInit,code=ft15f001,replace=YES)
+    %mm_createwebservice(path=/Public/app/common,name=appInit)
 
   <h4> SAS Macros </h4>
   @li mm_createstp.sas
@@ -76,20 +76,21 @@ Usage:
   %let path=%substr(&path,1,%length(&path)-1);
 
 /**
- * Add webout macro
- * These put statements are auto generated - to change the macro, change the
- * source (mm_webout) and run `build.py`
- */
+  * Add webout macro
+  * These put statements are auto generated - to change the macro, change the
+  * source (mm_webout) and run `build.py`
+  */
 filename sasjs temp;
 data _null_;
   file sasjs lrecl=3000 ;
   put "/* Created on %sysfunc(datetime(),datetime19.) by %mf_getuser() */";
 /* WEBOUT BEGIN */
   put ' ';
-  put '%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=PROCJSON,dbg=0 ';
+  put '%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=DATASTEP,dbg=0 ';
   put ')/*/STORE SOURCE*/; ';
   put '%put output location=&jref; ';
   put '%if &action=OPEN %then %do; ';
+  put '  OPTIONS NOBOMFILE; ';
   put '  data _null_;file &jref encoding=''utf-8''; ';
   put '    put ''{"START_DTTM" : "'' "%sysfunc(datetime(),datetime20.3)" ''"''; ';
   put '  run; ';
@@ -117,9 +118,68 @@ data _null_;
   put '      %put &sysmacroname:  &ds NOT FOUND!!!; ';
   put '      %return; ';
   put '    %end; ';
+  put '    %if &fmt=Y %then %do; ';
+  put '      %put converting every variable to a formatted variable; ';
+  put '      /* see mp_ds2fmtds.sas for source */ ';
+  put '      proc contents noprint data=&ds ';
+  put '        out=_data_(keep=name type length format formatl formatd varnum); ';
+  put '      run; ';
+  put '      proc sort; ';
+  put '        by varnum; ';
+  put '      run; ';
+  put '      %local fmtds; ';
+  put '      %let fmtds=%scan(&syslast,2,.); ';
+  put '      /* prepare formats and varnames */ ';
+  put '      data _null_; ';
+  put '        set &fmtds end=last; ';
+  put '        name=upcase(name); ';
+  put '        /* fix formats */ ';
+  put '        if type=2 or type=6 then do; ';
+  put '          length fmt $49.; ';
+  put '          if format='''' then fmt=cats(''$'',length,''.''); ';
+  put '          else if formatl=0 then fmt=cats(format,''.''); ';
+  put '          else fmt=cats(format,formatl,''.''); ';
+  put '          newlen=max(formatl,length); ';
+  put '        end; ';
+  put '        else do; ';
+  put '          if format='''' then fmt=''best.''; ';
+  put '          else if formatl=0 then fmt=cats(format,''.''); ';
+  put '          else if formatd=0 then fmt=cats(format,formatl,''.''); ';
+  put '          else fmt=cats(format,formatl,''.'',formatd); ';
+  put '          /* needs to be wide, for datetimes etc */ ';
+  put '          newlen=max(length,formatl,24); ';
+  put '        end; ';
+  put '        /* 32 char unique name */ ';
+  put '        newname=''sasjs''!!substr(cats(put(md5(name),$hex32.)),1,27); ';
+  put ' ';
+  put '        call symputx(cats(''name'',_n_),name,''l''); ';
+  put '        call symputx(cats(''newname'',_n_),newname,''l''); ';
+  put '        call symputx(cats(''len'',_n_),newlen,''l''); ';
+  put '        call symputx(cats(''fmt'',_n_),fmt,''l''); ';
+  put '        call symputx(cats(''type'',_n_),type,''l''); ';
+  put '        if last then call symputx(''nobs'',_n_,''l''); ';
+  put '      run; ';
+  put '      data &fmtds; ';
+  put '        /* rename on entry */ ';
+  put '        set &ds(rename=( ';
+  put '      %local i; ';
+  put '      %do i=1 %to &nobs; ';
+  put '        &&name&i=&&newname&i ';
+  put '      %end; ';
+  put '        )); ';
+  put '      %do i=1 %to &nobs; ';
+  put '        length &&name&i $&&len&i; ';
+  put '        &&name&i=left(put(&&newname&i,&&fmt&i)); ';
+  put '        drop &&newname&i; ';
+  put '      %end; ';
+  put '        if _error_ then call symputx(''syscc'',1012); ';
+  put '      run; ';
+  put '      %let ds=&fmtds; ';
+  put '    %end; /* &fmt=Y */ ';
   put '    data _null_;file &jref mod ; ';
   put '      put "["; call symputx(''cols'',0,''l''); ';
-  put '    proc sort data=sashelp.vcolumn(where=(libname=''WORK'' & memname="%upcase(&ds)")) ';
+  put '    proc sort ';
+  put '      data=sashelp.vcolumn(where=(libname=''WORK'' & memname="%upcase(&ds)")) ';
   put '      out=_data_; ';
   put '      by varnum; ';
   put ' ';
@@ -158,7 +218,8 @@ data _null_;
   put '      %end; ';
   put '    %end; ';
   put '    run; ';
-  put '    /* write to temp loc to avoid _webout truncation - https://support.sas.com/kb/49/325.html */ ';
+  put '    /* write to temp loc to avoid _webout truncation ';
+  put '      - https://support.sas.com/kb/49/325.html */ ';
   put '    filename _sjs temp lrecl=131068 encoding=''utf-8''; ';
   put '    data _null_; file _sjs lrecl=131068 encoding=''utf-8'' mod; ';
   put '      set &tempds; ';
@@ -194,11 +255,11 @@ data _null_;
   put '%end; ';
   put ' ';
   put '%else %if &action=CLOSE %then %do; ';
-  put '  data _null_;file &jref encoding=''utf-8''; ';
+  put '  data _null_;file &jref encoding=''utf-8'' mod; ';
   put '    put "}"; ';
   put '  run; ';
   put '%end; ';
-  put '%mend; ';
+  put '%mend mp_jsonout; ';
   put '%macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y); ';
   put '%global _webin_file_count _webin_fileref1 _webin_name1 _program _debug ';
   put '  sasjs_tables; ';
@@ -235,8 +296,16 @@ data _null_;
   put '%else %if &action=OPEN %then %do; ';
   put '  /* fix encoding */ ';
   put '  OPTIONS NOBOMFILE; ';
+  put ' ';
+  put '  /** ';
+  put '    * check engine type to avoid the below err message: ';
+  put '    * > Function is only valid for filerefs using the CACHE access method. ';
+  put '    */ ';
   put '  data _null_; ';
-  put '    rc = stpsrv_header(''Content-type'',"text/html; encoding=utf-8"); ';
+  put '    set sashelp.vextfl(where=(fileref="_WEBOUT")); ';
+  put '    if xengine=''STREAM'' then do; ';
+  put '      rc=stpsrv_header(''Content-type'',"text/html; encoding=utf-8"); ';
+  put '    end; ';
   put '  run; ';
   put ' ';
   put '  /* setup json */ ';
@@ -250,16 +319,9 @@ data _null_;
   put '%end; ';
   put ' ';
   put '%else %if &action=ARR or &action=OBJ %then %do; ';
-  put '  %if &sysver=9.4 %then %do; ';
-  put '    %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt ';
-  put '      ,engine=PROCJSON,dbg=%str(&_debug) ';
-  put '    ) ';
-  put '  %end; ';
-  put '  %else %do; ';
-  put '    %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt ';
-  put '      ,engine=DATASTEP,dbg=%str(&_debug) ';
-  put '    ) ';
-  put '  %end; ';
+  put '  %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt ';
+  put '    ,engine=DATASTEP,dbg=%str(&_debug) ';
+  put '  ) ';
   put '%end; ';
   put '%else %if &action=CLOSE %then %do; ';
   put '  %if %str(&_debug) ge 131 %then %do; ';
@@ -275,14 +337,14 @@ data _null_;
   put '      i+1; ';
   put '      call symputx(''wt''!!left(i),name,''l''); ';
   put '      call symputx(''wtcnt'',i,''l''); ';
-  put '    data _null_; file &fref encoding=''utf-8''; ';
+  put '    data _null_; file &fref mod encoding=''utf-8''; ';
   put '      put ",""WORK"":{"; ';
   put '    %do i=1 %to &wtcnt; ';
   put '      %let wt=&&wt&i; ';
   put '      proc contents noprint data=&wt ';
   put '        out=_data_ (keep=name type length format:); ';
   put '      run;%let tempds=%scan(&syslast,2,.); ';
-  put '      data _null_; file &fref encoding=''utf-8''; ';
+  put '      data _null_; file &fref mod encoding=''utf-8''; ';
   put '        dsid=open("WORK.&wt",''is''); ';
   put '        nlobs=attrn(dsid,''NLOBS''); ';
   put '        nvars=attrn(dsid,''NVARS''); ';
@@ -293,10 +355,10 @@ data _null_;
   put '        put '',"nvars":'' nvars; ';
   put '      %mp_jsonout(OBJ,&tempds,jref=&fref,dslabel=colattrs,engine=DATASTEP) ';
   put '      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,engine=DATASTEP) ';
-  put '      data _null_; file &fref encoding=''utf-8''; ';
+  put '      data _null_; file &fref mod encoding=''utf-8''; ';
   put '        put "}"; ';
   put '    %end; ';
-  put '    data _null_; file &fref encoding=''utf-8''; ';
+  put '    data _null_; file &fref mod encoding=''utf-8''; ';
   put '      put "}"; ';
   put '    run; ';
   put '  %end; ';

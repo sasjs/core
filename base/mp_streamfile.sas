@@ -6,7 +6,8 @@
 
   Usage:
 
-      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      filename mc url
+        "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
       %mp_streamfile(contenttype=csv,inloc=/some/where.txt,outname=myfile.txt)
@@ -35,8 +36,20 @@
 %let contentype=%upcase(&contenttype);
 %local platform; %let platform=%mf_getplatform();
 
+
+/**
+  * check engine type to avoid the below err message:
+  * > Function is only valid for filerefs using the CACHE access method.
+  */
+%local streamweb;
+%let streamweb=0;
+data _null_;
+  set sashelp.vextfl(where=(upcase(fileref)="_WEBOUT"));
+  if xengine='STREAM' then call symputx('streamweb',1,'l');
+run;
+
 %if &contentype=ZIP %then %do;
-  %if &platform=SASMETA %then %do;
+  %if &platform=SASMETA and &streamweb=1 %then %do;
     data _null_;
       rc=stpsrv_header('Content-type','application/zip');
       rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
@@ -50,7 +63,7 @@
 %end;
 %else %if &contentype=EXCEL %then %do;
   /* suitable for XLS format */
-  %if &platform=SASMETA %then %do;
+  %if &platform=SASMETA and &streamweb=1 %then %do;
     data _null_;
       rc=stpsrv_header('Content-type','application/vnd.ms-excel');
       rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
@@ -63,20 +76,22 @@
   %end;
 %end;
 %else %if &contentype=XLSX %then %do;
-  %if &platform=SASMETA %then %do;
+  %if &platform=SASMETA and &streamweb=1 %then %do;
     data _null_;
-      rc=stpsrv_header('Content-type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      rc=stpsrv_header('Content-type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
     run;
   %end;
   %else %if &platform=SASVIYA %then %do;
     filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.xls'
-      contenttype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      contenttype=
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       contentdisp="attachment; filename=&outname";
   %end;
 %end;
 %else %if &contentype=TEXT %then %do;
-  %if &platform=SASMETA %then %do;
+  %if &platform=SASMETA and &streamweb=1 %then %do;
     data _null_;
       rc=stpsrv_header('Content-type','application/text');
       rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
@@ -89,7 +104,7 @@
   %end;
 %end;
 %else %if &contentype=CSV %then %do;
-  %if &platform=SASMETA %then %do;
+  %if &platform=SASMETA and &streamweb=1 %then %do;
     data _null_;
       rc=stpsrv_header('Content-type','application/csv');
       rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
@@ -113,10 +128,10 @@
 %end;
 
 %if &inref ne 0 %then %do;
- %mp_binarycopy(inref=&inref,outref=_webout)
+  %mp_binarycopy(inref=&inref,outref=_webout)
 %end;
 %else %do;
- %mp_binarycopy(inloc="&inloc",outref=_webout)
+  %mp_binarycopy(inloc="&inloc",outref=_webout)
 %end;
 
 %mend;

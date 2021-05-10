@@ -1,7 +1,7 @@
 /**
   @file mm_gettableid.sas
   @brief Get the metadata id for a particular table
-  @details Provide a libref and table name to return the corresponding metadata id
+  @details Provide a libref and table name to return the corresponding metadata
   in an output datataset.
 
   Usage:
@@ -22,7 +22,7 @@
 **/
 
 %macro mm_gettableid(
-     libref=
+    libref=
     ,ds=
     ,outds=work.mm_gettableid
     ,mDebug=0
@@ -52,7 +52,7 @@ data &outds;
 
   if type='DatabaseSchema' then tmpuri=usingpkguri;
   else tmpuri=uri;
-  
+
   t=1;
   do while(metadata_getnasn(tmpuri, "Tables", t, tableuri)>0);
     t+1;

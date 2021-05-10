@@ -62,8 +62,8 @@
 %local hasheader; %let hasheader=0;
 data _null_;
   if _N_ > 1 then do;
-     call symputx('hasheader',1,'l');
-     stop;
+    call symputx('hasheader',1,'l');
+    stop;
   end;
   infile &inref;
   input;
@@ -131,7 +131,7 @@ run;
 /* import the CSV */
 data &outds
   %if %upcase(&view)=YES %then %do;
-   /view=&outds
+    /view=&outds
   %end;
   ;
   infile &inref dsd firstobs=2;

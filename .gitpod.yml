@@ -1,3 +1,8 @@
+tasks:
+  - init: npm i -g @sasjs/cli
+
+image:
+  file: .gitpod.dockerfile
 vscode:
   extensions:
-    - sasjs.sasjs-for-vscode@1.2.6:AJmar85B1uSEapxRaRQGrQ==
+    - sasjs.sasjs-for-vscode

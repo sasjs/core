@@ -13,7 +13,7 @@
   @li FLOW_ID - Numeric value, provides sequential ordering capability. Is
     optional, will default to 0 if not provided.
   @li _CONTEXTNAME - Dictates which context should be used to run the job. If
-    blank (or not provided), will default to `SAS Job Execution compute context`.
+    blank, or not provided, will default to `SAS Job Execution compute context`.
 
   Any additional variables provided in this table are converted into macro
   variables and passed into the relevant job.
@@ -97,15 +97,17 @@
       run;
 
 
-  @param [in] access_token_var= The global macro variable to contain the access token
+  @param [in] access_token_var= The global macro variable to contain the access
+    token
   @param [in] grant_type= valid values:
       @li password
       @li authorization_code
-      @li detect - will check if access_token exists, if not will use sas_services if
-        a SASStudioV session else authorization_code.  Default option.
+      @li detect - will check if access_token exists, if not will use
+        sas_services if a SASStudioV session else authorization_code.  Default
+        option.
       @li sas_services - will use oauth_bearer=sas_services
   @param [in] inds= The input dataset containing a list of jobs and parameters
-  @param [in] maxconcurrency= The max number of parallel jobs to run.  Default=8.
+  @param [in] maxconcurrency= The max number of parallel jobs to run. Default=8.
   @param [in] raise_err=0 Set to 1 to raise SYSCC when a job does not complete
             succcessfully
   @param [in] mdebug= set to 1 to enable DEBUG messages
@@ -134,6 +136,13 @@
     ,raise_err=0
     ,mdebug=0
   );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
@@ -185,7 +194,7 @@ select count(*) into: missings
   where flow_id is null or _program is null;
 %mp_abort(iftrue=(&missings>0)
   ,mac=&sysmacroname
-  ,msg=%str(input dataset contains &missings missing values for FLOW_ID or _PROGRAM)
+  ,msg=%str(input dataset has &missings missing values for FLOW_ID or _PROGRAM)
 )
 
 %if %mf_nobs(&inds)=0 %then %do;
@@ -284,12 +293,14 @@ data;run;%let jdswaitfor=&syslast;
       %if "&&jobuid&jid"="0" and &concurrency<&maxconcurrency %then %do;
         %local jobname jobpath;
         %let jobname=%scan(&&job&jid,-1,/);
-        %let jobpath=%substr(&&job&jid,1,%length(&&job&jid)-%length(&jobname)-1);
+        %let jobpath=
+          %substr(&&job&jid,1,%length(&&job&jid)-%length(&jobname)-1);
         %put executing &jobpath/&jobname with paramstring &&jparams&jid;
         %mv_jobexecute(path=&jobpath
           ,name=&jobname
           ,paramstring=%superq(jparams&jid)
           ,outds=&jdsapp
+          ,mdebug=&mdebug
         )
         data &jdsapp;
           format jobparams $32767.;
@@ -310,8 +321,13 @@ data;run;%let jdswaitfor=&syslast;
     %end;
     %if &jid=&jcnt %then %do;
       /* we are at the end of the loop - time to see which jobs have finished */
-      %mv_jobwaitfor(ANY,inds=&jdsrunning,outds=&jdswaitfor,outref=&outref
-                    ,raise_err=&raise_err)
+      %mv_jobwaitfor(ANY
+        ,inds=&jdsrunning
+        ,outds=&jdswaitfor
+        ,outref=&outref
+        ,raise_err=&raise_err
+        ,mdebug=&mdebug
+      )
       %local done;
       %let done=%mf_nobs(&jdswaitfor);
       %if &done>0 %then %do;
@@ -334,7 +350,8 @@ data;run;%let jdswaitfor=&syslast;
       /* loop again if jobs are left */
       %if &completed < &jcnt %then %do;
         %let jid=0;
-        %put looping flow &fid again - &completed of &jcnt jobs completed, &concurrency jobs running;
+        %put looping flow &fid again - &completed of &jcnt jobs completed,
+          &concurrency jobs running;
       %end;
     %end;
   %end;
@@ -342,7 +359,8 @@ data;run;%let jdswaitfor=&syslast;
 %end;
 
 %if &mdebug=1 %then %do;
+  %put &sysmacroname exit vars:;
   %put _local_;
 %end;
 
-%mend;
+%mend mv_jobflow;

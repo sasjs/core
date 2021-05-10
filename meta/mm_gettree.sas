@@ -16,8 +16,8 @@
   @param mDebug= set to 1 to show debug messages in the log
 
   @returns outds  dataset containing the following columns:
-   - treeuri
-   - treepath
+      - treeuri
+      - treepath
 
   @version 9.2
   @author Allan Bowe
@@ -25,7 +25,7 @@
 **/
 
 %macro mm_getTree(
-     tree=
+    tree=
     ,inds=
     ,outds=work.mm_getTree
     ,mDebug=0

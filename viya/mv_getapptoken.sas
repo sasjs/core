@@ -1,19 +1,19 @@
- /**
-   @file
-   @brief deprecated - replaced by mv_registerclient.sas
+/**
+  @file
+  @brief deprecated - replaced by mv_registerclient.sas
 
-   @version VIYA V.03.04
-   @author Allan Bowe, source: https://github.com/sasjs/core
+  @version VIYA V.03.04
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
-   <h4> SAS Macros </h4>
-   @li mv_registerclient.sas
+  <h4> SAS Macros </h4>
+  @li mv_registerclient.sas
 
- **/
+**/
 
- %macro mv_getapptoken(client_id=someclient
-     ,client_secret=somesecret
-     ,grant_type=authorization_code
-   );
+%macro mv_getapptoken(client_id=someclient
+    ,client_secret=somesecret
+    ,grant_type=authorization_code
+  );
 
 %mv_registerclient(client_id=&client_id
   ,client_secret=&client_secret

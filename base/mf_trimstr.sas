@@ -1,7 +1,7 @@
 /**
   @file mf_trimstr.sas
   @brief Removes character(s) from the end, if they exist
-  @details If the designated characters exist at the end of the string, they 
+  @details If the designated characters exist at the end of the string, they
   are removed
 
         %put %mf_trimstr(/blah/,/); * /blah;
@@ -12,7 +12,8 @@
 
 
   @param basestr The string to be modified
-  @param trimstr The string to be removed from the end of `basestr`, if it exists
+  @param trimstr The string to be removed from the end of `basestr`, if it
+    exists
 
   @return output returns result with the value of `trimstr` removed from the end
 

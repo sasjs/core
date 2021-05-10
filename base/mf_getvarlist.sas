@@ -10,14 +10,21 @@
   returns:
   > List of Variables=Name Sex Age Height Weight
 
+  For a seperated list of column values:
+
         %put %mf_getvarlist(sashelp.class,dlm=%str(,),quote=double);
 
   returns:
   > "Name","Sex","Age","Height","Weight"
 
-  @param libds Two part dataset (or view) reference.
-  @param dlm= provide a delimiter (eg comma or space) to separate the vars
-  @param quote= use either DOUBLE or SINGLE to quote the results
+  @param [in] libds Two part dataset (or view) reference.
+  @param [in] dlm= ( ) Provide a delimiter (eg comma or space) to separate the
+    variables
+  @param [in] quote= (none) use either DOUBLE or SINGLE to quote the results
+  @param [in] typefilter= (A) Filter for certain types of column.  Valid values:
+    @li A Return All columns
+    @li C Return Character columns
+    @li N Return Numeric columns
 
   @version 9.2
   @author Allan Bowe
@@ -27,9 +34,10 @@
 %macro mf_getvarlist(libds
       ,dlm=%str( )
       ,quote=no
+      ,typefilter=A
 )/*/STORE SOURCE*/;
   /* declare local vars */
-  %local outvar dsid nvars x rc dlm q var;
+  %local outvar dsid nvars x rc dlm q var vtype;
 
   /* credit Rowland Hale  - byte34 is double quote, 39 is single quote */
   %if %upcase(&quote)=DOUBLE %then %let q=%qsysfunc(byte(34));
@@ -37,21 +45,22 @@
   /* open dataset in macro */
   %let dsid=%sysfunc(open(&libds));
 
-
   %if &dsid %then %do;
     %let nvars=%sysfunc(attrn(&dsid,NVARS));
     %if &nvars>0 %then %do;
-      /* add first dataset variable to global macro variable */
-      %let outvar=&q.%sysfunc(varname(&dsid,1))&q.;
-      /* add remaining variables with supplied delimeter */
+      /* add variables with supplied delimeter */
       %do x=1 %to &nvars;
-        %let var=&q.%sysfunc(varname(&dsid,&x))&q.;
-        %if &var=&q&q %then %do;
-          %put &sysmacroname: Empty column found in &libds!;
-          %let var=&q. &q.;
+        /* get variable type */
+        %let vtype=%sysfunc(vartype(&dsid,&x));
+        %if &vtype=&typefilter or &typefilter=A %then %do;
+          %let var=&q.%sysfunc(varname(&dsid,&x))&q.;
+          %if &var=&q&q %then %do;
+            %put &sysmacroname: Empty column found in &libds!;
+            %let var=&q. &q.;
+          %end;
+          %if %quote(&outvar)=%quote() %then %let outvar=&var;
+          %else %let outvar=&outvar.&dlm.&var.;
         %end;
-        %if &x=1 %then %let outvar=&var;
-        %else %let outvar=&outvar.&dlm.&var.;
       %end;
     %end;
     %let rc=%sysfunc(close(&dsid));
@@ -61,4 +70,4 @@
     %let rc=%sysfunc(close(&dsid));
   %end;
   &outvar
-%mend;
+%mend mf_getvarlist;

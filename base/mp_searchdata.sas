@@ -3,7 +3,7 @@
   @brief Searches all data in a library
   @details
   Scans an entire library and creates a copy of any table
-    containing a specific string OR numeric value.  Only 
+    containing a specific string OR numeric value.  Only
     matching records are written out.
     If both a string and numval are provided, the string
     will take precedence.
@@ -20,9 +20,10 @@
   @param ds= the dataset to search (leave blank to search entire library)
   @param string= the string value to search
   @param numval= the numeric value to search (must be exact)
-  @param outloc= the directory in which to create the output datasets with matching
-    rows.  Will default to a subfolder in the WORK library.
-  @param outobs= set to a positive integer to restrict the number of observations
+  @param outloc= the directory in which to create the output datasets with
+    matching rows.  Will default to a subfolder in the WORK library.
+  @param outobs= set to a positive integer to restrict the number of
+    observations
   @param filter_text= add a (valid) filter clause to further filter the results
 
   <h4> SAS Macros </h4>
@@ -36,7 +37,7 @@
 **/
 
 %macro mp_searchdata(lib=sashelp
-  ,ds= 
+  ,ds=
   ,string= /* the query will use a contains (?) operator */
   ,numval= /* numeric must match exactly */
   ,outloc=%sysfunc(pathname(work))/mpsearch
@@ -44,7 +45,8 @@
   ,filter_text=%str(1=1)
 )/*/STORE SOURCE*/;
 
-%local table_list table table_num table colnum col start_tm check_tm vars type coltype;
+%local table_list table table_num table colnum col start_tm check_tm vars type
+  coltype;
 %put process began at %sysfunc(datetime(),datetime19.);
 
 %if &syscc ge 4 %then %do;
@@ -61,14 +63,14 @@ libname mpsearch "&outloc";
 /* get the list of tables in the library */
 proc sql noprint;
 select distinct memname into: table_list separated by ' '
-  from dictionary.tables 
+  from dictionary.tables
   where upcase(libname)="%upcase(&lib)"
 %if &ds ne %then %do;
   and upcase(memname)=%upcase("&ds")
 %end;
   ;
 /* check that we have something to check */
-proc sql 
+proc sql
 %if &outobs>-1 %then %do;
   outobs=&outobs
 %end;
@@ -85,7 +87,7 @@ proc sql
     %let check_tm=%sysfunc(datetime());
     /* build sql statement */
     create table mpsearch.&table as select * from &lib..&table
-      where %unquote(&filter_text) and 
+      where %unquote(&filter_text) and
     (0
     /* loop through columns */
     %do colnum=1 %to %sysfunc(countw(&vars,%str( )));
@@ -101,7 +103,8 @@ proc sql
       %end;
     %end;
     );
-    %put Search query for &table took %sysevalf(%sysfunc(datetime())-&check_tm) seconds;
+    %put Search query for &table took
+      %sysevalf(%sysfunc(datetime())-&check_tm) seconds;
     %if &sqlrc ne 0 %then %do;
       %put %str(WAR)NING: SQLRC=&sqlrc when processing &table;
       %return;

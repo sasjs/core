@@ -1,11 +1,11 @@
 /**
   @file
-  @brief Creates a Unique ID based on system time in a friendly format
+  @brief Creates a unique ID based on system time in friendly format
   @details format = YYYYMMDD_HHMMSSmmm_<sysjobid>_<3randomDigits>
 
         %put %mf_uid();
 
-  @version 9.2
+  @version 9.3
   @author Allan Bowe
 
 **/
@@ -14,8 +14,8 @@
 )/*/STORE SOURCE*/;
   %local today now;
   %let today=%sysfunc(today(),yymmddn8.);
-  %let now=%sysfunc(compress(%sysfunc(time(),time12.3),:.));
+  %let now=%sysfunc(compress(%sysfunc(time(),tod12.3),:.));
 
   &today._&now._&sysjobid._%sysevalf(%sysfunc(ranuni(0))*999,CEIL)
 
-%mend;
+%mend mf_uid;

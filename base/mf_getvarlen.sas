@@ -5,8 +5,8 @@
   Usage:
 
       data test;
-         format str $1.  num datetime19.;
-         stop;
+        format str $1.  num datetime19.;
+        stop;
       run;
       %put %mf_getVarLen(test,str);
       %put %mf_getVarLen(work.test,num);
@@ -39,8 +39,8 @@
     /* Get variable format */
     %if(&vnum > 0) %then %let vlen = %sysfunc(varlen(&dsid, &vnum));
     %else %do;
-       %put NOTE: Variable &var does not exist in &libds;
-       %let vlen = %str( );
+      %put NOTE: Variable &var does not exist in &libds;
+      %let vlen = %str( );
     %end;
   %end;
   %else %put dataset &libds not opened! (rc=&dsid);

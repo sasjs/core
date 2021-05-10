@@ -20,7 +20,8 @@ Usage:
     run;
 
     filename outref "%sysfunc(pathname(work))";
-    %mmx_spkexport(metaloc=%str(/30.Projects/3001.Internal/300115.DataController/dc1)
+    %mmx_spkexport(
+        metaloc=%str(/30.Projects/3001.Internal/300115.DataController/dc1)
         ,secureref=tmp
         ,outspkpath=%str(/tmp)
     )
@@ -34,7 +35,7 @@ Usage:
   @param metaloc= the metadata folder to export
   @param secureref= fileref containing the username / password (should point to
     a file in a secure location)
-  @param outspkname= name of the spk to be created (default is mmxport). 
+  @param outspkname= name of the spk to be created (default is mmxport).
   @param outspkpath= directory in which to create the SPK.  Default is WORK.
 
   @version 9.4
@@ -56,7 +57,8 @@ Usage:
 /* get creds */
 %inc &secureref/nosource;
 
-%let connx_string=%str(-host &host -port &port -user '&mmxuser' -password '&mmxpass');
+%let connx_string=
+  %str(-host &host -port &port -user '&mmxuser' -password '&mmxpass');
 
 %mm_tree(root=%str(&metaloc) ,types=EXPORTABLE ,outds=exportable)
 

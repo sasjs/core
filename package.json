@@ -1,6 +1,6 @@
 {
   "name": "@sasjs/core",
-  "description": "SAS Macro Library for Application Development",
+  "description": "Production Ready Macros for SAS Application Developers",
   "license": "MIT",
   "keywords": [
     "SAS",
@@ -29,5 +29,14 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "docs": "sasjs doc && ./sasjs/utils/build.sh"
+  },
+  "devDependencies": {
+    "@sasjs/cli": "^2.14.2",
+    "ghooks": "^2.0.4"
+  },
+  "config": {
+    "ghooks": {
+      "pre-commit": "sasjs lint"
+    }
   }
 }

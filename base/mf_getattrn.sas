@@ -8,7 +8,7 @@
 
   @param libds library.dataset
   @param attr Common values are NLOBS and NVARS, full list in [documentation](
-    http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000212040.htm)
+  http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000212040.htm)
   @return output returns result of the attrn value supplied, or -1 and log
     message if error.
 
@@ -17,7 +17,7 @@
 **/
 
 %macro mf_getattrn(
-     libds
+    libds
     ,attr
 )/*/STORE SOURCE*/;
   %local dsid rc;

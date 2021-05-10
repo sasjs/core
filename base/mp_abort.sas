@@ -6,11 +6,11 @@
     results back to the client in an STP Web App context, or completely stop
     in the case of a batch run.
 
-  Using SAS Abort Cancel mechanisms can cause hung sessions in some Stored Process
-  environments.  This macro takes a unique approach - we set the SAS syscc to 0,
-  run `stpsrvset('program error', 0)` (if SAS 9) and then - we open a macro
-  but don't close it!  This provides a graceful abort for SAS web services in all
-  web enabled environments.
+  Using SAS Abort Cancel mechanisms can cause hung sessions in some Stored
+  Process environments.  This macro takes a unique approach - we set the SAS
+  syscc to 0, run `stpsrvset('program error', 0)` (if SAS 9) and then - we open
+  a macro but don't close it!  This provides a graceful abort for SAS web
+  services in all web enabled environments.
 
   @param mac= to contain the name of the calling macro
   @param msg= message to be returned
@@ -48,7 +48,10 @@
         input; putlog _infile_;
         i=1;
         retain logonce 0;
-        if (_infile_=:"%str(WARN)ING" or _infile_=:"%str(ERR)OR") and logonce=0 then do;
+        if (
+            _infile_=:"%str(WARN)ING" or _infile_=:"%str(ERR)OR"
+          ) and logonce=0 then
+        do;
           call symputx('logline',_n_);
           logonce+1;
         end;
@@ -135,10 +138,10 @@
       run;
     %end;
     /**
-     * endsas is reliable but kills some deployments.
-     * Abort variants are ungraceful (non zero return code)
-     * This approach lets SAS run silently until the end :-)
-     */
+      * endsas is reliable but kills some deployments.
+      * Abort variants are ungraceful (non zero return code)
+      * This approach lets SAS run silently until the end :-)
+      */
     %put _all_;
     filename skip temp;
     data _null_;

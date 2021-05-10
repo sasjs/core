@@ -18,24 +18,12 @@
 options noquotelenmax;
 /**
   @file
-  @brief abort gracefully according to context
-  @details Do not use directly!  See bottom of explanation for details.
+  @brief to be deprecated
+  @details We will deprecate this macro in 2022
 
-  Configures an abort mechanism according to site specific policies or the
-    particulars of an environment.  For instance, can stream custom
-    results back to the client in an STP Web App context, or completely stop
-    in the case of a batch run.
+  As you can see, it's not a macro function.
 
-  For the sharp eyed readers - this is no longer a macro function!! It became
-  a macro procedure during a project and now it's kinda stuck that way until
-  that project is updated (if it's ever updated).  In the meantime we created
-  `mp_abort` which is just a wrapper for this one, and so we recomend you use
-  that for forwards compatibility reasons.
-
-  @param mac= to contain the name of the calling macro
-  @param type= deprecated.  Not used.
-  @param msg= message to be returned
-  @param iftrue= supply a condition under which the macro should be executed.
+  Use mp_abort.sas instead.
 
   @version 9.2
   @author Allan Bowe
@@ -3397,7 +3385,6 @@ run;
   @li mf_getuniquefileref.sas
   @li mf_getvarlist.sas
   @li mf_getvartype.sas
-  @li mf_nobs.sas
   @li mp_filtergenerate.sas
   @li mp_filtervalidate.sas
 
@@ -3510,18 +3497,23 @@ data &outds;
 
 run;
 
+%local nobs;
+%let nobs=0;
 data _null_;
-  set &outds;
-  call symputx('REASON_CD',reason_cd,'l');
-  stop;
+  set &outds end=last;
+  putlog (_all_)(=);
+  if last then do;
+    call symputx('REASON_CD',reason_cd,'l');
+    call symputx('nobs',_n_,'l');
+  end;
 run;
 
-%mp_abort(iftrue=(&abort=YES and %mf_nobs(&outds)>0),
+%mp_abort(iftrue=(&abort=YES and &nobs>0),
   mac=&sysmacroname,
-  msg=%str(Filter issues in &inds, reason: &reason_cd, details in &outds)
+  msg=%str(&nobs filter issues in &inds, reason: &reason_cd, details in &outds)
 )
 
-%if %mf_nobs(&outds)>0 %then %do;
+%if &nobs>0 %then %do;
   %let syscc=1008;
   %return;
 %end;

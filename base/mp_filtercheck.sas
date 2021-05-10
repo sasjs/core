@@ -45,7 +45,6 @@
   @li mf_getuniquefileref.sas
   @li mf_getvarlist.sas
   @li mf_getvartype.sas
-  @li mf_nobs.sas
   @li mp_filtergenerate.sas
   @li mp_filtervalidate.sas
 
@@ -158,18 +157,23 @@ data &outds;
 
 run;
 
+%local nobs;
+%let nobs=0;
 data _null_;
-  set &outds;
-  call symputx('REASON_CD',reason_cd,'l');
-  stop;
+  set &outds end=last;
+  putlog (_all_)(=);
+  if last then do;
+    call symputx('REASON_CD',reason_cd,'l');
+    call symputx('nobs',_n_,'l');
+  end;
 run;
 
-%mp_abort(iftrue=(&abort=YES and %mf_nobs(&outds)>0),
+%mp_abort(iftrue=(&abort=YES and &nobs>0),
   mac=&sysmacroname,
-  msg=%str(Filter issues in &inds, reason: &reason_cd, details in &outds)
+  msg=%str(&nobs filter issues in &inds, reason: &reason_cd, details in &outds)
 )
 
-%if %mf_nobs(&outds)>0 %then %do;
+%if &nobs>0 %then %do;
   %let syscc=1008;
   %return;
 %end;

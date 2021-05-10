@@ -48,6 +48,8 @@
   @param dbg= DEPRECATED - was used to conditionally add PRETTY to
     proc json but this can cause line truncation in large files.
 
+  <h4> Related Macros <h4>
+  @li mp_ds2fmtds.sas
 
   @version 9.2
   @author Allan Bowe
@@ -55,10 +57,11 @@
 
 **/
 
-%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=PROCJSON,dbg=0
+%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=DATASTEP,dbg=0
 )/*/STORE SOURCE*/;
 %put output location=&jref;
 %if &action=OPEN %then %do;
+  OPTIONS NOBOMFILE;
   data _null_;file &jref encoding='utf-8';
     put '{"START_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '"';
   run;
@@ -86,6 +89,64 @@
       %put &sysmacroname:  &ds NOT FOUND!!!;
       %return;
     %end;
+    %if &fmt=Y %then %do;
+      %put converting every variable to a formatted variable;
+      /* see mp_ds2fmtds.sas for source */
+      proc contents noprint data=&ds
+        out=_data_(keep=name type length format formatl formatd varnum);
+      run;
+      proc sort;
+        by varnum;
+      run;
+      %local fmtds;
+      %let fmtds=%scan(&syslast,2,.);
+      /* prepare formats and varnames */
+      data _null_;
+        set &fmtds end=last;
+        name=upcase(name);
+        /* fix formats */
+        if type=2 or type=6 then do;
+          length fmt $49.;
+          if format='' then fmt=cats('$',length,'.');
+          else if formatl=0 then fmt=cats(format,'.');
+          else fmt=cats(format,formatl,'.');
+          newlen=max(formatl,length);
+        end;
+        else do;
+          if format='' then fmt='best.';
+          else if formatl=0 then fmt=cats(format,'.');
+          else if formatd=0 then fmt=cats(format,formatl,'.');
+          else fmt=cats(format,formatl,'.',formatd);
+          /* needs to be wide, for datetimes etc */
+          newlen=max(length,formatl,24);
+        end;
+        /* 32 char unique name */
+        newname='sasjs'!!substr(cats(put(md5(name),$hex32.)),1,27);
+
+        call symputx(cats('name',_n_),name,'l');
+        call symputx(cats('newname',_n_),newname,'l');
+        call symputx(cats('len',_n_),newlen,'l');
+        call symputx(cats('fmt',_n_),fmt,'l');
+        call symputx(cats('type',_n_),type,'l');
+        if last then call symputx('nobs',_n_,'l');
+      run;
+      data &fmtds;
+        /* rename on entry */
+        set &ds(rename=(
+      %local i;
+      %do i=1 %to &nobs;
+        &&name&i=&&newname&i
+      %end;
+        ));
+      %do i=1 %to &nobs;
+        length &&name&i $&&len&i;
+        &&name&i=left(put(&&newname&i,&&fmt&i));
+        drop &&newname&i;
+      %end;
+        if _error_ then call symputx('syscc',1012);
+      run;
+      %let ds=&fmtds;
+    %end; /* &fmt=Y */
     data _null_;file &jref mod ;
       put "["; call symputx('cols',0,'l');
     proc sort
@@ -169,4 +230,4 @@
     put "}";
   run;
 %end;
-%mend;
+%mend mp_jsonout;

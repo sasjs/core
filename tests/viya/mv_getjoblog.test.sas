@@ -19,6 +19,7 @@
 filename testref temp;
 data _null_;
   file testref;
+  put 'data;run;';
   put 'endsas;';
 run;
 %mv_createjob(
@@ -52,10 +53,15 @@ run;
 
 
 data _null_;
-  infile mylog;
+  infile mylog end=eof;
   input;
-  if index(_infile_,'endsas;') then call symputx('found',1);
-  else call symputx('found',0);
+  putlog _infile_;
+  retain found 0;
+  if index(_infile_,'endsas;') then do;
+    found=1;
+    call symputx('found',found);
+  end;
+  else if eof and found ne 1 then call symputx('found',0);
 run;
 
 %mp_assert(

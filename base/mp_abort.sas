@@ -33,7 +33,7 @@
   %put NOTE - &msg;
 
   /* Stored Process Server web app context */
-  %if %symexist(_metaperson) or "&SYSPROCESSNAME"="Compute Server" %then %do;
+  %if %symexist(_metaperson) or "&SYSPROCESSNAME "="Compute Server " %then %do;
     options obs=max replace nosyntaxcheck mprint;
     /* extract log errs / warns, if exist */
     %local logloc logline;

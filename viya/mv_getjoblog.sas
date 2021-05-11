@@ -1,21 +1,19 @@
 /**
   @file
   @brief Extract the log from a completed SAS Viya Job
-  @details Extracts log from a Viya job and writes it out to a fileref
+  @details Extracts log from a Viya job and writes it out to a fileref.
 
   To query the job, you need the URI.  Sample code for achieving this
   is provided below.
 
   ## Example
 
-  First, compile the macros:
-
+      %* First, compile the macros;
       filename mc url
         "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
-  Next, create a job (in this case, a web service):
-
+      %* Next, create a job (in this case, a web service);
       filename ft15f001 temp;
       parmcards4;
         data ;
@@ -31,28 +29,40 @@
       ;;;;
       %mv_createwebservice(path=/Public/temp,name=demo)
 
-  Execute it:
-
+      %* Execute it;
       %mv_jobexecute(path=/Public/temp
         ,name=demo
         ,outds=work.info
       )
 
-  Wait for it to finish, and grab the uri:
-
-      data _null_;
+      %* Wait for it to finish;
+      data work.info;
         set work.info;
-        if method='GET' and rel='self';
+        where method='GET' and rel='state';
+      run;
+      %mv_jobwaitfor(ALL,inds=work.info,outds=work.jobstates)
+
+      %* and grab the uri;
+      data _null_;
+        set work.jobstates;
         call symputx('uri',uri);
       run;
 
-  Finally, fetch the log:
-
+      %* Finally, fetch the log;
       %mv_getjoblog(uri=&uri,outref=mylog)
 
   This macro is used by the mv_jobwaitfor.sas macro, which is generally a more
   convenient way to wait for the job to finish before fetching the log.
 
+  If the remote session calls `endsas` then it is not possible to get the log
+  from the provided uri, and so the log from the parent session is fetched
+  instead.  This happens for a 400 response, eg below:
+
+      ErrorResponse[version=2,status=400,err=5113,id=,message=The session
+      requested is currently in a failed or stopped state.,detail=[path:
+      /compute/sessions/LONGURI-ses0006/jobs/LONGURI/log/content, traceId: 63
+      51aa617d01fd2b],remediation=Correct the errors in the session request,
+      and create a new session.,targetUri=<null>,errors=[],links=[]]
 
   @param [in] access_token_var= The global macro variable to contain the access
     token
@@ -64,7 +74,7 @@
       if a SASStudioV session else authorization_code.  Default option.
     @li sas_services - will use oauth_bearer=sas_services.
   @param [in] uri= The uri of the running job for which to fetch the status,
-    in the format `/jobExecution/jobs/$UUID/state` (unquoted).
+    in the format `/jobExecution/jobs/$UUID` (unquoted).
   @param [out] outref= The output fileref to which to APPEND the log (is always
   appended).
 
@@ -122,7 +132,7 @@ data _null_;
     call symputx('errflg',1);
     call symputx('errmsg',
       "URI should be in format /jobExecution/jobs/$$$$UUID$$$$"
-      !!" but is actually like: &uri",'l');
+      !!" but is actually like:"!!uri,'l');
   end;
 run;
 
@@ -155,6 +165,10 @@ proc http method='GET' out=&fname1 &oauth_bearer
   %end;
   ;
 run;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname: fetching log loc from &uri;
+  data _null_;infile &fname1;input;putlog _infile_;run;
+%end;
 %if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201 %then
 %do;
   data _null_;infile &fname1;input;putlog _infile_;run;
@@ -192,43 +206,74 @@ run;
 data _null_;
   infile &fname2;
   input;
-  uri=_infile_;
+  uri=cats(_infile_);
   if length(uri)<12 then do;
     call symputx('errflg',1);
     call symputx('errmsg',"URI is invalid (too short) - '&uri'",'l');
   end;
-  if scan(uri,1) ne 'files' or scan(uri,2) ne 'files' then do;
+  else if (scan(uri,1,'/') ne 'compute' or scan(uri,2,'/') ne 'sessions')
+    and (scan(uri,1,'/') ne 'files' or scan(uri,2,'/') ne 'files')
+  then do;
     call symputx('errflg',1);
     call symputx('errmsg',
-      "URI should be in format /files/files/$$$$UUID$$$$"
-      !!" but is actually like: &uri",'l');
+      "URI should be in format /compute/sessions/$$$$UUID$$$$/jobs/$$$$UUID$$$$"
+      !!" or /files/files/$$$$UUID$$$$"
+      !!" but is actually like:"!!uri,'l');
   end;
-  call symputx('errflg',0,'l');
-  call symputx('logloc',uri,'l');
+  else do;
+    call symputx('errflg',0,'l');
+    call symputx('logloc',uri,'l');
+  end;
 run;
 
-%mp_abort(iftrue=(&errflg=1)
+%mp_abort(iftrue=(%str(&errflg)=1)
   ,mac=&sysmacroname
   ,msg=%str(&errmsg)
 )
 
 /* we have a log uri - now fetch the log */
+%&dbg.put &sysmacroname: querying &base_uri&logloc/content;
 proc http method='GET' out=&fname1 &oauth_bearer
-  url="&base_uri&logloc/content";
+  url="&base_uri&logloc/content?limit=10000";
   headers
   %if &grant_type=authorization_code %then %do;
           "Authorization"="Bearer &&&access_token_var"
   %end;
   ;
 run;
-%if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201 %then
-%do;
+
+%if &mdebug=1 %then %do;
+  %put &sysmacroname: fetching log content from &base_uri&logloc/content;
   data _null_;infile &fname1;input;putlog _infile_;run;
+%end;
+
+%if &SYS_PROCHTTP_STATUS_CODE=400 %then %do;
+  /* fetch log from parent session */
+  %let logloc=%substr(&logloc,1,%index(&logloc,%str(/jobs/))-1);
+  %&dbg.put &sysmacroname: Now querying &base_uri&logloc/log/content;
+  proc http method='GET' out=&fname1 &oauth_bearer
+    url="&base_uri&logloc/log/content?limit=10000";
+    headers
+    %if &grant_type=authorization_code %then %do;
+            "Authorization"="Bearer &&&access_token_var"
+    %end;
+    ;
+  run;
+  %if &mdebug=1 %then %do;
+    %put &sysmacroname: fetching log content from &base_uri&logloc/log/content;
+    data _null_;infile &fname1;input;putlog _infile_;run;
+  %end;
+%end;
+
+%if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201
+%then %do;
+  %if &mdebug ne 1 %then %do; /* have already output above */
+    data _null_;infile &fname1;input;putlog _infile_;run;
+  %end;
   %mp_abort(mac=&sysmacroname
     ,msg=%str(logfetch: &SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
   )
 %end;
-
 data _null_;
   file "&fpath3..lua";
   put '

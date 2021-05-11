@@ -1624,13 +1624,24 @@ Usage:
   @details Configures an abort mechanism according to site specific policies or
     the particulars of an environment.  For instance, can stream custom
     results back to the client in an STP Web App context, or completely stop
-    in the case of a batch run.
+    in the case of a batch run.  For STP sessions
 
-  Using SAS Abort Cancel mechanisms can cause hung sessions in some Stored
-  Process environments.  This macro takes a unique approach - we set the SAS
-  syscc to 0, run `stpsrvset('program error', 0)` (if SAS 9) and then - we open
-  a macro but don't close it!  This provides a graceful abort for SAS web
-  services in all web enabled environments.
+  The method used varies according to the context.  Important points:
+
+  @li should not use endsas or abort cancel in 9.4m3 environments as this can
+    cause hung multibridge sessions and result in a frozen STP server
+  @li should not use endsas in viya 3.5 as this destroys the session and cannot
+    fetch results (although both mv_getjoblog.sas and the @sasjs/adapter will
+    recognise this and fetch the log of the parent session instead)
+  @li STP environments must finish cleanly to avoid the log being sent to
+    _webout.  To assist with this, we also run stpsrvset('program error', 0)
+    and set SYSCC=0.  For 9.4m3 we take a unique approach - we open a macro
+    but don't close it!  This provides a graceful abort, EXCEPT when called
+    called within a %include within a macro (and that macro contains additional
+    logic).  See mp_abort.test.nofix.sas for the example case.
+    If you know of another way to gracefully abort a 9.4m3 STP session, we'd
+    love to hear about it!
+
 
   @param mac= to contain the name of the calling macro
   @param msg= message to be returned
@@ -1644,6 +1655,8 @@ Usage:
 %macro mp_abort(mac=mp_abort.sas, type=, msg=, iftrue=%str(1=1)
 )/*/STORE SOURCE*/;
 
+  %global sysprocessmode sysprocessname;
+
   %if not(%eval(%unquote(&iftrue))) %then %return;
 
   %put NOTE: ///  mp_abort macro executing //;
@@ -1651,9 +1664,7 @@ Usage:
   %put NOTE - &msg;
 
   /* Stored Process Server web app context */
-  %if %symexist(_metaperson)
-  or (%symexist(SYSPROCESSNAME) and "&SYSPROCESSNAME"="Compute Server" )
-  %then %do;
+  %if %symexist(_metaperson) or "&SYSPROCESSNAME "="Compute Server " %then %do;
     options obs=max replace nosyntaxcheck mprint;
     /* extract log errs / warns, if exist */
     %local logloc logline;
@@ -1748,33 +1759,60 @@ Usage:
       if debug ge '"131"' then put '>>weboutEND<<';
     run;
 
-    %if %symexist(_metaport) %then %do;
+    %put _all_;
+
+    %if "&sysprocessmode " = "SAS Stored Process Server " %then %do;
       data _null_;
-        if symexist('sysprocessmode') then
-          if symget("sysprocessmode")="SAS Stored Process Server" then do;
-            rc=stpsrvset('program error', 0);
-            call symputx("syscc",0,"g");
-          end;
+        putlog 'stpsrvset program error and syscc';
+        rc=stpsrvset('program error', 0);
+        call symputx("syscc",0,"g");
+      run;
+      %if "%substr(&sysvlong.xxxxxxxxx,1,9)" ne "9.04.01M3" %then %do;
+        %put NOTE: Ending SAS session due to:;
+        %put NOTE- &msg;
+        endsas;
+      %end;
+    %end;
+    %else %if "&sysprocessmode " = "SAS Compute Server " %then %do;
+      /* endsas kills the session making it harder to fetch results */
+      data _null_;
+        syswarningtext=symget('syswarningtext');
+        syserrortext=symget('syserrortext');
+        abort_msg=symget('msg');
+        syscc=symget('syscc');
+        sysuserid=symget('sysuserid');
+        iftrue=symget('iftrue');
+        put (_all_)(/=);
+        abort cancel nolist;
       run;
     %end;
-    /**
-      * endsas is reliable but kills some deployments.
-      * Abort variants are ungraceful (non zero return code)
-      * This approach lets SAS run silently until the end :-)
-      */
-    %put _all_;
-    filename skip temp;
-    data _null_;
-      file skip;
-      put '%macro skip(); %macro skippy();';
-    run;
-    %inc skip;
+    %else %if "%substr(&sysvlong.xxxxxxxxx,1,9)" = "9.04.01M3" %then %do;
+      /**
+        * endsas kills 9.4m3 deployments by orphaning multibridges.
+        * Abort variants are ungraceful (non zero return code)
+        * This approach lets SAS run silently until the end :-)
+        * Caution - fails when called within a %include within a macro
+        * See tests/mp_abort.test.1 for an example case.
+        */
+      filename skip temp;
+      data _null_;
+        file skip;
+        put '%macro skip();';
+        comment '%mend skip; -> fix lint ';
+        put '%macro skippy();';
+        comment '%mend skippy; -> fix lint ';
+      run;
+      %inc skip;
+    %end;
+    %else %do;
+      %abort cancel;
+    %end;
   %end;
   %else %do;
     %put _all_;
     %abort cancel;
   %end;
-%mend;
+%mend mp_abort;
 
 /** @endcond *//**
   @file
@@ -15054,21 +15092,19 @@ run;
 /**
   @file
   @brief Extract the log from a completed SAS Viya Job
-  @details Extracts log from a Viya job and writes it out to a fileref
+  @details Extracts log from a Viya job and writes it out to a fileref.
 
   To query the job, you need the URI.  Sample code for achieving this
   is provided below.
 
   ## Example
 
-  First, compile the macros:
-
+      %* First, compile the macros;
       filename mc url
         "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
-  Next, create a job (in this case, a web service):
-
+      %* Next, create a job (in this case, a web service);
       filename ft15f001 temp;
       parmcards4;
         data ;
@@ -15084,28 +15120,40 @@ run;
       ;;;;
       %mv_createwebservice(path=/Public/temp,name=demo)
 
-  Execute it:
-
+      %* Execute it;
       %mv_jobexecute(path=/Public/temp
         ,name=demo
         ,outds=work.info
       )
 
-  Wait for it to finish, and grab the uri:
-
-      data _null_;
+      %* Wait for it to finish;
+      data work.info;
         set work.info;
-        if method='GET' and rel='self';
+        where method='GET' and rel='state';
+      run;
+      %mv_jobwaitfor(ALL,inds=work.info,outds=work.jobstates)
+
+      %* and grab the uri;
+      data _null_;
+        set work.jobstates;
         call symputx('uri',uri);
       run;
 
-  Finally, fetch the log:
-
+      %* Finally, fetch the log;
       %mv_getjoblog(uri=&uri,outref=mylog)
 
   This macro is used by the mv_jobwaitfor.sas macro, which is generally a more
   convenient way to wait for the job to finish before fetching the log.
 
+  If the remote session calls `endsas` then it is not possible to get the log
+  from the provided uri, and so the log from the parent session is fetched
+  instead.  This happens for a 400 response, eg below:
+
+      ErrorResponse[version=2,status=400,err=5113,id=,message=The session
+      requested is currently in a failed or stopped state.,detail=[path:
+      /compute/sessions/LONGURI-ses0006/jobs/LONGURI/log/content, traceId: 63
+      51aa617d01fd2b],remediation=Correct the errors in the session request,
+      and create a new session.,targetUri=<null>,errors=[],links=[]]
 
   @param [in] access_token_var= The global macro variable to contain the access
     token
@@ -15117,7 +15165,7 @@ run;
       if a SASStudioV session else authorization_code.  Default option.
     @li sas_services - will use oauth_bearer=sas_services.
   @param [in] uri= The uri of the running job for which to fetch the status,
-    in the format `/jobExecution/jobs/$UUID/state` (unquoted).
+    in the format `/jobExecution/jobs/$UUID` (unquoted).
   @param [out] outref= The output fileref to which to APPEND the log (is always
   appended).
 
@@ -15175,7 +15223,7 @@ data _null_;
     call symputx('errflg',1);
     call symputx('errmsg',
       "URI should be in format /jobExecution/jobs/$$$$UUID$$$$"
-      !!" but is actually like: &uri",'l');
+      !!" but is actually like:"!!uri,'l');
   end;
 run;
 
@@ -15208,6 +15256,10 @@ proc http method='GET' out=&fname1 &oauth_bearer
   %end;
   ;
 run;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname: fetching log loc from &uri;
+  data _null_;infile &fname1;input;putlog _infile_;run;
+%end;
 %if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201 %then
 %do;
   data _null_;infile &fname1;input;putlog _infile_;run;
@@ -15245,43 +15297,74 @@ run;
 data _null_;
   infile &fname2;
   input;
-  uri=_infile_;
+  uri=cats(_infile_);
   if length(uri)<12 then do;
     call symputx('errflg',1);
     call symputx('errmsg',"URI is invalid (too short) - '&uri'",'l');
   end;
-  if scan(uri,1) ne 'files' or scan(uri,2) ne 'files' then do;
+  else if (scan(uri,1,'/') ne 'compute' or scan(uri,2,'/') ne 'sessions')
+    and (scan(uri,1,'/') ne 'files' or scan(uri,2,'/') ne 'files')
+  then do;
     call symputx('errflg',1);
     call symputx('errmsg',
-      "URI should be in format /files/files/$$$$UUID$$$$"
-      !!" but is actually like: &uri",'l');
+      "URI should be in format /compute/sessions/$$$$UUID$$$$/jobs/$$$$UUID$$$$"
+      !!" or /files/files/$$$$UUID$$$$"
+      !!" but is actually like:"!!uri,'l');
   end;
-  call symputx('errflg',0,'l');
-  call symputx('logloc',uri,'l');
+  else do;
+    call symputx('errflg',0,'l');
+    call symputx('logloc',uri,'l');
+  end;
 run;
 
-%mp_abort(iftrue=(&errflg=1)
+%mp_abort(iftrue=(%str(&errflg)=1)
   ,mac=&sysmacroname
   ,msg=%str(&errmsg)
 )
 
 /* we have a log uri - now fetch the log */
+%&dbg.put &sysmacroname: querying &base_uri&logloc/content;
 proc http method='GET' out=&fname1 &oauth_bearer
-  url="&base_uri&logloc/content";
+  url="&base_uri&logloc/content?limit=10000";
   headers
   %if &grant_type=authorization_code %then %do;
           "Authorization"="Bearer &&&access_token_var"
   %end;
   ;
 run;
-%if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201 %then
-%do;
+
+%if &mdebug=1 %then %do;
+  %put &sysmacroname: fetching log content from &base_uri&logloc/content;
   data _null_;infile &fname1;input;putlog _infile_;run;
+%end;
+
+%if &SYS_PROCHTTP_STATUS_CODE=400 %then %do;
+  /* fetch log from parent session */
+  %let logloc=%substr(&logloc,1,%index(&logloc,%str(/jobs/))-1);
+  %&dbg.put &sysmacroname: Now querying &base_uri&logloc/log/content;
+  proc http method='GET' out=&fname1 &oauth_bearer
+    url="&base_uri&logloc/log/content?limit=10000";
+    headers
+    %if &grant_type=authorization_code %then %do;
+            "Authorization"="Bearer &&&access_token_var"
+    %end;
+    ;
+  run;
+  %if &mdebug=1 %then %do;
+    %put &sysmacroname: fetching log content from &base_uri&logloc/log/content;
+    data _null_;infile &fname1;input;putlog _infile_;run;
+  %end;
+%end;
+
+%if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201
+%then %do;
+  %if &mdebug ne 1 %then %do; /* have already output above */
+    data _null_;infile &fname1;input;putlog _infile_;run;
+  %end;
   %mp_abort(mac=&sysmacroname
     ,msg=%str(logfetch: &SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
   )
 %end;
-
 data _null_;
   file "&fpath3..lua";
   put '

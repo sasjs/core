@@ -33,12 +33,13 @@
   @returns The &outds table containing any bad rows, plus a REASON_CD column.
 
   @param [in] inds The table to be checked, with the format above
-  @param [in] targetds= The target dataset against which to verify VARIABLE_NM
+  @param [in] targetds= The target dataset against which to verify VARIABLE_NM.
+    This must be available (ie, the library must be assigned).
   @param [out] abort= (YES) If YES will call mp_abort.sas on any exceptions
   @param [out] outds= The output table, which is a copy of the &inds. table
-  plus a REASON_CD column, containing only bad records.  If bad records found,
-  the SYSCC value will be set to 1008 (general data problem).  Downstream
-  processes should check this table (and return code) before continuing.
+    plus a REASON_CD column, containing only bad records.  If bad records found,
+    the SYSCC value will be set to 1008 (general data problem).  Downstream
+    processes should check this table (and return code) before continuing.
 
   <h4> SAS Macros </h4>
   @li mp_abort.sas
@@ -84,41 +85,52 @@
   * quotes, commas, periods and spaces.
   * Only numeric values should remain
   */
-%local reason_cd;
+%local reason_cd nobs;
+%let nobs=0;
 data &outds;
   /*length GROUP_LOGIC SUBGROUP_LOGIC $3 SUBGROUP_ID 8 VARIABLE_NM $32
     OPERATOR_NM $10 RAW_VALUE $4000;*/
   set &inds;
-  length reason_cd $32;
+  length reason_cd $4032;
 
   /* closed list checks */
   if GROUP_LOGIC not in ('AND','OR') then do;
-    REASON_CD='GROUP_LOGIC should be either AND or OR';
+    REASON_CD='GROUP_LOGIC should be AND/OR, not:'!!cats(GROUP_LOGIC);
     putlog REASON_CD= GROUP_LOGIC=;
+    call symputx('reason_cd',reason_cd,'l');
+    call symputx('nobs',_n_,'l');
     output;
   end;
   if SUBGROUP_LOGIC not in ('AND','OR') then do;
-    REASON_CD='SUBGROUP_LOGIC should be either AND or OR';
+    REASON_CD='SUBGROUP_LOGIC should be AND/OR, not:'!!cats(SUBGROUP_LOGIC);
     putlog REASON_CD= SUBGROUP_LOGIC=;
+    call symputx('reason_cd',reason_cd,'l');
+    call symputx('nobs',_n_,'l');
     output;
   end;
   if mod(SUBGROUP_ID,1) ne 0 then do;
-    REASON_CD='SUBGROUP_ID should be integer';
+    REASON_CD='SUBGROUP_ID should be integer, not '!!left(subgroup_id);
     putlog REASON_CD= SUBGROUP_ID=;
+    call symputx('reason_cd',reason_cd,'l');
+    call symputx('nobs',_n_,'l');
     output;
   end;
   if upcase(VARIABLE_NM) not in
   (%upcase(%mf_getvarlist(&targetds,dlm=%str(,),quote=SINGLE)))
   then do;
-    REASON_CD="VARIABLE_NM not in &targetds";
+    REASON_CD="Variable "!!cats(variable_nm)!!" not in &targetds";
     putlog REASON_CD= VARIABLE_NM=;
+    call symputx('reason_cd',reason_cd,'l');
+    call symputx('nobs',_n_,'l');
     output;
   end;
   if OPERATOR_NM not in
   ('=','>','<','<=','>=','BETWEEN','IN','NOT IN','NE','CONTAINS')
   then do;
-    REASON_CD='Invalid OPERATOR_NM';
+    REASON_CD='Invalid OPERATOR_NM: '!!left(OPERATOR_NM);
     putlog REASON_CD= OPERATOR_NM=;
+    call symputx('reason_cd',reason_cd,'l');
+    call symputx('nobs',_n_,'l');
     output;
   end;
 
@@ -128,8 +140,10 @@ data &outds;
     if substr(raw_value,1,1) ne '('
     or substr(cats(reverse(raw_value)),1,1) ne ')'
     then do;
-      REASON_CD='Missing brackets in RAW_VALUE';
+      REASON_CD='Missing start/end bracket in RAW_VALUE';
       putlog REASON_CD= OPERATOR_NM= raw_value= raw_value1= ;
+      call symputx('reason_cd',reason_cd,'l');
+      call symputx('nobs',_n_,'l');
       output;
     end;
     else raw_value1=substr(raw_value,2,max(length(raw_value)-2,0));
@@ -150,27 +164,24 @@ data &outds;
   /* output records that contain values other than digits and spaces */
   if notdigit(compress(raw_value3,' '))>0 then do;
     putlog raw_value3= $hex32.;
-    REASON_CD='Invalid RAW_VALUE';
+    REASON_CD=cats('Invalid RAW_VALUE:',raw_value);
     putlog REASON_CD= raw_value= raw_value1= raw_value2= raw_value3=;
+    call symputx('reason_cd',reason_cd,'l');
+    call symputx('nobs',_n_,'l');
     output;
   end;
 
 run;
 
-%local nobs;
-%let nobs=0;
+
 data _null_;
   set &outds end=last;
   putlog (_all_)(=);
-  if last then do;
-    call symputx('REASON_CD',reason_cd,'l');
-    call symputx('nobs',_n_,'l');
-  end;
 run;
 
 %mp_abort(iftrue=(&abort=YES and &nobs>0),
   mac=&sysmacroname,
-  msg=%str(&nobs filter issues in &inds, reason: &reason_cd, details in &outds)
+  msg=%str(Data issue: %superq(reason_cd))
 )
 
 %if &nobs>0 %then %do;

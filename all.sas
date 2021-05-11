@@ -1644,6 +1644,8 @@ Usage:
 %macro mp_abort(mac=mp_abort.sas, type=, msg=, iftrue=%str(1=1)
 )/*/STORE SOURCE*/;
 
+  %global sysprocessmode sysprocessname;
+
   %if not(%eval(%unquote(&iftrue))) %then %return;
 
   %put NOTE: ///  mp_abort macro executing //;
@@ -1651,9 +1653,7 @@ Usage:
   %put NOTE - &msg;
 
   /* Stored Process Server web app context */
-  %if %symexist(_metaperson)
-  or (%symexist(SYSPROCESSNAME) and "&SYSPROCESSNAME"="Compute Server" )
-  %then %do;
+  %if %symexist(_metaperson) or "&SYSPROCESSNAME"="Compute Server" %then %do;
     options obs=max replace nosyntaxcheck mprint;
     /* extract log errs / warns, if exist */
     %local logloc logline;
@@ -1748,14 +1748,13 @@ Usage:
       if debug ge '"131"' then put '>>weboutEND<<';
     run;
 
-    data _null_;
-      if symexist('sysprocessmode') then
-        if symget("sysprocessmode")="SAS Stored Process Server" then do;
-          putlog 'stpsrvset program error and syscc';
-          rc=stpsrvset('program error', 0);
-          call symputx("syscc",0,"g");
-        end;
-    run;
+    %if "&sysprocessmode " = "SAS Stored Process Server " %then %do;
+      data _null_;
+        putlog 'stpsrvset program error and syscc';
+        rc=stpsrvset('program error', 0);
+        call symputx("syscc",0,"g");
+      run;
+    %end;
 
     %if "%substr(&sysvlong.xxxxxxx,1,9)" ne "9.04.01M3" %then %do;
       %put NOTE: Ending SAS session due to:;
@@ -1774,7 +1773,10 @@ Usage:
     filename skip temp;
     data _null_;
       file skip;
-      put '%macro skip(); %macro skippy();';
+      put '%macro skip();';
+      comment '%mend skip; -> fix lint ';
+      put '%macro skippy();';
+      comment '%mend skippy; -> fix lint ';
     run;
     %inc skip;
   %end;

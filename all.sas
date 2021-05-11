@@ -1748,19 +1748,26 @@ Usage:
       if debug ge '"131"' then put '>>weboutEND<<';
     run;
 
-    %if %symexist(_metaport) %then %do;
-      data _null_;
-        if symexist('sysprocessmode') then
-          if symget("sysprocessmode")="SAS Stored Process Server" then do;
-            rc=stpsrvset('program error', 0);
-            call symputx("syscc",0,"g");
-          end;
-      run;
+    data _null_;
+      if symexist('sysprocessmode') then
+        if symget("sysprocessmode")="SAS Stored Process Server" then do;
+          putlog 'stpsrvset program error and syscc';
+          rc=stpsrvset('program error', 0);
+          call symputx("syscc",0,"g");
+        end;
+    run;
+    %if "%substr(&sysvlong.xxxxxxx,1,9)" ne "9.04.01M3" %then %do;
+      %put NOTE: Ending SAS session due to:;
+      %put NOTE- &msg;
+      endsas;
     %end;
+    SYSVLONG=9.04.01M7P080520
     /**
-      * endsas is reliable but kills some deployments.
+      * endsas is reliable but kills 9.4m3 deployments by hanging multibridges.
       * Abort variants are ungraceful (non zero return code)
       * This approach lets SAS run silently until the end :-)
+      * Caution - fails when called within a %include within a macro
+      * See tests/mp_abort.test.1 for an example case.
       */
     %put _all_;
     filename skip temp;
@@ -1774,7 +1781,7 @@ Usage:
     %put _all_;
     %abort cancel;
   %end;
-%mend;
+%mend mp_abort;
 
 /** @endcond *//**
   @file

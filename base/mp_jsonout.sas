@@ -61,7 +61,7 @@
 )/*/STORE SOURCE*/;
 %put output location=&jref;
 %if &action=OPEN %then %do;
-  OPTIONS NOBOMFILE;
+  options nobomfile;
   data _null_;file &jref encoding='utf-8';
     put '{"START_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '"';
   run;

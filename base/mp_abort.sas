@@ -74,7 +74,7 @@
           input;
           i=1;
           stoploop=0;
-          if _n_ ge &logline-5 and stoploop=0 then do until (i>12);
+          if _n_ ge &logline-15 and stoploop=0 then do until (i>22);
             call symputx('logmsg',catx('\n',symget('logmsg'),_infile_));
             input;
             i+1;

@@ -31,7 +31,7 @@ run;
 %mv_jobexecute(
   path=&mcTestAppLoc/jobs/temp,
   name=testjob,
-  outds=work.info,
+  outds=work.info
 )
 
 %* Wait for it to finish;

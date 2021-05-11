@@ -134,9 +134,15 @@
         rc=stpsrvset('program error', 0);
         call symputx("syscc",0,"g");
       run;
+      endsas;
     %end;
-
-    %if "%substr(&sysvlong.xxxxxxx,1,9)" ne "9.04.01M3" %then %do;
+    %else %if "&sysprocessmode " = "SAS Compute Server " %then %do;
+      /* endsas kills the session making it harder to fetch results */
+      data _null_;
+        abort;
+      run;
+    %end;
+    %else %if "%substr(&sysvlong.xxxxxxxxx,1,9)" ne "9.04.01M3" %then %do;
       %put NOTE: Ending SAS session due to:;
       %put NOTE- &msg;
       endsas;

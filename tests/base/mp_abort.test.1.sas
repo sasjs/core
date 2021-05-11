@@ -10,6 +10,7 @@
 
   <h4> SAS Macros </h4>
   @li mp_abort.sas
+  @li mp_assert.sas
 
 **/
 

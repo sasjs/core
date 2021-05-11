@@ -1637,8 +1637,8 @@ Usage:
     _webout.  To assist with this, we also run stpsrvset('program error', 0)
     and set SYSCC=0.  For 9.4m3 we take a unique approach - we open a macro
     but don't close it!  This provides a graceful abort, EXCEPT when called
-    called within a %include within a macro.  See tests/mp_abort.test.1 for an
-    example case.
+    called within a %include within a macro.  See tests/mp_abort.test.1.sas for
+    an example case.
     If you know of another way to gracefully abort a 9.4m3 STP session, we'd
     love to hear about it!
 

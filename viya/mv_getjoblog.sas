@@ -241,10 +241,12 @@ proc http method='GET' out=&fname1 &oauth_bearer
   %end;
   ;
 run;
+
 %if &mdebug=1 %then %do;
   %put &sysmacroname: fetching log content from &base_uri&logloc/content;
   data _null_;infile &fname1;input;putlog _infile_;run;
 %end;
+
 %if &SYS_PROCHTTP_STATUS_CODE=400 %then %do;
   /* fetch log from parent session */
   %let logloc=%substr(&logloc,1,%index(&logloc,%str(/jobs/))-1);
@@ -262,9 +264,12 @@ run;
     data _null_;infile &fname1;input;putlog _infile_;run;
   %end;
 %end;
+
 %if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201
 %then %do;
-  data _null_;infile &fname1;input;putlog _infile_;run;
+  %if &mdebug ne 1 %then %do; /* have already output above */
+    data _null_;infile &fname1;input;putlog _infile_;run;
+  %end;
   %mp_abort(mac=&sysmacroname
     ,msg=%str(logfetch: &SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
   )

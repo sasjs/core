@@ -1756,12 +1756,13 @@ Usage:
           call symputx("syscc",0,"g");
         end;
     run;
+
     %if "%substr(&sysvlong.xxxxxxx,1,9)" ne "9.04.01M3" %then %do;
       %put NOTE: Ending SAS session due to:;
       %put NOTE- &msg;
       endsas;
     %end;
-    SYSVLONG=9.04.01M7P080520
+
     /**
       * endsas is reliable but kills 9.4m3 deployments by hanging multibridges.
       * Abort variants are ungraceful (non zero return code)

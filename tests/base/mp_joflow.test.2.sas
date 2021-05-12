@@ -71,5 +71,5 @@ run;
 ​
 %mp_assert(
   iftrue=(&syscc eq 0),
-  desc=Check that non zero return code is returned if called job fails
+  desc=Check that a zero return code is returned if no called job fails
 )

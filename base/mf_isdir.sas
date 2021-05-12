@@ -6,7 +6,8 @@
 
       %let isdir=%mf_isdir(/tmp);
 
-  With thanks and full credit to Andrea Defronzo - https://www.linkedin.com/in/andrea-defronzo-b1a47460/
+  With thanks and full credit to Andrea Defronzo -
+  https://www.linkedin.com/in/andrea-defronzo-b1a47460/
 
   @param path full path of the file/directory to be checked
 
@@ -17,17 +18,17 @@
 
 %macro mf_isdir(path
 )/*/STORE SOURCE*/;
-	%local rc did is_directory fref_t;
+  %local rc did is_directory fref_t;
 
-	%let is_directory = 0;
-	%let rc = %sysfunc(filename(fref_t, %superq(path)));
-	%let did = %sysfunc(dopen(&fref_t.));
-	%if &did. ^= 0 %then %do;
-	   %let is_directory = 1;
-	   %let rc = %sysfunc(dclose(&did.));
-	%end;
-	%let rc = %sysfunc(filename(fref_t));
+  %let is_directory = 0;
+  %let rc = %sysfunc(filename(fref_t, %superq(path)));
+  %let did = %sysfunc(dopen(&fref_t.));
+  %if &did. ^= 0 %then %do;
+    %let is_directory = 1;
+    %let rc = %sysfunc(dclose(&did.));
+  %end;
+  %let rc = %sysfunc(filename(fref_t));
 
-	&is_directory
+  &is_directory
 
 %mend;

@@ -17,13 +17,13 @@
 **/
 
 %macro mf_getattrc(
-     libds
+    libds
     ,attr
 )/*/STORE SOURCE*/;
   %local dsid rc;
   %let dsid=%sysfunc(open(&libds,is));
   %if &dsid = 0 %then %do;
-    %put WARNING: Cannot open %trim(&libds), system message below;
+    %put %str(WARN)ING: Cannot open %trim(&libds), system message below;
     %put %sysfunc(sysmsg());
     -1
   %end;

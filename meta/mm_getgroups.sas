@@ -11,14 +11,15 @@
 
   @param [in] user= the metadata user to return groups for.  Leave blank for all
     groups.
-  @param [in] repo= the metadata repository that contains the user/group information
+  @param [in] repo= the metadata repository that contains the user/group
+    information
   @param [in] mDebug= set to 1 to show debug messages in the log
   @param [out] outds= the dataset to create that contains the list of groups
 
   @returns outds  dataset containing all groups in a column named "metagroup"
-   - groupuri
-   - groupname
-   - groupdesc
+    - groupuri
+    - groupname
+    - groupdesc
 
   @version 9.2
   @author Allan Bowe
@@ -26,7 +27,7 @@
 **/
 
 %macro mm_getGroups(
-     user=
+    user=
     ,outds=work.mm_getGroups
     ,repo=foundation
     ,mDebug=0
@@ -39,7 +40,8 @@
 %&mD.put Executing mm_getGroups.sas;
 %&mD.put _local_;
 
-/* on some sites, user / group info is in a different metadata repo to the default */
+/* on some sites, user / group info is in a different metadata repo to the
+    default */
 %if &oldrepo ne &repo %then %do;
   options metarepository=&repo;
 %end;

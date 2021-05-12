@@ -9,7 +9,7 @@
     <meta name="generator" content="Doxygen $doxygenversion" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <!--BEGIN PROJECT_NAME-->
-    <title>$projectname: $title</title>
+    <meta name="description" content="$projectbrief" />
     <!--END PROJECT_NAME-->
     <!--BEGIN !PROJECT_NAME-->
     <title>$title</title>
@@ -19,7 +19,7 @@
     <script type="text/javascript" src="$relpath^dynsections.js"></script>
     $treeview $search $mathjax
     <link href="$relpath^$stylesheet" rel="stylesheet" type="text/css" />
-    <link rel="icon" href="https://sasjs.io/img/runningman.jpg" />
+    <link rel="shortcut icon" href="$relpath^favicon.ico" type="image/x-icon" />
     $extrastylesheet
   </head>
   <body>
@@ -33,52 +33,24 @@
             <tr style="height: 56px">
               <!--BEGIN PROJECT_LOGO-->
               <td id="projectlogo">
-                <img alt="Logo" src="$relpath^$projectlogo" />
+                <a href="$relpath^"
+                  ><img alt="Logo" src="$relpath^$projectlogo"
+                /></a>
               </td>
               <!--END PROJECT_LOGO-->
-              <!--BEGIN PROJECT_NAME-->
               <td id="projectalign" style="padding-left: 0.5em">
-                <div id="projectname">
-                  <!--BEGIN PROJECT_NUMBER-->&#160;<span id="projectnumber"
-                    >$projectnumber</span
-                  ><!--END PROJECT_NUMBER-->
-                </div>
-                <!--BEGIN PROJECT_BRIEF-->
                 <div id="projectbrief">
                   Production Ready Macros for SAS Application Developers<br />
                   <a href="https://github.com/sasjs/core">
                     https://github.com/sasjs/core
                   </a>
                 </div>
-                <meta name="Description" content="$projectbrief" />
-                <!--END PROJECT_BRIEF-->
               </td>
-              <!--END PROJECT_NAME-->
-              <!--BEGIN !PROJECT_NAME-->
-              <!--BEGIN PROJECT_BRIEF-->
-              <td style="padding-left: 0.5em">
-                <div id="projectbrief">$projectbrief</div>
-                <table
-                  style="padding-left: 2em"
-                  cellspacing="0"
-                  cellpadding="0"
-                >
-                  <tr>
-                    <td>
-                      Production Ready Macros for SAS Application Developers
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <a href="https://github.com/sasjs/core">
-                        https://github.com/sasjs/core
-                      </a>
-                    </td>
                   </tr>
                 </table>
               </td>
-              <!--END PROJECT_BRIEF-->
-              <!--END !PROJECT_NAME-->
+
+
               <!--BEGIN DISABLE_INDEX-->
               <!--BEGIN SEARCHENGINE-->
               <td>$searchbox</td>

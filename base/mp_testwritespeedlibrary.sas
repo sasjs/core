@@ -1,10 +1,10 @@
 /**
   @file mp_testwritespeedlibrary.sas
   @brief Tests the write speed of a new table in a SAS library
-  @details Will create a new table of a certain size in an 
+  @details Will create a new table of a certain size in an
   existing SAS library.  The table will have one column,
   and will be subsequently deleted.
-      
+
       %mp_testwritespeedlibrary(
         lib=work
         ,size=0.5

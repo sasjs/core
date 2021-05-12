@@ -21,8 +21,8 @@
 )/*/STORE SOURCE*/;
 
 %if %length(&outds)>30 %then %do;
-  %put %str(ERR)OR: Temp tables are created with the &outds prefix, which therefore
-  needs to be 30 characters or less;
+  %put %str(ERR)OR: Temp tables are created with the &outds prefix, which
+    therefore needs to be 30 characters or less;
   %return;
 %end;
 %if %index(&outds,'.')>0 %then %do;
@@ -58,11 +58,11 @@ data _null_;
   put str;
   if last then do;
     /* collate attributes */
-	  str=cats("data &outds._logat; set &outds.da1-&outds.da",_n_,";run;");
-	  put str;
+    str=cats("data &outds._logat; set &outds.da1-&outds.da",_n_,";run;");
+    put str;
     /* collate associations */
-	  str=cats("data &outds._logas; set &outds.a1-&outds.a",_n_,";run;");
-	  put str;
+    str=cats("data &outds._logas; set &outds.a1-&outds.a",_n_,";run;");
+    put str;
     /* tidy up */
     str=cats("proc delete data=&outds.da1-&outds.da",_n_,";run;");
     put str;

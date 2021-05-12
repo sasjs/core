@@ -31,16 +31,16 @@
 
 filename response temp;
 proc metadata in= '<GetMetadataObjects>
- <Reposid>$METAREPOSITORY</Reposid>
- <Type>Person</Type>
- <NS>SAS</NS>
- <Flags>0</Flags>
- <Options>
- <Templates>
- <Person Name=""/>
- </Templates>
- </Options>
- </GetMetadataObjects>'
+  <Reposid>$METAREPOSITORY</Reposid>
+  <Type>Person</Type>
+  <NS>SAS</NS>
+  <Flags>0</Flags>
+  <Options>
+  <Templates>
+  <Person Name=""/>
+  </Templates>
+  </Options>
+  </GetMetadataObjects>'
   out=response;
 run;
 
@@ -48,7 +48,8 @@ filename sxlemap temp;
 data _null_;
   file sxlemap;
   put '<SXLEMAP version="1.2" name="SASObjects"><TABLE name="SASObjects">';
-  put "<TABLE-PATH syntax='XPath'>/GetMetadataObjects/Objects/Person</TABLE-PATH>";
+  put "<TABLE-PATH syntax='XPath'>/GetMetadataObjects/Objects/Person";
+  put "</TABLE-PATH>";
   put '<COLUMN name="uri">';
   put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/Person/@Id</PATH>";
   put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>32</LENGTH>";

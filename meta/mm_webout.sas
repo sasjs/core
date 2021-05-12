@@ -33,7 +33,7 @@
 
 **/
 %macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y);
-%global _webin_file_count _webin_fileref1 _webin_name1 _program _debug 
+%global _webin_file_count _webin_fileref1 _webin_name1 _program _debug
   sasjs_tables;
 %local i tempds;
 
@@ -68,8 +68,16 @@
 %else %if &action=OPEN %then %do;
   /* fix encoding */
   OPTIONS NOBOMFILE;
+
+  /**
+    * check engine type to avoid the below err message:
+    * > Function is only valid for filerefs using the CACHE access method.
+    */
   data _null_;
-    rc = stpsrv_header('Content-type',"text/html; encoding=utf-8");
+    set sashelp.vextfl(where=(fileref="_WEBOUT"));
+    if xengine='STREAM' then do;
+      rc=stpsrv_header('Content-type',"text/html; encoding=utf-8");
+    end;
   run;
 
   /* setup json */
@@ -83,16 +91,9 @@
 %end;
 
 %else %if &action=ARR or &action=OBJ %then %do;
-  %if &sysver=9.4 %then %do;
-    %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt
-      ,engine=PROCJSON,dbg=%str(&_debug)
-    )
-  %end;
-  %else %do;
-    %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt
-      ,engine=DATASTEP,dbg=%str(&_debug)
-    )
-  %end;
+  %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt
+    ,engine=DATASTEP,dbg=%str(&_debug)
+  )
 %end;
 %else %if &action=CLOSE %then %do;
   %if %str(&_debug) ge 131 %then %do;
@@ -108,14 +109,14 @@
       i+1;
       call symputx('wt'!!left(i),name,'l');
       call symputx('wtcnt',i,'l');
-    data _null_; file &fref encoding='utf-8'; 
+    data _null_; file &fref mod encoding='utf-8';
       put ",""WORK"":{";
     %do i=1 %to &wtcnt;
       %let wt=&&wt&i;
       proc contents noprint data=&wt
         out=_data_ (keep=name type length format:);
       run;%let tempds=%scan(&syslast,2,.);
-      data _null_; file &fref encoding='utf-8';
+      data _null_; file &fref mod encoding='utf-8';
         dsid=open("WORK.&wt",'is');
         nlobs=attrn(dsid,'NLOBS');
         nvars=attrn(dsid,'NVARS');
@@ -126,10 +127,10 @@
         put ',"nvars":' nvars;
       %mp_jsonout(OBJ,&tempds,jref=&fref,dslabel=colattrs,engine=DATASTEP)
       %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,engine=DATASTEP)
-      data _null_; file &fref encoding='utf-8';
+      data _null_; file &fref mod encoding='utf-8';
         put "}";
     %end;
-    data _null_; file &fref encoding='utf-8';
+    data _null_; file &fref mod encoding='utf-8';
       put "}";
     run;
   %end;

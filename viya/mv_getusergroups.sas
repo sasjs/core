@@ -65,7 +65,7 @@ proc http method='GET' out=&fname1 &oauth_bearer
   url="&base_uri/identities/users/&user/memberships?limit=10000";
   headers
 %if &grant_type=authorization_code %then %do;
-         "Authorization"="Bearer &&&access_token_var"
+          "Authorization"="Bearer &&&access_token_var"
 %end;
           "Accept"="application/json";
 run;

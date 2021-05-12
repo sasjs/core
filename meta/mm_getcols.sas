@@ -21,7 +21,7 @@
 **/
 
 %macro mm_getcols(
-     tableuri=
+    tableuri=
     ,outds=work.mm_getcols
 )/*/STORE SOURCE*/;
 

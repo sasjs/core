@@ -1,24 +1,24 @@
- /**
-   @file mv_getaccesstoken.sas
-   @brief deprecated - replaced by mv_tokenrefresh.sas
+/**
+  @file mv_getaccesstoken.sas
+  @brief deprecated - replaced by mv_tokenrefresh.sas
 
-   @version VIYA V.03.04
-   @author Allan Bowe, source: https://github.com/sasjs/core
+  @version VIYA V.03.04
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
-   <h4> SAS Macros </h4>
-   @li mv_tokenrefresh.sas
+  <h4> SAS Macros </h4>
+  @li mv_tokenrefresh.sas
 
- **/
+**/
 
- %macro mv_getaccesstoken(client_id=someclient
-     ,client_secret=somesecret
-     ,grant_type=authorization_code
-     ,code=
-     ,user=
-     ,pass=
-     ,access_token_var=ACCESS_TOKEN
-     ,refresh_token_var=REFRESH_TOKEN
-   );
+%macro mv_getaccesstoken(client_id=someclient
+    ,client_secret=somesecret
+    ,grant_type=authorization_code
+    ,code=
+    ,user=
+    ,pass=
+    ,access_token_var=ACCESS_TOKEN
+    ,refresh_token_var=REFRESH_TOKEN
+  );
 
 %mv_tokenrefresh(client_id=&client_id
   ,client_secret=&client_secret

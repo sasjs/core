@@ -5,7 +5,8 @@
   Code is passed in as one or more filerefs.
 
       %* Step 1 - compile macros ;
-      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      filename mc url
+        "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
       %* Step 2 - Create some code and add it to a web service;
@@ -18,7 +19,7 @@
           run;
           %* send data back;
           %webout(OPEN)
-          %webout(ARR,example1) * Array format, fast, suitable for large tables ;
+          %webout(ARR,example1) * Array format, fast, suitable for large tables;
           %webout(OBJ,example2) * Object format, easier to work with ;
           %webout(CLOSE)
       ;;;;
@@ -38,21 +39,26 @@
   @li mf_isblank.sas
   @li mv_deletejes.sas
 
-  @param path= The full path (on SAS Drive) where the service will be created
-  @param name= The name of the service
-  @param desc= The description of the service
-  @param precode= Space separated list of filerefs, pointing to the code that
-    needs to be attached to the beginning of the service
-  @param code= Fileref(s) of the actual code to be added
-  @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= valid values are "password" or "authorization_code" (unquoted).
-    The default is authorization_code.
-  @param replace= select NO to avoid replacing any existing service in that location
-  @param adapter= the macro uses the sasjs adapter by default.  To use another
-    adapter, add a (different) fileref here.
-  @param contextname= Choose a specific context on which to run the Job.  Leave
+  @param [in] path= The full path (on SAS Drive) where the service will be
+    created
+  @param [in] name= The name of the service
+  @param [in] desc= The description of the service
+  @param [in] precode= Space separated list of filerefs, pointing to the code
+    that needs to be attached to the beginning of the service
+  @param [in] code= Fileref(s) of the actual code to be added
+  @param [in] access_token_var= The global macro variable to contain the access
+    token
+  @param [in] grant_type= valid values are "password" or "authorization_code"
+    (unquoted). The default is authorization_code.
+  @param [in] replace=(YES) Select NO to avoid replacing any existing service in
+    that location
+  @param [in] adapter= the macro uses the sasjs adapter by default.  To use
+    another adapter, add a (different) fileref here.
+  @param [in] contextname= Choose a specific context on which to run the Job.  Leave
     blank to use the default context.  From Viya 3.5 it is possible to configure
-    a shared context - see https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5pyhn1wg3ja0drdl6h.htm&docsetVersion=3.5&locale=en
+    a shared context - see
+https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5pyhn1wg3ja0drdl6h.htm&docsetVersion=3.5&locale=en
+  @param [in] mdebug=(0) set to 1 to enable DEBUG messages
 
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
@@ -68,9 +74,17 @@
     ,grant_type=sas_services
     ,replace=YES
     ,adapter=sasjs
-    ,debug=0
+    ,mdebug=0
     ,contextname=
+    ,debug=0 /* @TODO - Deprecate */
   );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
@@ -80,7 +94,6 @@
     %let oauth_bearer=oauth_bearer=sas_services;
     %let &access_token_var=;
 %end;
-%put &sysmacroname: grant_type=&grant_type;
 
 /* initial validation checking */
 %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
@@ -124,7 +137,7 @@ proc http method='GET' out=&fname1 &oauth_bearer
   headers "Authorization"="Bearer &&&access_token_var";
 %end;
 run;
-%if &debug %then %do;
+%if &mdebug=1 %then %do;
   data _null_;
     infile &fname1;
     input;
@@ -143,7 +156,8 @@ libname &libref1 JSON fileref=&fname1;
 
 data _null_;
   set &libref1..links;
-  if rel='members' then call symputx('membercheck',quote("&base_uri"!!trim(href)),'l');
+  if rel='members' then
+    call symputx('membercheck',quote("&base_uri"!!trim(href)),'l');
   else if rel='self' then call symputx('parentFolderUri',href,'l');
 run;
 data _null_;
@@ -162,8 +176,8 @@ proc http method='GET'
   %end;
             'Accept'='application/vnd.sas.collection+json'
             'Accept-Language'='string';
-%if &debug=1 %then %do;
-   debug level = 3;
+%if &mdebug=1 %then %do;
+  debug level = 3;
 %end;
 run;
 /*data _null_;infile &fname2;input;putlog _infile_;run;*/
@@ -200,33 +214,34 @@ data _null_;
   file &fname3 TERMSTR=' ';
   length string $32767;
   string=cats('{"version": 0,"name":"'
-  	,"&name"
-  	,'","type":"Compute","parameters":[{"name":"_addjesbeginendmacros"'
+    ,"&name"
+    ,'","type":"Compute","parameters":[{"name":"_addjesbeginendmacros"'
     ,',"type":"CHARACTER","defaultValue":"false"}');
   context=quote(cats(symget('contextname')));
   if context ne '""' then do;
     string=cats(string,',{"version": 1,"name": "_contextName","defaultValue":'
-     ,context,',"type":"CHARACTER","label":"Context Name","required": false}');
+      ,context,',"type":"CHARACTER","label":"Context Name","required": false}');
   end;
   string=cats(string,'],"code":"');
   put string;
 run;
 
 /**
- * Add webout macro
- * These put statements are auto generated - to change the macro, change the
- * source (mv_webout) and run `build.py`
- */
-filename sasjs temp lrecl=3000;
+  * Add webout macro
+  * These put statements are auto generated - to change the macro, change the
+  * source (mv_webout) and run `build.py`
+  */
+filename &adapter temp lrecl=3000;
 data _null_;
-  file sasjs;
+  file &adapter;
   put "/* Created on %sysfunc(datetime(),datetime19.) by &sysuserid */";
 /* WEBOUT BEGIN */
   put ' ';
-  put '%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=PROCJSON,dbg=0 ';
+  put '%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=DATASTEP,dbg=0 ';
   put ')/*/STORE SOURCE*/; ';
   put '%put output location=&jref; ';
   put '%if &action=OPEN %then %do; ';
+  put '  OPTIONS NOBOMFILE; ';
   put '  data _null_;file &jref encoding=''utf-8''; ';
   put '    put ''{"START_DTTM" : "'' "%sysfunc(datetime(),datetime20.3)" ''"''; ';
   put '  run; ';
@@ -254,9 +269,68 @@ data _null_;
   put '      %put &sysmacroname:  &ds NOT FOUND!!!; ';
   put '      %return; ';
   put '    %end; ';
+  put '    %if &fmt=Y %then %do; ';
+  put '      %put converting every variable to a formatted variable; ';
+  put '      /* see mp_ds2fmtds.sas for source */ ';
+  put '      proc contents noprint data=&ds ';
+  put '        out=_data_(keep=name type length format formatl formatd varnum); ';
+  put '      run; ';
+  put '      proc sort; ';
+  put '        by varnum; ';
+  put '      run; ';
+  put '      %local fmtds; ';
+  put '      %let fmtds=%scan(&syslast,2,.); ';
+  put '      /* prepare formats and varnames */ ';
+  put '      data _null_; ';
+  put '        set &fmtds end=last; ';
+  put '        name=upcase(name); ';
+  put '        /* fix formats */ ';
+  put '        if type=2 or type=6 then do; ';
+  put '          length fmt $49.; ';
+  put '          if format='''' then fmt=cats(''$'',length,''.''); ';
+  put '          else if formatl=0 then fmt=cats(format,''.''); ';
+  put '          else fmt=cats(format,formatl,''.''); ';
+  put '          newlen=max(formatl,length); ';
+  put '        end; ';
+  put '        else do; ';
+  put '          if format='''' then fmt=''best.''; ';
+  put '          else if formatl=0 then fmt=cats(format,''.''); ';
+  put '          else if formatd=0 then fmt=cats(format,formatl,''.''); ';
+  put '          else fmt=cats(format,formatl,''.'',formatd); ';
+  put '          /* needs to be wide, for datetimes etc */ ';
+  put '          newlen=max(length,formatl,24); ';
+  put '        end; ';
+  put '        /* 32 char unique name */ ';
+  put '        newname=''sasjs''!!substr(cats(put(md5(name),$hex32.)),1,27); ';
+  put ' ';
+  put '        call symputx(cats(''name'',_n_),name,''l''); ';
+  put '        call symputx(cats(''newname'',_n_),newname,''l''); ';
+  put '        call symputx(cats(''len'',_n_),newlen,''l''); ';
+  put '        call symputx(cats(''fmt'',_n_),fmt,''l''); ';
+  put '        call symputx(cats(''type'',_n_),type,''l''); ';
+  put '        if last then call symputx(''nobs'',_n_,''l''); ';
+  put '      run; ';
+  put '      data &fmtds; ';
+  put '        /* rename on entry */ ';
+  put '        set &ds(rename=( ';
+  put '      %local i; ';
+  put '      %do i=1 %to &nobs; ';
+  put '        &&name&i=&&newname&i ';
+  put '      %end; ';
+  put '        )); ';
+  put '      %do i=1 %to &nobs; ';
+  put '        length &&name&i $&&len&i; ';
+  put '        &&name&i=left(put(&&newname&i,&&fmt&i)); ';
+  put '        drop &&newname&i; ';
+  put '      %end; ';
+  put '        if _error_ then call symputx(''syscc'',1012); ';
+  put '      run; ';
+  put '      %let ds=&fmtds; ';
+  put '    %end; /* &fmt=Y */ ';
   put '    data _null_;file &jref mod ; ';
   put '      put "["; call symputx(''cols'',0,''l''); ';
-  put '    proc sort data=sashelp.vcolumn(where=(libname=''WORK'' & memname="%upcase(&ds)")) ';
+  put '    proc sort ';
+  put '      data=sashelp.vcolumn(where=(libname=''WORK'' & memname="%upcase(&ds)")) ';
   put '      out=_data_; ';
   put '      by varnum; ';
   put ' ';
@@ -295,7 +369,8 @@ data _null_;
   put '      %end; ';
   put '    %end; ';
   put '    run; ';
-  put '    /* write to temp loc to avoid _webout truncation - https://support.sas.com/kb/49/325.html */ ';
+  put '    /* write to temp loc to avoid _webout truncation ';
+  put '      - https://support.sas.com/kb/49/325.html */ ';
   put '    filename _sjs temp lrecl=131068 encoding=''utf-8''; ';
   put '    data _null_; file _sjs lrecl=131068 encoding=''utf-8'' mod; ';
   put '      set &tempds; ';
@@ -331,11 +406,11 @@ data _null_;
   put '%end; ';
   put ' ';
   put '%else %if &action=CLOSE %then %do; ';
-  put '  data _null_;file &jref encoding=''utf-8''; ';
+  put '  data _null_;file &jref encoding=''utf-8'' mod; ';
   put '    put "}"; ';
   put '  run; ';
   put '%end; ';
-  put '%mend; ';
+  put '%mend mp_jsonout; ';
   put '%macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=Y); ';
   put '%global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name ';
   put '  sasjs_tables SYS_JES_JOB_URI; ';
@@ -410,7 +485,8 @@ data _null_;
   put '        if _n_=1 then call symputx(''input_statement'',_infile_); ';
   put '        list; ';
   put '      data &table; ';
-  put '        infile "%sysfunc(pathname(work))/&table..csv" firstobs=2 dsd termstr=crlf; ';
+  put '        infile "%sysfunc(pathname(work))/&table..csv" firstobs=2 dsd ';
+  put '          termstr=crlf; ';
   put '        input &input_statement; ';
   put '      run; ';
   put '    %end; ';
@@ -442,7 +518,7 @@ data _null_;
   put '  /* setup webout */ ';
   put '  OPTIONS NOBOMFILE; ';
   put '  %if "X&SYS_JES_JOB_URI.X"="XX" %then %do; ';
-  put '     filename _webout temp lrecl=999999 mod; ';
+  put '    filename _webout temp lrecl=999999 mod; ';
   put '  %end; ';
   put '  %else %do; ';
   put '    filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" ';
@@ -451,7 +527,8 @@ data _null_;
   put ' ';
   put '  /* setup temp ref */ ';
   put '  %if %upcase(&fref) ne _WEBOUT %then %do; ';
-  put '    filename &fref temp lrecl=999999 permission=''A::u::rwx,A::g::rw-,A::o::---'' mod; ';
+  put '    filename &fref temp lrecl=999999 permission=''A::u::rwx,A::g::rw-,A::o::---'' ';
+  put '      mod; ';
   put '  %end; ';
   put ' ';
   put '  /* setup json */ ';
@@ -461,7 +538,7 @@ data _null_;
   put '%end; ';
   put '%else %if &action=ARR or &action=OBJ %then %do; ';
   put '    %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt ';
-  put '      ,jref=&fref,engine=PROCJSON,dbg=%str(&_debug) ';
+  put '      ,jref=&fref,engine=DATASTEP,dbg=%str(&_debug) ';
   put '    ) ';
   put '%end; ';
   put '%else %if &action=CLOSE %then %do; ';
@@ -554,11 +631,12 @@ data _null_;
 run;
 
 /* insert the code, escaping double quotes and carriage returns */
+%&dbg.put &sysmacroname: Creating final input file;
 %local x fref freflist;
 %let freflist= &adapter &precode &code ;
 %do x=1 %to %sysfunc(countw(&freflist));
   %let fref=%scan(&freflist,&x);
-  %put &sysmacroname: adding &fref;
+  %&dbg.put &sysmacroname: adding &fref fileref;
   data _null_;
     length filein 8 fileid 8;
     filein = fopen("&fref","I",1,"B");
@@ -586,6 +664,14 @@ run;
         rc =fput(fileid,'\');rc =fwrite(fileid);
         rc =fput(fileid,'\');rc =fwrite(fileid);
       end;
+      else if rec='01'x then do; /* Unprintable */
+        rc =fput(fileid,'\');rc =fwrite(fileid);
+        rc =fput(fileid,'u');rc =fwrite(fileid);
+        rc =fput(fileid,'0');rc =fwrite(fileid);
+        rc =fput(fileid,'0');rc =fwrite(fileid);
+        rc =fput(fileid,'0');rc =fwrite(fileid);
+        rc =fput(fileid,'1');rc =fwrite(fileid);
+      end;
       else do;
         rc =fput(fileid,rec);
         rc =fwrite(fileid);
@@ -602,7 +688,12 @@ data _null_;
   put '"}';
 run;
 
-/* now we can create the job!! */
+%if &mdebug=1 and &SYS_PROCHTTP_STATUS_CODE ne 201 %then %do;
+  %put &sysmacroname: input about to be POSTed;
+  data _null_;infile &fname3;input;putlog _infile_;run;
+%end;
+
+%&dbg.put &sysmacroname: Creating the actual service!;
 %local fname4;
 %let fname4=%mf_getuniquefileref();
 proc http method='POST'
@@ -615,22 +706,18 @@ proc http method='POST'
             "Authorization"="Bearer &&&access_token_var"
   %end;
             "Accept"="application/vnd.sas.job.definition+json";
-%if &debug=1 %then %do;
-   debug level = 3;
+%if &mdebug=1 %then %do;
+    debug level = 3;
 %end;
 run;
-/*data _null_;infile &fname4;input;putlog _infile_;run;*/
+%if &mdebug=1 and &SYS_PROCHTTP_STATUS_CODE ne 201 %then %do;
+  %put &sysmacroname: output from POSTing job definition;
+  data _null_;infile &fname4;input;putlog _infile_;run;
+%end;
 %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 201)
   ,mac=&sysmacroname
   ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
 )
-/* clear refs */
-filename &fname1 clear;
-filename &fname2 clear;
-filename &fname3 clear;
-filename &fname4 clear;
-filename &adapter clear;
-libname &libref1 clear;
 
 /* get the url so we can give a helpful log message */
 %local url;
@@ -645,6 +732,19 @@ data _null_;
   call symputx('url',url);
 run;
 
+%if &mdebug=1 %then %do;
+  %put &sysmacroname exit vars:;
+  %put _local_;
+%end;
+%else %do;
+  /* clear refs */
+  filename &fname1 clear;
+  filename &fname2 clear;
+  filename &fname3 clear;
+  filename &fname4 clear;
+  filename &adapter clear;
+  libname &libref1 clear;
+%end;
 
 %put &sysmacroname: Job &name successfully created in &path;
 %put &sysmacroname:;
@@ -654,4 +754,4 @@ run;
 %put &sysmacroname:;
 %put &sysmacroname:;
 
-%mend;
+%mend mv_createwebservice;

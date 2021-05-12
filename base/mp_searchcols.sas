@@ -32,7 +32,7 @@ create table _data_ as
   where upcase(libname) in ("IMPOSSIBLE",
   %local x;
   %do x=1 %to %sysfunc(countw(&libs));
-   "%upcase(%scan(&libs,&x))"
+    "%upcase(%scan(&libs,&x))"
   %end;
   )
 %end;

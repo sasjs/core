@@ -2,10 +2,10 @@
   @file mp_cleancsv.sas
   @brief Fixes embedded cr / lf / crlf in CSV
   @details CSVs will sometimes contain lf or crlf within quotes (eg when
-    saved by excel).  When the termstr is ALSO lf or crlf that can be tricky
-    to process using SAS defaults.
-    This macro converts any csv to follow the convention of a windows excel file,
-    applying CRLF line endings and converting embedded cr and crlf to lf.
+  saved by excel).  When the termstr is ALSO lf or crlf that can be tricky
+  to process using SAS defaults.
+  This macro converts any csv to follow the convention of a windows excel file,
+  applying CRLF line endings and converting embedded cr and crlf to lf.
 
   usage:
 
@@ -23,7 +23,7 @@
 
 %macro mp_cleancsv(in=NOTPROVIDED,out=NOTPROVIDED,qchar='22'x);
 %if "&in"="NOTPROVIDED" or "&out"="NOTPROVIDED" %then %do;
-  %put %str(ERR)OR: Please provide valid input (&in) and output (&out) locations;
+  %put %str(ERR)OR: Please provide valid input (&in) & output (&out) locations;
   %return;
 %end;
 
@@ -32,9 +32,9 @@
 %if %index(&out,.) %then %let out="&out";
 
 /**
- * convert all cr and crlf within quotes to lf
- * convert all other cr or lf to crlf
- */
+  * convert all cr and crlf within quotes to lf
+  * convert all other cr or lf to crlf
+  */
   data _null_;
     infile &in recfm=n ;
     file &out recfm=n;

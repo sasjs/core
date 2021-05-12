@@ -14,7 +14,8 @@
   @li mp_abort.sas
 
   @param libref the libref (not name) of the metadata library
-  @param mAbort= If not assigned, HARD will call %mp_abort(), SOFT will silently return
+  @param mAbort= If not assigned, HARD will call %mp_abort(), SOFT will
+    silently return
 
   @returns libname statement
 
@@ -24,7 +25,7 @@
 **/
 
 %macro mm_assignlib(
-     libref
+    libref
     ,mAbort=HARD
 )/*/STORE SOURCE*/;
 

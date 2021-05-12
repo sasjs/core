@@ -13,7 +13,7 @@
           constraint unq unique(tx_from, dd_type),
           constraint nnn not null(DD_SHORTDESC)
         );
-      
+
       %mp_getconstraints(lib=work,ds=example,outds=work.constraints)
       %mp_deleteconstraints(inds=work.constraints,outds=dropped,execute=YES)
 

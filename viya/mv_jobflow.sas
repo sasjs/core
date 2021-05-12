@@ -13,7 +13,7 @@
   @li FLOW_ID - Numeric value, provides sequential ordering capability. Is
     optional, will default to 0 if not provided.
   @li _CONTEXTNAME - Dictates which context should be used to run the job. If
-    blank (or not provided), it defaults to `SAS Job Execution compute context`.
+    blank, or not provided, will default to `SAS Job Execution compute context`.
 
   Any additional variables provided in this table are converted into macro
   variables and passed into the relevant job.
@@ -103,15 +103,13 @@
       @li password
       @li authorization_code
       @li detect - will check if access_token exists, if not will use
-          sas_services if a SASStudioV session else authorization_code.
-          Default option.
+        sas_services if a SASStudioV session else authorization_code.  Default
+        option.
       @li sas_services - will use oauth_bearer=sas_services
-  @param [in] inds= The input dataset containing a list of jobs and
-              parameters
-  @param [in] maxconcurrency= The max number of parallel jobs to run.
-              Default=8.
-  @param [in] raise_err=0 Set to 1 to raise SYSCC when a job does not
-              complete succcessfully
+  @param [in] inds= The input dataset containing a list of jobs and parameters
+  @param [in] maxconcurrency= The max number of parallel jobs to run. Default=8.
+  @param [in] raise_err=0 Set to 1 to raise SYSCC when a job does not complete
+            succcessfully
   @param [in] mdebug= set to 1 to enable DEBUG messages
   @param [out] outds= The output dataset containing the results
   @param [out] outref= The output fileref to which to append the log file(s).
@@ -138,6 +136,13 @@
     ,raise_err=0
     ,mdebug=0
   );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
@@ -189,7 +194,7 @@ select count(*) into: missings
   where flow_id is null or _program is null;
 %mp_abort(iftrue=(&missings>0)
   ,mac=&sysmacroname
-  ,msg=%str(input dataset contains &missings missing values for FLOW_ID or _PROGRAM)
+  ,msg=%str(input dataset has &missings missing values for FLOW_ID or _PROGRAM)
 )
 
 %if %mf_nobs(&inds)=0 %then %do;
@@ -374,6 +379,7 @@ data;run;%let jdswaitfor=&syslast;
 %end;
 
 %if &mdebug=1 %then %do;
+  %put &sysmacroname exit vars:;
   %put _local_;
 %end;
 

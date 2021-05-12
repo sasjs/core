@@ -1,6 +1,6 @@
 /**
   @file
-  @brief Takes a dataset of running jobs and waits for ANY or ALL of them to complete
+  @brief Takes a table of running jobs and waits for ANY/ALL of them to complete
   @details Will poll `/jobs/{jobId}/state` at set intervals until ANY or ALL
   jobs are completed.  Completion is determined by reference to the returned
   _state_, as per the following table:
@@ -55,13 +55,14 @@
 
       %mv_deletejes(path=/Public/temp,name=demo)
 
-  @param [in] access_token_var= The global macro variable to contain the access token
+  @param [in] access_token_var= The global macro variable to contain the access
+    token
   @param [in] grant_type= valid values:
 
       - password
       - authorization_code
-      - detect - will check if access_token exists, if not will use sas_services if
-        a SASStudioV session else authorization_code.  Default option.
+      - detect - will check if access_token exists, if not will use sas_services
+        if a SASStudioV session else authorization_code.  Default option.
       - sas_services - will use oauth_bearer=sas_services
 
   @param [in] action=Either ALL (to wait for every job) or ANY (if one job
@@ -72,9 +73,11 @@
     should be in a `_program` variable.
   @param [in] raise_err=0 Set to 1 to raise SYSCC when a job does not complete
               succcessfully
+  @param [in] mdebug= set to 1 to enable DEBUG messages
   @param [out] outds= The output dataset containing the list of states by job
     (default=work.mv_jobexecute)
-  @param [out] outref= A fileref to which the spawned job logs should be appended.
+  @param [out] outref= A fileref to which the spawned job logs should be
+    appended.
 
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
@@ -97,7 +100,15 @@
     ,outds=work.mv_jobwaitfor
     ,outref=0
     ,raise_err=0
+    ,mdebug=0
   );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
@@ -155,7 +166,8 @@ run;
 %let fname0=%mf_getuniquefileref();
 
 data &outds;
-  format _program uri $128. state $32. stateDetails $32. timestamp datetime19. jobparams $32767.;
+  format _program uri $128. state $32. stateDetails $32. timestamp datetime19.
+    jobparams $32767.;
   stop;
 run;
 
@@ -168,8 +180,8 @@ run;
               "Authorization"="Bearer &&&access_token_var"
       %end;  ;
     run;
-    %if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201 %then
-    %do;
+    %if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201
+    %then %do;
       data _null_;infile &fname0;input;putlog _infile_;run;
       %mp_abort(mac=&sysmacroname
         ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
@@ -205,7 +217,7 @@ run;
       %let joburi&i=0; /* do not re-check */
       /* fetch log */
       %if %str(&outref) ne 0 %then %do;
-        %mv_getjoblog(uri=&plainuri,outref=&outref)
+        %mv_getjoblog(uri=&plainuri,outref=&outref,mdebug=&mdebug)
       %end;
     %end;
     %else %if &status=idle or &status=pending or &status=running %then %do;
@@ -220,12 +232,13 @@ run;
     %end;
 
     %if (&raise_err) %then %do;
-      %if (&status = canceled or &status = failed or %length(&stateDetails)>0) %then %do;
+      %if (&status = canceled or &status = failed or %length(&stateDetails)>0)
+      %then %do;
         %if ("&stateDetails" = "%str(war)ning") %then %let SYSCC=4;
         %else %let SYSCC=5;
-        %put %str(ERR)OR: Job &&jobname&i. did not complete successfully. &stateDetails;
+        %put %str(ERR)OR: Job &&jobname&i. did not complete. &stateDetails;
         %return;
-      %end; 
+      %end;
     %end;
 
   %end;
@@ -238,7 +251,12 @@ run;
   %end;
 %end;
 
-/* clear refs */
-filename &fname0 clear;
-
-%mend;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname exit vars:;
+  %put _local_;
+%end;
+%else %do;
+  /* clear refs */
+  filename &fname0 clear;
+%end;
+%mend mv_jobwaitfor;

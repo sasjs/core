@@ -50,8 +50,8 @@
 %mf_verifymacvars(tree name)
 
 /**
- * check tree exists
- */
+  * check tree exists
+  */
 
 data _null_;
   length type uri $256;
@@ -67,8 +67,8 @@ run;
 )
 
 /**
- * Check object does not exist already
- */
+  * Check object does not exist already
+  */
 data _null_;
   length type uri $256;
   rc=metadata_pathobj("","&tree/&name","Note",type,uri);
@@ -83,8 +83,8 @@ run;
 %end;
 
 /**
- * Now we can create the document
- */
+  * Now we can create the document
+  */
 filename &frefin temp;
 
 /* write header XML */

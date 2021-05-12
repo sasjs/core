@@ -70,7 +70,7 @@ run;
 %end;
 
 %if &syscc ge 4 %then %do;
-  %put WARNING:  SYSCC=&syscc, exiting &sysmacroname;
+  %put %str(WARN)ING:  SYSCC=&syscc, exiting &sysmacroname;
   %return;
 %end;
 

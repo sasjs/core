@@ -37,11 +37,11 @@
 
   @param access_token_var= The global macro variable to contain the access token
   @param grant_type= valid values:
-   * password
-   * authorization_code
-   * detect - will check if access_token exists, if not will use sas_services if
-    a SASStudioV session else authorization_code.  Default option.
-   * sas_services - will use oauth_bearer=sas_services
+    * password
+    * authorization_code
+    * detect - will check if access_token exists, if not will use sas_services if
+      a SASStudioV session else authorization_code.  Default option.
+    * sas_services - will use oauth_bearer=sas_services
 
   @param outds= The library.dataset to be created that contains the list of groups
 

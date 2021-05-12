@@ -13,7 +13,9 @@
         ,params= name1=value1&#x0a;name2=value2&#x0a;emptyvalue=
       )
 
-  @warning application components do not get deleted when removing the container folder!  be sure you have the administrative priviliges to remove this kind of metadata from the SMC plugin (or be ready to do to so programmatically).
+  @warning application components do not get deleted when removing the container
+  folder!  be sure you have the administrative priviliges to remove this kind of
+  metadata from the SMC plugin (or be ready to do to so programmatically).
 
   <h4> SAS Macros </h4>
   @li mp_abort.sas
@@ -60,8 +62,8 @@
 %mf_verifymacvars(tree name)
 
 /**
- * check tree exists
- */
+  * check tree exists
+  */
 
 data _null_;
   length type uri $256;
@@ -77,8 +79,8 @@ run;
 )
 
 /**
- * Check object does not exist already
- */
+  * Check object does not exist already
+  */
 data _null_;
   length type uri $256;
   rc=metadata_pathobj("","&tree/&name","Application",type,uri);
@@ -94,8 +96,8 @@ run;
 
 
 /**
- * Now we can create the application
- */
+  * Now we can create the application
+  */
 filename &frefin temp;
 
 /* write header XML */

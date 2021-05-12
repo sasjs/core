@@ -5,7 +5,7 @@
   testing of arbitrary jobs.
 
       %mp_testjob(
-         duration=60*5
+        duration=60*5
       )
 
   @param [in] duration= the time in seconds which the job should run for. Actual

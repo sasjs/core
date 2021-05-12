@@ -1,7 +1,8 @@
 /**
   @file
   @brief Reset an option to original value
-  @details Inspired by the SAS Jedi - https://blogs.sas.com/content/sastraining/2012/08/14/jedi-sas-tricks-reset-sas-system-options/
+  @details Inspired by the SAS Jedi -
+https://blogs.sas.com/content/sastraining/2012/08/14/jedi-sas-tricks-reset-sas-system-options
     Called as follows:
 
     options obs=30;

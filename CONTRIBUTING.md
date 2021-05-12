@@ -27,6 +27,5 @@ To contribute:
 1.  Create your feature branch (`git checkout -b myfeature`)
 2.  Make your change
 3.  Update the `all.sas` file (`python3 build.py`)
-4.  Commit the change, using the [conventional commit](https://www.conventionalcommits.org/en/v1.0.0) standard
-5.  Push and make a PR
+4.  Push and make a PR
 

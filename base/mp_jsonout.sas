@@ -4,8 +4,11 @@
   @details PROC JSON is faster but will produce errs like the ones below if
   special chars are encountered.
 
-     >An object or array close is not valid at this point in the JSON text.
-     >Date value out of range
+  > ERROR: Some code points did not transcode.
+
+  > An object or array close is not valid at this point in the JSON text.
+
+  > Date value out of range
 
   If this happens, try running with ENGINE=DATASTEP.
 
@@ -13,8 +16,10 @@
 
         filename tmp temp;
         data class; set sashelp.class;run;
-        
+
+        %mp_jsonout(OPEN,jref=tmp)
         %mp_jsonout(OBJ,class,jref=tmp)
+        %mp_jsonout(CLOSE,jref=tmp)
 
         data _null_;
         infile tmp;
@@ -22,27 +27,29 @@
         run;
 
   If you are building web apps with SAS then you are strongly encouraged to use
-  the mX_createwebservice macros in combination with the 
+  the mX_createwebservice macros in combination with the
   [sasjs adapter](https://github.com/sasjs/adapter).
   For more information see https://sasjs.io
 
   @param action Valid values:
-    * OPEN - opens the JSON
-    * OBJ - sends a table with each row as an object
-    * ARR - sends a table with each row in an array
-    * CLOSE - closes the JSON
+    @li OPEN - opens the JSON
+    @li OBJ - sends a table with each row as an object
+    @li ARR - sends a table with each row in an array
+    @li CLOSE - closes the JSON
 
   @param ds the dataset to send.  Must be a work table.
   @param jref= the fileref to which to send the JSON
   @param dslabel= the name to give the table in the exported JSON
   @param fmt= Whether to keep or strip formats from the table
-  @param engine= Which engine to use to send the JSON, options are:
-  * PROCJSON (default)
-  * DATASTEP 
+  @param engine= Which engine to use to send the JSON, valid options are:
+    @li PROCJSON (default)
+    @li DATASTEP (more reliable when data has non standard characters)
 
   @param dbg= DEPRECATED - was used to conditionally add PRETTY to
     proc json but this can cause line truncation in large files.
-    
+
+  <h4> Related Macros <h4>
+  @li mp_ds2fmtds.sas
 
   @version 9.2
   @author Allan Bowe
@@ -50,10 +57,11 @@
 
 **/
 
-%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=PROCJSON,dbg=0
+%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=DATASTEP,dbg=0
 )/*/STORE SOURCE*/;
 %put output location=&jref;
 %if &action=OPEN %then %do;
+  options nobomfile;
   data _null_;file &jref encoding='utf-8';
     put '{"START_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '"';
   run;
@@ -66,7 +74,7 @@
   %if &engine=PROCJSON %then %do;
     data;run;%let tempds=&syslast;
     proc sql;drop table &tempds;
-    data &tempds /view=&tempds;set &ds; 
+    data &tempds /view=&tempds;set &ds;
     %if &fmt=N %then format _numeric_ best32.;;
     proc json out=&jref pretty
         %if &action=ARR %then nokeys ;
@@ -81,13 +89,72 @@
       %put &sysmacroname:  &ds NOT FOUND!!!;
       %return;
     %end;
-    data _null_;file &jref mod ; 
+    %if &fmt=Y %then %do;
+      %put converting every variable to a formatted variable;
+      /* see mp_ds2fmtds.sas for source */
+      proc contents noprint data=&ds
+        out=_data_(keep=name type length format formatl formatd varnum);
+      run;
+      proc sort;
+        by varnum;
+      run;
+      %local fmtds;
+      %let fmtds=%scan(&syslast,2,.);
+      /* prepare formats and varnames */
+      data _null_;
+        set &fmtds end=last;
+        name=upcase(name);
+        /* fix formats */
+        if type=2 or type=6 then do;
+          length fmt $49.;
+          if format='' then fmt=cats('$',length,'.');
+          else if formatl=0 then fmt=cats(format,'.');
+          else fmt=cats(format,formatl,'.');
+          newlen=max(formatl,length);
+        end;
+        else do;
+          if format='' then fmt='best.';
+          else if formatl=0 then fmt=cats(format,'.');
+          else if formatd=0 then fmt=cats(format,formatl,'.');
+          else fmt=cats(format,formatl,'.',formatd);
+          /* needs to be wide, for datetimes etc */
+          newlen=max(length,formatl,24);
+        end;
+        /* 32 char unique name */
+        newname='sasjs'!!substr(cats(put(md5(name),$hex32.)),1,27);
+
+        call symputx(cats('name',_n_),name,'l');
+        call symputx(cats('newname',_n_),newname,'l');
+        call symputx(cats('len',_n_),newlen,'l');
+        call symputx(cats('fmt',_n_),fmt,'l');
+        call symputx(cats('type',_n_),type,'l');
+        if last then call symputx('nobs',_n_,'l');
+      run;
+      data &fmtds;
+        /* rename on entry */
+        set &ds(rename=(
+      %local i;
+      %do i=1 %to &nobs;
+        &&name&i=&&newname&i
+      %end;
+        ));
+      %do i=1 %to &nobs;
+        length &&name&i $&&len&i;
+        &&name&i=left(put(&&newname&i,&&fmt&i));
+        drop &&newname&i;
+      %end;
+        if _error_ then call symputx('syscc',1012);
+      run;
+      %let ds=&fmtds;
+    %end; /* &fmt=Y */
+    data _null_;file &jref mod ;
       put "["; call symputx('cols',0,'l');
-    proc sort data=sashelp.vcolumn(where=(libname='WORK' & memname="%upcase(&ds)"))
+    proc sort
+      data=sashelp.vcolumn(where=(libname='WORK' & memname="%upcase(&ds)"))
       out=_data_;
       by varnum;
 
-    data _null_; 
+    data _null_;
       set _last_ end=last;
       call symputx(cats('name',_n_),name,'l');
       call symputx(cats('type',_n_),type,'l');
@@ -121,8 +188,9 @@
         )))))!!'"';
       %end;
     %end;
-    run; 
-    /* write to temp loc to avoid _webout truncation - https://support.sas.com/kb/49/325.html */
+    run;
+    /* write to temp loc to avoid _webout truncation
+      - https://support.sas.com/kb/49/325.html */
     filename _sjs temp lrecl=131068 encoding='utf-8';
     data _null_; file _sjs lrecl=131068 encoding='utf-8' mod;
       set &tempds;
@@ -131,7 +199,7 @@
       %do i=1 %to &cols;
         %if &i>1 %then  "," ;
         %if &action=OBJ %then """&&name&i"":" ;
-        &&name&i 
+        &&name&i
       %end;
       %if &action=ARR %then "]" ; %else "}" ; ;
     proc sql;
@@ -158,8 +226,8 @@
 %end;
 
 %else %if &action=CLOSE %then %do;
-  data _null_;file &jref encoding='utf-8';
+  data _null_;file &jref encoding='utf-8' mod;
     put "}";
   run;
 %end;
-%mend;
+%mend mp_jsonout;

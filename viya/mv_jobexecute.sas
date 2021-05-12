@@ -23,24 +23,25 @@
         ,paramstring=%str("macvarname":"macvarvalue","answer":42)
       )
 
-  @param [in] access_token_var= The global macro variable to contain the access token
+  @param [in] access_token_var= The global macro variable to contain the access
+    token
   @param [in] grant_type= valid values:
-
-    * password
-    * authorization_code
-    * detect - will check if access_token exists, if not will use sas_services if
-      a SASStudioV session else authorization_code.  Default option.
-    * sas_services - will use oauth_bearer=sas_services
+    @li password
+    @li authorization_code
+    @li detect - will check if access_token exists, if not will use sas_services
+      if a SASStudioV session else authorization_code.  Default option.
+    @li sas_services - will use oauth_bearer=sas_services
 
   @param [in] path= The SAS Drive path to the job being executed
   @param [in] name= The name of the job to execute
-  @param [in] paramstring= A JSON fragment with name:value pairs, eg: `"name":"value"`
-  or "name":"value","name2":42`.  This will need to be wrapped in `%str()`.
+  @param [in] paramstring= A JSON fragment with name:value pairs, eg:
+    `"name":"value"` or "name":"value","name2":42`.  This will need to be
+    wrapped in `%str()`.
 
   @param [in] contextName= Context name with which to run the job.
     Default = `SAS Job Execution compute context`
-
-  @param [out] outds= The output dataset containing links (Default=work.mv_jobexecute)
+  @param [in] mdebug= set to 1 to enable DEBUG messages
+  @param [out] outds= (work.mv_jobexecute) The output dataset containing links
 
 
   @version VIYA V.03.04
@@ -62,7 +63,15 @@
     ,grant_type=sas_services
     ,paramstring=0
     ,outds=work.mv_jobexecute
+    ,mdebug=0
   );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
@@ -164,9 +173,14 @@ data &outds;
   _program="&path/&name";
 run;
 
-/* clear refs */
-filename &fname0 clear;
-filename &fname1 clear;
-libname &libref;
-
-%mend;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname exit vars:;
+  %put _local_;
+%end;
+%else %do;
+  /* clear refs */
+  filename &fname0 clear;
+  filename &fname1 clear;
+  libname &libref;
+%end;
+%mend mv_jobexecute;

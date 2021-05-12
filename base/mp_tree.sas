@@ -8,8 +8,11 @@
 
   Credits:
 
-  * Roger Deangelis, https://communities.sas.com/t5/SAS-Programming/listing-all-files-within-a-directory-and-subdirectories/m-p/332616/highlight/true#M74887
-  * Tom, https://communities.sas.com/t5/SAS-Programming/listing-all-files-of-all-types-from-all-subdirectories/m-p/334113/highlight/true#M75419
+  Roger Deangelis:
+https://communities.sas.com/t5/SAS-Programming/listing-all-files-within-a-directory-and-subdirectories/m-p/332616/highlight/true#M74887
+
+  Tom:
+https://communities.sas.com/t5/SAS-Programming/listing-all-files-of-all-types-from-all-subdirectories/m-p/334113/highlight/true#M75419
 
 
   @param dir= Directory to be scanned (default=/tmp)
@@ -17,13 +20,13 @@
 
   @returns outds contains the following variables:
 
-   - `dir`: a flag (1/0) to say whether it is a directory or not.  This is not
-     reliable - folders that you do not have permission to open will be flagged
-     as directories.
-   - `ext`: file extension
-   - `filename`: file name
-   - `dirname`: directory name
-   - `fullpath`: directory + file name
+    - `dir`: a flag (1/0) to say whether it is a directory or not.  This is not
+      reliable - folders that you do not have permission to open will be flagged
+      as directories.
+    - `ext`: file extension
+    - `filename`: file name
+    - `dirname`: directory name
+    - `fullpath`: directory + file name
 
   @version 9.2
 **/

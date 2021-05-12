@@ -4,13 +4,24 @@
   @details Configures an abort mechanism according to site specific policies or
     the particulars of an environment.  For instance, can stream custom
     results back to the client in an STP Web App context, or completely stop
-    in the case of a batch run.
+    in the case of a batch run.  For STP sessions
 
-  Using SAS Abort Cancel mechanisms can cause hung sessions in some Stored Process
-  environments.  This macro takes a unique approach - we set the SAS syscc to 0,
-  run `stpsrvset('program error', 0)` (if SAS 9) and then - we open a macro
-  but don't close it!  This provides a graceful abort for SAS web services in all
-  web enabled environments.
+  The method used varies according to the context.  Important points:
+
+  @li should not use endsas or abort cancel in 9.4m3 environments as this can
+    cause hung multibridge sessions and result in a frozen STP server
+  @li should not use endsas in viya 3.5 as this destroys the session and cannot
+    fetch results (although both mv_getjoblog.sas and the @sasjs/adapter will
+    recognise this and fetch the log of the parent session instead)
+  @li STP environments must finish cleanly to avoid the log being sent to
+    _webout.  To assist with this, we also run stpsrvset('program error', 0)
+    and set SYSCC=0.  For 9.4m3 we take a unique approach - we open a macro
+    but don't close it!  This provides a graceful abort, EXCEPT when called
+    called within a %include within a macro (and that macro contains additional
+    logic).  See mp_abort.test.nofix.sas for the example case.
+    If you know of another way to gracefully abort a 9.4m3 STP session, we'd
+    love to hear about it!
+
 
   @param mac= to contain the name of the calling macro
   @param msg= message to be returned
@@ -24,6 +35,8 @@
 %macro mp_abort(mac=mp_abort.sas, type=, msg=, iftrue=%str(1=1)
 )/*/STORE SOURCE*/;
 
+  %global sysprocessmode sysprocessname;
+
   %if not(%eval(%unquote(&iftrue))) %then %return;
 
   %put NOTE: ///  mp_abort macro executing //;
@@ -31,9 +44,7 @@
   %put NOTE - &msg;
 
   /* Stored Process Server web app context */
-  %if %symexist(_metaperson)
-  or (%symexist(SYSPROCESSNAME) and "&SYSPROCESSNAME"="Compute Server" )
-  %then %do;
+  %if %symexist(_metaperson) or "&SYSPROCESSNAME "="Compute Server " %then %do;
     options obs=max replace nosyntaxcheck mprint;
     /* extract log errs / warns, if exist */
     %local logloc logline;
@@ -48,7 +59,10 @@
         input; putlog _infile_;
         i=1;
         retain logonce 0;
-        if (_infile_=:"%str(WARN)ING" or _infile_=:"%str(ERR)OR") and logonce=0 then do;
+        if (
+            _infile_=:"%str(WARN)ING" or _infile_=:"%str(ERR)OR"
+          ) and logonce=0 then
+        do;
           call symputx('logline',_n_);
           logonce+1;
         end;
@@ -60,7 +74,7 @@
           input;
           i=1;
           stoploop=0;
-          if _n_ ge &logline-5 and stoploop=0 then do until (i>12);
+          if _n_ ge &logline-15 and stoploop=0 then do until (i>22);
             call symputx('logmsg',catx('\n',symget('logmsg'),_infile_));
             input;
             i+1;
@@ -125,31 +139,59 @@
       if debug ge '"131"' then put '>>weboutEND<<';
     run;
 
-    %let syscc=0;
-    %if %symexist(_metaport) %then %do;
+    %put _all_;
+
+    %if "&sysprocessmode " = "SAS Stored Process Server " %then %do;
       data _null_;
-        if symexist('sysprocessmode')
-         then if symget("sysprocessmode")="SAS Stored Process Server"
-          then rc=stpsrvset('program error', 0);
+        putlog 'stpsrvset program error and syscc';
+        rc=stpsrvset('program error', 0);
+        call symputx("syscc",0,"g");
+      run;
+      %if "%substr(&sysvlong.xxxxxxxxx,1,9)" ne "9.04.01M3" %then %do;
+        %put NOTE: Ending SAS session due to:;
+        %put NOTE- &msg;
+        endsas;
+      %end;
+    %end;
+    %else %if "&sysprocessmode " = "SAS Compute Server " %then %do;
+      /* endsas kills the session making it harder to fetch results */
+      data _null_;
+        syswarningtext=symget('syswarningtext');
+        syserrortext=symget('syserrortext');
+        abort_msg=symget('msg');
+        syscc=symget('syscc');
+        sysuserid=symget('sysuserid');
+        iftrue=symget('iftrue');
+        put (_all_)(/=);
+        abort cancel nolist;
       run;
     %end;
-    /**
-     * endsas is reliable but kills some deployments.
-     * Abort variants are ungraceful (non zero return code)
-     * This approach lets SAS run silently until the end :-)
-     */
-    %put _all_;
-    filename skip temp;
-    data _null_;
-      file skip;
-      put '%macro skip(); %macro skippy();';
-    run;
-    %inc skip;
+    %else %if "%substr(&sysvlong.xxxxxxxxx,1,9)" = "9.04.01M3" %then %do;
+      /**
+        * endsas kills 9.4m3 deployments by orphaning multibridges.
+        * Abort variants are ungraceful (non zero return code)
+        * This approach lets SAS run silently until the end :-)
+        * Caution - fails when called within a %include within a macro
+        * See tests/mp_abort.test.1 for an example case.
+        */
+      filename skip temp;
+      data _null_;
+        file skip;
+        put '%macro skip();';
+        comment '%mend skip; -> fix lint ';
+        put '%macro skippy();';
+        comment '%mend skippy; -> fix lint ';
+      run;
+      %inc skip;
+    %end;
+    %else %do;
+      %abort cancel;
+    %end;
   %end;
   %else %do;
     %put _all_;
     %abort cancel;
   %end;
-%mend;
+%mend mp_abort;
 
 /** @endcond */

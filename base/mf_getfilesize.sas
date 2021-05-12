@@ -38,7 +38,7 @@
   %let rc=%sysfunc(filename(fref));
 
   %if &format=NO %then %do;
-     &bytes
+    &bytes
   %end;
   %else %do;
     %sysfunc(INPUTN(&bytes, best.),sizekmg.)

@@ -1,23 +1,11 @@
 /**
   @file
-  @brief abort gracefully according to context
-  @details Do not use directly!  See bottom of explanation for details.
+  @brief to be deprecated
+  @details We will deprecate this macro in 2022
 
-   Configures an abort mechanism according to site specific policies or the
-    particulars of an environment.  For instance, can stream custom
-    results back to the client in an STP Web App context, or completely stop
-    in the case of a batch run.
+  As you can see, it's not a macro function.
 
-  For the sharp eyed readers - this is no longer a macro function!! It became
-  a macro procedure during a project and now it's kinda stuck that way until
-  that project is updated (if it's ever updated).  In the meantime we created
-  `mp_abort` which is just a wrapper for this one, and so we recomend you use
-  that for forwards compatibility reasons.
-
-  @param mac= to contain the name of the calling macro
-  @param type= deprecated.  Not used.
-  @param msg= message to be returned
-  @param iftrue= supply a condition under which the macro should be executed.
+  Use mp_abort.sas instead.
 
   @version 9.2
   @author Allan Bowe
@@ -49,7 +37,10 @@
         input; putlog _infile_;
         i=1;
         retain logonce 0;
-        if (_infile_=:"%str(WARN)ING" or _infile_=:"%str(ERR)OR") and logonce=0 then do;
+        if (
+            _infile_=:"%str(WARN)ING" or _infile_=:"%str(ERR)OR"
+          ) and logonce=0
+        then do;
           call symputx('logline',_n_);
           logonce+1;
         end;
@@ -112,21 +103,22 @@
     %let syscc=0;
     %if %symexist(SYS_JES_JOB_URI) %then %do;
       /* refer web service output to file service in one hit */
-      filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name="_webout.json";
+      filename _webout filesrvc parenturi="&SYS_JES_JOB_URI"
+        name="_webout.json";
       %let rc=%sysfunc(fcopy(_web,_webout));
     %end;
     %else %do;
       data _null_;
         if symexist('sysprocessmode')
-         then if symget("sysprocessmode")="SAS Stored Process Server"
-          then rc=stpsrvset('program error', 0);
+          then if symget("sysprocessmode")="SAS Stored Process Server"
+            then rc=stpsrvset('program error', 0);
       run;
     %end;
     /**
-     * endsas is reliable but kills some deployments.
-     * Abort variants are ungraceful (non zero return code)
-     * This approach lets SAS run silently until the end :-)
-     */
+      * endsas is reliable but kills some deployments.
+      * Abort variants are ungraceful (non zero return code)
+      * This approach lets SAS run silently until the end :-)
+      */
     %put _all_;
     filename skip temp;
     data _null_;

@@ -90,7 +90,7 @@ data _null_;
   put ')/*/STORE SOURCE*/; ';
   put '%put output location=&jref; ';
   put '%if &action=OPEN %then %do; ';
-  put '  OPTIONS NOBOMFILE; ';
+  put '  options nobomfile; ';
   put '  data _null_;file &jref encoding=''utf-8''; ';
   put '    put ''{"START_DTTM" : "'' "%sysfunc(datetime(),datetime20.3)" ''"''; ';
   put '  run; ';

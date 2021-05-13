@@ -2945,7 +2945,7 @@ run;
       proc sql;
       create table data1 as select * from sashelp.class;
       create view view2 as select * from sashelp.class;
-      %mp_dropmembers(libref=WORK, list=data1 view2)
+      %mp_dropmembers(data1 view2, libref=WORK)
 
 
   <h4> SAS Macros </h4>
@@ -17662,6 +17662,8 @@ filename &fref1 clear;
 %macro ml_json();
 data _null_;
   file "%sysfunc(pathname(work))/ml_json.lua";
+  put '-- NOTE - THE COPYRIGHT BELOW IS IN RELATION TO THE JSON.LUA FILE ONLY ';
+  put '-- THIS FILE STARTS ON THE NEXT LINE AND WILL FINISH WITH "JSON.LUA ENDS HERE" ';
   put '-- ';
   put '-- json.lua ';
   put '-- ';
@@ -18033,6 +18035,8 @@ data _null_;
   put 'end ';
   put ' ';
   put 'return json ';
+  put ' ';
+  put '-- JSON.LUA ENDS HERE ';
 run;
 
 %inc "%sysfunc(pathname(work))/ml_json.lua";

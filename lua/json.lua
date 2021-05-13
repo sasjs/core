@@ -1,3 +1,5 @@
+-- NOTE - THE COPYRIGHT BELOW IS IN RELATION TO THE JSON.LUA FILE ONLY
+-- THIS FILE STARTS ON THE NEXT LINE AND WILL FINISH WITH "JSON.LUA ENDS HERE"
 --
 -- json.lua
 --
@@ -369,3 +371,5 @@ function json.decode(str)
 end
 
 return json
+
+-- JSON.LUA ENDS HERE

@@ -10,7 +10,7 @@
       proc sql;
       create table data1 as select * from sashelp.class;
       create view view2 as select * from sashelp.class;
-      %mp_dropmembers(libref=WORK, list=data1 view2)
+      %mp_dropmembers(data1 view2, libref=WORK)
 
 
   <h4> SAS Macros </h4>

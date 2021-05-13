@@ -2936,20 +2936,24 @@ run;
 %mend;/**
   @file
   @brief Drops tables / views (if they exist) without warnings in the log
-  @details
+  @details Useful for dropping tables when you're not sure they exist, or if
+  you are not sure whether they are a dataset or view.  Also efficient for
+  dropping multiple tables / views.
+
   Example usage:
 
       proc sql;
       create table data1 as select * from sashelp.class;
       create view view2 as select * from sashelp.class;
-      %mp_dropmembers(list=data1 view2)
+      %mp_dropmembers(libref=WORK, list=data1 view2)
+
 
   <h4> SAS Macros </h4>
   @li mf_isblank.sas
 
 
-  @param list space separated list of datasets / views
-  @param libref= can only drop from a single library at a time
+  @param list space separated list of datasets / views, WITHOUT libref
+  @param libref= (WORK) Note - you can only drop from a single library at a time
 
   @version 9.2
   @author Allan Bowe
@@ -2970,7 +2974,7 @@ run;
     delete &list;
     delete &list /mtype=view;
   run;
-%mend;/**
+%mend mp_dropmembers;/**
   @file
   @brief Create a CARDS file from a SAS dataset.
   @details Uses dataset attributes to convert all data into datalines.

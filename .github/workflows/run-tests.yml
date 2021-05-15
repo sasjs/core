@@ -1,0 +1,59 @@
+# This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
+
+name: Node.js CI
+
+on:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [12.x]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install Doxygen
+        run: sudo apt-get install doxygen
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check code style
+        run: npm run lint
+
+      - name: Add client
+        run:  echo "CLIENT=${{secrets.CLIENT}}"> .env.viya
+
+      - name: Add secret
+        run:  echo "SECRET=${{secrets.SECRET}}" >> .env.viya
+
+      - name: Add access token
+        run:  echo "ACCESS_TOKEN=${{secrets.ACCESS_TOKEN}}" >> .env.viya
+
+      - name: Add refresh token
+        run:  echo "REFRESH_TOKEN=${{secrets.REFRESH_TOKEN}}" >> .env.viya
+
+      - name: Build Project
+        run: npm run build
+
+      - name: Run SASjs  tests
+        run: npm run test
+        env:
+          CI: true
+          CLIENT: ${{secrets.CLIENT}}
+          SECRET: ${{secrets.SECRET}}
+          SAS_USERNAME: ${{secrets.SAS_USERNAME}}
+          SAS_PASSWORD: ${{secrets.SAS_PASSWORD}}
+          SERVER_URL: ${{secrets.SERVER_URL}}
+          SERVER_TYPE: ${{secrets.SERVER_TYPE}}
+          ACCESS_TOKEN: ${{secrets.ACCESS_TOKEN}}
+          REFRESH_TOKEN: ${{secrets.REFRESH_TOKEN}}

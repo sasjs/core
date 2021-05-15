@@ -27,7 +27,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "sasjs test -t viya",
     "docs": "sasjs doc && ./sasjs/utils/build.sh"
   },
   "devDependencies": {

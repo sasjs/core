@@ -30,10 +30,16 @@ jobs:
       - name: Check code style
         run: npm run lint
 
-      - name: Add secrets
+      - name: Add client
         run:  echo "CLIENT="> .env.viya
+
+      - name: Add secret
         run:  echo "SECRET=" >> .env.viya
+
+      - name: Add access token
         run:  echo "ACCESS_TOKEN=" >> .env.viya
+
+      - name: Add refresh token
         run:  echo "REFRESH_TOKEN=" >> .env.viya
 
       - name: check add

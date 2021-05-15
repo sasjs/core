@@ -1,4 +1,7 @@
-[![License](https://img.shields.io/apm/l/atomic-design-ui.svg)](/LICENSE) [![Dependency Status](https://david-dm.org/sasjs/core.svg)](/package.json) ![npm](https://img.shields.io/npm/dt/@sasjs/core) ![example workflow](https://github.com/sasjs/core/actions/workflows/main.yml/badge.svg) [![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-908a85?logo=gitpod)](https://gitpod.io/#https://github.com/sasjs/core)
+![](https://badgen.net/github/release/sasjs/core) [![Dependency Status](https://david-dm.org/sasjs/core.svg)](/package.json) ![npm](https://img.shields.io/npm/dt/@sasjs/core) ![example workflow](https://github.com/sasjs/core/actions/workflows/main.yml/badge.svg) ![Snyk Vulnerabilities for npm package](https://img.shields.io/snyk/vulnerabilities/npm/@sasjs/core)
+
+[![License](https://img.shields.io/apm/l/atomic-design-ui.svg)](/LICENSE)  ![GitHub top language](https://img.shields.io/github/languages/top/sasjs/core) ![total lines](https://tokei.rs/b1/github/sasjs/core)[![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-908a85?logo=gitpod)](https://gitpod.io/#https://github.com/sasjs/core)
+
 
 # Macro Core
 
@@ -151,3 +154,9 @@ When contributing to this library, it is therefore important to ensure that all 
 # General Notes
 
 - All macros should be compatible with SAS versions from support level B and above (so currently 9.2 and later). If an earlier version is not supported, then the macro should say as such in the header documentation, and exit gracefully (eg `%if %sysevalf(&sysver<9.3) %then %return`).
+
+## Star Gazing
+
+If you find this library useful, help us grow our star graph!
+
+![](https://starchart.cc/sasjs/core.svg)

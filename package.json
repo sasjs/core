@@ -30,12 +30,13 @@
     "docs": "sasjs doc && ./sasjs/utils/build.sh"
   },
   "devDependencies": {
-    "@sasjs/cli": "^2.14.2",
+    "@sasjs/cli": "^2.19.3",
     "ghooks": "^2.0.4"
   },
   "config": {
     "ghooks": {
       "pre-commit": "sasjs lint"
     }
-  }
+  },
+  "dependencies": {}
 }

@@ -5,3 +5,6 @@ tests/
 sasjs/
 .vscode/
 .github/
+main.dox
+make_singlefile.sh
+*.md

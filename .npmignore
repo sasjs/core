@@ -1,0 +1,7 @@
+all.sas
+build.py
+.gitpod*
+tests/
+sasjs/
+.vscode/
+.github/

@@ -23,7 +23,7 @@
   "bugs": {
     "url": "https://github.com/sasjs/core/issues"
   },
-  "homepage": "https://github.com/sasjs/core#readme",
+  "homepage": "https://core.sasjs.io",
   "main": "index.js",
   "scripts": {
     "test": "sasjs test -t viya",

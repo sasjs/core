@@ -2179,7 +2179,11 @@ Usage:
   @param [in] test= (HASOBS) The test to apply.  Valid values are:
     @li HASOBS - Test is a PASS if the input dataset has any observations
     @li EMPTY - Test is a PASS if input dataset is empty
-    @li EQUALS [integer] - Test passes if obs count matches the provided integer
+    @li EQUALS [integer] - Test passes if row count matches the provided integer
+    @LI ATLEAST [integer] - Test passes if row count is more than or equal to
+      the provided integer
+    @LI ATMOST [integer] - Test passes if row count is less than or equal to
+      the provided integer
   @param [out] outds= (work.test_results) The output dataset to contain the
   results.  If it does not exist, it will be created, with the following format:
   |TEST_DESCRIPTION:$256|TEST_RESULT:$4|TEST_COMMENTS:$256|
@@ -2188,6 +2192,8 @@ Usage:
 
   <h4> Related Macros </h4>
   @li mp_assertcolvals.sas
+  @li mp_assert.sas
+  @li mp_assertcols.sas
 
   @version 9.2
   @author Allan Bowe
@@ -2212,6 +2218,22 @@ Usage:
     )
     %let test=EQUALS;
   %end;
+  %else %if %substr(&test.xxxxxxx,1,7)=ATLEAST %then %do;
+    %let val=%scan(&test,2,%str( ));
+    %mp_abort(iftrue= (%DATATYP(&val)=CHAR)
+      ,mac=&sysmacroname
+      ,msg=%str(Invalid test - &test, expected ATLEAST [integer])
+    )
+    %let test=ATLEAST;
+  %end;
+  %else %if %substr(&test.xxxxxxx,1,7)=ATMOST %then %do;
+    %let val=%scan(&test,2,%str( ));
+    %mp_abort(iftrue= (%DATATYP(&val)=CHAR)
+      ,mac=&sysmacroname
+      ,msg=%str(Invalid test - &test, expected ATMOST [integer])
+    )
+    %let test=ATMOST;
+  %end;
   %else %if &test ne HASOBS and &test ne EMPTY %then %do;
     %mp_abort(
       mac=&sysmacroname,
@@ -2223,7 +2245,8 @@ Usage:
     length test_description $256 test_result $4 test_comments $256;
     test_description=symget('desc');
     test_result='FAIL';
-    test_comments="&sysmacroname: Dataset &inds has &nobs observations";
+    test_comments="&sysmacroname: Dataset &inds has &nobs observations.";
+    test_comments=test_comments!!" Test was "!!symget('test');
   %if &test=HASOBS %then %do;
     if &nobs>0 then test_result='PASS';
   %end;
@@ -2232,6 +2255,12 @@ Usage:
   %end;
   %else %if &test=EQUALS %then %do;
     if &nobs=&val then test_result='PASS';
+  %end;
+  %else %if &test=ATLEAST %then %do;
+    if &nobs ge &val then test_result='PASS';
+  %end;
+  %else %if &test=ATMOST %then %do;
+    if &nobs le &val then test_result='PASS';
   %end;
   %else %do;
     test_comments="&sysmacroname: Unsatisfied test condition - &test";
@@ -2247,7 +2276,7 @@ Usage:
   proc sql;
   drop table &ds;
 
-%mend;/**
+%mend mp_assertdsobs;/**
   @file
   @brief Copy any file using binary input / output streams
   @details Reads in a file byte by byte and writes it back out.  Is an

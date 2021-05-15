@@ -26,8 +26,10 @@
   "homepage": "https://core.sasjs.io",
   "main": "index.js",
   "scripts": {
+    "build": "sasjs cbd -t viya",
+    "docs": "sasjs doc && ./sasjs/utils/build.sh",
     "test": "sasjs test -t viya",
-    "docs": "sasjs doc && ./sasjs/utils/build.sh"
+    "lint": "sasjs lint"
   },
   "devDependencies": {
     "@sasjs/cli": "^2.19.3",

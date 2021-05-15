@@ -31,10 +31,7 @@ jobs:
         run: npm run lint
 
       - name: Add secrets
-        run:  cat > .env.viya <<'EOL'
-                test1
-                test2
-              EOL
+        run:  echo "client=\nsecret=\n" > .env.viya
 
       - name: check add
         run:  cat .env.viya

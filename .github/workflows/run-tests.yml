@@ -31,7 +31,7 @@ jobs:
         run: npm run lint
 
       - name: Add secrets
-        run:  echo "client=\nsecret=\n" > .env.viya
+        run:  echo $"CLIENT=\SECRET=\nACCESS_TOKEN=\nREFRESH_TOKEN=" > .env.viya
 
       - name: check add
         run:  cat .env.viya

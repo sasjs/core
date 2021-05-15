@@ -24,7 +24,6 @@
     "url": "https://github.com/sasjs/core/issues"
   },
   "homepage": "https://github.com/sasjs/core#readme",
-  "version": "1.0.0",
   "main": "index.js",
   "scripts": {
     "test": "sasjs test -t viya",

@@ -1,3 +1,5 @@
+[![License](https://img.shields.io/apm/l/atomic-design-ui.svg)](/LICENSE) [![Dependency Status](https://david-dm.org/sasjs/core.svg)](/package.json) ![npm](https://img.shields.io/npm/dt/@sasjs/core) ![example workflow](https://github.com/sasjs/core/actions/workflows/main.yml/badge.svg) [![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-908a85?logo=gitpod)](https://gitpod.io/#https://github.com/sasjs/core)
+
 # Macro Core
 
 Much quality. Many standards. The **Macro Core** library exists to save time and development effort! Herein ye shall find a veritable host of MIT-licenced, production quality SAS macros. These are a mix of tools, utilities, functions and code generators that are useful in the context of [Application Development](https://sasapps.io) on the SAS platform (eg https://datacontroller.io). [Contributions](https://github.com/sasjs/core/blob/main/CONTRIBUTING.md) are welcomed.

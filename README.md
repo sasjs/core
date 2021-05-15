@@ -1,9 +1,23 @@
-![](https://badgen.net/github/release/sasjs/core) [![Dependency Status](https://david-dm.org/sasjs/core.svg)](/package.json) ![npm](https://img.shields.io/npm/dt/@sasjs/core) ![example workflow](https://github.com/sasjs/core/actions/workflows/main.yml/badge.svg) ![Snyk Vulnerabilities for npm package](https://img.shields.io/snyk/vulnerabilities/npm/@sasjs/core)
-
-[![License](https://img.shields.io/apm/l/atomic-design-ui.svg)](/LICENSE)  ![GitHub top language](https://img.shields.io/github/languages/top/sasjs/core) ![total lines](https://tokei.rs/b1/github/sasjs/core)[![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-908a85?logo=gitpod)](https://gitpod.io/#https://github.com/sasjs/core)
-
-
 # Macro Core
+[![npm package][npm-image]][npm-url]
+[![Github Workflow][githubworkflow-image]][githubworkflow-url]
+[![Dependency Status][dependency-image]][dependency-url]
+[![npm](https://img.shields.io/npm/dt/@sasjs/core)]()
+![Snyk Vulnerabilities for npm package](https://img.shields.io/snyk/vulnerabilities/npm/@sasjs/core)
+[![License](https://img.shields.io/apm/l/atomic-design-ui.svg)](/LICENSE)
+![GitHub top language](https://img.shields.io/github/languages/top/sasjs/core)
+![total lines](https://tokei.rs/b1/github/sasjs/core)
+[![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-908a85?logo=gitpod)](https://gitpod.io/#https://github.com/sasjs/core)
+
+
+[npm-image]:https://img.shields.io/npm/v/@sasjs/core.svg
+[npm-url]:http://npmjs.org/package/@sasjs/core
+[githubworkflow-image]:https://github.com/sasjs/core/actions/workflows/main.yml/badge.svg
+[githubworkflow-url]:https://github.com/sasjs/core/blob/main/.github/workflows/main.yml
+[dependency-image]:https://david-dm.org/sasjs/core.svg
+[dependency-url]:https://github.com/sasjs/core/blob/main/package.json
+
+
 
 Much quality. Many standards. The **Macro Core** library exists to save time and development effort! Herein ye shall find a veritable host of MIT-licenced, production quality SAS macros. These are a mix of tools, utilities, functions and code generators that are useful in the context of [Application Development](https://sasapps.io) on the SAS platform (eg https://datacontroller.io). [Contributions](https://github.com/sasjs/core/blob/main/CONTRIBUTING.md) are welcomed.
 
@@ -160,3 +174,6 @@ When contributing to this library, it is therefore important to ensure that all 
 If you find this library useful, help us grow our star graph!
 
 ![](https://starchart.cc/sasjs/core.svg)
+
+
+

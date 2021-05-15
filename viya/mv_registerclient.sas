@@ -1,14 +1,22 @@
 /**
   @file mv_registerclient.sas
   @brief Register Client and Secret (admin task)
-  @details When building apps on SAS Viya, an client id and secret is required.
-  This macro will obtain the Consul Token and use that to call the Web Service.
+  @details When building apps on SAS Viya, an client id and secret are sometimes
+  required.  In order to generate them, filesystem access to the Consul Token
+  is needed (it is not enough to be in the SASAdministrator group in SAS
+  Environment Manager).
 
-  more info: https://developer.sas.com/reference/auth/#register
-  and:
-  http://proc-x.com/2019/01/authentication-to-sas-viya-a-couple-of-approaches
+  If you are registering a lot of clients / secrets, you may find it more
+  convenient to use the [Viya Token Generator]
+  (https://sasjs.io/apps/#viya-client-token-generator) (a SASjs Web App to
+  automate the generation of clients & secrets with various settings).
 
-  The default viyaroot location is /opt/sas/viya/config
+  For further information on clients / secrets, see;
+  @li https://developer.sas.com/reference/auth/#register
+  @li https://proc-x.com/2019/01/authentication-to-sas-viya-a-couple-of-approaches
+  @li https://cli.sasjs.io/faq/#how-can-i-obtain-a-viya-client-and-secret
+
+  The default viyaroot location is: `/opt/sas/viya/config`
 
   Usage:
 
@@ -33,16 +41,19 @@
       )
 
   @param client_id= The client name.  Auto generated if blank.
-  @param client_secret= Client secret  Auto generated if client is blank.
-  @param scopes= list of space-seperated unquoted scopes (default is openid)
-  @param grant_type= valid values are "password" or "authorization_code"
-    (unquoted)
-  @param outds= the dataset to contain the registered client id and secret
-  @param access_token_validity= The duration of validity of the access token
-    in seconds.  A value of DEFAULT will omit the entry (and use system default)
-  @param refresh_token_validity= The duration of validity of the refresh token
-    in seconds.  A value of DEFAULT will omit the entry (and use system default)
-  @param name= A human readable name for the client
+  @param client_secret= Client secret.  Auto generated if client is blank.
+  @param scopes=(openid) List of space-seperated unquoted scopes
+  @param grant_type=(authorization_code|refresh_token) Valid values are
+    "password" or "authorization_code" (unquoted)
+  @param outds=(mv_registerclient) The dataset to contain the registered client
+    id and secret
+  @param access_token_validity=(DEFAULT) The duration of validity of the access
+    token in seconds.  A value of DEFAULT will omit the entry (and use system
+    default)
+  @param refresh_token_validity=(DEFAULT)  The duration of validity of the
+    refresh token in seconds.  A value of DEFAULT will omit the entry (and use
+    system default)
+  @param name= An optional, human readable name for the client
   @param required_user_groups= A list of group names. If a user does not belong
     to all the required groups, the user will not be authenticated and no tokens
     are issued to this client for that user. If this field is not specified,
@@ -51,8 +62,8 @@
     apply.  Setting this to true will autoapprove all the client scopes.
   @param use_session= If true, access tokens issued to this client will be
     associated with an HTTP session and revoked upon logout or time-out.
-  @param outjson= A dataset containing the lines of JSON submitted.  Useful
-    for debugging.  Default= _null_.
+  @param outjson= (_null_) A dataset containing the lines of JSON submitted.
+    Useful for debugging.
 
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
@@ -89,11 +100,25 @@
 options noquotelenmax;
 /* first, get consul token needed to get client id / secret */
 %let tokloc=/etc/SASSecurityCertificateFramework/tokens/consul/default;
+%let tokloc=%mf_loc(VIYACONFIG)&tokloc/client.token;
+
+
+%mp_abort(iftrue=(%sysfunc(fileexist(&tokloc))=0)
+  ,mac=&sysmacroname
+  ,msg=%str(Unable to access the consul token at &tokloc)
+)
+
+%let consul_token=0;
 data _null_;
-  infile "%mf_loc(VIYACONFIG)&tokloc/client.token";
+  infile "&tokloc";
   input token:$64.;
   call symputx('consul_token',token);
 run;
+
+%mp_abort(iftrue=("&consul_token"="0")
+  ,mac=&sysmacroname
+  ,msg=%str(Unable to source the consul token from &tokloc)
+)
 
 %local base_uri; /* location of rest apis */
 %let base_uri=%mf_getplatform(VIYARESTAPI);
@@ -241,4 +266,4 @@ filename &fname2 clear;
 filename &fname3 clear;
 libname &libref clear;
 
-%mend;
+%mend mv_registerclient;

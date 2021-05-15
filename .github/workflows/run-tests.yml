@@ -30,8 +30,19 @@ jobs:
       - name: Check code style
         run: npm run lint
 
+      - name: Add secrets
+        run:  cat > .env.viya <<'EOL'
+                test1
+                test2
+              EOL
+
+      - name: check add
+        run:  cat .env.viya
+
       - name: Build Project
         run: npm run build
+
+
 
       - name: Run SASjs  tests
         run: npm run test

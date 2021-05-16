@@ -68,7 +68,7 @@ jobs:
         run:  echo "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.event.commit.sha }}" >> curl.sh
 
       - name: create curl
-        run:  echo "--header 'Authorization:: Bearer ${{ secrets.GITHUB_TOKEN }}'" >> curl.sh
+        run:  echo "--header 'Authorization&#58; Bearer ${{ secrets.GITHUB_TOKEN }}'" >> curl.sh
 
       - name: create curl
         run:  echo "--header 'Content-Type:: application/json'" >> curl.sh

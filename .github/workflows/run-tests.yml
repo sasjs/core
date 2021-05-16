@@ -68,13 +68,13 @@ jobs:
         run:  echo "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.event.commit.sha }}" >> curl.sh
 
       - name: create curl
-        run:  echo "--header 'Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}'" >> curl.sh
+        run:  echo "--header 'Authorization:: Bearer ${{ secrets.GITHUB_TOKEN }}'" >> curl.sh
 
       - name: create curl
-        run:  echo "--header 'Content-Type: application/json'" >> curl.sh
+        run:  echo "--header 'Content-Type:: application/json'" >> curl.sh
 
       - name: create curl
-        run:  echo "--data-raw \"state\": \"success\", \"target_url": \"https://github.com/${{ github.repository }}/actions?query=workflow%253A%22${{ github.workflow }}\",\"context\": \"${{ github.workflow }}\",\"description\": \"Build + Tests completed.\"}" >> curl.sh
+        run:  echo "--data-raw \"state\":: \"success\", \"target_url":: \"https://github.com/${{ github.repository }}/actions?query=workflow%253A%22${{ github.workflow }}\",\"context\":: \"${{ github.workflow }}\",\"description\":: \"Build + Tests completed.\"}" >> curl.sh
 
       - name:  check
         run: cat curl.sh

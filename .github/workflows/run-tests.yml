@@ -31,13 +31,13 @@ jobs:
         run:  echo "--header 'Authorization&#58; Bearer ${{ secrets.GITHUB_TOKEN }}' --header 'Content-Type&#58; application/json'" >> curl.sh
 
       - name: create curl
-        run:  echo "--data-raw \"state\"&#58; \"success\", \"target_url\"&#58; \"https://github.com/${{ github.repository }}/actions?query=workflow%253A%22${{ github.workflow }}\",\"context\"&#58; \"${{ github.workflow }}\",\"description\"&#58; \"Build + Tests completed.\"}" >> curl.sh
+        run:  echo "--data-raw {\"state\"&#58; \"success\", \"target_url\"&#58; \"https://github.com/${{ github.repository }}/actions?query=workflow%253A%22${{ github.workflow }}\",\"context\"&#58; \"${{ github.workflow }}\",\"description\"&#58; \"Build + Tests completed.\"}" >> curl.sh
 
       - name:  check
         run: cat curl.sh
 
       - name:  run
-        run: ./curl.sh
+        run: chmod 755 curl.sh && ./curl.sh
 
       - name: Install Doxygen
         run: sudo apt-get install doxygen

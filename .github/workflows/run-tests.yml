@@ -58,24 +58,4 @@ jobs:
           ACCESS_TOKEN: ${{secrets.ACCESS_TOKEN}}
           REFRESH_TOKEN: ${{secrets.REFRESH_TOKEN}}
 
-      - name: Add refresh token
-        run:  echo "{{ github.event.commit.sha }}"
-
-      - name: create curl
-        run:  echo "curl --location --request POST" > curl.sh
-
-      - name: create curl
-        run:  echo "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.event.commit.sha }}" >> curl.sh
-
-      - name: create curl
-        run:  echo "--header 'Authorization&#58; Bearer ${{ secrets.GITHUB_TOKEN }}'" >> curl.sh
-
-      - name: create curl
-        run:  echo "--header 'Content-Type&#58; application/json'" >> curl.sh
-
-      - name: create curl
-        run:  echo "--data-raw \"state\"&#58; \"success\", \"target_url"&#58; \"https://github.com/${{ github.repository }}/actions?query=workflow%253A%22${{ github.workflow }}\",\"context\"&#58; \"${{ github.workflow }}\",\"description\"&#58; \"Build + Tests completed.\"}" >> curl.sh
-
-      - name:  check
-        run: cat curl.sh
 

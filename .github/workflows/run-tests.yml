@@ -65,8 +65,8 @@ jobs:
           --header 'Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}'
           --header 'Content-Type: application/json'
           --data-raw '{
-          "state": "pending",
+          "state": "success",
           "target_url": "https://github.com/${{ github.repository }}/actions?query=workflow%253A%22${{ github.workflow }}",
           "context": "${{ github.workflow }}",
-          "descrption": "Waiting for deployment."
+          "description": "Build + Tests completed."
           }'

@@ -57,3 +57,16 @@ jobs:
           SERVER_TYPE: ${{secrets.SERVER_TYPE}}
           ACCESS_TOKEN: ${{secrets.ACCESS_TOKEN}}
           REFRESH_TOKEN: ${{secrets.REFRESH_TOKEN}}
+
+      - name: Update status
+        run: >-
+          curl --location --request POST
+          'https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.event.commit.sha }}'
+          --header 'Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}'
+          --header 'Content-Type: application/json'
+          --data-raw '{
+          "state": "pending",
+          "target_url": "https://github.com/${{ github.repository }}/actions?query=workflow%253A%22${{ github.workflow }}",
+          "context": "${{ github.workflow }}",
+          "descrption": "Waiting for deployment."
+          }'

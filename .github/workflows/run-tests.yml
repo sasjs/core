@@ -58,15 +58,24 @@ jobs:
           ACCESS_TOKEN: ${{secrets.ACCESS_TOKEN}}
           REFRESH_TOKEN: ${{secrets.REFRESH_TOKEN}}
 
-      - name: Update status
-        run: >
-            curl --location --request POST
-            'https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.event.commit.sha }}'
-            --header 'Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}'
-            --header 'Content-Type: application/json'
-            --data-raw '{
-            "state": "success",
-            "target_url": "https://github.com/${{ github.repository }}/actions?query=workflow%253A%22${{ github.workflow }}",
-            "context": "${{ github.workflow }}",
-            "description": "Build + Tests completed."
-            }'
+      - name: Add refresh token
+        run:  echo "{{ github.event.commit.sha }}"
+
+      - name: create curl
+        run:  echo "curl --location --request POST" > curl.sh
+
+      - name: create curl
+        run:  echo "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.event.commit.sha }}" >> curl.sh
+
+      - name: create curl
+        run:  echo "--header 'Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}'" >> curl.sh
+
+      - name: create curl
+        run:  echo "--header 'Content-Type: application/json'" >> curl.sh
+
+      - name: create curl
+        run:  echo "--data-raw \"state\": \"success\", \"target_url": \"https://github.com/${{ github.repository }}/actions?query=workflow%253A%22${{ github.workflow }}\",\"context\": \"${{ github.workflow }}\",\"description\": \"Build + Tests completed.\"}" >> curl.sh
+
+      - name:  check
+        run: cat curl.sh
+

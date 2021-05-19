@@ -173,7 +173,7 @@ When contributing to this library, it is therefore important to ensure that all 
 
 ## Star Gazing
 
-If you find this library useful, help us grow our star graph!
+If you find this library useful, please leave a [star](https://github.com/sasjs/core/stargazers) and help us grow our star graph!
 
 ![](https://starchart.cc/sasjs/core.svg)
 

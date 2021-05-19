@@ -6,7 +6,7 @@
 
   Usage:
 
-    %mm_getusers()
+      %mm_getusers()
 
   @param outds the dataset to create that contains the list of libraries
 
@@ -68,4 +68,4 @@ filename sxlemap clear;
 filename response clear;
 libname _XML_ clear;
 
-%mend;
+%mend mm_getusers;

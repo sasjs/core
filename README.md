@@ -6,6 +6,8 @@
 ![Snyk Vulnerabilities for npm package](https://img.shields.io/snyk/vulnerabilities/npm/@sasjs/core)
 [![License](https://img.shields.io/apm/l/atomic-design-ui.svg)](/LICENSE)
 ![GitHub top language](https://img.shields.io/github/languages/top/sasjs/core)
+[![GitHub closed issues](https://img.shields.io/github/issues-closed-raw/sasjs/core)](https://github.com/sasjs/core/issues?q=is%3Aissue+is%3Aclosed)
+[![GitHub issues](https://img.shields.io/github/issues-raw/sasjs/core)](https://github.com/sasjs/core/issues)
 ![total lines](https://tokei.rs/b1/github/sasjs/core)
 [![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-908a85?logo=gitpod)](https://gitpod.io/#https://github.com/sasjs/core)
 
@@ -171,7 +173,7 @@ When contributing to this library, it is therefore important to ensure that all 
 
 ## Star Gazing
 
-If you find this library useful, help us grow our star graph!
+If you find this library useful, please leave a [star](https://github.com/sasjs/core/stargazers) and help us grow our star graph!
 
 ![](https://starchart.cc/sasjs/core.svg)
 

@@ -3,8 +3,9 @@ build.py
 .gitpod*
 tests/
 sasjs/
-.vscode/
 .github/
+.git-hooks/
+.vscode/
 main.dox
 make_singlefile.sh
 *.md

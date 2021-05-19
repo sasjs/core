@@ -1,0 +1,18 @@
+#!/bin/sh
+RED="\033[1;31m"
+GREEN="\033[1;32m"
+
+# Get the commit message (the parameter we're given is just the path to the
+# temporary file which holds the message).
+commit_message=$(cat "$1")
+
+if (echo "$commit_message" | grep -Eq "^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([a-z \-]+\))?!?: .+$") then
+   echo "${GREEN} ✔ Commit message meets Conventional Commit standards"
+   exit 0
+fi
+
+echo "${RED}❌ Commit message does not meet the Conventional Commit standard!"
+echo "An example of a valid message is:"
+echo "  feat(login): add the 'remember me' button"
+echo "ℹ More details at: https://www.conventionalcommits.org/en/v1.0.0/#summary"
+exit 1

@@ -29,7 +29,8 @@
     "build": "sasjs cbd -t viya",
     "docs": "sasjs doc && ./sasjs/utils/build.sh",
     "test": "sasjs test -t viya",
-    "lint": "sasjs lint"
+    "lint": "sasjs lint",
+    "postinstall": "git config core.hooksPath ./.git-hooks"
   },
   "devDependencies": {
     "@sasjs/cli": "^2.19.3",

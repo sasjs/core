@@ -35,10 +35,5 @@
   "devDependencies": {
     "@sasjs/cli": "^2.22.2"
   },
-  "config": {
-    "ghooks": {
-      "pre-commit": "sasjs lint"
-    }
-  },
   "dependencies": {}
 }

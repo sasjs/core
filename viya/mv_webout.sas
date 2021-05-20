@@ -23,9 +23,10 @@
   @param action Either OPEN, ARR, OBJ or CLOSE
   @param ds The dataset to send back to the frontend
   @param _webout= fileref for returning the json
-  @param fref= temp fref
+  @param fref=(_mvwtemp) Temp fileref to which to write the output
   @param dslabel= value to use instead of the real name for sending to JSON
-  @param fmt= change to N to strip formats from output
+  @param fmt=(Y) change to N to strip formats from output
+  @param stream=(Y) Change to N if not streaming to _webout
 
   <h4> SAS Macros </h4>
   @li mp_jsonout.sas
@@ -35,7 +36,7 @@
   @author Allan Bowe, source: https://github.com/sasjs/core
 
 **/
-%macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=Y);
+%macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=Y,stream=Y);
 %global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name
   sasjs_tables SYS_JES_JOB_URI;
 %if %index("&_debug",log) %then %let _debug=131;
@@ -214,14 +215,16 @@
     put ",""SYSERRORTEXT"" : ""&syserrortext"" ";
     put ",""SYSHOSTNAME"" : ""&syshostname"" ";
     put ",""SYSSITE"" : ""&syssite"" ";
+    sysvlong=quote(trim(symget('sysvlong')));
+    put ',"SYSVLONG" : ' sysvlong;
     put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" ";
     put ',"END_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '" ';
     put "}";
 
-  %if %upcase(&fref) ne _WEBOUT %then %do;
+  %if %upcase(&fref) ne _WEBOUT and &stream=Y %then %do;
     data _null_; rc=fcopy("&fref","_webout");run;
   %end;
 
 %end;
 
-%mend;
+%mend mv_webout;

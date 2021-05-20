@@ -5,7 +5,8 @@
     "meta",
     "metax",
     "viya",
-    "lua"
+    "lua",
+    "tests/base"
   ],
   "docConfig": {
     "displayMacroCore": false,
@@ -14,6 +15,13 @@
       "favIcon": "runningman.jpg",
       "logo": "Macro_core_website_1.png",
       "readMe": "../../README.md"
+    }
+  },
+  "testConfig": {
+    "initProgram": "tests/testinit.sas",
+    "termProgram": "tests/testterm.sas",
+    "macroVars": {
+      "mcTestAppLoc": "/Public/temp/macrocore"
     }
   },
   "defaultTarget": "viya",
@@ -27,22 +35,18 @@
         "deployServicePack": true
       },
       "macroFolders": [
-        "base",
-        "meta",
-        "metax",
-        "viya",
-        "lua",
-        "tests/base",
         "tests/viya"
       ],
-      "contextName": "SAS Job Execution compute context",
-      "testConfig": {
-        "initProgram": "tests/testinit.sas",
-        "termProgram": "tests/testterm.sas",
-        "macroVars": {
-          "mcTestAppLoc": "/Public/temp/macrocore"
-        }
-      }
+      "contextName": "SAS Job Execution compute context"
+    },
+    {
+      "name": "sas9",
+      "serverUrl": "https://sas.analytium.co.uk:8343",
+      "serverType": "SAS9",
+      "appLoc": "/Shared Data/temp/macrocore",
+      "macroFolders": [
+        "tests/meta"
+      ]
     }
   ]
 }

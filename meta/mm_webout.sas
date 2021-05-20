@@ -26,7 +26,8 @@
   @param action Either FETCH, OPEN, ARR, OBJ or CLOSE
   @param ds The dataset to send back to the frontend
   @param dslabel= value to use instead of the real name for sending to JSON
-  @param fmt= set to N to send back unformatted values
+  @param fmt=(Y) Set to N to send back unformatted values
+  @param fref=(_webout) The fileref to which to write the JSON
 
   @version 9.3
   @author Allan Bowe
@@ -91,7 +92,7 @@
 %end;
 
 %else %if &action=ARR or &action=OBJ %then %do;
-  %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt
+  %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt,jref=&fref
     ,engine=DATASTEP,dbg=%str(&_debug)
   )
 %end;
@@ -150,6 +151,8 @@
     put ",""SYSHOSTNAME"" : ""&syshostname"" ";
     put ",""SYSJOBID"" : ""&sysjobid"" ";
     put ",""SYSSITE"" : ""&syssite"" ";
+    sysvlong=quote(trim(symget('sysvlong')));
+    put ',"SYSVLONG" : ' sysvlong;
     put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" ";
     put ',"END_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '" ';
     put "}" @;
@@ -159,4 +162,4 @@
   run;
 %end;
 
-%mend;
+%mend mm_webout;

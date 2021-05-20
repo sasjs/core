@@ -133,6 +133,8 @@
       put ",""SYSCC"" : ""&syscc"" ";
       put ",""SYSERRORTEXT"" : ""&syserrortext"" ";
       put ",""SYSJOBID"" : ""&sysjobid"" ";
+      sysvlong=quote(trim(symget('sysvlong')));
+      put ',"SYSVLONG" : ' sysvlong;
       put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" ";
       put ',"END_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '" ';
       put "}" @;

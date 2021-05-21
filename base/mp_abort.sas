@@ -99,7 +99,7 @@
 
     /* send response in SASjs JSON format */
     data _null_;
-      file _webout mod lrecl=32000;
+      file _webout mod lrecl=32000 encoding='utf-8';
       length msg $32767 debug $8;
       sasdatetime=datetime();
       msg=cats(symget('msg'),'\n\nLog Extract:\n',symget('logmsg'));

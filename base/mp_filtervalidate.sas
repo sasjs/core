@@ -78,7 +78,8 @@ run;
 
 data &outds;
   if &sqlrc or &syscc or &syserr then do;
-    REASON_CD=coalescec(symget('SYSERRORTEXT'),symget('SYSWARNINGTEXT'));
+    REASON_CD='VALIDATION_ERROR: '!!
+      coalescec(symget('SYSERRORTEXT'),symget('SYSWARNINGTEXT'));
     output;
   end;
   else stop;
@@ -102,4 +103,4 @@ filename &fref1 clear;
   %let syscc=1008;
 %end;
 
-%mend;
+%mend mp_filtervalidate;

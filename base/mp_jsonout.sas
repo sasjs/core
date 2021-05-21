@@ -147,7 +147,7 @@
       run;
       %let ds=&fmtds;
     %end; /* &fmt=Y */
-    data _null_;file &jref mod ;
+    data _null_;file &jref mod encoding='utf-8';
       put "["; call symputx('cols',0,'l');
     proc sort
       data=sashelp.vcolumn(where=(libname='WORK' & memname="%upcase(&ds)"))

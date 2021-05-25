@@ -96,7 +96,7 @@ options noquotelenmax;
     data _null_;
       set &libref1..links;
       if rel='createChild' then
-        call symputx('href',quote("&base_uri"!!trim(href)),'l');
+        call symputx('href',quote(cats("&base_uri",href)),'l');
     run;
   %end;
   %else %if &SYS_PROCHTTP_STATUS_CODE=404 %then %do;
@@ -141,7 +141,7 @@ options noquotelenmax;
     data _null_;
       set &libref2..links;
       if rel='createChild' then
-        call symputx('href',quote(trim(href)),'l');
+        call symputx('href',quote(cats("&base_uri",href)),'l');
     run;
 
     libname &libref2 clear;
@@ -150,4 +150,4 @@ options noquotelenmax;
   filename &fname1 clear;
   libname &libref1 clear;
 %end;
-%mend;
+%mend mv_createfolder;

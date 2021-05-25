@@ -8,7 +8,11 @@
 
 
   @param root= The path for which to return the list of folders
-  @param outds= The output dataset to create (default is work.mv_getfolders)
+  @param outds= The output dataset to create (default is work.mv_getfolders).  Format:
+  |ordinal_root|ordinal_items|creationTimeStamp| modifiedTimeStamp|createdBy|modifiedBy|id| uri|added| type|name|description|
+  |---|---|---|---|---|---|---|---|---|---|---|---|
+  |1|1|2021-05-25T11:15:04.204Z|2021-05-25T11:15:04.204Z|allbow|allbow|4f1e3945-9655-462b-90f2-c31534b3ca47|/folders/folders/ed701ff3-77e8-468d-a4f5-8c43dec0fd9e|2021-05-25T11:15:04.212Z|child|my_folder_name|My folder Description|
+
   @param access_token_var= The global macro variable to contain the access token
   @param grant_type= valid values are "password" or "authorization_code" (unquoted).
     The default is authorization_code.
@@ -116,4 +120,4 @@ options noquotelenmax;
 filename &fname1 clear;
 libname &libref1 clear;
 
-%mend;
+%mend mv_getfoldermembers;

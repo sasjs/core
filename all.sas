@@ -1719,7 +1719,7 @@ Usage:
 
     /* send response in SASjs JSON format */
     data _null_;
-      file _webout mod lrecl=32000;
+      file _webout mod lrecl=32000 encoding='utf-8';
       length msg $32767 debug $8;
       sasdatetime=datetime();
       msg=cats(symget('msg'),'\n\nLog Extract:\n',symget('logmsg'));
@@ -1753,6 +1753,8 @@ Usage:
       put ",""SYSCC"" : ""&syscc"" ";
       put ",""SYSERRORTEXT"" : ""&syserrortext"" ";
       put ",""SYSJOBID"" : ""&sysjobid"" ";
+      sysvlong=quote(trim(symget('sysvlong')));
+      put ',"SYSVLONG" : ' sysvlong;
       put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" ";
       put ',"END_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '" ';
       put "}" @;
@@ -3795,7 +3797,8 @@ run;
 
 data &outds;
   if &sqlrc or &syscc or &syserr then do;
-    REASON_CD=coalescec(symget('SYSERRORTEXT'),symget('SYSWARNINGTEXT'));
+    REASON_CD='VALIDATION_ERROR: '!!
+      coalescec(symget('SYSERRORTEXT'),symget('SYSWARNINGTEXT'));
     output;
   end;
   else stop;
@@ -3819,7 +3822,7 @@ filename &fref1 clear;
   %let syscc=1008;
 %end;
 
-%mend;
+%mend mp_filtervalidate;
 /**
   @file mp_getconstraints.sas
   @brief Get constraint details at column level
@@ -5191,7 +5194,7 @@ create table &outds (rename=(
       run;
       %let ds=&fmtds;
     %end; /* &fmt=Y */
-    data _null_;file &jref mod ;
+    data _null_;file &jref mod encoding='utf-8';
       put "["; call symputx('cols',0,'l');
     proc sort
       data=sashelp.vcolumn(where=(libname='WORK' & memname="%upcase(&ds)"))
@@ -9052,7 +9055,7 @@ data _null_;
   put '      run; ';
   put '      %let ds=&fmtds; ';
   put '    %end; /* &fmt=Y */ ';
-  put '    data _null_;file &jref mod ; ';
+  put '    data _null_;file &jref mod encoding=''utf-8''; ';
   put '      put "["; call symputx(''cols'',0,''l''); ';
   put '    proc sort ';
   put '      data=sashelp.vcolumn(where=(libname=''WORK'' & memname="%upcase(&ds)")) ';
@@ -9195,7 +9198,7 @@ data _null_;
   put '%end; ';
   put ' ';
   put '%else %if &action=ARR or &action=OBJ %then %do; ';
-  put '  %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt ';
+  put '  %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt,jref=&fref ';
   put '    ,engine=DATASTEP,dbg=%str(&_debug) ';
   put '  ) ';
   put '%end; ';
@@ -9254,6 +9257,8 @@ data _null_;
   put '    put ",""SYSHOSTNAME"" : ""&syshostname"" "; ';
   put '    put ",""SYSJOBID"" : ""&sysjobid"" "; ';
   put '    put ",""SYSSITE"" : ""&syssite"" "; ';
+  put '    sysvlong=quote(trim(symget(''sysvlong''))); ';
+  put '    put '',"SYSVLONG" : '' sysvlong; ';
   put '    put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" "; ';
   put '    put '',"END_DTTM" : "'' "%sysfunc(datetime(),datetime20.3)" ''" ''; ';
   put '    put "}" @; ';
@@ -9263,7 +9268,7 @@ data _null_;
   put '  run; ';
   put '%end; ';
   put ' ';
-  put '%mend; ';
+  put '%mend mm_webout; ';
   put ' ';
   put '%macro mf_getuser(type=META ';
   put ')/*/STORE SOURCE*/; ';
@@ -11640,7 +11645,7 @@ libname _XML_ clear;
 
   Usage:
 
-    %mm_getusers()
+      %mm_getusers()
 
   @param outds the dataset to create that contains the list of libraries
 
@@ -11702,7 +11707,7 @@ filename sxlemap clear;
 filename response clear;
 libname _XML_ clear;
 
-%mend;
+%mend mm_getusers;
 /**
   @file
   @brief Retrieves properties of the SAS web app server
@@ -12613,7 +12618,8 @@ run;
   @param action Either FETCH, OPEN, ARR, OBJ or CLOSE
   @param ds The dataset to send back to the frontend
   @param dslabel= value to use instead of the real name for sending to JSON
-  @param fmt= set to N to send back unformatted values
+  @param fmt=(Y) Set to N to send back unformatted values
+  @param fref=(_webout) The fileref to which to write the JSON
 
   @version 9.3
   @author Allan Bowe
@@ -12678,7 +12684,7 @@ run;
 %end;
 
 %else %if &action=ARR or &action=OBJ %then %do;
-  %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt
+  %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt,jref=&fref
     ,engine=DATASTEP,dbg=%str(&_debug)
   )
 %end;
@@ -12737,6 +12743,8 @@ run;
     put ",""SYSHOSTNAME"" : ""&syshostname"" ";
     put ",""SYSJOBID"" : ""&sysjobid"" ";
     put ",""SYSSITE"" : ""&syssite"" ";
+    sysvlong=quote(trim(symget('sysvlong')));
+    put ',"SYSVLONG" : ' sysvlong;
     put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" ";
     put ',"END_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '" ';
     put "}" @;
@@ -12746,7 +12754,7 @@ run;
   run;
 %end;
 
-%mend;
+%mend mm_webout;
 /**
   @file
   @brief Deletes a metadata folder
@@ -12976,7 +12984,7 @@ options noquotelenmax;
     data _null_;
       set &libref1..links;
       if rel='createChild' then
-        call symputx('href',quote("&base_uri"!!trim(href)),'l');
+        call symputx('href',quote(cats("&base_uri",href)),'l');
     run;
   %end;
   %else %if &SYS_PROCHTTP_STATUS_CODE=404 %then %do;
@@ -13021,7 +13029,7 @@ options noquotelenmax;
     data _null_;
       set &libref2..links;
       if rel='createChild' then
-        call symputx('href',quote(trim(href)),'l');
+        call symputx('href',quote(cats("&base_uri",href)),'l');
     run;
 
     libname &libref2 clear;
@@ -13030,7 +13038,7 @@ options noquotelenmax;
   filename &fname1 clear;
   libname &libref1 clear;
 %end;
-%mend;/**
+%mend mv_createfolder;/**
   @file
   @brief Creates a Viya Job
   @details
@@ -13666,7 +13674,7 @@ data _null_;
   put '      run; ';
   put '      %let ds=&fmtds; ';
   put '    %end; /* &fmt=Y */ ';
-  put '    data _null_;file &jref mod ; ';
+  put '    data _null_;file &jref mod encoding=''utf-8''; ';
   put '      put "["; call symputx(''cols'',0,''l''); ';
   put '    proc sort ';
   put '      data=sashelp.vcolumn(where=(libname=''WORK'' & memname="%upcase(&ds)")) ';
@@ -13750,7 +13758,7 @@ data _null_;
   put '  run; ';
   put '%end; ';
   put '%mend mp_jsonout; ';
-  put '%macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=Y); ';
+  put '%macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=Y,stream=Y); ';
   put '%global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name ';
   put '  sasjs_tables SYS_JES_JOB_URI; ';
   put '%if %index("&_debug",log) %then %let _debug=131; ';
@@ -13929,17 +13937,19 @@ data _null_;
   put '    put ",""SYSERRORTEXT"" : ""&syserrortext"" "; ';
   put '    put ",""SYSHOSTNAME"" : ""&syshostname"" "; ';
   put '    put ",""SYSSITE"" : ""&syssite"" "; ';
+  put '    sysvlong=quote(trim(symget(''sysvlong''))); ';
+  put '    put '',"SYSVLONG" : '' sysvlong; ';
   put '    put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" "; ';
   put '    put '',"END_DTTM" : "'' "%sysfunc(datetime(),datetime20.3)" ''" ''; ';
   put '    put "}"; ';
   put ' ';
-  put '  %if %upcase(&fref) ne _WEBOUT %then %do; ';
+  put '  %if %upcase(&fref) ne _WEBOUT and &stream=Y %then %do; ';
   put '    data _null_; rc=fcopy("&fref","_webout");run; ';
   put '  %end; ';
   put ' ';
   put '%end; ';
   put ' ';
-  put '%mend; ';
+  put '%mend mv_webout; ';
   put ' ';
   put '%macro mf_getuser(type=META ';
   put ')/*/STORE SOURCE*/; ';
@@ -14694,7 +14704,11 @@ libname &libref1 clear;
 
 
   @param root= The path for which to return the list of folders
-  @param outds= The output dataset to create (default is work.mv_getfolders)
+  @param outds= The output dataset to create (default is work.mv_getfolders).  Format:
+  |ordinal_root|ordinal_items|creationTimeStamp| modifiedTimeStamp|createdBy|modifiedBy|id| uri|added| type|name|description|
+  |---|---|---|---|---|---|---|---|---|---|---|---|
+  |1|1|2021-05-25T11:15:04.204Z|2021-05-25T11:15:04.204Z|allbow|allbow|4f1e3945-9655-462b-90f2-c31534b3ca47|/folders/folders/ed701ff3-77e8-468d-a4f5-8c43dec0fd9e|2021-05-25T11:15:04.212Z|child|my_folder_name|My folder Description|
+
   @param access_token_var= The global macro variable to contain the access token
   @param grant_type= valid values are "password" or "authorization_code" (unquoted).
     The default is authorization_code.
@@ -14802,7 +14816,7 @@ options noquotelenmax;
 filename &fname1 clear;
 libname &libref1 clear;
 
-%mend;/**
+%mend mv_getfoldermembers;/**
   @file mv_getgroupmembers.sas
   @brief Creates a dataset with a list of group members
   @details First, be sure you have an access token (which requires an app token).
@@ -17531,9 +17545,10 @@ filename &fref1 clear;
   @param action Either OPEN, ARR, OBJ or CLOSE
   @param ds The dataset to send back to the frontend
   @param _webout= fileref for returning the json
-  @param fref= temp fref
+  @param fref=(_mvwtemp) Temp fileref to which to write the output
   @param dslabel= value to use instead of the real name for sending to JSON
-  @param fmt= change to N to strip formats from output
+  @param fmt=(Y) change to N to strip formats from output
+  @param stream=(Y) Change to N if not streaming to _webout
 
   <h4> SAS Macros </h4>
   @li mp_jsonout.sas
@@ -17543,7 +17558,7 @@ filename &fref1 clear;
   @author Allan Bowe, source: https://github.com/sasjs/core
 
 **/
-%macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=Y);
+%macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=Y,stream=Y);
 %global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name
   sasjs_tables SYS_JES_JOB_URI;
 %if %index("&_debug",log) %then %let _debug=131;
@@ -17722,17 +17737,19 @@ filename &fref1 clear;
     put ",""SYSERRORTEXT"" : ""&syserrortext"" ";
     put ",""SYSHOSTNAME"" : ""&syshostname"" ";
     put ",""SYSSITE"" : ""&syssite"" ";
+    sysvlong=quote(trim(symget('sysvlong')));
+    put ',"SYSVLONG" : ' sysvlong;
     put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" ";
     put ',"END_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '" ';
     put "}";
 
-  %if %upcase(&fref) ne _WEBOUT %then %do;
+  %if %upcase(&fref) ne _WEBOUT and &stream=Y %then %do;
     data _null_; rc=fcopy("&fref","_webout");run;
   %end;
 
 %end;
 
-%mend;
+%mend mv_webout;
 /**
   @file ml_json.sas
   @brief Compiles the json.lua lua file

@@ -22,7 +22,7 @@ Usage:
         %webout(OBJ,example2) * Object format, easier to work with ;
         %webout(CLOSE)
     ;;;;
-    %mm_createwebservice(path=/Public/app/common,name=appInit)
+    %mm_createwebservice(path=/Public/app/common,name=appInit,code=ft15f001)
 
   <h4> SAS Macros </h4>
   @li mm_createstp.sas
@@ -37,12 +37,15 @@ Usage:
   @param desc= The description of the service (optional)
   @param precode= Space separated list of filerefs, pointing to the code that
     needs to be attached to the beginning of the service (optional)
-  @param code= Space seperated fileref(s) of the actual code to be added
-  @param server= The server which will run the STP.  Server name or uri is fine.
-  @param mDebug= set to 1 to show debug messages in the log
-  @param replace= select YES to replace any existing service in that location
-  @param adapter= the macro uses the sasjs adapter by default.  To use another
-    adapter, add a (different) fileref here.
+  @param code=(ft15f001) Space seperated fileref(s) of the actual code to be
+    added
+  @param server=(SASApp) The server which will run the STP.  Server name or uri
+   is fine.
+  @param mDebug=(0) set to 1 to show debug messages in the log
+  @param replace=(YES) select NO to avoid replacing an existing service in that
+    location
+  @param adapter=(sasjs) the macro uses the sasjs adapter by default.  To use
+    another adapter, add a (different) fileref here.
 
   @version 9.2
   @author Allan Bowe
@@ -52,11 +55,11 @@ Usage:
 %macro mm_createwebservice(path=
     ,name=initService
     ,precode=
-    ,code=
+    ,code=ft15f001
     ,desc=This stp was created automagically by the mm_createwebservice macro
     ,mDebug=0
     ,server=SASApp
-    ,replace=NO
+    ,replace=YES
     ,adapter=sasjs
 )/*/STORE SOURCE*/;
 
@@ -468,4 +471,4 @@ run;
 %put &url?_PROGRAM=&path/&name;
 %put ;%put ;%put ;%put ;%put ;%put ;
 
-%mend;
+%mend mm_createwebservice;

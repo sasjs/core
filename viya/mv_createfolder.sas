@@ -1,17 +1,22 @@
 /**
   @file mv_createfolder.sas
   @brief Creates a viya folder if that folder does not already exist
-  @details Expects oauth token in a global macro variable (default
-  ACCESS_TOKEN).
+  @details Creates a viya folder by checking if each parent folder exists, and
+  recursively creating children if needed.
+  Usage:
 
       %mv_createfolder(path=/Public)
 
 
-  @param path= The full path of the folder to be created
-  @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= (authorization_code) Valid values are "password" or
-    "authorization_code" (unquoted).
+  @param [in] path= The full path of the folder to be created
+  @param [in] access_token_var= The global macro variable to contain the access
+    token, if using authorization_code grant type.
+  @param [in] grant_type= (sas_services) Valid values are:
+    @li password
+    @li authorization_code
+    @li sas_services
 
+  @param [in] mdebug=(0) set to 1 to enable DEBUG messages
 
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
@@ -28,15 +33,23 @@
 %macro mv_createfolder(path=
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
+    ,mdebug=0
   );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
   %else %let grant_type=sas_services;
 %end;
 %if &grant_type=sas_services %then %do;
-    %let oauth_bearer=oauth_bearer=sas_services;
-    %let &access_token_var=;
+  %let oauth_bearer=oauth_bearer=sas_services;
+  %let &access_token_var=;
 %end;
 
 %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
@@ -91,6 +104,15 @@ options noquotelenmax;
     ,mac=&sysmacroname
     ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
   )
+  %if &mdebug=1 %then %do;
+    %put &sysmacroname following check to see if &newpath exists:;
+    %put _local_;
+    data _null_;
+      set &fname1;
+      input;
+      putlog _infile_;
+    run;
+  %end;
   %if &SYS_PROCHTTP_STATUS_CODE=200 %then %do;
     %*put &sysmacroname &newpath exists so grab the follow on link ;
     data _null_;
@@ -140,8 +162,10 @@ options noquotelenmax;
     %put &sysmacroname &newpath now created. Grabbing the follow on link ;
     data _null_;
       set &libref2..links;
-      if rel='createChild' then
+      if rel='createChild' then do;
         call symputx('href',quote(cats("&base_uri",href)),'l');
+        &dbg put (_all_)(=);
+      end;
     run;
 
     libname &libref2 clear;

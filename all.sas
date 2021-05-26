@@ -8901,7 +8901,7 @@ Usage:
         %webout(OBJ,example2) * Object format, easier to work with ;
         %webout(CLOSE)
     ;;;;
-    %mm_createwebservice(path=/Public/app/common,name=appInit)
+    %mm_createwebservice(path=/Public/app/common,name=appInit,code=ft15f001)
 
   <h4> SAS Macros </h4>
   @li mm_createstp.sas
@@ -8916,12 +8916,15 @@ Usage:
   @param desc= The description of the service (optional)
   @param precode= Space separated list of filerefs, pointing to the code that
     needs to be attached to the beginning of the service (optional)
-  @param code= Space seperated fileref(s) of the actual code to be added
-  @param server= The server which will run the STP.  Server name or uri is fine.
-  @param mDebug= set to 1 to show debug messages in the log
-  @param replace= select YES to replace any existing service in that location
-  @param adapter= the macro uses the sasjs adapter by default.  To use another
-    adapter, add a (different) fileref here.
+  @param code=(ft15f001) Space seperated fileref(s) of the actual code to be
+    added
+  @param server=(SASApp) The server which will run the STP.  Server name or uri
+   is fine.
+  @param mDebug=(0) set to 1 to show debug messages in the log
+  @param replace=(YES) select NO to avoid replacing an existing service in that
+    location
+  @param adapter=(sasjs) the macro uses the sasjs adapter by default.  To use
+    another adapter, add a (different) fileref here.
 
   @version 9.2
   @author Allan Bowe
@@ -8931,11 +8934,11 @@ Usage:
 %macro mm_createwebservice(path=
     ,name=initService
     ,precode=
-    ,code=
+    ,code=ft15f001
     ,desc=This stp was created automagically by the mm_createwebservice macro
     ,mDebug=0
     ,server=SASApp
-    ,replace=NO
+    ,replace=YES
     ,adapter=sasjs
 )/*/STORE SOURCE*/;
 
@@ -9347,7 +9350,7 @@ run;
 %put &url?_PROGRAM=&path/&name;
 %put ;%put ;%put ;%put ;%put ;%put ;
 
-%mend;
+%mend mm_createwebservice;
 /**
   @file mm_deletedocument.sas
   @brief Deletes a Document using path as reference
@@ -12889,17 +12892,22 @@ run;
 %mend;/**
   @file mv_createfolder.sas
   @brief Creates a viya folder if that folder does not already exist
-  @details Expects oauth token in a global macro variable (default
-  ACCESS_TOKEN).
+  @details Creates a viya folder by checking if each parent folder exists, and
+  recursively creating children if needed.
+  Usage:
 
       %mv_createfolder(path=/Public)
 
 
-  @param path= The full path of the folder to be created
-  @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= (authorization_code) Valid values are "password" or
-    "authorization_code" (unquoted).
+  @param [in] path= The full path of the folder to be created
+  @param [in] access_token_var= The global macro variable to contain the access
+    token, if using authorization_code grant type.
+  @param [in] grant_type= (sas_services) Valid values are:
+    @li password
+    @li authorization_code
+    @li sas_services
 
+  @param [in] mdebug=(0) set to 1 to enable DEBUG messages
 
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
@@ -12916,15 +12924,23 @@ run;
 %macro mv_createfolder(path=
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
+    ,mdebug=0
   );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
   %else %let grant_type=sas_services;
 %end;
 %if &grant_type=sas_services %then %do;
-    %let oauth_bearer=oauth_bearer=sas_services;
-    %let &access_token_var=;
+  %let oauth_bearer=oauth_bearer=sas_services;
+  %let &access_token_var=;
 %end;
 
 %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
@@ -12979,6 +12995,15 @@ options noquotelenmax;
     ,mac=&sysmacroname
     ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
   )
+  %if &mdebug=1 %then %do;
+    %put &sysmacroname following check to see if &newpath exists:;
+    %put _local_;
+    data _null_;
+      set &fname1;
+      input;
+      putlog _infile_;
+    run;
+  %end;
   %if &SYS_PROCHTTP_STATUS_CODE=200 %then %do;
     %*put &sysmacroname &newpath exists so grab the follow on link ;
     data _null_;
@@ -13028,8 +13053,10 @@ options noquotelenmax;
     %put &sysmacroname &newpath now created. Grabbing the follow on link ;
     data _null_;
       set &libref2..links;
-      if rel='createChild' then
+      if rel='createChild' then do;
         call symputx('href',quote(cats("&base_uri",href)),'l');
+        &dbg put (_all_)(=);
+      end;
     run;
 
     libname &libref2 clear;

@@ -102,7 +102,8 @@
       %let fmtds=%scan(&syslast,2,.);
       /* prepare formats and varnames */
       data _null_;
-        set &fmtds end=last;
+        if _n_=1 then call symputx('nobs',nobs,'l');
+        set &fmtds end=last nobs=nobs;
         name=upcase(name);
         /* fix formats */
         if type=2 or type=6 then do;
@@ -128,7 +129,6 @@
         call symputx(cats('len',_n_),newlen,'l');
         call symputx(cats('fmt',_n_),fmt,'l');
         call symputx(cats('type',_n_),type,'l');
-        if last then call symputx('nobs',_n_,'l');
       run;
       data &fmtds;
         /* rename on entry */

@@ -18,19 +18,18 @@
 options noquotelenmax;
 /**
   @file
-  @brief to be deprecated
-  @details We will deprecate this macro in 2022
+  @brief Abort, ungracefully
+  @details Will abort with a straightforward %abort if the condition is true.
 
-  As you can see, it's not a macro function.
-
-  Use mp_abort.sas instead.
+  <h4> Related Macros </h4>
+  @li mp_abort.sas
 
   @version 9.2
   @author Allan Bowe
   @cond
 **/
 
-%macro mf_abort(mac=mf_abort.sas, type=, msg=, iftrue=%str(1=1)
+%macro mf_abort(mac=mf_abort.sas, type=deprecated, msg=, iftrue=%str(1=1)
 )/*/STORE SOURCE*/;
 
   %if not(%eval(%unquote(&iftrue))) %then %return;
@@ -39,117 +38,9 @@ options noquotelenmax;
   %if %length(&mac)>0 %then %put NOTE- called by &mac;
   %put NOTE - &msg;
 
-  /* Stored Process Server web app context */
-  %if %symexist(_metaperson) or "&SYSPROCESSNAME"="Compute Server" %then %do;
-    options obs=max replace nosyntaxcheck mprint;
-    /* extract log err / warn, if exist */
-    %local logloc logline;
-    %global logmsg; /* capture global messages */
-    %if %symexist(SYSPRINTTOLOG) %then %let logloc=&SYSPRINTTOLOG;
-    %else %let logloc=%qsysfunc(getoption(LOG));
-    proc printto log=log;run;
-    %if %length(&logloc)>0 %then %do;
-      %let logline=0;
-      data _null_;
-        infile &logloc lrecl=5000;
-        input; putlog _infile_;
-        i=1;
-        retain logonce 0;
-        if (
-            _infile_=:"%str(WARN)ING" or _infile_=:"%str(ERR)OR"
-          ) and logonce=0
-        then do;
-          call symputx('logline',_n_);
-          logonce+1;
-        end;
-      run;
-      /* capture log including lines BEFORE the err */
-      %if &logline>0 %then %do;
-        data _null_;
-          infile &logloc lrecl=5000;
-          input;
-          i=1;
-          stoploop=0;
-          if _n_ ge &logline-5 and stoploop=0 then do until (i>12);
-            call symputx('logmsg',catx('\n',symget('logmsg'),_infile_));
-            input;
-            i+1;
-            stoploop=1;
-          end;
-          if stoploop=1 then stop;
-        run;
-      %end;
-    %end;
+  %abort;
 
-    /* send response in SASjs JSON format */
-    data _null_;
-      file _webout mod lrecl=32000;
-      length msg $32767;
-      sasdatetime=datetime();
-      msg=cats(symget('msg'),'\n\nLog Extract:\n',symget('logmsg'));
-      /* escape the quotes */
-      msg=tranwrd(msg,'"','\"');
-      /* ditch the CRLFs as chrome complains */
-      msg=compress(msg,,'kw');
-      /* quote without quoting the quotes (which are escaped instead) */
-      msg=cats('"',msg,'"');
-      if symexist('_debug') then debug=symget('_debug');
-      if debug ge 131 then put '>>weboutBEGIN<<';
-      put '{"START_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '"';
-      put ',"sasjsAbort" : [{';
-      put ' "MSG":' msg ;
-      put ' ,"MAC": "' "&mac" '"}]';
-      put ",""SYSUSERID"" : ""&sysuserid"" ";
-      if symexist('_metauser') then do;
-        _METAUSER=quote(trim(symget('_METAUSER')));
-        put ",""_METAUSER"": " _METAUSER;
-        _METAPERSON=quote(trim(symget('_METAPERSON')));
-        put ',"_METAPERSON": ' _METAPERSON;
-      end;
-      _PROGRAM=quote(trim(resolve(symget('_PROGRAM'))));
-      put ',"_PROGRAM" : ' _PROGRAM ;
-      put ",""SYSCC"" : ""&syscc"" ";
-      put ",""SYSERRORTEXT"" : ""&syserrortext"" ";
-      put ",""SYSJOBID"" : ""&sysjobid"" ";
-      put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" ";
-      put ',"END_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '" ';
-      put "}" @;
-      %if &_debug ge 131 %then %do;
-        put '>>weboutEND<<';
-      %end;
-    run;
-    %let syscc=0;
-    %if %symexist(SYS_JES_JOB_URI) %then %do;
-      /* refer web service output to file service in one hit */
-      filename _webout filesrvc parenturi="&SYS_JES_JOB_URI"
-        name="_webout.json";
-      %let rc=%sysfunc(fcopy(_web,_webout));
-    %end;
-    %else %do;
-      data _null_;
-        if symexist('sysprocessmode')
-          then if symget("sysprocessmode")="SAS Stored Process Server"
-            then rc=stpsrvset('program error', 0);
-      run;
-    %end;
-    /**
-      * endsas is reliable but kills some deployments.
-      * Abort variants are ungraceful (non zero return code)
-      * This approach lets SAS run silently until the end :-)
-      */
-    %put _all_;
-    filename skip temp;
-    data _null_;
-      file skip;
-      put '%macro skip(); %macro skippy();';
-    run;
-    %inc skip;
-  %end;
-  %else %do;
-    %put _all_;
-    %abort cancel;
-  %end;
-%mend;
+%mend mf_abort;
 
 /** @endcond *//**
   @file mf_existds.sas
@@ -5149,7 +5040,8 @@ create table &outds (rename=(
       %let fmtds=%scan(&syslast,2,.);
       /* prepare formats and varnames */
       data _null_;
-        set &fmtds end=last;
+        if _n_=1 then call symputx('nobs',nobs,'l');
+        set &fmtds end=last nobs=nobs;
         name=upcase(name);
         /* fix formats */
         if type=2 or type=6 then do;
@@ -5175,7 +5067,6 @@ create table &outds (rename=(
         call symputx(cats('len',_n_),newlen,'l');
         call symputx(cats('fmt',_n_),fmt,'l');
         call symputx(cats('type',_n_),type,'l');
-        if last then call symputx('nobs',_n_,'l');
       run;
       data &fmtds;
         /* rename on entry */
@@ -9013,7 +8904,8 @@ data _null_;
   put '      %let fmtds=%scan(&syslast,2,.); ';
   put '      /* prepare formats and varnames */ ';
   put '      data _null_; ';
-  put '        set &fmtds end=last; ';
+  put '        if _n_=1 then call symputx(''nobs'',nobs,''l''); ';
+  put '        set &fmtds end=last nobs=nobs; ';
   put '        name=upcase(name); ';
   put '        /* fix formats */ ';
   put '        if type=2 or type=6 then do; ';
@@ -9039,7 +8931,6 @@ data _null_;
   put '        call symputx(cats(''len'',_n_),newlen,''l''); ';
   put '        call symputx(cats(''fmt'',_n_),fmt,''l''); ';
   put '        call symputx(cats(''type'',_n_),type,''l''); ';
-  put '        if last then call symputx(''nobs'',_n_,''l''); ';
   put '      run; ';
   put '      data &fmtds; ';
   put '        /* rename on entry */ ';
@@ -12890,6 +12781,193 @@ run;
 %inc &fref1;
 
 %mend;/**
+  @file
+  @brief Checks whether a file exists in SAS Drive
+  @details Returns 1 if the file exists, and 0 if it doesn't.  Works by
+  attempting to assign a fileref with the filesrvc engine.  If not found, the
+  syscc is automatically set to a non zero value - so in this case it is reset.
+  To avoid hiding issues, there is therefore a test at the start to ensure the
+  syscc is zero.
+
+  Usage:
+
+    %put %mfv_existfile(/does/exist.txt);
+    %put %mfv_existfile(/does/not/exist.txt);
+
+  @param filepath The full path to the file on SAS drive (eg /Public/myfile.txt)
+
+  <h4> SAS Macros </h4>
+  @li mf_abort.sas
+  @li mf_getuniquefileref.sas
+
+  @version 3.5
+  @author [Allan Bowe](https://www.linkedin.com/in/allanbowe/)
+**/
+
+%macro mfv_existfile(filepath
+)/*/STORE SOURCE*/;
+
+  %mf_abort(
+    iftrue=(&syscc ne 0),
+    msg=Cannot enter mfv_existfile.sas with syscc=&syscc
+  )
+
+  %local fref rc path name;
+  %let fref=%mf_getuniquefileref();
+  %let name=%scan(&filepath,-1,/);
+  %let path=%substr(&filepath,1,%length(&filepath)-%length(&name)-1);
+
+  %if %sysfunc(filename(fref,,filesrvc,folderPath="&path" filename="&name"))=0
+  %then %do;
+    %sysfunc(fexist(&fref))
+    %let rc=%sysfunc(filename(fref));
+  %end;
+  %else %do;
+    0
+    %let syscc=0;
+  %end;
+
+%mend mfv_existfile;/**
+  @file
+  @brief Checks whether a folder exists in SAS Drive
+  @details Returns 1 if the folder exists, and 0 if it doesn't.  Works by
+  attempting to assign a fileref with the filesrvc engine.  If not found, the
+  syscc is automatically set to a non zero value - so in this case it is reset.
+  To avoid hiding issues, there is therefore a test at the start to ensure the
+  syscc is zero.
+
+  Usage:
+
+    %put %mfv_existfolder(/does/exist);
+    %put %mfv_existfolder(/does/not/exist);
+
+  @param path The path to the folder on SAS drive
+
+  <h4> SAS Macros </h4>
+  @li mf_abort.sas
+  @li mf_getuniquefileref.sas
+
+  @version 3.5
+  @author [Allan Bowe](https://www.linkedin.com/in/allanbowe/)
+**/
+
+%macro mfv_existfolder(path
+)/*/STORE SOURCE*/;
+
+  %mf_abort(
+    iftrue=(&syscc ne 0),
+    msg=Cannot enter mfv_existfolder.sas with syscc=&syscc
+  )
+
+  %local fref rc;
+  %let fref=%mf_getuniquefileref();
+
+  %if %sysfunc(filename(fref,,filesrvc,folderPath="&path"))=0 %then %do;
+    1
+    %let rc=%sysfunc(filename(fref));
+  %end;
+  %else %do;
+    0
+    %let syscc=0;
+  %end;
+
+%mend mfv_existfolder;/**
+  @file
+  @brief Creates a file in SAS Drive
+  @details Creates a file in SAS Drive and adds the appropriate content type.
+  If the parent folder does not exist, it is created.
+
+  Usage:
+
+      filename myfile temp;
+      data _null_;
+        file myfile;
+        put 'something';
+      run;
+      %mv_createfile(path=/Public/temp,name=newfile.txt,inref=myfile)
+
+
+  @param [in] path= The parent folder in which to create the file
+  @param [in] name= The name of the file to be created
+  @param [in] inref= The fileref pointing to the file to be uploaded
+  @param [in] access_token_var= The global macro variable to contain the access
+    token, if using authorization_code grant type.
+  @param [in] grant_type= (sas_services) Valid values are:
+    @li password
+    @li authorization_code
+    @li sas_services
+
+  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
+
+  @version VIYA V.03.05
+  @author Allan Bowe, source: https://github.com/sasjs/core
+
+  <h4> SAS Macros </h4>
+  @li mf_getuniquefileref.sas
+  @li mf_isblank.sas
+  @li mp_abort.sas
+  @li mp_binarycopy.sas
+  @li mv_createfolder.sas
+
+**/
+
+%macro mv_createfile(path=
+    ,name=
+    ,inref=
+    ,access_token_var=ACCESS_TOKEN
+    ,grant_type=sas_services
+    ,mdebug=0
+  );
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
+%local oauth_bearer;
+%if &grant_type=detect %then %do;
+  %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
+  %else %let grant_type=sas_services;
+%end;
+%if &grant_type=sas_services %then %do;
+  %let oauth_bearer=oauth_bearer=sas_services;
+  %let &access_token_var=;
+%end;
+
+%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
+    and &grant_type ne sas_services
+  )
+  ,mac=&sysmacroname
+  ,msg=%str(Invalid value for grant_type: &grant_type)
+)
+
+%mp_abort(iftrue=(%mf_isblank(&path)=1 or %length(&path)=1)
+  ,mac=&sysmacroname
+  ,msg=%str(path value must be provided)
+)
+%mp_abort(iftrue=(%mf_isblank(&name)=1 or %length(&name)=1)
+  ,mac=&sysmacroname
+  ,msg=%str(name value with length >1 must be provided)
+)
+
+/* create folder if it does not already exist */
+%mv_createfolder(path=&path
+  ,access_token_var=&access_token_var
+  ,grant_type=&grant_type
+  ,mdebug=&mdebug
+)
+
+/* create file with relevant options */
+%local fref;
+%let fref=%mf_getuniquefileref();
+filename &fref filesrvc folderPath="&path" filename="&name";
+
+%mp_binarycopy(inref=&inref, outref=&fref)
+
+filename &fref clear;
+
+%mend mv_createfile;/**
   @file mv_createfolder.sas
   @brief Creates a viya folder if that folder does not already exist
   @details Creates a viya folder by checking if each parent folder exists, and
@@ -12918,6 +12996,8 @@ run;
   @li mf_getuniquelibref.sas
   @li mf_isblank.sas
   @li mf_getplatform.sas
+  @li mfv_existfolder.sas
+
 
 **/
 
@@ -12932,6 +13012,11 @@ run;
   %put _local_;
 %end;
 %else %let dbg=*;
+
+%if %mfv_existfolder(&path)=1 %then %do;
+  %put &sysmacroname: &path already exists;
+  %return;
+%end;
 
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
@@ -13656,7 +13741,8 @@ data _null_;
   put '      %let fmtds=%scan(&syslast,2,.); ';
   put '      /* prepare formats and varnames */ ';
   put '      data _null_; ';
-  put '        set &fmtds end=last; ';
+  put '        if _n_=1 then call symputx(''nobs'',nobs,''l''); ';
+  put '        set &fmtds end=last nobs=nobs; ';
   put '        name=upcase(name); ';
   put '        /* fix formats */ ';
   put '        if type=2 or type=6 then do; ';
@@ -13682,7 +13768,6 @@ data _null_;
   put '        call symputx(cats(''len'',_n_),newlen,''l''); ';
   put '        call symputx(cats(''fmt'',_n_),fmt,''l''); ';
   put '        call symputx(cats(''type'',_n_),type,''l''); ';
-  put '        if last then call symputx(''nobs'',_n_,''l''); ';
   put '      run; ';
   put '      data &fmtds; ';
   put '        /* rename on entry */ ';

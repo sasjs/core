@@ -27,6 +27,8 @@
   @li mf_getuniquelibref.sas
   @li mf_isblank.sas
   @li mf_getplatform.sas
+  @li mfv_existfolder.sas
+
 
 **/
 
@@ -41,6 +43,11 @@
   %put _local_;
 %end;
 %else %let dbg=*;
+
+%if %mfv_existfolder(&path)=1 %then %do;
+  %put &sysmacroname: &path already exists;
+  %return;
+%end;
 
 %local oauth_bearer;
 %if &grant_type=detect %then %do;

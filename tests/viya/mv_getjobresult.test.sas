@@ -10,6 +10,8 @@
 
 **/
 
+options mprint notes;
+
 /**
   * Test Case 1
   */

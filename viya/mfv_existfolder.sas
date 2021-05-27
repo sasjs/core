@@ -9,14 +9,17 @@
 
   Usage:
 
-    %put %mfv_existfolder(/does/exist);
-    %put %mfv_existfolder(/does/not/exist);
+      %put %mfv_existfolder(/does/exist);
+      %put %mfv_existfolder(/does/not/exist);
 
   @param path The path to the folder on SAS drive
 
   <h4> SAS Macros </h4>
   @li mf_abort.sas
   @li mf_getuniquefileref.sas
+
+  <h4> Related Macros </h4>
+  @li mfv_existfile.sas
 
   @version 3.5
   @author [Allan Bowe](https://www.linkedin.com/in/allanbowe/)

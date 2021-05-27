@@ -9,14 +9,17 @@
 
   Usage:
 
-    %put %mfv_existfile(/does/exist.txt);
-    %put %mfv_existfile(/does/not/exist.txt);
+      %put %mfv_existfile(/does/exist.txt);
+      %put %mfv_existfile(/does/not/exist.txt);
 
   @param filepath The full path to the file on SAS drive (eg /Public/myfile.txt)
 
   <h4> SAS Macros </h4>
   @li mf_abort.sas
   @li mf_getuniquefileref.sas
+
+  <h4> Related Macros </h4>
+  @li mfv_existfolder.sas
 
   @version 3.5
   @author [Allan Bowe](https://www.linkedin.com/in/allanbowe/)

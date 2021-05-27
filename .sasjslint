@@ -6,7 +6,7 @@
     "hasMacroParentheses": true,
     "noNestedMacros": false,
     "noSpacesInFileNames": true,
-    "maxLineLength": 135,
+    "maxLineLength": 230,
     "lowerCaseFileNames": true,
     "noTabIndentation": true,
     "indentationMultiple": 2

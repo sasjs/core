@@ -8810,7 +8810,7 @@ Usage:
   @param code=(ft15f001) Space seperated fileref(s) of the actual code to be
     added
   @param server=(SASApp) The server which will run the STP.  Server name or uri
-   is fine.
+    is fine.
   @param mDebug=(0) set to 1 to show debug messages in the log
   @param replace=(YES) select NO to avoid replacing an existing service in that
     location

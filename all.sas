@@ -9038,7 +9038,12 @@ data _null_;
   put '%macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y); ';
   put '%global _webin_file_count _webin_fileref1 _webin_name1 _program _debug ';
   put '  sasjs_tables; ';
-  put '%local i tempds; ';
+  put '%local i tempds jsonengine; ';
+  put ' ';
+  put '/* see https://github.com/sasjs/core/issues/41 */ ';
+  put '%if %upcase(&SYSENCODING)=WLATIN1 %then %let jsonengine=PROCJSON; ';
+  put '%else %let jsonengine=DATASTEP; ';
+  put ' ';
   put ' ';
   put '%if &action=FETCH %then %do; ';
   put '  %if %str(&_debug) ge 131 %then %do; ';
@@ -9073,7 +9078,7 @@ data _null_;
   put '  OPTIONS NOBOMFILE; ';
   put ' ';
   put '  /** ';
-  put '    * check engine type to avoid the below err message: ';
+  put '    * check xengine type to avoid the below err message: ';
   put '    * > Function is only valid for filerefs using the CACHE access method. ';
   put '    */ ';
   put '  data _null_; ';
@@ -9095,7 +9100,7 @@ data _null_;
   put ' ';
   put '%else %if &action=ARR or &action=OBJ %then %do; ';
   put '  %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt,jref=&fref ';
-  put '    ,engine=DATASTEP,dbg=%str(&_debug) ';
+  put '    ,engine=&jsonengine,dbg=%str(&_debug) ';
   put '  ) ';
   put '%end; ';
   put '%else %if &action=CLOSE %then %do; ';
@@ -9108,7 +9113,7 @@ data _null_;
   put '    %local wtcnt;%let wtcnt=0; ';
   put '    data _null_; ';
   put '      set &tempds; ';
-  put '      if not (name =:"DATA"); ';
+  put '      if not (upcase(name) =:"DATA"); /* ignore temp datasets */ ';
   put '      i+1; ';
   put '      call symputx(''wt''!!left(i),name,''l''); ';
   put '      call symputx(''wtcnt'',i,''l''); ';
@@ -9128,8 +9133,8 @@ data _null_;
   put '        put " ""&wt"" : {"; ';
   put '        put ''"nlobs":'' nlobs; ';
   put '        put '',"nvars":'' nvars; ';
-  put '      %mp_jsonout(OBJ,&tempds,jref=&fref,dslabel=colattrs,engine=DATASTEP) ';
-  put '      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,engine=DATASTEP) ';
+  put '      %mp_jsonout(OBJ,&tempds,jref=&fref,dslabel=colattrs,engine=&jsonengine) ';
+  put '      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,engine=&jsonengine) ';
   put '      data _null_; file &fref mod encoding=''utf-8''; ';
   put '        put "}"; ';
   put '    %end; ';
@@ -12524,7 +12529,12 @@ run;
 %macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y);
 %global _webin_file_count _webin_fileref1 _webin_name1 _program _debug
   sasjs_tables;
-%local i tempds;
+%local i tempds jsonengine;
+
+/* see https://github.com/sasjs/core/issues/41 */
+%if %upcase(&SYSENCODING)=WLATIN1 %then %let jsonengine=PROCJSON;
+%else %let jsonengine=DATASTEP;
+
 
 %if &action=FETCH %then %do;
   %if %str(&_debug) ge 131 %then %do;
@@ -12559,7 +12569,7 @@ run;
   OPTIONS NOBOMFILE;
 
   /**
-    * check engine type to avoid the below err message:
+    * check xengine type to avoid the below err message:
     * > Function is only valid for filerefs using the CACHE access method.
     */
   data _null_;
@@ -12581,7 +12591,7 @@ run;
 
 %else %if &action=ARR or &action=OBJ %then %do;
   %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt,jref=&fref
-    ,engine=DATASTEP,dbg=%str(&_debug)
+    ,engine=&jsonengine,dbg=%str(&_debug)
   )
 %end;
 %else %if &action=CLOSE %then %do;
@@ -12594,7 +12604,7 @@ run;
     %local wtcnt;%let wtcnt=0;
     data _null_;
       set &tempds;
-      if not (name =:"DATA");
+      if not (upcase(name) =:"DATA"); /* ignore temp datasets */
       i+1;
       call symputx('wt'!!left(i),name,'l');
       call symputx('wtcnt',i,'l');
@@ -12614,8 +12624,8 @@ run;
         put " ""&wt"" : {";
         put '"nlobs":' nlobs;
         put ',"nvars":' nvars;
-      %mp_jsonout(OBJ,&tempds,jref=&fref,dslabel=colattrs,engine=DATASTEP)
-      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,engine=DATASTEP)
+      %mp_jsonout(OBJ,&tempds,jref=&fref,dslabel=colattrs,engine=&jsonengine)
+      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,engine=&jsonengine)
       data _null_; file &fref mod encoding='utf-8';
         put "}";
     %end;
@@ -14032,8 +14042,9 @@ data _null_;
   put '    ods output Members=&tempds; ';
   put '    proc datasets library=WORK memtype=data; ';
   put '    %local wtcnt;%let wtcnt=0; ';
-  put '    data _null_; set &tempds; ';
-  put '      if not (name =:"DATA"); ';
+  put '    data _null_; ';
+  put '      set &tempds; ';
+  put '      if not (upcase(name) =:"DATA"); /* ignore temp datasets */ ';
   put '      i+1; ';
   put '      call symputx(''wt''!!left(i),name); ';
   put '      call symputx(''wtcnt'',i); ';
@@ -17832,8 +17843,9 @@ filename &fref1 clear;
     ods output Members=&tempds;
     proc datasets library=WORK memtype=data;
     %local wtcnt;%let wtcnt=0;
-    data _null_; set &tempds;
-      if not (name =:"DATA");
+    data _null_;
+      set &tempds;
+      if not (upcase(name) =:"DATA"); /* ignore temp datasets */
       i+1;
       call symputx('wt'!!left(i),name);
       call symputx('wtcnt',i);

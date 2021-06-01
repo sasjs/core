@@ -174,8 +174,9 @@
     ods output Members=&tempds;
     proc datasets library=WORK memtype=data;
     %local wtcnt;%let wtcnt=0;
-    data _null_; set &tempds;
-      if not (name =:"DATA");
+    data _null_;
+      set &tempds;
+      if not (upcase(name) =:"DATA"); /* ignore temp datasets */
       i+1;
       call symputx('wt'!!left(i),name);
       call symputx('wtcnt',i);

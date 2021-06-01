@@ -67,7 +67,8 @@ options noquotelenmax;
   %if %sysfunc(exist(&libds)) ne 1 & %sysfunc(exist(&libds,VIEW)) ne 1 %then 0;
   %else 1;
 
-%mend;/**
+%mend mf_existds;
+/**
   @file
   @brief Checks whether a feature exists
   @details Check to see if a feature is supported in your environment.
@@ -975,7 +976,8 @@ options noquotelenmax;
     %let rc=%sysfunc(close(&dsid));
   %end;
   %else %do;
-    %put unable to open &libds (rc=&dsid);
+    %put &sysmacroname: Unable to open &libds (rc=&dsid);
+    %put &sysmacroname: SYSMSG= %sysfunc(sysmsg());
     %let rc=%sysfunc(close(&dsid));
   %end;
   &outvar
@@ -12896,6 +12898,10 @@ run;
   @param [in] path= The parent folder in which to create the file
   @param [in] name= The name of the file to be created
   @param [in] inref= The fileref pointing to the file to be uploaded
+  @param [in] contentdisp= (inline) Content Disposition. Example values:
+      @li inline
+      @li attachment
+
   @param [in] access_token_var= The global macro variable to contain the access
     token, if using authorization_code grant type.
   @param [in] grant_type= (sas_services) Valid values are:
@@ -12920,6 +12926,7 @@ run;
 %macro mv_createfile(path=
     ,name=
     ,inref=
+    ,contentdisp=inline
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
     ,mdebug=0
@@ -12967,11 +12974,22 @@ run;
 /* create file with relevant options */
 %local fref;
 %let fref=%mf_getuniquefileref();
-filename &fref filesrvc folderPath="&path" filename="&name";
+filename &fref filesrvc
+  folderPath="&path"
+  filename="&name"
+  cdisp="&contentdisp";
 
 %mp_binarycopy(inref=&inref, outref=&fref)
 
 filename &fref clear;
+
+%local base_uri; /* location of rest apis */
+%let base_uri=%mf_getplatform(VIYARESTAPI);
+
+%put &sysmacroname: File &name successfully created in &path;
+%put &sysmacroname:;%put;
+%put    &base_uri/SASJobExecution?_file=&path/&name;%put;
+%put &sysmacroname:;
 
 %mend mv_createfile;/**
   @file mv_createfolder.sas

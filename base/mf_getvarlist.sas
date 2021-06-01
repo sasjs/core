@@ -66,7 +66,8 @@
     %let rc=%sysfunc(close(&dsid));
   %end;
   %else %do;
-    %put unable to open &libds (rc=&dsid);
+    %put &sysmacroname: Unable to open &libds (rc=&dsid);
+    %put &sysmacroname: SYSMSG= %sysfunc(sysmsg());
     %let rc=%sysfunc(close(&dsid));
   %end;
   &outvar

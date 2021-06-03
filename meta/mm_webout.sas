@@ -36,7 +36,12 @@
 %macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y);
 %global _webin_file_count _webin_fileref1 _webin_name1 _program _debug
   sasjs_tables;
-%local i tempds;
+%local i tempds jsonengine;
+
+/* see https://github.com/sasjs/core/issues/41 */
+%if %upcase(&SYSENCODING)=WLATIN1 %then %let jsonengine=PROCJSON;
+%else %let jsonengine=DATASTEP;
+
 
 %if &action=FETCH %then %do;
   %if %str(&_debug) ge 131 %then %do;
@@ -71,7 +76,7 @@
   OPTIONS NOBOMFILE;
 
   /**
-    * check engine type to avoid the below err message:
+    * check xengine type to avoid the below err message:
     * > Function is only valid for filerefs using the CACHE access method.
     */
   data _null_;
@@ -93,7 +98,7 @@
 
 %else %if &action=ARR or &action=OBJ %then %do;
   %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt,jref=&fref
-    ,engine=DATASTEP,dbg=%str(&_debug)
+    ,engine=&jsonengine,dbg=%str(&_debug)
   )
 %end;
 %else %if &action=CLOSE %then %do;
@@ -106,7 +111,7 @@
     %local wtcnt;%let wtcnt=0;
     data _null_;
       set &tempds;
-      if not (name =:"DATA");
+      if not (upcase(name) =:"DATA"); /* ignore temp datasets */
       i+1;
       call symputx('wt'!!left(i),name,'l');
       call symputx('wtcnt',i,'l');
@@ -126,8 +131,8 @@
         put " ""&wt"" : {";
         put '"nlobs":' nlobs;
         put ',"nvars":' nvars;
-      %mp_jsonout(OBJ,&tempds,jref=&fref,dslabel=colattrs,engine=DATASTEP)
-      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,engine=DATASTEP)
+      %mp_jsonout(OBJ,&tempds,jref=&fref,dslabel=colattrs,engine=&jsonengine)
+      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,engine=&jsonengine)
       data _null_; file &fref mod encoding='utf-8';
         put "}";
     %end;

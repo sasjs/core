@@ -67,7 +67,8 @@ options noquotelenmax;
   %if %sysfunc(exist(&libds)) ne 1 & %sysfunc(exist(&libds,VIEW)) ne 1 %then 0;
   %else 1;
 
-%mend;/**
+%mend mf_existds;
+/**
   @file
   @brief Checks whether a feature exists
   @details Check to see if a feature is supported in your environment.
@@ -975,7 +976,8 @@ options noquotelenmax;
     %let rc=%sysfunc(close(&dsid));
   %end;
   %else %do;
-    %put unable to open &libds (rc=&dsid);
+    %put &sysmacroname: Unable to open &libds (rc=&dsid);
+    %put &sysmacroname: SYSMSG= %sysfunc(sysmsg());
     %let rc=%sysfunc(close(&dsid));
   %end;
   &outvar
@@ -9036,7 +9038,12 @@ data _null_;
   put '%macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y); ';
   put '%global _webin_file_count _webin_fileref1 _webin_name1 _program _debug ';
   put '  sasjs_tables; ';
-  put '%local i tempds; ';
+  put '%local i tempds jsonengine; ';
+  put ' ';
+  put '/* see https://github.com/sasjs/core/issues/41 */ ';
+  put '%if %upcase(&SYSENCODING)=WLATIN1 %then %let jsonengine=PROCJSON; ';
+  put '%else %let jsonengine=DATASTEP; ';
+  put ' ';
   put ' ';
   put '%if &action=FETCH %then %do; ';
   put '  %if %str(&_debug) ge 131 %then %do; ';
@@ -9071,7 +9078,7 @@ data _null_;
   put '  OPTIONS NOBOMFILE; ';
   put ' ';
   put '  /** ';
-  put '    * check engine type to avoid the below err message: ';
+  put '    * check xengine type to avoid the below err message: ';
   put '    * > Function is only valid for filerefs using the CACHE access method. ';
   put '    */ ';
   put '  data _null_; ';
@@ -9093,7 +9100,7 @@ data _null_;
   put ' ';
   put '%else %if &action=ARR or &action=OBJ %then %do; ';
   put '  %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt,jref=&fref ';
-  put '    ,engine=DATASTEP,dbg=%str(&_debug) ';
+  put '    ,engine=&jsonengine,dbg=%str(&_debug) ';
   put '  ) ';
   put '%end; ';
   put '%else %if &action=CLOSE %then %do; ';
@@ -9106,7 +9113,7 @@ data _null_;
   put '    %local wtcnt;%let wtcnt=0; ';
   put '    data _null_; ';
   put '      set &tempds; ';
-  put '      if not (name =:"DATA"); ';
+  put '      if not (upcase(name) =:"DATA"); /* ignore temp datasets */ ';
   put '      i+1; ';
   put '      call symputx(''wt''!!left(i),name,''l''); ';
   put '      call symputx(''wtcnt'',i,''l''); ';
@@ -9126,8 +9133,8 @@ data _null_;
   put '        put " ""&wt"" : {"; ';
   put '        put ''"nlobs":'' nlobs; ';
   put '        put '',"nvars":'' nvars; ';
-  put '      %mp_jsonout(OBJ,&tempds,jref=&fref,dslabel=colattrs,engine=DATASTEP) ';
-  put '      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,engine=DATASTEP) ';
+  put '      %mp_jsonout(OBJ,&tempds,jref=&fref,dslabel=colattrs,engine=&jsonengine) ';
+  put '      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,engine=&jsonengine) ';
   put '      data _null_; file &fref mod encoding=''utf-8''; ';
   put '        put "}"; ';
   put '    %end; ';
@@ -12522,7 +12529,12 @@ run;
 %macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y);
 %global _webin_file_count _webin_fileref1 _webin_name1 _program _debug
   sasjs_tables;
-%local i tempds;
+%local i tempds jsonengine;
+
+/* see https://github.com/sasjs/core/issues/41 */
+%if %upcase(&SYSENCODING)=WLATIN1 %then %let jsonengine=PROCJSON;
+%else %let jsonengine=DATASTEP;
+
 
 %if &action=FETCH %then %do;
   %if %str(&_debug) ge 131 %then %do;
@@ -12557,7 +12569,7 @@ run;
   OPTIONS NOBOMFILE;
 
   /**
-    * check engine type to avoid the below err message:
+    * check xengine type to avoid the below err message:
     * > Function is only valid for filerefs using the CACHE access method.
     */
   data _null_;
@@ -12579,7 +12591,7 @@ run;
 
 %else %if &action=ARR or &action=OBJ %then %do;
   %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt,jref=&fref
-    ,engine=DATASTEP,dbg=%str(&_debug)
+    ,engine=&jsonengine,dbg=%str(&_debug)
   )
 %end;
 %else %if &action=CLOSE %then %do;
@@ -12592,7 +12604,7 @@ run;
     %local wtcnt;%let wtcnt=0;
     data _null_;
       set &tempds;
-      if not (name =:"DATA");
+      if not (upcase(name) =:"DATA"); /* ignore temp datasets */
       i+1;
       call symputx('wt'!!left(i),name,'l');
       call symputx('wtcnt',i,'l');
@@ -12612,8 +12624,8 @@ run;
         put " ""&wt"" : {";
         put '"nlobs":' nlobs;
         put ',"nvars":' nvars;
-      %mp_jsonout(OBJ,&tempds,jref=&fref,dslabel=colattrs,engine=DATASTEP)
-      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,engine=DATASTEP)
+      %mp_jsonout(OBJ,&tempds,jref=&fref,dslabel=colattrs,engine=&jsonengine)
+      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,engine=&jsonengine)
       data _null_; file &fref mod encoding='utf-8';
         put "}";
     %end;
@@ -12896,6 +12908,10 @@ run;
   @param [in] path= The parent folder in which to create the file
   @param [in] name= The name of the file to be created
   @param [in] inref= The fileref pointing to the file to be uploaded
+  @param [in] contentdisp= (inline) Content Disposition. Example values:
+      @li inline
+      @li attachment
+
   @param [in] access_token_var= The global macro variable to contain the access
     token, if using authorization_code grant type.
   @param [in] grant_type= (sas_services) Valid values are:
@@ -12920,6 +12936,7 @@ run;
 %macro mv_createfile(path=
     ,name=
     ,inref=
+    ,contentdisp=inline
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
     ,mdebug=0
@@ -12967,11 +12984,22 @@ run;
 /* create file with relevant options */
 %local fref;
 %let fref=%mf_getuniquefileref();
-filename &fref filesrvc folderPath="&path" filename="&name";
+filename &fref filesrvc
+  folderPath="&path"
+  filename="&name"
+  cdisp="&contentdisp";
 
 %mp_binarycopy(inref=&inref, outref=&fref)
 
 filename &fref clear;
+
+%local base_uri; /* location of rest apis */
+%let base_uri=%mf_getplatform(VIYARESTAPI);
+
+%put &sysmacroname: File &name successfully created in &path;
+%put &sysmacroname:;%put;
+%put    &base_uri/SASJobExecution?_file=&path/&name;%put;
+%put &sysmacroname:;
 
 %mend mv_createfile;/**
   @file mv_createfolder.sas
@@ -14014,8 +14042,9 @@ data _null_;
   put '    ods output Members=&tempds; ';
   put '    proc datasets library=WORK memtype=data; ';
   put '    %local wtcnt;%let wtcnt=0; ';
-  put '    data _null_; set &tempds; ';
-  put '      if not (name =:"DATA"); ';
+  put '    data _null_; ';
+  put '      set &tempds; ';
+  put '      if not (upcase(name) =:"DATA"); /* ignore temp datasets */ ';
   put '      i+1; ';
   put '      call symputx(''wt''!!left(i),name); ';
   put '      call symputx(''wtcnt'',i); ';
@@ -17814,8 +17843,9 @@ filename &fref1 clear;
     ods output Members=&tempds;
     proc datasets library=WORK memtype=data;
     %local wtcnt;%let wtcnt=0;
-    data _null_; set &tempds;
-      if not (name =:"DATA");
+    data _null_;
+      set &tempds;
+      if not (upcase(name) =:"DATA"); /* ignore temp datasets */
       i+1;
       call symputx('wt'!!left(i),name);
       call symputx('wtcnt',i);

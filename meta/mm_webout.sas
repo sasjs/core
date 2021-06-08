@@ -39,7 +39,7 @@
 %local i tempds jsonengine;
 
 /* see https://github.com/sasjs/core/issues/41 */
-%if %upcase(&SYSENCODING)=WLATIN1 %then %let jsonengine=PROCJSON;
+%if "%upcase(&SYSENCODING)"="WLATIN1" %then %let jsonengine=PROCJSON;
 %else %let jsonengine=DATASTEP;
 
 

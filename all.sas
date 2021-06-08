@@ -9041,7 +9041,7 @@ data _null_;
   put '%local i tempds jsonengine; ';
   put ' ';
   put '/* see https://github.com/sasjs/core/issues/41 */ ';
-  put '%if %upcase(&SYSENCODING)=WLATIN1 %then %let jsonengine=PROCJSON; ';
+  put '%if "%upcase(&SYSENCODING)"="WLATIN1" %then %let jsonengine=PROCJSON; ';
   put '%else %let jsonengine=DATASTEP; ';
   put ' ';
   put ' ';
@@ -12532,7 +12532,7 @@ run;
 %local i tempds jsonengine;
 
 /* see https://github.com/sasjs/core/issues/41 */
-%if %upcase(&SYSENCODING)=WLATIN1 %then %let jsonengine=PROCJSON;
+%if "%upcase(&SYSENCODING)"="WLATIN1" %then %let jsonengine=PROCJSON;
 %else %let jsonengine=DATASTEP;
 
 

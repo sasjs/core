@@ -24,7 +24,8 @@
         put '%let mmxpass="Mars321";';
       run;
 
-      filename myref "%sysfunc(pathname(work))/mmxexport.sh";
+      filename myref "%sysfunc(pathname(work))/mmxexport.sh"
+        permission='A::u::rwx,A::g::r-x,A::o::---';
       %mm_spkexport(metaloc=%str(/my/meta/loc)
           ,outref=myref
           ,secureref=tmp
@@ -33,7 +34,8 @@
 
   Alternatively, call without inputs to create a function style output
 
-      filename myref "/tmp/mmscript.sh";
+      filename myref "/tmp/mmscript.sh"
+        permission='A::u::rwx,A::g::r-x,A::o::---';
       %mm_spkexport(metaloc=%str(/my/meta/loc)
           outref=myref
           ,cmdoutloc=%str(/tmp)
@@ -119,4 +121,4 @@ run;
   ,msg=%str(syscc=&syscc)
 )
 
-%mend;
+%mend mm_spkexport;

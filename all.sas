@@ -11769,7 +11769,8 @@ filename __shake clear;
         put '%let mmxpass="Mars321";';
       run;
 
-      filename myref "%sysfunc(pathname(work))/mmxexport.sh";
+      filename myref "%sysfunc(pathname(work))/mmxexport.sh"
+        permission='A::u::rwx,A::g::r-x,A::o::---';
       %mm_spkexport(metaloc=%str(/my/meta/loc)
           ,outref=myref
           ,secureref=tmp
@@ -11778,7 +11779,8 @@ filename __shake clear;
 
   Alternatively, call without inputs to create a function style output
 
-      filename myref "/tmp/mmscript.sh";
+      filename myref "/tmp/mmscript.sh"
+        permission='A::u::rwx,A::g::r-x,A::o::---';
       %mm_spkexport(metaloc=%str(/my/meta/loc)
           outref=myref
           ,cmdoutloc=%str(/tmp)
@@ -11864,7 +11866,7 @@ run;
   ,msg=%str(syscc=&syscc)
 )
 
-%mend;/**
+%mend mm_spkexport;/**
   @file mm_tree.sas
   @brief Returns all folders / subfolder content for a particular root
   @details Shows all members and SubTrees for a particular root.

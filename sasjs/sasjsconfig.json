@@ -30,13 +30,16 @@
       "name": "viya",
       "serverUrl": "https://sas.analytium.co.uk",
       "serverType": "SASVIYA",
+      "allowInsecureRequests": false,
       "appLoc": "/Public/temp/macrocore",
-      "deployConfig": {
-        "deployServicePack": true
-      },
       "macroFolders": [
         "tests/viya"
       ],
+      "programFolders": [],
+      "deployConfig": {
+        "deployServicePack": true,
+        "deployScripts": []
+      },
       "contextName": "SAS Job Execution compute context"
     },
     {

@@ -675,6 +675,22 @@ run;
         rc =fput(fileid,'0');rc =fwrite(fileid);
         rc =fput(fileid,'1');rc =fwrite(fileid);
       end;
+      else if rec='07'x then do; /* Bell Char */
+        rc =fput(fileid,'\');rc =fwrite(fileid);
+        rc =fput(fileid,'u');rc =fwrite(fileid);
+        rc =fput(fileid,'0');rc =fwrite(fileid);
+        rc =fput(fileid,'0');rc =fwrite(fileid);
+        rc =fput(fileid,'0');rc =fwrite(fileid);
+        rc =fput(fileid,'7');rc =fwrite(fileid);
+      end;
+      else if rec='1B'x then do; /* escape char */
+        rc =fput(fileid,'\');rc =fwrite(fileid);
+        rc =fput(fileid,'u');rc =fwrite(fileid);
+        rc =fput(fileid,'0');rc =fwrite(fileid);
+        rc =fput(fileid,'0');rc =fwrite(fileid);
+        rc =fput(fileid,'1');rc =fwrite(fileid);
+        rc =fput(fileid,'B');rc =fwrite(fileid);
+      end;
       else do;
         rc =fput(fileid,rec);
         rc =fwrite(fileid);

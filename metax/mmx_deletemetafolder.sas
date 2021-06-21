@@ -37,4 +37,4 @@ data _null_;
   putlog _infile_;
 run;
 
-%mend;
+%mend mmx_deletemetafolder;

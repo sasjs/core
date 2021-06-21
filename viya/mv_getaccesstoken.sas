@@ -29,4 +29,4 @@
   ,refresh_token_var=&refresh_token_var
 )
 
-%mend;
+%mend mv_getaccesstoken;

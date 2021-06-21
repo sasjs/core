@@ -83,4 +83,4 @@ insert into &outds values ('User');
 insert into &outds values ('UserGroup');
 quit;
 
-%mend;
+%mend mm_getpublictypes;

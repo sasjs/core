@@ -48,6 +48,6 @@
 
   &engine
 
-%mend;
+%mend mf_getengine;
 
 /** @endcond */

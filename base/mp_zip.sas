@@ -76,4 +76,4 @@ ods package publish archive properties
   (archive_name="&outname..zip" archive_path="&outpath");
 ods package close;
 
-%mend;
+%mend mp_zip;

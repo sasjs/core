@@ -39,4 +39,4 @@
 
   %quote(&user)
 
-%mend;
+%mend mf_getuser;

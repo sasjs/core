@@ -49,4 +49,4 @@
 
   quit;
 
-%mend;
+%mend mp_setkeyvalue;

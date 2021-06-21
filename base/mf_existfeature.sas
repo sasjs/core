@@ -42,6 +42,6 @@
     -1
     %put &sysmacroname: &feature not found;
   %end;
-%mend;
+%mend mf_existfeature;
 
 /** @endcond */

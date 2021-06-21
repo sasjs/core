@@ -64,4 +64,4 @@ run;
 %if &result=SUCCESS %then %put NOTE: SUCCESS: STP &target changed to &type type;
 %else %put %str(ERR)OR: Issue with &sysmacroname;
 
-%mend;
+%mend mm_updatestpservertype;

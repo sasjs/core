@@ -88,4 +88,4 @@ data _null_;
     !!",level=%eval(&level+1),append=YES)");
 run;
 
-%mend;
+%mend mm_getfoldertree;

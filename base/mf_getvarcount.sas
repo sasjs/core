@@ -29,4 +29,4 @@
     %let rc=%sysfunc(close(&dsid));
   %end;
   &nvars
-%mend;
+%mend mf_getvarcount;

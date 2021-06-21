@@ -415,7 +415,7 @@ data _null_;
   put ' ';
   put '  %quote(&user) ';
   put ' ';
-  put '%mend; ';
+  put '%mend mf_getuser; ';
 /* WEBOUT END */
   put '%macro webout(action,ds,dslabel=,fmt=);';
   put '  %mm_webout(&action,ds=&ds,dslabel=&dslabel,fmt=&fmt)';

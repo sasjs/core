@@ -95,4 +95,4 @@ run;
 
 filename __us2grp clear;
 
-%mend;
+%mend mm_adduser2group;

@@ -51,4 +51,4 @@ returns:
   /* Return variable number */
     &vnum.
 
-%mend;
+%mend mf_getVarNum;

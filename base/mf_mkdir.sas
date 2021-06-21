@@ -64,4 +64,4 @@ Usage:
     %end;
   %end;
   /* exit quietly if directory did exist.*/
-%mend;
+%mend mf_mkdir;

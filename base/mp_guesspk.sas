@@ -301,4 +301,4 @@
     %return;
   %end;
 
-%mend;
+%mend mp_guesspk;

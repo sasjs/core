@@ -67,4 +67,4 @@ run;
   %return;
 %end;
 
-%mend;
+%mend mm_deletestp;

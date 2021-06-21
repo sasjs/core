@@ -67,4 +67,4 @@ filename sxlemap clear;
 filename response clear;
 libname _XML_ clear;
 
-%mend;
+%mend mm_getobjects;

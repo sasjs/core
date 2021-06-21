@@ -31,4 +31,4 @@
     %sysfunc(attrc(&dsid,&attr))
     %let rc=%sysfunc(close(&dsid));
   %end;
-%mend;
+%mend mf_getattrc;

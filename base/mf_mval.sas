@@ -16,4 +16,4 @@
   %if %symexist(&var) %then %do;
     %superq(&var)
   %end;
-%mend;
+%mend mf_mval;

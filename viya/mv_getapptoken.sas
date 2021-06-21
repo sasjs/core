@@ -20,4 +20,4 @@
   ,grant_type=&grant_type
 )
 
-%mend;
+%mend mv_getapptoken;

@@ -53,4 +53,4 @@
   %if &outref=____out %then %do;
     filename &outref clear;
   %end;
-%mend;
+%mend mp_binarycopy;

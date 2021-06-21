@@ -31,4 +31,4 @@
 
   &is_directory
 
-%mend;
+%mend mf_isdir;

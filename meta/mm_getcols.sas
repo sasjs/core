@@ -50,4 +50,4 @@ proc sort;
   by colname;
 run;
 
-%mend;
+%mend mm_getcols;

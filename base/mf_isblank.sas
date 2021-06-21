@@ -24,4 +24,4 @@
 
   %sysevalf(%superq(param)=,boolean)
 
-%mend;
+%mend mf_isblank;

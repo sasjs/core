@@ -29,4 +29,4 @@
   &valc
 %end;
 %else %put %str(ERR)OR: Unable to find key &key in ds &libds;
-%mend;
+%mend mf_getkeyvalue;

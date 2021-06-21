@@ -385,4 +385,4 @@ run;
   %put %str(WARN)ING:  STPTYPE=*&stptype* not recognised!;
 %end;
 
-%mend;
+%mend mm_createstp;

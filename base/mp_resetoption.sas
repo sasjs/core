@@ -30,4 +30,4 @@ data _null_;
   end;
 run;
 
-%mend;
+%mend mp_resetoption;

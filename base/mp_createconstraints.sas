@@ -64,4 +64,4 @@ data &outds;
   output;
 run;
 
-%mend;
+%mend mp_createconstraints;

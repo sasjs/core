@@ -157,4 +157,4 @@ run;
 %end;
 
 %put &sysmacroname: execution finished for &path;
-%mend;
+%mend mm_createfolder;

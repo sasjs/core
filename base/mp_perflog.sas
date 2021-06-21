@@ -39,4 +39,4 @@
         ,dttm=%sysfunc(datetime());
   quit;
 
-%mend;
+%mend mp_perflog;

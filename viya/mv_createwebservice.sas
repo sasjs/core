@@ -621,7 +621,7 @@ data _null_;
   put ' ';
   put '  %quote(&user) ';
   put ' ';
-  put '%mend; ';
+  put '%mend mf_getuser; ';
 /* WEBOUT END */
   put '/* if calling viya service with _job param, _program will conflict */';
   put '/* so it is provided by SASjs instead as __program */';

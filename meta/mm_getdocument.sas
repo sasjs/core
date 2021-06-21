@@ -143,4 +143,4 @@ run;
 filename __getdoc clear;
 filename __outdoc clear;
 
-%mend;
+%mend mm_getdocument;

@@ -85,4 +85,4 @@
     "with record &record and " _n_=;
 %end;
 
-%mend;
+%mend mp_prevobs;

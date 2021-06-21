@@ -167,4 +167,4 @@ run;
     by filepath file_or_folder filename ext ;
   run;
 %end;
-%mend;
+%mend mp_dirlist;

@@ -115,4 +115,4 @@ proc sort;
 by tablename tableuri;
 run;
 
-%mend;
+%mend mm_gettables;

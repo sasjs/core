@@ -26,4 +26,4 @@
   &root
 %end;
 
-%mend;
+%mend mf_loc;

@@ -57,4 +57,4 @@ create table &outds as
   %end;
   ;
 
-%mend;
+%mend mp_getconstraints;

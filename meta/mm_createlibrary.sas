@@ -318,4 +318,4 @@ filename &frefout temp;
   filename &frefout clear;
 %end;
 
-%mend;
+%mend mm_createlibrary;

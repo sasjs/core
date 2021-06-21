@@ -152,4 +152,4 @@ run;
 %else %put NOTE: Application (&name) successfully created in (&tree)!;
 
 
-%mend;
+%mend mm_createapplication;

@@ -49,4 +49,4 @@ data &outds;
   end;
 run;
 
-%mend;
+%mend mp_deleteconstraints;

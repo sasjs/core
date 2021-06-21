@@ -62,4 +62,4 @@ proc sort;
   by type name;
 run;
 
-%mend;
+%mend mm_getdetails;

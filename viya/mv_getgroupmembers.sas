@@ -103,4 +103,4 @@ run;
 /* clear refs */
 filename &fname1 clear;
 
-%mend;
+%mend mv_getgroupmembers;

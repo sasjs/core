@@ -145,4 +145,4 @@ libname &libref clear;
 filename &fref1 clear;
 filename &fref2 clear;
 
-%mend;
+%mend mv_tokenauth;

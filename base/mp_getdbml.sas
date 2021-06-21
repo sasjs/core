@@ -332,4 +332,4 @@ run;
   run;
 %end;
 
-%mend;
+%mend mp_getdbml;

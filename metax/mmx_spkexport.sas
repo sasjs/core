@@ -90,4 +90,4 @@ run;
 
 %inc &fref1;
 
-%mend;
+%mend mmx_spkexport;

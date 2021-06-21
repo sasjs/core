@@ -65,4 +65,4 @@ data &outds;
   if treeuri ne "" and treepath ne "" then output;
   stop;
 run;
-%mend;
+%mend mm_getTree;

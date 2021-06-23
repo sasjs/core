@@ -17,9 +17,13 @@
   @param [in] path= The parent folder in which to create the file
   @param [in] name= The name of the file to be created
   @param [in] inref= The fileref pointing to the file to be uploaded
+  @param [in] intype= (BINARY) The type of the input data.  Valid values:
+    @li BINARY File is copied byte for byte using the mp_binarycopy.sas macro.
+    @li BASE64 File will be first decoded using the mp_base64.sas macro, then
+      loaded byte by byte to SAS Drive.
   @param [in] contentdisp= (inline) Content Disposition. Example values:
-      @li inline
-      @li attachment
+    @li inline
+    @li attachment
 
   @param [in] access_token_var= The global macro variable to contain the access
     token, if using authorization_code grant type.
@@ -37,6 +41,7 @@
   @li mf_getuniquefileref.sas
   @li mf_isblank.sas
   @li mp_abort.sas
+  @li mp_base64.sas
   @li mp_binarycopy.sas
   @li mv_createfolder.sas
 
@@ -45,6 +50,7 @@
 %macro mv_createfile(path=
     ,name=
     ,inref=
+    ,intype=BINARY
     ,contentdisp=inline
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
@@ -99,7 +105,12 @@ filename &fref filesrvc
   cdisp="&contentdisp"
   lrecl=1048544;
 
-%mp_binarycopy(inref=&inref, outref=&fref)
+%if &intype=BINARY %then %do;
+  %mp_binarycopy(inref=&inref, outref=&fref)
+%end;
+%else %if &intype=BASE64 %then %do;
+  %mp_base64copy(inref=&inref, outref=&fref, action=DECODE)
+%end;
 
 filename &fref clear;
 

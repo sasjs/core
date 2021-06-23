@@ -2177,6 +2177,7 @@ Usage:
   @details Creates a new version of a file either encoded or decoded using
   Base64.  Inspired by this post by Michael Dixon:
   https://support.selerity.com.au/hc/en-us/articles/223345708-Tip-SAS-and-Base64
+
   Usage:
 
         filename tmp temp;
@@ -2200,16 +2201,18 @@ Usage:
           put _infile_;
         run;
 
-  @param inref= Fileref of the input file (should exist)
-  @param outref= Output filref. If it does not exist, it is created.
-  @param action= (ENCODE) The action to take. Valid values:
-    @li ENCODE Convert the file to base64 format
-    @li DECODE Decode the file from base64 format
+  @param [in] inref= Fileref of the input file (should exist)
+  @param [out] outref= Output fileref. If it does not exist, it is created.
+  @param [in] action= (ENCODE) The action to take. Valid values:
+    @li ENCODE - Convert the file to base64 format
+    @li DECODE - Decode the file from base64 format
+
+  @version 9.2
+  @author Allan Bowe, source: https://github.com/sasjs/core
 
   <h4> SAS Macros </h4>
   @li mp_abort.sas
 
-  @version 9.2
 
 **/
 

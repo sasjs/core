@@ -96,7 +96,8 @@
 filename &fref filesrvc
   folderPath="&path"
   filename="&name"
-  cdisp="&contentdisp";
+  cdisp="&contentdisp"
+  lrecl=1048544;
 
 %mp_binarycopy(inref=&inref, outref=&fref)
 

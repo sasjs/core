@@ -41,7 +41,7 @@
   @li mf_getuniquefileref.sas
   @li mf_isblank.sas
   @li mp_abort.sas
-  @li mp_base64.sas
+  @li mp_base64copy.sas
   @li mp_binarycopy.sas
   @li mv_createfolder.sas
 

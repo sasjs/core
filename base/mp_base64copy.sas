@@ -53,7 +53,7 @@
 %let infound=0;
 %let outfound=0;
 data _null_;
-  set sashelp.vextfl(where=(upcase(fileref)="&inref" or fileref="&outref"));
+  set sashelp.vextfl(where=(fileref="&inref" or fileref="&outref"));
   if fileref="&inref" then call symputx('infound',1,'l');
   if fileref="&outref" then call symputx('outfound',1,'l');
 run;

@@ -12702,7 +12702,9 @@ data _null_;
   putlog _infile_;
 run;
 
-%mend mmx_deletemetafolder;/**
+
+%mend mmx_deletemetafolder;
+/**
   @file mmx_spkexport.sas
   @brief Exports everything in a particular metadata folder
   @details Will export everything in a metadata folder to a specified location.
@@ -12989,7 +12991,8 @@ run;
 filename &fref filesrvc
   folderPath="&path"
   filename="&name"
-  cdisp="&contentdisp";
+  cdisp="&contentdisp"
+  lrecl=1048544;
 
 %mp_binarycopy(inref=&inref, outref=&fref)
 

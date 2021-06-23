@@ -113,4 +113,4 @@ run;
   run;
 %end;
 
-%mend;
+%mend mm_updatedocument;

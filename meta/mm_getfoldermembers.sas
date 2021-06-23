@@ -93,4 +93,4 @@
   run;
 %end;
 
-%mend;
+%mend mm_getfoldermembers;

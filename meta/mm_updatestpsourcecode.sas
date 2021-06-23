@@ -137,4 +137,4 @@ run;
   filename &frefout clear;
 %end;
 
-%mend;
+%mend mm_updatestpsourcecode;

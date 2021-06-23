@@ -87,4 +87,4 @@ insert into &outds select distinct * from &append_ds;
     )
 %end;
 
-%mend;
+%mend mp_recursivejoin;

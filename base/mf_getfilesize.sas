@@ -44,4 +44,4 @@
     %sysfunc(INPUTN(&bytes, best.),sizekmg.)
   %end;
 
-%mend ;
+%mend mf_getfilesize ;

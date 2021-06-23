@@ -62,4 +62,4 @@
     %else %mf_abort(mac=mf_verifymacvars,type=&mabort,msg=&abortmsg);
   %exit_success:
 
-%mend;
+%mend mf_verifymacvars;

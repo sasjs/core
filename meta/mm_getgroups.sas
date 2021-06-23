@@ -92,4 +92,4 @@
   options metarepository=&oldrepo;
 %end;
 
-%mend;
+%mend mm_getGroups;

@@ -251,4 +251,4 @@ quit;
 %put NOTE-;%put NOTE-;
 %put NOTE- %sysfunc(dequote(&cards_file.));
 %put NOTE-;%put NOTE-;
-%mend;
+%mend mp_ds2cards;

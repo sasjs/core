@@ -107,4 +107,4 @@ data &outds ;
   keep stpuri stpname treeuri;
 run;
 
-%mend;
+%mend mm_getstps;

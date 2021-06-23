@@ -64,4 +64,4 @@ data &outds;
   end;
 run;
 
-%mend;
+%mend mm_gettableid;

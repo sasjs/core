@@ -80,4 +80,4 @@ data _null_;
   if last then call execute('call missing(of _all_);stop;run;');
 run;
 
-%mend;
+%mend mm_createdataset;

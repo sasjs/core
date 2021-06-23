@@ -38,6 +38,6 @@
 
   &schema
 
-%mend;
+%mend mf_getschema;
 
 /** @endcond */

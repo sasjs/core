@@ -63,4 +63,4 @@ data _null_;
     !!'filename &fname2 clear; filename &fname3 clear;');
 run;
 
-%mend;
+%mend mp_unzip;

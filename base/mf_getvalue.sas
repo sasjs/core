@@ -30,4 +30,4 @@
     %trim(&&&variable)
 
   %end;
-%mend;
+%mend mf_getvalue;

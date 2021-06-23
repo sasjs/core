@@ -113,4 +113,4 @@ run;
 
 filename &fileref clear;
 
-%mend;
+%mend mm_getauthinfo;

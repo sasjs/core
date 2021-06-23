@@ -47,4 +47,4 @@
   &basestr
 %end;
 
-%mend;
+%mend mf_trimstr;

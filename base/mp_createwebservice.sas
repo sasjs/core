@@ -80,4 +80,4 @@ Usage:
   )
 %end;
 
-%mend;
+%mend mp_createwebservice;

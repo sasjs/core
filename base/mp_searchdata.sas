@@ -117,4 +117,4 @@ proc sql
 
 %put process finished at %sysfunc(datetime(),datetime19.);
 
-%mend;
+%mend mp_searchdata;

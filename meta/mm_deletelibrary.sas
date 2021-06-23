@@ -89,4 +89,4 @@ run;
 
 %put &sysmacroname: Library &name (&liburi) was successfully deleted;
 
-%mend;
+%mend mm_deletelibrary;

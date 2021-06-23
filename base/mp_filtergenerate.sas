@@ -99,4 +99,4 @@ filename &outref temp;
   run;
 %end;
 
-%mend;
+%mend mp_filtergenerate;

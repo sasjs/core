@@ -142,4 +142,4 @@
   proc sql;
   drop table &ds;
 
-%mend;
+%mend mp_assertcols;

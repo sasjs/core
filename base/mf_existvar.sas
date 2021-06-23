@@ -30,6 +30,6 @@
       %let rc=%sysfunc(close(&dsid));
   %end;
 
-%mend;
+%mend mf_existvar;
 
 /** @endcond */

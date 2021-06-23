@@ -23,4 +23,4 @@
 %macro mf_nobs(libds
 )/*/STORE SOURCE*/;
   %mf_getattrn(&libds,NLOBS)
-%mend;
+%mend mf_nobs;

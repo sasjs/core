@@ -49,4 +49,4 @@
   %let rc = %sysfunc(close(&dsid));
   /* Return variable format */
   &vlen
-%mend;
+%mend mf_getVarLen;

@@ -50,5 +50,5 @@
 
   &outvar
 
-%mend;
+%mend mf_wordsInStr1ButNotStr2;
 

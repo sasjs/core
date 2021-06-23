@@ -34,4 +34,4 @@
   %end;
   %end;
   %put unable to find available fileref in range &prefix.0-&maxtries;
-%mend;
+%mend mf_getuniquefileref;

@@ -37,4 +37,4 @@
   %end;
   %end;
   %put unable to find available libref in range &prefix.0-&maxtries;
-%mend;
+%mend mf_getuniquelibref;

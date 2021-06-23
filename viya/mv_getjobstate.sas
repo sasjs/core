@@ -166,4 +166,4 @@ run;
 
 filename &fname0 clear;
 
-%mend;
+%mend mv_getjobstate;

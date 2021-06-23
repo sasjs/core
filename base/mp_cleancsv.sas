@@ -67,5 +67,5 @@
       else put inchar $char1.;
     end;
   run;
-%mend;
+%mend mp_cleancsv;
 /** @endcond */

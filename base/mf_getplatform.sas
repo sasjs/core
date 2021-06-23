@@ -62,4 +62,4 @@
 %else %if &switch=VIYARESTAPI %then %do;
   %mf_trimstr(%sysfunc(getoption(servicesbaseurl)),/)
 %end;
-%mend;
+%mend mf_getplatform;

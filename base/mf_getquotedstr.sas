@@ -50,4 +50,4 @@
 
   &buffer
 
-%mend;
+%mend mf_getquotedstr;

@@ -145,4 +145,4 @@ libname &libref1 clear;
 filename &fname1a clear;
 libname &libref1a clear;
 
-%mend;
+%mend mv_deletejes;

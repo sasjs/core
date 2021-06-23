@@ -69,4 +69,4 @@
     end;
   run;
 
-%mend;
+%mend mm_getgroupmembers;

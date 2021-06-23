@@ -47,4 +47,4 @@
     %end;
         as &outvar length=&varlen
     from &libds;
-%mend;
+%mend mp_distinctfmtvalues;

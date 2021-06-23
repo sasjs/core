@@ -24,4 +24,4 @@
     0
   %end;
 
-%mend;
+%mend mf_existfileref;

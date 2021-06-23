@@ -134,4 +134,4 @@ run;
   %mp_binarycopy(inloc="&inloc",outref=_webout)
 %end;
 
-%mend;
+%mend mp_streamfile;

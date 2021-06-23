@@ -75,4 +75,4 @@
 %else %do;
   %put NOTE: Library &libref is already assigned;
 %end;
-%mend;
+%mend mm_assignlib;

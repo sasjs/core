@@ -90,4 +90,4 @@ alter table &libds modify &var char(&len);
 
 %mp_createconstraints(inds=&dsconst,outds=&dsconst._addd,execute=YES)
 
-%mend;
+%mend mp_updatevarlength;

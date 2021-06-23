@@ -391,4 +391,4 @@ run;
 
 %inc "%sysfunc(pathname(work))/ml_json.lua";
 
-%mend;
+%mend ml_json;

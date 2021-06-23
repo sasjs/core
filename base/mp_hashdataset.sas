@@ -72,4 +72,4 @@
       if &lastvar then output;
     run;
   %end;
-%mend;
+%mend mp_hashdataset;

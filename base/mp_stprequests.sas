@@ -71,4 +71,4 @@
   proc append base=&libds data=&syslast nowarn;run;
 
   options &etls_syntaxcheck;
-%mend;
+%mend mp_stprequests;

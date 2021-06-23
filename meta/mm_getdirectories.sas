@@ -54,4 +54,4 @@ data &outds (keep=directoryuri name directoryname directorydesc );
   end;
 run;
 
-%mend;
+%mend mm_getDirectories;

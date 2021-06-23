@@ -54,6 +54,6 @@
     0
     %put Vars not found: &found;
   %end;
-%mend;
+%mend mf_existvarlist;
 
 /** @endcond */

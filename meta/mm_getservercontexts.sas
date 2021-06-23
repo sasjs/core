@@ -81,4 +81,4 @@ options metarepository=&repo;
 filename __mc1 clear;
 filename __mc2 clear;
 
-%mend;
+%mend mm_getservercontexts;

@@ -132,4 +132,4 @@ filename __in clear;
 filename __out clear;
 filename __shake clear;
 
-%mend;
+%mend mm_getwebappsrvprops;

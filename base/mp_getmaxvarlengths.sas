@@ -70,4 +70,4 @@ create table &outds (rename=(
     out=&outds(rename=(_name_=NAME COL1=MAXLEN));
   run;
 
-%mend;
+%mend mp_getmaxvarlengths;

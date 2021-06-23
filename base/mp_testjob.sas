@@ -89,4 +89,4 @@ quit;
 libname &lib clear;
 
 
-%mend;
+%mend mp_testjob;

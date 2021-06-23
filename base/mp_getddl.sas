@@ -115,7 +115,7 @@ create table _data_ as
   end;
   run;
   %put &=constraints_used;
-%mend;
+%mend addConst;
 
 data _null_;
   file &fref;
@@ -378,4 +378,4 @@ run;
   run;
 %end;
 
-%mend;
+%mend mp_getddl;

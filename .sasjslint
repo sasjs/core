@@ -2,7 +2,7 @@
     "noTrailingSpaces": true,
     "noEncodedPasswords": true,
     "hasDoxygenHeader": true,
-    "hasMacroNameInMend": false,
+    "hasMacroNameInMend": true,
     "hasMacroParentheses": true,
     "noNestedMacros": false,
     "noSpacesInFileNames": true,

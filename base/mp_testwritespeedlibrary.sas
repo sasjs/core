@@ -56,4 +56,4 @@ data &outds;
   duration_seconds=end_dttm-start_dttm;
 run;
 
-%mend;
+%mend mp_testwritespeedlibrary;

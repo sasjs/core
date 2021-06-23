@@ -23,7 +23,7 @@ for file in files:
           ml.write("  put '" + line.rstrip().replace("'","''") + " ';\n")
     ml.write("run;\n\n")
     ml.write("%inc \"%sysfunc(pathname(work))/" + name + ".lua\";\n\n")
-    ml.write("%mend;\n")
+    ml.write("%mend " + name + ";\n")
 
 ml.close()
 

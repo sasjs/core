@@ -75,4 +75,4 @@ select distinct lowcase(memname)
   )
 %end;
 
-%mend;
+%mend mp_lib2cards;

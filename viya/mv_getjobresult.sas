@@ -90,7 +90,6 @@
 **/
 
 %macro mv_getjobresult(uri=0
-    ,contextName=SAS Job Execution compute context
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
     ,mdebug=0
@@ -204,10 +203,11 @@ proc http method='GET' out=&fname2 &oauth_bearer
   ;
 run;
 %if &mdebug=1 %then %do;
+  /* send one char at a time as the json can be very wide */
   data _null_;
-    infile &fname2 lrecl=32767;
-    input;
-    putlog _infile_;
+    infile &fname2 recfm=n;
+    input char $char1. ;
+    putlog char $char1. @;
   run;
 %end;
 

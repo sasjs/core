@@ -66,7 +66,7 @@
 
   @param [in] access_token_var= The global macro variable to contain the access
     token
-  @param [in] mdebug= set to 1 to enable DEBUG messages
+  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
   @param [in] grant_type= valid values:
     @li password
     @li authorization_code
@@ -91,7 +91,6 @@
 **/
 
 %macro mv_getjoblog(uri=0,outref=0
-    ,contextName=SAS Job Execution compute context
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
     ,mdebug=0

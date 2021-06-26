@@ -33,6 +33,6 @@
     "postinstall": "[ -d .git ] && git config core.hooksPath ./.git-hooks || true"
   },
   "devDependencies": {
-    "@sasjs/cli": "^2.27.0"
+    "@sasjs/cli": "2.27.0"
   }
 }

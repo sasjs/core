@@ -6363,8 +6363,11 @@ libname &lib clear;
     |mustbevalidname|can be anything, oops, %abort!!|
 
   @param [in] debug= (log) Provide the _debug value
-  @param [in] viyaresult=(WEBOUT_JSON) The Viya result type to return.  For
+  @param [in] mdebug= (0) Set to 1 to provide macro debugging
+  @param [in] viyaresult= (WEBOUT_JSON) The Viya result type to return.  For
     more info, see mv_getjobresult.sas
+  @param [in] viyacontext= (SAS Job Execution compute context) The Viya compute
+    context on which to run the service
   @param [out] outlib= (0) Output libref to contain the final tables.  Set to
     0 if the service output is not in JSON format.
   @param [out] outref= (0) Output fileref to create, to contain the full _webout
@@ -6388,17 +6391,18 @@ libname &lib clear;
   inputfiles=0,
   inputparams=0,
   debug=log,
+  mdebug=0,
   outlib=0,
   outref=0,
-  viyaresult=WEBOUT_JSON
+  viyaresult=WEBOUT_JSON,
+  viyacontext=SAS Job Execution compute context
 )/*/STORE SOURCE*/;
-%local mdebug;
-%if &debug ne 0 %then %do;
-  %let mdebug=1;
+%local dbg;
+%if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;
 %end;
-%else %let mdebug=0;
+%else %let dbg=*;
 
 /* sanitise inputparams */
 %local pcnt;
@@ -6553,6 +6557,7 @@ libname &lib clear;
 
   data &ds1;
     retain _program "&program";
+    retain _contextname "&viyacontext";
     set &ds1;
     putlog "&sysmacroname inputparams:";
     putlog (_all_)(=);
@@ -15570,7 +15575,7 @@ run;
 
   @param [in] access_token_var= The global macro variable to contain the access
     token
-  @param [in] mdebug= set to 1 to enable DEBUG messages
+  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
   @param [in] grant_type= valid values:
     @li password
     @li authorization_code
@@ -15595,7 +15600,6 @@ run;
 **/
 
 %macro mv_getjoblog(uri=0,outref=0
-    ,contextName=SAS Job Execution compute context
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
     ,mdebug=0
@@ -15916,7 +15920,6 @@ run;
 **/
 
 %macro mv_getjobresult(uri=0
-    ,contextName=SAS Job Execution compute context
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
     ,mdebug=0
@@ -16030,10 +16033,11 @@ proc http method='GET' out=&fname2 &oauth_bearer
   ;
 run;
 %if &mdebug=1 %then %do;
+  /* send one char at a time as the json can be very wide */
   data _null_;
-    infile &fname2 lrecl=32767;
-    input;
-    putlog _infile_;
+    infile &fname2 recfm=n;
+    input char $char1. ;
+    putlog char $char1. @;
   run;
 %end;
 
@@ -16790,6 +16794,11 @@ run;
 %if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;
+  %put inds vars:;
+  data _null_;
+    set &inds;
+    putlog (_all_)(=);
+  run;
 %end;
 %else %let dbg=*;
 
@@ -16834,6 +16843,7 @@ run;
       retain FLOW_ID 0;
     %end;
     set &inds;
+    &dbg. putlog (_all_)(=);
   run;
 %end;
 
@@ -16898,6 +16908,8 @@ data;run;%let jdswaitfor=&syslast;
       call symputx(cats('job',_n_),_program,'l');
       call symputx(cats('context',_n_),_contextName,'l');
       call symputx('jcnt',_n_,'l');
+      &dbg. if _n_= 1 then putlog "Loop &fid";
+      &dbg. putlog (_all_)(=);
     run;
     %put exporting job variables in json format;
     %do jid=1 %to &jcnt;
@@ -16959,6 +16971,7 @@ data;run;%let jdswaitfor=&syslast;
               ,name=&jobname
               ,paramstring=%superq(jparams&jid)
               ,outds=&jdsapp
+              ,contextname=&&context&jid
             )
             data &jdsapp;
               format jobparams $32767.;

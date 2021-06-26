@@ -140,6 +140,11 @@
 %if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;
+  %put inds vars:;
+  data _null_;
+    set &inds;
+    putlog (_all_)(=);
+  run;
 %end;
 %else %let dbg=*;
 
@@ -184,6 +189,7 @@
       retain FLOW_ID 0;
     %end;
     set &inds;
+    &dbg. putlog (_all_)(=);
   run;
 %end;
 
@@ -248,6 +254,8 @@ data;run;%let jdswaitfor=&syslast;
       call symputx(cats('job',_n_),_program,'l');
       call symputx(cats('context',_n_),_contextName,'l');
       call symputx('jcnt',_n_,'l');
+      &dbg. if _n_= 1 then putlog "Loop &fid";
+      &dbg. putlog (_all_)(=);
     run;
     %put exporting job variables in json format;
     %do jid=1 %to &jcnt;
@@ -309,6 +317,7 @@ data;run;%let jdswaitfor=&syslast;
               ,name=&jobname
               ,paramstring=%superq(jparams&jid)
               ,outds=&jdsapp
+              ,contextname=&&context&jid
             )
             data &jdsapp;
               format jobparams $32767.;

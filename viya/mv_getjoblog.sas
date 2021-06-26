@@ -91,7 +91,6 @@
 **/
 
 %macro mv_getjoblog(uri=0,outref=0
-    ,contextName=SAS Job Execution compute context
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
     ,mdebug=0

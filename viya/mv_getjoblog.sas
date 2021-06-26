@@ -66,7 +66,7 @@
 
   @param [in] access_token_var= The global macro variable to contain the access
     token
-  @param [in] mdebug= set to 1 to enable DEBUG messages
+  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
   @param [in] grant_type= valid values:
     @li password
     @li authorization_code

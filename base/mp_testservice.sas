@@ -22,8 +22,11 @@
     |mustbevalidname|can be anything, oops, %abort!!|
 
   @param [in] debug= (log) Provide the _debug value
-  @param [in] viyaresult=(WEBOUT_JSON) The Viya result type to return.  For
+  @param [in] mdebug= (0) Set to 1 to provide macro debugging
+  @param [in] viyaresult= (WEBOUT_JSON) The Viya result type to return.  For
     more info, see mv_getjobresult.sas
+  @param [in] viyacontext= (SAS Job Execution compute context) The Viya compute
+    context on which to run the service
   @param [out] outlib= (0) Output libref to contain the final tables.  Set to
     0 if the service output is not in JSON format.
   @param [out] outref= (0) Output fileref to create, to contain the full _webout
@@ -47,17 +50,18 @@
   inputfiles=0,
   inputparams=0,
   debug=log,
+  mdebug=0,
   outlib=0,
   outref=0,
-  viyaresult=WEBOUT_JSON
+  viyaresult=WEBOUT_JSON,
+  viyacontext=SAS Job Execution compute context
 )/*/STORE SOURCE*/;
-%local mdebug;
-%if &debug ne 0 %then %do;
-  %let mdebug=1;
+%local dbg;
+%if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;
 %end;
-%else %let mdebug=0;
+%else %let dbg=*;
 
 /* sanitise inputparams */
 %local pcnt;
@@ -212,6 +216,7 @@
 
   data &ds1;
     retain _program "&program";
+    retain _contextname "&viyacontext";
     set &ds1;
     putlog "&sysmacroname inputparams:";
     putlog (_all_)(=);

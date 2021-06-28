@@ -165,6 +165,7 @@
         sysuserid=symget('sysuserid');
         iftrue=symget('iftrue');
         put (_all_)(/=);
+        call symputx('syscc',0);
         abort cancel nolist;
       run;
     %end;

@@ -30,7 +30,7 @@
     "docs": "sasjs doc && ./sasjs/utils/build.sh",
     "test": "sasjs test -t viya",
     "lint": "sasjs lint",
-    "postinstall": "[ -d .git ] && git config core.hooksPath ./.git-hooks || true"
+    "prepare": "[ -d .git ] && git config core.hooksPath ./.git-hooks || true"
   },
   "devDependencies": {
     "@sasjs/cli": "2.27.0"

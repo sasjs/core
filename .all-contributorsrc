@@ -77,7 +77,8 @@
       "profile": "https://www.erudicat.com/",
       "contributions": [
         "code",
-        "infra"
+        "infra",
+        "video"
       ]
     },
     {
@@ -87,6 +88,15 @@
       "profile": "https://github.com/medjedovicm",
       "contributions": [
         "infra"
+      ]
+    },
+    {
+      "login": "kkchandok",
+      "name": "kkchandok",
+      "avatar_url": "https://avatars.githubusercontent.com/u/46090627?v=4",
+      "profile": "https://github.com/kkchandok",
+      "contributions": [
+        "ideas"
       ]
     }
   ],

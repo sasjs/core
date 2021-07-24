@@ -179,3 +179,31 @@ If you find this library useful, please leave a [star](https://github.com/sasjs/
 
 
 
+
+## Contributors ✨
+<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
+[![All Contributors](https://img.shields.io/badge/all_contributors-7-orange.svg?style=flat-square)](#contributors-)
+<!-- ALL-CONTRIBUTORS-BADGE:END -->
+Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<table>
+  <tr>
+    <td align="center"><a href="https://github.com/allanbowe"><img src="https://avatars.githubusercontent.com/u/4420615?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Allan Bowe</b></sub></a><br /><a href="#business-allanbowe" title="Business development">💼</a> <a href="https://github.com/sasjs/core/commits?author=allanbowe" title="Code">💻</a> <a href="#content-allanbowe" title="Content">🖋</a> <a href="https://github.com/sasjs/core/commits?author=allanbowe" title="Documentation">📖</a> <a href="#infra-allanbowe" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a> <a href="#maintenance-allanbowe" title="Maintenance">🚧</a> <a href="#mentoring-allanbowe" title="Mentoring">🧑‍🏫</a> <a href="#question-allanbowe" title="Answering Questions">💬</a> <a href="https://github.com/sasjs/core/pulls?q=is%3Apr+reviewed-by%3Aallanbowe" title="Reviewed Pull Requests">👀</a> <a href="https://github.com/sasjs/core/commits?author=allanbowe" title="Tests">⚠️</a></td>
+    <td align="center"><a href="https://github.com/rafgag"><img src="https://avatars.githubusercontent.com/u/69139928?v=4?s=100" width="100px;" alt=""/><br /><sub><b>rafgag</b></sub></a><br /><a href="https://github.com/sasjs/core/commits?author=rafgag" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/tmoody"><img src="https://avatars.githubusercontent.com/u/79837106?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Trevor Moody</b></sub></a><br /><a href="https://github.com/sasjs/core/commits?author=tmoody" title="Code">💻</a></td>
+    <td align="center"><a href="https://krishna-acondy.io/"><img src="https://avatars.githubusercontent.com/u/2980428?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Krishna Acondy</b></sub></a><br /><a href="https://github.com/sasjs/core/commits?author=krishna-acondy" title="Code">💻</a> <a href="#infra-krishna-acondy" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a> <a href="#blog-krishna-acondy" title="Blogposts">📝</a> <a href="#content-krishna-acondy" title="Content">🖋</a> <a href="#ideas-krishna-acondy" title="Ideas, Planning, & Feedback">🤔</a> <a href="#video-krishna-acondy" title="Videos">📹</a></td>
+    <td align="center"><a href="https://github.com/saadjutt01"><img src="https://avatars.githubusercontent.com/u/8914650?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Muhammad Saad </b></sub></a><br /><a href="https://github.com/sasjs/core/commits?author=saadjutt01" title="Code">💻</a> <a href="#ideas-saadjutt01" title="Ideas, Planning, & Feedback">🤔</a></td>
+    <td align="center"><a href="https://www.erudicat.com/"><img src="https://avatars.githubusercontent.com/u/25773492?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Yury Shkoda</b></sub></a><br /><a href="https://github.com/sasjs/core/commits?author=YuryShkoda" title="Code">💻</a> <a href="#infra-YuryShkoda" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a></td>
+    <td align="center"><a href="https://github.com/medjedovicm"><img src="https://avatars.githubusercontent.com/u/18329105?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Mihajlo Medjedovic</b></sub></a><br /><a href="#infra-medjedovicm" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a></td>
+  </tr>
+</table>
+
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
+This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!

@@ -1,0 +1,94 @@
+{
+  "projectName": "core",
+  "projectOwner": "sasjs",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": false,
+  "commitConvention": "angular",
+  "contributors": [
+    {
+      "login": "allanbowe",
+      "name": "Allan Bowe",
+      "avatar_url": "https://avatars.githubusercontent.com/u/4420615?v=4",
+      "profile": "https://github.com/allanbowe",
+      "contributions": [
+        "business",
+        "code",
+        "content",
+        "doc",
+        "infra",
+        "maintenance",
+        "mentoring",
+        "question",
+        "review",
+        "test"
+      ]
+    },
+    {
+      "login": "rafgag",
+      "name": "rafgag",
+      "avatar_url": "https://avatars.githubusercontent.com/u/69139928?v=4",
+      "profile": "https://github.com/rafgag",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "tmoody",
+      "name": "Trevor Moody",
+      "avatar_url": "https://avatars.githubusercontent.com/u/79837106?v=4",
+      "profile": "https://github.com/tmoody",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "krishna-acondy",
+      "name": "Krishna Acondy",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2980428?v=4",
+      "profile": "https://krishna-acondy.io/",
+      "contributions": [
+        "code",
+        "infra",
+        "blog",
+        "content",
+        "ideas",
+        "video"
+      ]
+    },
+    {
+      "login": "saadjutt01",
+      "name": "Muhammad Saad ",
+      "avatar_url": "https://avatars.githubusercontent.com/u/8914650?v=4",
+      "profile": "https://github.com/saadjutt01",
+      "contributions": [
+        "code",
+        "ideas"
+      ]
+    },
+    {
+      "login": "YuryShkoda",
+      "name": "Yury Shkoda",
+      "avatar_url": "https://avatars.githubusercontent.com/u/25773492?v=4",
+      "profile": "https://www.erudicat.com/",
+      "contributions": [
+        "code",
+        "infra"
+      ]
+    },
+    {
+      "login": "medjedovicm",
+      "name": "Mihajlo Medjedovic",
+      "avatar_url": "https://avatars.githubusercontent.com/u/18329105?v=4",
+      "profile": "https://github.com/medjedovicm",
+      "contributions": [
+        "infra"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7
+}

@@ -76,9 +76,6 @@ select count(*) into: nobs TRIMMED from &ds;
 %local varlist;
 %let varlist=%mf_getvarlist(&ds);
 
-proc format; /* credit yabwon for special null removal */
-  value bart ._ - .z = null
-  other = [best.];
 /* next, export data */
 data _null_;
   file &outref mod ;

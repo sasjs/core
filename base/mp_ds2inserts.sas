@@ -82,7 +82,7 @@ proc format; /* credit yabwon for special null removal */
 /* next, export data */
 data _null_;
   file &outref mod ;
-  if _n_=1 then put "/* &outlib..&outds (&nobs rows, &vars columns) */";
+  if _n_=1 then put "/* &outlib.&outds (&nobs rows, &vars columns) */";
   set &ds;
   length _____str $32767;
   format _numeric_ best.;

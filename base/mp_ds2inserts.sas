@@ -6,8 +6,8 @@
 
   Usage:
 
-      %mp_ds2inserts(sashelp.class,outref=myref)
-      data test;
+      %mp_ds2inserts(sashelp.class,outref=myref,outds=class)
+      data class;
         set sashelp.class;
         stop;
       proc sql;

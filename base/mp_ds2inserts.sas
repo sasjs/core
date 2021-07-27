@@ -20,6 +20,10 @@
     located.  If not provided, is ignored.
   @param [out] outds= (0) The output table to load.  If not provided, will
     default to the table in the &ds parameter.
+  @param [in] flavour= (BASE) The SQL flavour to be applied to the output. Valid
+    options:
+    @li BASE (default) - suitable for regular proc sql
+    @li PGSQL - Used for Postgres databases
 
   <h4> SAS Macros </h4>
   @li mf_existfileref.sas
@@ -31,18 +35,29 @@
   @author Allan Bowe (credit mjsq)
 **/
 
-%macro mp_ds2inserts(ds, outref=0,outlib=0,outds=0
+%macro mp_ds2inserts(ds, outref=0,outlib=0,outds=0,flavour=BASE
 )/*/STORE SOURCE*/;
 
 %if not %sysfunc(exist(&ds)) %then %do;
-  %put %str(WARN)ING:  &ds does not exist;
+  %put %str(WAR)NING:  &ds does not exist;
+  %return;
+%end;
+
+%if not %sysfunc(exist(&ds)) %then %do;
+  %put %str(WAR)NING:  &ds does not exist;
   %return;
 %end;
 
 %if %index(&ds,.)=0 %then %let ds=WORK.&ds;
 
+%let flavour=%upcase(&flavour);
+%if &flavour ne BASE and &flavour ne PGSQL %then %do;
+  %put %str(WAR)NING:  &flavour is not supported;
+  %return;
+%end;
+
 %if &outref=0 %then %do;
-  %put %str(WARN)ING:  Please provide a fileref;
+  %put %str(WAR)NING:  Please provide a fileref;
   %return;
 %end;
 %if %mf_existfileref(&outref)=0 %then %do;
@@ -73,8 +88,9 @@ select count(*) into: nobs TRIMMED from &ds;
   run;
 %end;
 
-%local varlist;
+%local varlist varlistcomma;
 %let varlist=%mf_getvarlist(&ds);
+%let varlistcomma=%mf_getvarlist(&ds,dlm=%str(,),quote=double);
 
 /* next, export data */
 data _null_;
@@ -89,23 +105,49 @@ data _null_;
     %let var=%scan(&varlist,&i);
     %let vtype=%mf_getvartype(&ds,&var);
     %if &i=1 %then %do;
-      put "insert into &outlib.&outds set ";
-      put "  &var="@;
+      %if &flavour=BASE %then %do;
+        put "insert into &outlib.&outds set ";
+        put "  &var="@;
+      %end;
+      %else %if &flavour=PGSQL %then %do;
+        _____str=cats(
+          "INSERT INTO &outlib.&outds ("
+          ,symget('varlistcomma')
+          ,") VALUES ("
+        );
+        put _____str;
+        put "  "@;
+      %end;
     %end;
     %else %do;
-      put "  ,&var="@;
+      %if &flavour=BASE %then %do;
+        put "  ,&var="@;
+      %end;
+      %else %if &flavour=PGSQL %then %do;
+        put "  ,"@;
+      %end;
     %end;
     %if &vtype=N %then %do;
-      /* @todo - deal with nulls in other db flavours */
-      /* from ._ to .z */
-      put &var;
+      %if &flavour=BASE %then %do;
+        put &var;
+      %end;
+      %else %if &flavour=PGSQL %then %do;
+        if missing(&var) then put 'NULL';
+        else put &var;
+      %end;
     %end;
     %else %do;
       _____str="'"!!trim(tranwrd(&var,"'","''"))!!"'";
       put _____str;
     %end;
   %end;
-  put ';';
+  %if &flavour=BASE %then %do;
+    put ';';
+  %end;
+  %else %if &flavour=PGSQL %then %do;
+    put ');';
+  %end;
+
   if _n_=&nobs then put /;
 run;
 

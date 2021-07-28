@@ -5158,6 +5158,8 @@ create table &outds (rename=(
   @li mf_getvartype.sas
 
   @param [in] libds dataset to hash
+  @param [in] salt= Provide a salt (could be, for instance, the name of the
+    dataset). Max 32 chars.
   @param [out] outds= (work.mf_hashdataset) The output dataset to create. This
   will contain one column (hashkey) with one observation (a hex32.
   representation of the input hash)
@@ -5171,7 +5173,8 @@ create table &outds (rename=(
 
 %macro mp_hashdataset(
   libds,
-  outds=
+  outds=,
+  salt=
 )/*/STORE SOURCE*/;
   %if %mf_getattrn(&libds,NLOBS)=0 %then %do;
     %put %str(WARN)ING: Dataset &libds is empty;, or is not a dataset;
@@ -5191,7 +5194,7 @@ create table &outds (rename=(
     %let varlist=%mf_getvarlist(&libds);
     data &outds(rename=(&keyvar=hashkey) keep=&keyvar);
       length &prevkeyvar &keyvar $32;
-      retain &prevkeyvar;
+      retain &prevkeyvar "&salt";
       set &libds end=&lastvar;
       /* hash should include previous row */
       &keyvar=put(md5(&prevkeyvar

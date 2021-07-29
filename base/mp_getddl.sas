@@ -17,6 +17,7 @@
 
   <h4> SAS Macros </h4>
   @li mf_existfileref.sas
+  @li mf_getvarcount.sas
   @li mp_getconstraints.sas
 
   @param lib libref of the library to create DDL for.  Should be assigned.
@@ -304,71 +305,80 @@ run;
     put "CREATE SCHEMA &schema;";
   %do x=1 %to %sysfunc(countw(&dsnlist));
     %let curds=%scan(&dsnlist,&x);
-    data _null_;
-      file &fref mod;
-      put "/* Postgres Flavour DDL for &schema..&curds */";
-    data _null_;
-      file &fref mod;
-      set &colinfo (where=(upcase(memname)="&curds")) end=last;
-      length fmt $32;
-      if _n_=1 then do;
-        if memtype='DATA' then do;
-          put "CREATE TABLE &schema..&curds (";
+    %local curdsvarcount;
+    %let curdsvarcount=%mf_getvarcount(&libref..&curds);
+    %if &curdsvarcount>1600 %then %do;
+      data _null_;
+        file &fref mod;
+        put "/* &libref..&curds contains &curdsvarcount vars */";
+        put "/* Postgres cannot create tables with over 1600 vars */";
+        put "/* No DDL will be generated for this table";
+      run;
+    %end;
+    %else %do;
+      data _null_;
+        file &fref mod;
+        put "/* Postgres Flavour DDL for &schema..&curds */";
+      data _null_;
+        file &fref mod;
+        set &colinfo (where=(upcase(memname)="&curds")) end=last;
+        length fmt $32;
+        if _n_=1 then do;
+          if memtype='DATA' then do;
+            put "CREATE TABLE &schema..&curds (";
+          end;
+          else do;
+            put "CREATE VIEW &schema..&curds (";
+          end;
+          put "    "@@;
         end;
-        else do;
-          put "CREATE VIEW &schema..&curds (";
-        end;
-        put "    "@@;
-      end;
-      else put "   ,"@@;
-      format=upcase(format);
-      if 1=0 then; /* dummy if */
-      %if &applydttm=YES %then %do;
-        else if format=:'DATETIME' then fmt=' TIMESTAMP ';
-      %end;
-      else if type='num' then fmt=' DOUBLE PRECISION';
-      else fmt='VARCHAR('!!cats(length)!!')';
-      if notnull='yes' then notnul=' NOT NULL';
-      /* quote column names in case they represent reserved words */
-      name2=quote(trim(name));
-      put name2 fmt notnul;
-    run;
+        else put "   ,"@@;
+        format=upcase(format);
+        if 1=0 then; /* dummy if */
+        %if &applydttm=YES %then %do;
+          else if format=:'DATETIME' then fmt=' TIMESTAMP ';
+        %end;
+        else if type='num' then fmt=' DOUBLE PRECISION';
+        else fmt='VARCHAR('!!cats(length)!!')';
+        if notnull='yes' then notnul=' NOT NULL';
+        /* quote column names in case they represent reserved words */
+        name2=quote(trim(name));
+        put name2 fmt notnul;
+      run;
 
-    /* Extra step for data constraints */
-    %addConst()
+      /* Extra step for data constraints */
+      %addConst()
 
-    data _null_;
-      file &fref mod;
-      put ');';
-    run;
+      data _null_;
+        file &fref mod;
+        put ');';
+      run;
 
-    /* Create Unique Indexes, but only if they were not already defined within
-      the Constraints section. */
-    data _null_;
-      *length ds $128;
-      set &idxinfo(
-        where=(
-          memname="&curds"
-          and unique='yes'
-          and indxname not in (
-            %sysfunc(tranwrd("&constraints_used",%str( ),%str(",")))
+      /* Create Unique Indexes, but only if they were not already defined within
+        the Constraints section. */
+      data _null_;
+        *length ds $128;
+        set &idxinfo(
+          where=(
+            memname="&curds"
+            and unique='yes'
+            and indxname not in (
+              %sysfunc(tranwrd("&constraints_used",%str( ),%str(",")))
+            )
           )
-        )
-      );
-      file &fref mod;
-      by idxusage indxname;
-/*       ds=cats(libname,'.',memname); */
-      if first.indxname then do;
+        );
+        file &fref mod;
+        by idxusage indxname;
+        if first.indxname then do;
           put 'CREATE UNIQUE INDEX "' indxname +(-1) '" ' "ON &schema..&curds(";
           put '  "' name +(-1) '"' ;
-      end;
-      else put '  ,"' name +(-1) '"';
-      *else put '    ,' name ;
-      if last.indxname then do;
-        put ');';
-      end;
-    run;
-
+        end;
+        else put '  ,"' name +(-1) '"';
+        if last.indxname then do;
+          put ');';
+        end;
+      run;
+    %end;
   %end;
 %end;
 %if %upcase(&showlog)=YES %then %do;

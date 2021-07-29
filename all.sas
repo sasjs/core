@@ -4419,8 +4419,8 @@ run;
 )/*/STORE SOURCE*/;
 
 /* check fileref is assigned */
-%if %mf_existfileref(&outref)=0 %then %do;
-  filename &outref temp ;
+%if %mf_existfileref(&fref)=0 %then %do;
+  filename &fref temp ;
 %end;
 
 %if %length(&libref)=0 %then %let libref=WORK;

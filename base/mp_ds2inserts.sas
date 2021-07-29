@@ -94,7 +94,7 @@ select count(*) into: nobs TRIMMED from &ds;
     file &fref mod;
     put "/* &schema.&ds contains &vars vars */";
     put "/* Postgres cannot handle tables with over 1600 vars */";
-    put "/* No inserts will be generated for this table";
+    put "/* No inserts will be generated for this table */";
   run;
   %return;
 %end;

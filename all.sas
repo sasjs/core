@@ -3444,9 +3444,9 @@ run;
     located.  If not provided, is ignored.
   @param [out] outds= (0) The output table to load.  If not provided, will
     default to the table in the &ds parameter.
-  @param [in] flavour= (BASE) The SQL flavour to be applied to the output. Valid
+  @param [in] flavour= (SAS) The SQL flavour to be applied to the output. Valid
     options:
-    @li BASE (default) - suitable for regular proc sql
+    @li SAS (default) - suitable for regular proc sql
     @li PGSQL - Used for Postgres databases
 
   <h4> SAS Macros </h4>
@@ -3459,7 +3459,7 @@ run;
   @author Allan Bowe (credit mjsq)
 **/
 
-%macro mp_ds2inserts(ds, outref=0,outlib=0,outds=0,flavour=BASE
+%macro mp_ds2inserts(ds, outref=0,outlib=0,outds=0,flavour=SAS
 )/*/STORE SOURCE*/;
 
 %if not %sysfunc(exist(&ds)) %then %do;
@@ -3475,7 +3475,7 @@ run;
 %if %index(&ds,.)=0 %then %let ds=WORK.&ds;
 
 %let flavour=%upcase(&flavour);
-%if &flavour ne BASE and &flavour ne PGSQL %then %do;
+%if &flavour ne SAS and &flavour ne PGSQL %then %do;
   %put %str(WAR)NING:  &flavour is not supported;
   %return;
 %end;
@@ -3529,7 +3529,7 @@ data _null_;
     %let var=%scan(&varlist,&i);
     %let vtype=%mf_getvartype(&ds,&var);
     %if &i=1 %then %do;
-      %if &flavour=BASE %then %do;
+      %if &flavour=SAS %then %do;
         put "insert into &outlib.&outds set ";
         put "  &var="@;
       %end;
@@ -3544,7 +3544,7 @@ data _null_;
       %end;
     %end;
     %else %do;
-      %if &flavour=BASE %then %do;
+      %if &flavour=SAS %then %do;
         put "  ,&var="@;
       %end;
       %else %if &flavour=PGSQL %then %do;
@@ -3552,7 +3552,7 @@ data _null_;
       %end;
     %end;
     %if &vtype=N %then %do;
-      %if &flavour=BASE %then %do;
+      %if &flavour=SAS %then %do;
         put &var;
       %end;
       %else %if &flavour=PGSQL %then %do;
@@ -3565,7 +3565,7 @@ data _null_;
       put _____str;
     %end;
   %end;
-  %if &flavour=BASE %then %do;
+  %if &flavour=SAS %then %do;
     put ';';
   %end;
   %else %if &flavour=PGSQL %then %do;

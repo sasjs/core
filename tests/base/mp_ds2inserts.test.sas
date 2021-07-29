@@ -13,7 +13,7 @@
   * Cars is a great dataset - it contains leading spaces, and formatted numerics
   */
 
-%mp_ds2inserts(sashelp.cars,outref=testref,outlib=work,outds=test)
+%mp_ds2inserts(sashelp.cars,outref=testref,schema=work,outds=test)
 
 data work.test;
   set sashelp.cars;

@@ -14,9 +14,10 @@
       %inc myref;
 
   @param [in] ds The dataset to be exported
+  @param [in] maxobs= (max) The max number of inserts to create
   @param [out] outref= (0) The output fileref.  If it does not exist, it is
     created. If it does exist, new records are APPENDED.
-  @param [out] outlib= (0) The library (or schema) in which the target table is
+  @param [out] schema= (0) The library (or schema) in which the target table is
     located.  If not provided, is ignored.
   @param [out] outds= (0) The output table to load.  If not provided, will
     default to the table in the &ds parameter.
@@ -35,7 +36,7 @@
   @author Allan Bowe (credit mjsq)
 **/
 
-%macro mp_ds2inserts(ds, outref=0,outlib=0,outds=0,flavour=SAS
+%macro mp_ds2inserts(ds, outref=0,schema=0,outds=0,flavour=SAS,maxobs=max
 )/*/STORE SOURCE*/;
 
 %if not %sysfunc(exist(&ds)) %then %do;
@@ -64,8 +65,8 @@
   filename &outref temp lrecl=66000;
 %end;
 
-%if &outlib=0 %then %let outlib=;
-%else %let outlib=&outlib..;
+%if &schema=0 %then %let schema=;
+%else %let schema=&schema..;
 
 %if &outds=0 %then %let outds=%scan(&ds,2,.);
 
@@ -84,8 +85,18 @@ select count(*) into: nobs TRIMMED from &ds;
 %if &vars=0 %then %do;
   data _null_;
     file &outref mod;
-    put "/* No columns found in &ds */";
+    put "/* No columns found in &schema.&ds */";
   run;
+  %return;
+%end;
+%else %if &vars>1600 and &flavour=PGSQL %then %do;
+  data _null_;
+    file &fref mod;
+    put "/* &schema.&ds contains &vars vars */";
+    put "/* Postgres cannot handle tables with over 1600 vars */";
+    put "/* No inserts will be generated for this table";
+  run;
+  %return;
 %end;
 
 %local varlist varlistcomma;
@@ -95,8 +106,11 @@ select count(*) into: nobs TRIMMED from &ds;
 /* next, export data */
 data _null_;
   file &outref mod ;
-  if _n_=1 then put "/* &outlib.&outds (&nobs rows, &vars columns) */";
+  if _n_=1 then put "/* &schema.&outds (&nobs rows, &vars columns) */";
   set &ds;
+  %if &maxobs ne max %then %do;
+    if _n_>&maxobs then stop;
+  %end;
   length _____str $32767;
   format _numeric_ best.;
   format _character_ ;
@@ -106,12 +120,12 @@ data _null_;
     %let vtype=%mf_getvartype(&ds,&var);
     %if &i=1 %then %do;
       %if &flavour=SAS %then %do;
-        put "insert into &outlib.&outds set ";
+        put "insert into &schema.&outds set ";
         put "  &var="@;
       %end;
       %else %if &flavour=PGSQL %then %do;
         _____str=cats(
-          "INSERT INTO &outlib.&outds ("
+          "INSERT INTO &schema.&outds ("
           ,symget('varlistcomma')
           ,") VALUES ("
         );

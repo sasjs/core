@@ -3438,9 +3438,10 @@ run;
       %inc myref;
 
   @param [in] ds The dataset to be exported
+  @param [in] maxobs= (max) The max number of inserts to create
   @param [out] outref= (0) The output fileref.  If it does not exist, it is
     created. If it does exist, new records are APPENDED.
-  @param [out] outlib= (0) The library (or schema) in which the target table is
+  @param [out] schema= (0) The library (or schema) in which the target table is
     located.  If not provided, is ignored.
   @param [out] outds= (0) The output table to load.  If not provided, will
     default to the table in the &ds parameter.
@@ -3459,7 +3460,7 @@ run;
   @author Allan Bowe (credit mjsq)
 **/
 
-%macro mp_ds2inserts(ds, outref=0,outlib=0,outds=0,flavour=SAS
+%macro mp_ds2inserts(ds, outref=0,schema=0,outds=0,flavour=SAS,maxobs=max
 )/*/STORE SOURCE*/;
 
 %if not %sysfunc(exist(&ds)) %then %do;
@@ -3488,8 +3489,8 @@ run;
   filename &outref temp lrecl=66000;
 %end;
 
-%if &outlib=0 %then %let outlib=;
-%else %let outlib=&outlib..;
+%if &schema=0 %then %let schema=;
+%else %let schema=&schema..;
 
 %if &outds=0 %then %let outds=%scan(&ds,2,.);
 
@@ -3508,8 +3509,18 @@ select count(*) into: nobs TRIMMED from &ds;
 %if &vars=0 %then %do;
   data _null_;
     file &outref mod;
-    put "/* No columns found in &ds */";
+    put "/* No columns found in &schema.&ds */";
   run;
+  %return;
+%end;
+%else %if &vars>1600 and &flavour=PGSQL %then %do;
+  data _null_;
+    file &fref mod;
+    put "/* &schema.&ds contains &vars vars */";
+    put "/* Postgres cannot handle tables with over 1600 vars */";
+    put "/* No inserts will be generated for this table */";
+  run;
+  %return;
 %end;
 
 %local varlist varlistcomma;
@@ -3519,8 +3530,11 @@ select count(*) into: nobs TRIMMED from &ds;
 /* next, export data */
 data _null_;
   file &outref mod ;
-  if _n_=1 then put "/* &outlib.&outds (&nobs rows, &vars columns) */";
+  if _n_=1 then put "/* &schema.&outds (&nobs rows, &vars columns) */";
   set &ds;
+  %if &maxobs ne max %then %do;
+    if _n_>&maxobs then stop;
+  %end;
   length _____str $32767;
   format _numeric_ best.;
   format _character_ ;
@@ -3530,12 +3544,12 @@ data _null_;
     %let vtype=%mf_getvartype(&ds,&var);
     %if &i=1 %then %do;
       %if &flavour=SAS %then %do;
-        put "insert into &outlib.&outds set ";
+        put "insert into &schema.&outds set ";
         put "  &var="@;
       %end;
       %else %if &flavour=PGSQL %then %do;
         _____str=cats(
-          "INSERT INTO &outlib.&outds ("
+          "INSERT INTO &schema.&outds ("
           ,symget('varlistcomma')
           ,") VALUES ("
         );
@@ -4386,6 +4400,8 @@ run;
     to create tables in SAS or a database.  The macro can be used at table or
     library level.  The default behaviour is to create DDL in SAS format.
 
+    Note - views are not currently supported.
+
   Usage:
 
       data test(index=(pk=(x y)/unique /nomiss));
@@ -4431,6 +4447,7 @@ proc sql noprint;
 create table _data_ as
   select * from dictionary.tables
   where upcase(libname)="%upcase(&libref)"
+    and memtype='DATA' /* views not currently supported */
   %if %length(&ds)>0 %then %do;
     and upcase(memname)="%upcase(&ds)"
   %end;
@@ -4525,13 +4542,15 @@ run;
           put "create table &libref..&curds(";
         end;
         else do;
+          /* just a placeholder - we filter out views at the top */
           put "create view &libref..&curds(";
         end;
         put "    "@@;
       end;
       else put "   ,"@@;
       if length(format)>1 then fmt=" format="!!cats(format);
-      if length(label)>1 then lab=" label="!!quote(trim(label));
+      if length(label)>1 then
+        lab=" label="!!cats("'",tranwrd(label,"'","''"),"'");
       if notnull='yes' then notnul=' not null';
       if type='char' then typ=cats('char(',length,')');
       else if length ne 8 then typ='num length='!!left(length);
@@ -4603,6 +4622,7 @@ run;
           put "create table [&schema].[&curds](";
         end;
         else do;
+          /* just a placeholder - we filter out views at the top */
           put "create view [&schema].[&curds](";
         end;
         put "    "@@;
@@ -4709,6 +4729,7 @@ run;
             put "CREATE TABLE &schema..&curds (";
           end;
           else do;
+            /* just a placeholder - we filter out views at the top */
             put "CREATE VIEW &schema..&curds (";
           end;
           put "    "@@;
@@ -5533,6 +5554,78 @@ select distinct lowcase(memname)
 %end;
 
 %mend mp_lib2cards;/**
+  @file
+  @brief Convert all data in a library to SQL insert statements
+  @details Gets list of members then calls the <code>%mp_ds2inserts()</code>
+  macro.
+  Usage:
+
+      %mp_getddl(sashelp, schema=work, fref=tempref)
+
+      %mp_lib2inserts(sashelp, schema=work, outref=tempref)
+
+      %inc tempref;
+
+
+  The output will be one file in the outref fileref.
+
+
+  <h4> SAS Macros </h4>
+  @li mp_ds2inserts.sas
+
+
+  @param [in] lib Library in which to convert all datasets to inserts
+  @param [in] flavour= (SAS) The SQL flavour to be applied to the output. Valid
+    options:
+    @li SAS (default) - suitable for regular proc sql
+    @li PGSQL - Used for Postgres databases
+  @param [in] maxobs= (max) The max number of observations (per table) to create
+  @param [out] outref= Output fileref in which to create the insert statements.
+    If it exists, it will be appended to, otherwise it will be created.
+  @param [out] schema= (0) The schema of the target database, or the libref.
+
+  @version 9.2
+  @author Allan Bowe
+**/
+
+%macro mp_lib2inserts(lib
+    ,flavour=SAS
+    ,outref=0
+    ,schema=0
+    ,maxobs=max
+)/*/STORE SOURCE*/;
+
+/* Find the tables */
+%local x ds memlist;
+proc sql noprint;
+select distinct lowcase(memname)
+  into: memlist
+  separated by ' '
+  from dictionary.tables
+  where upcase(libname)="%upcase(&lib)"
+    and memtype='DATA'; /* exclude views */
+
+
+%let flavour=%upcase(&flavour);
+%if &flavour ne SAS and &flavour ne PGSQL %then %do;
+  %put %str(WAR)NING:  &flavour is not supported;
+  %return;
+%end;
+
+
+/* create the inserts */
+%do x=1 %to %sysfunc(countw(&memlist));
+  %let ds=%scan(&memlist,&x);
+  %mp_ds2inserts(&lib..&ds
+    ,outref=&outref
+    ,schema=&schema
+    ,outds=&ds
+    ,flavour=&flavour
+    ,maxobs=&maxobs
+  )
+%end;
+
+%mend mp_lib2inserts;/**
   @file
   @brief Create a Markdown Table from a dataset
   @details A markdown table is a simple table representation for use in

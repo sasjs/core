@@ -5,6 +5,8 @@
     to create tables in SAS or a database.  The macro can be used at table or
     library level.  The default behaviour is to create DDL in SAS format.
 
+    Note - views are not currently supported.
+
   Usage:
 
       data test(index=(pk=(x y)/unique /nomiss));
@@ -50,6 +52,7 @@ proc sql noprint;
 create table _data_ as
   select * from dictionary.tables
   where upcase(libname)="%upcase(&libref)"
+    and memtype='DATA' /* views not currently supported */
   %if %length(&ds)>0 %then %do;
     and upcase(memname)="%upcase(&ds)"
   %end;
@@ -144,13 +147,15 @@ run;
           put "create table &libref..&curds(";
         end;
         else do;
+          /* just a placeholder - we filter out views at the top */
           put "create view &libref..&curds(";
         end;
         put "    "@@;
       end;
       else put "   ,"@@;
       if length(format)>1 then fmt=" format="!!cats(format);
-      if length(label)>1 then lab=" label="!!quote(trim(label));
+      if length(label)>1 then
+        lab=" label="!!cats("'",tranwrd(label,"'","''"),"'");
       if notnull='yes' then notnul=' not null';
       if type='char' then typ=cats('char(',length,')');
       else if length ne 8 then typ='num length='!!left(length);
@@ -222,6 +227,7 @@ run;
           put "create table [&schema].[&curds](";
         end;
         else do;
+          /* just a placeholder - we filter out views at the top */
           put "create view [&schema].[&curds](";
         end;
         put "    "@@;
@@ -328,6 +334,7 @@ run;
             put "CREATE TABLE &schema..&curds (";
           end;
           else do;
+            /* just a placeholder - we filter out views at the top */
             put "CREATE VIEW &schema..&curds (";
           end;
           put "    "@@;

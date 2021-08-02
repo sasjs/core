@@ -11665,18 +11665,20 @@ run;
 %mend mm_gettableid;/**
   @file
   @brief Creates a dataset with all metadata tables for a particular library
-  @details Will only show the tables to which a user has the requisite
-    metadata access.
+  @details Will only show the tables for which the executing user has the
+    requisite metadata access.
 
   usage:
 
-    %mm_gettables(uri=A5X8AHW1.B40001S5)
+      %mm_gettables(uri=A5X8AHW1.B40001S5)
 
-  @param outds the dataset to create that contains the list of tables
-  @param uri the uri of the library for which to return tables
-  @param getauth= YES|NO - fetch the authdomain used in database connections.
-  Set to NO to improve runtimes in larger environments, as there can be a
-  performance hit on the `metadata_getattr(domainuri, "Name", AuthDomain)` call.
+  @param [in] uri= the uri of the library for which to return tables
+  @param [out] outds= (work.mm_gettables) the dataset to contain the list of
+    tables
+  @param [in] getauth= (YES) Fetch the authdomain used in database connections.
+    Set to NO to improve runtimes in larger environments, as there can be a
+    performance hit on the `metadata_getattr(domainuri, "Name", AuthDomain)`
+    call.
 
   @returns outds  dataset containing all groups in a column named "metagroup"
     (defaults to work.mm_getlibs). The following columns are provided:
@@ -11704,8 +11706,8 @@ data &outds;
     libdesc $200 libref engine $8 IsDBMSLibname $1
     tablename $50 /* metadata table names can be longer than $32 */
     ;
-  keep libname libdesc libref engine ServerContext path_schema AuthDomain tableuri
-    tablename IsPreassigned IsDBMSLibname id;
+  keep libname libdesc libref engine ServerContext path_schema AuthDomain
+    tableuri tablename IsPreassigned IsDBMSLibname id;
   call missing (of _all_);
 
   uri=symget('uri');

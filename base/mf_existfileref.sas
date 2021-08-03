@@ -17,7 +17,13 @@
 %macro mf_existfileref(fref
 )/*/STORE SOURCE*/;
 
-  %if %sysfunc(fileref(&fref))=0 %then %do;
+  %local rc;
+  %let rc=%sysfunc(fileref(&fref));
+  %if &rc=0 %then %do;
+    1
+  %end;
+  %else %if &rc<0 %then %do;
+    %put &sysmacroname: Fileref &fref exists but the underlying file does not;
     1
   %end;
   %else %do;

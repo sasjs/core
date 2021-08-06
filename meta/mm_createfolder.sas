@@ -14,10 +14,10 @@
 
   usage:
 
-    %mm_createfolder(path=/some/meta/folder)
+      %mm_createfolder(path=/some/meta/folder)
 
-  @param path= Name of the folder to create.
-  @param mdebug= set DBG to 1 to disable DEBUG messages
+  @param [in] path= Name of the folder to create.
+  @param [in] mdebug= set DBG to 1 to disable DEBUG messages
 
   @version 9.4
   @author Allan Bowe

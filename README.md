@@ -84,7 +84,7 @@ run;
 
 # Installation
 
-First, download the repo to a location your SAS system can access. Then update your sasautos path to include the components you wish to have available,eg:
+First, download the repo to a location your SAS system can access. Then update your sasautos path to include the components you wish to have available, eg:
 
 ```sas
 options insert=(sasautos="/your/path/macrocore/base");

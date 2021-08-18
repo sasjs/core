@@ -2,11 +2,13 @@
   "$schema": "https://cli.sasjs.io/sasjsconfig-schema.json",
   "macroFolders": [
     "base",
+    "fcmp",
     "meta",
     "metax",
     "viya",
     "lua",
-    "tests/base"
+    "tests/base",
+    "tests/fcmp"
   ],
   "docConfig": {
     "displayMacroCore": false,

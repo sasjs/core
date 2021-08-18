@@ -20,6 +20,19 @@
 
  */
 
+/*! \dir fcmp
+ *  \brief Macros for generating FCMP functions
+ *  \details These macros have the following attributes:
+
+        * Macro name matches compiled function / subroutine name
+        * Prefixes:  _mcf_, _mcs_
+
+    The macro part is just a wrapper for the underlying function / subroutine,
+    and has switches for including the proc fcmp / quit statements and whether
+    to insert the package into the CMPLIB option.
+
+ */
+
 /*! \dir meta
  *  \brief Metadata Aware Macros
  *  \details These macros have the following attributes:

@@ -41,6 +41,13 @@ Documentation: https://core.sasjs.io
 - No X command
 - Prefixes: _mf_, _mp_
 
+**fcmp** library (SAS9/Viya)
+- Function and macro names are identical, except for special cases
+- Prefixes: _mcf_
+
+The fcmp macros are used to generate fcmp functions, and can be used with or
+without the `proc fcmp` wrapper.
+
 **meta** library (SAS9 only)
 
 - OS independent

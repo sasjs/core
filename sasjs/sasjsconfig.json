@@ -2,11 +2,12 @@
   "$schema": "https://cli.sasjs.io/sasjsconfig-schema.json",
   "macroFolders": [
     "base",
+    "fcmp",
     "meta",
     "metax",
     "viya",
     "lua",
-    "tests/base"
+    "tests/crossplatform"
   ],
   "docConfig": {
     "displayMacroCore": false,
@@ -33,7 +34,7 @@
       "allowInsecureRequests": false,
       "appLoc": "/Public/temp/macrocore",
       "macroFolders": [
-        "tests/viya"
+        "tests/viyaonly"
       ],
       "programFolders": [],
       "deployConfig": {
@@ -48,7 +49,15 @@
       "serverType": "SAS9",
       "appLoc": "/Shared Data/temp/macrocore",
       "macroFolders": [
-        "tests/meta"
+        "tests/sas9only"
+      ]
+    },
+    {
+      "name": "docsonly",
+      "serverType": "SAS9",
+      "macroFolders": [
+        "tests/sas9only",
+        "tests/viyaonly"
       ]
     }
   ]

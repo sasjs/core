@@ -84,7 +84,7 @@ options noquotelenmax;
 """
 f = open('all.sas', "w")             # r / r+ / rb / rb+ / w / wb
 f.write(header)
-folders=['base','meta','metax','viya','lua']
+folders=['base','meta','metax','viya','lua','fcmp']
 for folder in folders:
     filenames = [fn for fn in Path('./' + folder).iterdir() if fn.match("*.sas")]
     filenames.sort()

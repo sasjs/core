@@ -27,7 +27,7 @@
   "main": "index.js",
   "scripts": {
     "build": "sasjs cbd -t viya",
-    "docs": "sasjs doc && ./sasjs/utils/build.sh",
+    "docs": "sasjs doc -t docsonly && ./sasjs/utils/build.sh",
     "test": "sasjs test -t viya",
     "lint": "sasjs lint",
     "prepare": "git rev-parse --git-dir && git config core.hooksPath ./.git-hooks || true"

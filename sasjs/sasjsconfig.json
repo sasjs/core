@@ -51,6 +51,14 @@
       "macroFolders": [
         "tests/sas9only"
       ]
+    },
+    {
+      "name": "docsonly",
+      "serverType": "SAS9",
+      "macroFolders": [
+        "tests/sas9only",
+        "tests/viyaonly"
+      ]
     }
   ]
 }

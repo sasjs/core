@@ -1,7 +1,9 @@
 /**
   @file
   @brief Checks if a function exists
-  @details Returns 1 if the function exists, else 0
+  @details Returns 1 if the function exists, else 0.  Note that this function
+  can be slow as it needs to open the sashelp.vfuncs table.
+
   Usage:
 
       %put %mf_existfunction(CAT);

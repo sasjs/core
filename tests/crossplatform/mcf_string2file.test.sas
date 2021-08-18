@@ -1,6 +1,6 @@
 /**
   @file
-  @brief Testing mm_webout macro
+  @brief Testing mcf_string2file macro
 
   <h4> SAS Macros </h4>
   @li mcf_string2file.sas

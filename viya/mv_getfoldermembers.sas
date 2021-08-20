@@ -1,22 +1,25 @@
 /**
-  @file mv_getfoldermembers.sas
-  @brief Gets a list of folders (and ids) for a given root
-  @details Works for both root level and below, oauth or password. Default is
-    oauth, and the token is expected in a global ACCESS_TOKEN variable.
+  @file
+  @brief Gets a list of folder members (and ids) for a given root
+  @details Returns all members for a particular Viya folder.  Works at both root
+  level and below, and results are created in an output dataset.
 
-        %mv_getfoldermembers(root=/Public)
+        %mv_getfoldermembers(root=/Public, outds=work.mymembers)
 
 
-  @param root= The path for which to return the list of folders
-  @param outds= The output dataset to create (default is work.mv_getfolders).  Format:
+  @param [in] root= (/) The path for which to return the list of folders
+  @param [out] outds= (work.mv_getfolders) The output dataset to create. Format:
   |ordinal_root|ordinal_items|creationTimeStamp| modifiedTimeStamp|createdBy|modifiedBy|id| uri|added| type|name|description|
   |---|---|---|---|---|---|---|---|---|---|---|---|
   |1|1|2021-05-25T11:15:04.204Z|2021-05-25T11:15:04.204Z|allbow|allbow|4f1e3945-9655-462b-90f2-c31534b3ca47|/folders/folders/ed701ff3-77e8-468d-a4f5-8c43dec0fd9e|2021-05-25T11:15:04.212Z|child|my_folder_name|My folder Description|
 
-  @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= valid values are "password" or "authorization_code" (unquoted).
-    The default is authorization_code.
-
+  @param [in] access_token_var= (ACCESS_TOKEN) The global macro variable to
+    contain the access token
+  @param [in] grant_type= (sas_services) Valid values are:
+    @li password
+    @li authorization_code
+    @li detect
+    @li sas_services
 
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
@@ -27,6 +30,12 @@
   @li mf_getuniquefileref.sas
   @li mf_getuniquelibref.sas
   @li mf_isblank.sas
+
+  <h4> Related Macros </h4>
+  @li mv_createfolder.sas
+  @li mv_deletefoldermember.sas
+  @li mv_deleteviyafolder.sas
+  @li mv_getfoldermembers.test.sas
 
 **/
 
@@ -67,7 +76,7 @@ options noquotelenmax;
 %if "&root"="/" %then %do;
   /* if root just list root folders */
   proc http method='GET' out=&fname1 &oauth_bearer
-      url="&base_uri/folders/rootFolders";
+      url="&base_uri/folders/rootFolders?limit=1000";
   %if &grant_type=authorization_code %then %do;
       headers "Authorization"="Bearer &&&access_token_var";
   %end;
@@ -88,13 +97,17 @@ options noquotelenmax;
   /*data _null_;infile &fname1;input;putlog _infile_;run;*/
   libname &libref1 JSON fileref=&fname1;
   /* now get the followon link to list members */
-  %local href;
-  %let href=0;
+  %local href cnt;
+  %let cnt=0;
   data _null_;
     set &libref1..links;
-    if rel='members' then call symputx('href',quote("&base_uri"!!trim(href)),'l');
+    if rel='members' then do;
+      url=cats("'","&base_uri",href,"?limit=10000'");
+      call symputx('href',url,'l');
+      call symputx('cnt',1,'l');
+    end;
   run;
-  %if &href=0 %then %do;
+  %if &cnt=0 %then %do;
     %put NOTE:;%put NOTE-  No members found in &root!!;%put NOTE-;
     %return;
   %end;

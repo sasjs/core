@@ -39,3 +39,11 @@
   desc=Checking jobs appLoc matches,
   outds=work.test_results
 )
+
+%mp_assert(
+  iftrue=(
+    "%mf_getapploc(/some/area/tests/macros/somemacro.sas)"="/some/area"
+  ),
+  desc=Checking tests/macros appLoc matches (which has no subfolder),
+  outds=work.test_results
+)

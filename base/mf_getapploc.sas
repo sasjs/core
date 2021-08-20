@@ -36,13 +36,25 @@
 
 %macro mf_getapploc(pgm);
 %if "&pgm"="" %then %do;
-  %put &sysmacroname: No value provided;
-  %return;
+  %if %symexist(_program) %then %let pgm=&_program;
+  %else %do;
+    %put &sysmacroname: No value provided and no _program variable available;
+    %return;
+  %end;
 %end;
 %local root;
 
 /**
-  * move up two levels to avoid matches on subfolder or service name
+  * First check we are not in the tests/macros folder (which has no subfolders)
+  */
+%if %index(&pgm,/tests/macros/) %then %do;
+  %let root=%substr(&pgm,1,%index(&pgm,/tests/macros)-1);
+  &root
+  %return;
+%end;
+
+/**
+  * Next, move up two levels to avoid matches on subfolder or service name
   */
 %let root=%substr(&pgm,1,%length(&pgm)-%length(%scan(&pgm,-1,/))-1);
 %let root=%substr(&root,1,%length(&root)-%length(%scan(&root,-1,/))-1);

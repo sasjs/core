@@ -152,7 +152,8 @@ data _null_;
       %end;
       %else %if &flavour=PGSQL %then %do;
         if missing(&var) then put 'NULL';
-        %if &applydttm=YES and "%substr(&vfmt,1,8)"="DATETIME" %then %do;
+        %if &applydttm=YES and "%substr(&vfmt.xxxxxxxx,1,8)"="DATETIME"
+        %then %do;
           else put "TIMESTAMP '" &var E8601DT25.6 "'";
         %end;
         %else %do;

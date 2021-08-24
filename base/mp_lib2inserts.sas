@@ -28,6 +28,8 @@
   @param [out] outref= Output fileref in which to create the insert statements.
     If it exists, it will be appended to, otherwise it will be created.
   @param [out] schema= (0) The schema of the target database, or the libref.
+  @param [in] applydttm= (YES) If YES, any columns using datetime formats will
+    be converted to native DB datetime literals
 
   @version 9.2
   @author Allan Bowe
@@ -38,6 +40,7 @@
     ,outref=0
     ,schema=0
     ,maxobs=max
+    ,applydttm=YES
 )/*/STORE SOURCE*/;
 
 /* Find the tables */
@@ -67,6 +70,7 @@ select distinct lowcase(memname)
     ,outds=&ds
     ,flavour=&flavour
     ,maxobs=&maxobs
+    ,applydttm=&applydttm
   )
 %end;
 

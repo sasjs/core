@@ -4,7 +4,7 @@
   @details PROC JSON is faster but will produce errs like the ones below if
   special chars are encountered.
 
-  > ERROR: Some code points did not transcode.
+  > (ERR)OR: Some code points did not transcode.
 
   > An object or array close is not valid at this point in the JSON text.
 

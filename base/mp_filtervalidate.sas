@@ -78,7 +78,7 @@ run;
 
 data &outds;
   if &sqlrc or &syscc or &syserr then do;
-    REASON_CD='VALIDATION_ERROR: '!!
+    REASON_CD='VALIDATION_ERR'!!'OR: '!!
       coalescec(symget('SYSERRORTEXT'),symget('SYSWARNINGTEXT'));
     output;
   end;

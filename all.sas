@@ -4116,7 +4116,7 @@ run;
 
 data &outds;
   if &sqlrc or &syscc or &syserr then do;
-    REASON_CD='VALIDATION_ERROR: '!!
+    REASON_CD='VALIDATION_ERR'!!'OR: '!!
       coalescec(symget('SYSERRORTEXT'),symget('SYSWARNINGTEXT'));
     output;
   end;
@@ -5391,7 +5391,7 @@ create table &outds (rename=(
   @details PROC JSON is faster but will produce errs like the ones below if
   special chars are encountered.
 
-  > ERROR: Some code points did not transcode.
+  > (ERR)OR: Some code points did not transcode.
 
   > An object or array close is not valid at this point in the JSON text.
 

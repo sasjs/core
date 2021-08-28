@@ -25,10 +25,13 @@
     options:
     @li SAS (default) - suitable for regular proc sql
     @li PGSQL - Used for Postgres databases
+  @param [in] applydttm= (YES) If YES, any columns using datetime formats will
+    be converted to native DB datetime literals
 
   <h4> SAS Macros </h4>
   @li mf_existfileref.sas
   @li mf_getvarcount.sas
+  @li mf_getvarformat.sas
   @li mf_getvarlist.sas
   @li mf_getvartype.sas
 
@@ -37,6 +40,7 @@
 **/
 
 %macro mp_ds2inserts(ds, outref=0,schema=0,outds=0,flavour=SAS,maxobs=max
+  ,applydttm=YES
 )/*/STORE SOURCE*/;
 
 %if not %sysfunc(exist(&ds)) %then %do;
@@ -114,10 +118,11 @@ data _null_;
   length _____str $32767;
   format _numeric_ best.;
   format _character_ ;
-  %local i comma var vtype;
+  %local i comma var vtype vfmt;
   %do i=1 %to %sysfunc(countw(&varlist));
     %let var=%scan(&varlist,&i);
     %let vtype=%mf_getvartype(&ds,&var);
+    %let vfmt=%upcase(%mf_getvarformat(&ds,&var,force=1));
     %if &i=1 %then %do;
       %if &flavour=SAS %then %do;
         put "insert into &schema.&outds set ";
@@ -147,7 +152,13 @@ data _null_;
       %end;
       %else %if &flavour=PGSQL %then %do;
         if missing(&var) then put 'NULL';
-        else put &var;
+        %if &applydttm=YES and "%substr(&vfmt.xxxxxxxx,1,8)"="DATETIME"
+        %then %do;
+          else put "TIMESTAMP '" &var E8601DT25.6 "'";
+        %end;
+        %else %do;
+          else put &var;
+        %end;
       %end;
     %end;
     %else %do;

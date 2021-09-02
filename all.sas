@@ -1653,13 +1653,36 @@ Usage:
   @param mac= to contain the name of the calling macro
   @param msg= message to be returned
   @param iftrue= supply a condition under which the macro should be executed.
+  @param errds= (work.mp_abort_errds) There is no clean way to end a process
+    within a %include called within a macro.  Furthermore, there is no way to
+    test if a macro is called within a %include.  To handle this particular
+    scenario, the %include should be switched for the mp_include.sas macro.
+    This provides an indicator that we are running a macro within a %include
+    (_SYSINCLUDEFILEDEVICE) and allows us to provide a dataset with the abort
+    values (msg, mac).
+    We can then run an abort cancel FILE to stop the include running, and pass
+    the dataset back to the calling program to run a regular %mp_abort().
+    The dataset will contain the following fields:
+    @li iftrue (1=1)
+    @li msg (the message)
+    @li mac (the mac param)
+  @param mode= (REGULAR) If mode=INCLUDE then the &errds dataset is checked for
+    an abort status.
+    Valid values:
+    @li REGULAR (default)
+    @li INCLUDE
 
-  @version 9.4M3
+  <h4> Related Macros </h4>
+  @li mp_include.sas
+
+  @version 9.4
   @author Allan Bowe
   @cond
 **/
 
 %macro mp_abort(mac=mp_abort.sas, type=, msg=, iftrue=%str(1=1)
+  , errds=work.mp_abort_errds
+  , mode=REGULAR
 )/*/STORE SOURCE*/;
 
   %global sysprocessmode sysprocessname;
@@ -1670,9 +1693,38 @@ Usage:
   %if %length(&mac)>0 %then %put NOTE- called by &mac;
   %put NOTE - &msg;
 
+  %if %symexist(_SYSINCLUDEFILEDEVICE) %then %do;
+    %if "*&_SYSINCLUDEFILEDEVICE*" ne "**" %then %do;
+      data &errds;
+        iftrue='1=1';
+        length mac $100 msg $5000;
+        mac=symget('mac');
+        msg=symget('msg');
+      run;
+      data _null_;
+        abort cancel FILE;
+      run;
+      %return;
+    %end;
+  %end;
+
   /* Stored Process Server web app context */
-  %if %symexist(_metaperson) or "&SYSPROCESSNAME "="Compute Server " %then %do;
+  %if %symexist(_metaperson)
+    or "&SYSPROCESSNAME "="Compute Server "
+    or &mode=INCLUDE
+  %then %do;
     options obs=max replace nosyntaxcheck mprint;
+    %if &mode=INCLUDE %then %do;
+      data _null_;
+        set &errds;
+        call symputx('iftrue',iftrue,'l');
+        call symputx('mac',mac,'l');
+        call symputx('msg',msg,'l');
+        putlog (_all_)(=);
+      run;
+      %if (&iftrue)=0 %then %return;
+    %end;
+
     /* extract log errs / warns, if exist */
     %local logloc logline;
     %global logmsg; /* capture global messages */
@@ -1759,7 +1811,9 @@ Usage:
       put ',"_PROGRAM" : ' _PROGRAM ;
       put ",""SYSCC"" : ""&syscc"" ";
       put ",""SYSERRORTEXT"" : ""&syserrortext"" ";
+      put ",""SYSHOSTNAME"" : ""&syshostname"" ";
       put ",""SYSJOBID"" : ""&sysjobid"" ";
+      put ",""SYSSITE"" : ""&syssite"" ";
       sysvlong=quote(trim(symget('sysvlong')));
       put ',"SYSVLONG" : ' sysvlong;
       put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" ";
@@ -1776,11 +1830,22 @@ Usage:
         rc=stpsrvset('program error', 0);
         call symputx("syscc",0,"g");
       run;
-      %if "%substr(&sysvlong.xxxxxxxxx,1,9)" ne "9.04.01M3" %then %do;
-        %put NOTE: Ending SAS session due to:;
-        %put NOTE- &msg;
-        endsas;
-      %end;
+      /**
+        * endsas kills 9.4m3 deployments by orphaning multibridges.
+        * Abort variants are ungraceful (non zero return code)
+        * This approach lets SAS run silently until the end :-)
+        * Caution - fails when called within a %include within a macro
+        * Use mp_include() to handle this.
+        */
+      filename skip temp;
+      data _null_;
+        file skip;
+        put '%macro skip();';
+        comment '%mend skip; -> fix lint ';
+        put '%macro skippy();';
+        comment '%mend skippy; -> fix lint ';
+      run;
+      %inc skip;
     %end;
     %else %if "&sysprocessmode " = "SAS Compute Server " %then %do;
       /* endsas kills the session making it harder to fetch results */
@@ -1795,24 +1860,6 @@ Usage:
         call symputx('syscc',0);
         abort cancel nolist;
       run;
-    %end;
-    %else %if "%substr(&sysvlong.xxxxxxxxx,1,9)" = "9.04.01M3" %then %do;
-      /**
-        * endsas kills 9.4m3 deployments by orphaning multibridges.
-        * Abort variants are ungraceful (non zero return code)
-        * This approach lets SAS run silently until the end :-)
-        * Caution - fails when called within a %include within a macro
-        * See tests/mp_abort.test.1 for an example case.
-        */
-      filename skip temp;
-      data _null_;
-        file skip;
-        put '%macro skip();';
-        comment '%mend skip; -> fix lint ';
-        put '%macro skippy();';
-        comment '%mend skippy; -> fix lint ';
-      run;
-      %inc skip;
     %end;
     %else %do;
       %abort cancel;
@@ -5397,6 +5444,110 @@ create table &outds (rename=(
     run;
   %end;
 %mend mp_hashdataset;/**
+  @file
+  @brief Performs a %include
+  @details This macro wrapper is necessary if you need your included code to
+  know that it is being %included.
+
+  If you are using %include in a regular program, you could make use of the
+  following macro variables:
+
+  @li SYSINCLUDEFILEDEVICE
+  @li SYSINCLUDEFILEDIR
+  @li SYSINCLUDEFILEFILEREF
+  @li SYSINCLUDEFILENAME
+
+  However these variables are NOT available inside a macro, as documented here:
+https://documentation.sas.com/doc/en/pgmsascdc/9.4_3.5/mcrolref/n1j5tcc0n2xczyn1kg1o0606gsv9.htm
+
+  This macro can be used in place of the %include statement, and will insert
+  the following (equivalent) global variables:
+
+  @li _SYSINCLUDEFILEDEVICE
+  @li _SYSINCLUDEFILEDIR
+  @li _SYSINCLUDEFILEFILEREF
+  @li _SYSINCLUDEFILENAME
+
+  These can be used whenever testing _within a macro_.  Outside of the macro,
+  the regular automatic variables will still be available (thanks to a
+  concatenated file list in the include statement).
+
+  Example usage:
+
+      filename example temp;
+      data _null_;
+        file example;
+        put '%macro test();';
+        put '%put &=_SYSINCLUDEFILEFILEREF;';
+        put '%put &=SYSINCLUDEFILEFILEREF;';
+        put '%mend; %test()';
+        put '%put &=SYSINCLUDEFILEFILEREF;';
+      run;
+      %mp_include(example)
+
+  @param [in] fileref The fileref of the file to be included. Must be provided.
+  @param [in] prefix= (_) The prefix to apply to the global variables.
+  @param [in] opts= (SOURCE2) The options to apply to the %inc statement
+  @param [in] errds= (work.mp_abort_errds) There is no clean way to end a
+    process within a %include called within a macro.  Furthermore, there is no
+    way to test if a macro is called within a %include.  To handle this
+    particular scenario, the %mp_abort() macro ill test for the existence of
+    the _SYSINCLUDEFILEDEVICE variable and return the outputs (msg,mac) inside
+    this dataset.
+    It will then run an abort cancel FILE to stop the include running, and pass
+    the dataset back.
+    NOTE - it is NOT possible to read this dataset as part of this macro - when
+    running abort cancel FILE, ALL macros are closed, so instead it is necessary
+    to run the following line in the source program, immediately after any macro
+    that contains (or contains a macro that contains) this mp_include macro:
+    </br><code>%mp_abort(mode=INCLUDE)</code>
+
+
+  @version 9.4
+  @author Allan Bowe
+
+  <h4> SAS Macros </h4>
+  @li mf_getuniquefileref.sas
+
+**/
+
+%macro mp_include(fileref
+  ,prefix=_
+  ,opts=SOURCE2
+  ,errds=work.mp_abort_errds
+)/*/STORE SOURCE*/;
+
+/* prepare precode */
+%local tempref;
+%let tempref=%mf_getuniquefileref();
+data _null_;
+  file &tempref;
+  set sashelp.vextfl(where=(fileref="%upcase(&fileref)"));
+  put '%let _SYSINCLUDEFILEDEVICE=' xengine ';';
+  name=scan(xpath,-1,'/\');
+  put '%let _SYSINCLUDEFILENAME=' name ';';
+  path=subpad(xpath,1,length(xpath)-length(name)-1);
+  put '%let _SYSINCLUDEFILEDIR=' path ';';
+  put '%let _SYSINCLUDEFILEFILEREF=' "&fileref;";
+run;
+
+/* prepare the errds */
+data &errds;
+  length msg mac $1000;
+  iftrue='1=0';
+run;
+
+/* include the include */
+%inc &tempref &fileref/&opts;
+
+%mp_abort(iftrue= (&syscc ne 0)
+  ,mac=%str(&_SYSINCLUDEFILEDIR/&_SYSINCLUDEFILENAME)
+  ,msg=%str(syscc=&syscc after executing &_SYSINCLUDEFILENAME)
+)
+
+filename &tempref clear;
+
+%mend mp_include;/**
   @file mp_jsonout.sas
   @brief Writes JSON in SASjs format to a fileref
   @details PROC JSON is faster but will produce errs like the ones below if

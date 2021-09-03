@@ -15,24 +15,47 @@
     recognise this and fetch the log of the parent session instead)
   @li STP environments must finish cleanly to avoid the log being sent to
     _webout.  To assist with this, we also run stpsrvset('program error', 0)
-    and set SYSCC=0.  For 9.4m3 we take a unique approach - we open a macro
-    but don't close it!  This provides a graceful abort, EXCEPT when called
-    called within a %include within a macro (and that macro contains additional
-    logic).  See mp_abort.test.nofix.sas for the example case.
-    If you know of another way to gracefully abort a 9.4m3 STP session, we'd
-    love to hear about it!
+    and set SYSCC=0.  We take a unique "soft abort" approach - we open a macro
+    but don't close it!  This works everywhere EXCEPT inside a \%include inside
+    a macro.  For that, we recommend you use mp_include.sas to perform the
+    include, and then call \%mp_abort(mode=INCLUDE) from the source program (ie,
+    OUTSIDE of the top-parent macro).
 
 
   @param mac= to contain the name of the calling macro
   @param msg= message to be returned
   @param iftrue= supply a condition under which the macro should be executed.
+  @param errds= (work.mp_abort_errds) There is no clean way to end a process
+    within a %include called within a macro.  Furthermore, there is no way to
+    test if a macro is called within a %include.  To handle this particular
+    scenario, the %include should be switched for the mp_include.sas macro.
+    This provides an indicator that we are running a macro within a \%include
+    (`_SYSINCLUDEFILEDEVICE`) and allows us to provide a dataset with the abort
+    values (msg, mac).
+    We can then run an abort cancel FILE to stop the include running, and pass
+    the dataset back to the calling program to run a regular \%mp_abort().
+    The dataset will contain the following fields:
+    @li iftrue (1=1)
+    @li msg (the message)
+    @li mac (the mac param)
 
-  @version 9.4M3
+  @param mode= (REGULAR) If mode=INCLUDE then the &errds dataset is checked for
+    an abort status.
+    Valid values:
+    @li REGULAR (default)
+    @li INCLUDE
+
+  <h4> Related Macros </h4>
+  @li mp_include.sas
+
+  @version 9.4
   @author Allan Bowe
   @cond
 **/
 
 %macro mp_abort(mac=mp_abort.sas, type=, msg=, iftrue=%str(1=1)
+  , errds=work.mp_abort_errds
+  , mode=REGULAR
 )/*/STORE SOURCE*/;
 
   %global sysprocessmode sysprocessname;
@@ -43,9 +66,38 @@
   %if %length(&mac)>0 %then %put NOTE- called by &mac;
   %put NOTE - &msg;
 
+  %if %symexist(_SYSINCLUDEFILEDEVICE) %then %do;
+    %if "*&_SYSINCLUDEFILEDEVICE*" ne "**" %then %do;
+      data &errds;
+        iftrue='1=1';
+        length mac $100 msg $5000;
+        mac=symget('mac');
+        msg=symget('msg');
+      run;
+      data _null_;
+        abort cancel FILE;
+      run;
+      %return;
+    %end;
+  %end;
+
   /* Stored Process Server web app context */
-  %if %symexist(_metaperson) or "&SYSPROCESSNAME "="Compute Server " %then %do;
+  %if %symexist(_metaperson)
+    or "&SYSPROCESSNAME "="Compute Server "
+    or &mode=INCLUDE
+  %then %do;
     options obs=max replace nosyntaxcheck mprint;
+    %if &mode=INCLUDE %then %do;
+      data _null_;
+        set &errds;
+        call symputx('iftrue',iftrue,'l');
+        call symputx('mac',mac,'l');
+        call symputx('msg',msg,'l');
+        putlog (_all_)(=);
+      run;
+      %if (&iftrue)=0 %then %return;
+    %end;
+
     /* extract log errs / warns, if exist */
     %local logloc logline;
     %global logmsg; /* capture global messages */
@@ -132,7 +184,9 @@
       put ',"_PROGRAM" : ' _PROGRAM ;
       put ",""SYSCC"" : ""&syscc"" ";
       put ",""SYSERRORTEXT"" : ""&syserrortext"" ";
+      put ",""SYSHOSTNAME"" : ""&syshostname"" ";
       put ",""SYSJOBID"" : ""&sysjobid"" ";
+      put ",""SYSSITE"" : ""&syssite"" ";
       sysvlong=quote(trim(symget('sysvlong')));
       put ',"SYSVLONG" : ' sysvlong;
       put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" ";
@@ -149,11 +203,22 @@
         rc=stpsrvset('program error', 0);
         call symputx("syscc",0,"g");
       run;
-      %if "%substr(&sysvlong.xxxxxxxxx,1,9)" ne "9.04.01M3" %then %do;
-        %put NOTE: Ending SAS session due to:;
-        %put NOTE- &msg;
-        endsas;
-      %end;
+      /**
+        * endsas kills 9.4m3 deployments by orphaning multibridges.
+        * Abort variants are ungraceful (non zero return code)
+        * This approach lets SAS run silently until the end :-)
+        * Caution - fails when called within a %include within a macro
+        * Use mp_include() to handle this.
+        */
+      filename skip temp;
+      data _null_;
+        file skip;
+        put '%macro skip();';
+        comment '%mend skip; -> fix lint ';
+        put '%macro skippy();';
+        comment '%mend skippy; -> fix lint ';
+      run;
+      %inc skip;
     %end;
     %else %if "&sysprocessmode " = "SAS Compute Server " %then %do;
       /* endsas kills the session making it harder to fetch results */
@@ -168,24 +233,6 @@
         call symputx('syscc',0);
         abort cancel nolist;
       run;
-    %end;
-    %else %if "%substr(&sysvlong.xxxxxxxxx,1,9)" = "9.04.01M3" %then %do;
-      /**
-        * endsas kills 9.4m3 deployments by orphaning multibridges.
-        * Abort variants are ungraceful (non zero return code)
-        * This approach lets SAS run silently until the end :-)
-        * Caution - fails when called within a %include within a macro
-        * See tests/mp_abort.test.1 for an example case.
-        */
-      filename skip temp;
-      data _null_;
-        file skip;
-        put '%macro skip();';
-        comment '%mend skip; -> fix lint ';
-        put '%macro skippy();';
-        comment '%mend skippy; -> fix lint ';
-      run;
-      %inc skip;
     %end;
     %else %do;
       %abort cancel;

@@ -1642,12 +1642,11 @@ Usage:
     recognise this and fetch the log of the parent session instead)
   @li STP environments must finish cleanly to avoid the log being sent to
     _webout.  To assist with this, we also run stpsrvset('program error', 0)
-    and set SYSCC=0.  For 9.4m3 we take a unique approach - we open a macro
-    but don't close it!  This provides a graceful abort, EXCEPT when called
-    called within a %include within a macro (and that macro contains additional
-    logic).  See mp_abort.test.nofix.sas for the example case.
-    If you know of another way to gracefully abort a 9.4m3 STP session, we'd
-    love to hear about it!
+    and set SYSCC=0.  We take a unique "soft abort" approach - we open a macro
+    but don't close it!  This works everywhere EXCEPT inside a \%include inside
+    a macro.  For that, we recommend you use mp_include.sas to perform the
+    include, and then call \%mp_abort(mode=INCLUDE) from the source program (ie,
+    OUTSIDE of the top-parent macro).
 
 
   @param mac= to contain the name of the calling macro
@@ -1657,15 +1656,16 @@ Usage:
     within a %include called within a macro.  Furthermore, there is no way to
     test if a macro is called within a %include.  To handle this particular
     scenario, the %include should be switched for the mp_include.sas macro.
-    This provides an indicator that we are running a macro within a %include
-    (_SYSINCLUDEFILEDEVICE) and allows us to provide a dataset with the abort
+    This provides an indicator that we are running a macro within a \%include
+    (`_SYSINCLUDEFILEDEVICE`) and allows us to provide a dataset with the abort
     values (msg, mac).
     We can then run an abort cancel FILE to stop the include running, and pass
-    the dataset back to the calling program to run a regular %mp_abort().
+    the dataset back to the calling program to run a regular \%mp_abort().
     The dataset will contain the following fields:
     @li iftrue (1=1)
     @li msg (the message)
     @li mac (the mac param)
+
   @param mode= (REGULAR) If mode=INCLUDE then the &errds dataset is checked for
     an abort status.
     Valid values:
@@ -5445,9 +5445,9 @@ create table &outds (rename=(
   %end;
 %mend mp_hashdataset;/**
   @file
-  @brief Performs a %include
+  @brief Performs a wrapped \%include
   @details This macro wrapper is necessary if you need your included code to
-  know that it is being %included.
+  know that it is being \%included.
 
   If you are using %include in a regular program, you could make use of the
   following macro variables:
@@ -5491,16 +5491,14 @@ https://documentation.sas.com/doc/en/pgmsascdc/9.4_3.5/mcrolref/n1j5tcc0n2xczyn1
   @param [in] errds= (work.mp_abort_errds) There is no clean way to end a
     process within a %include called within a macro.  Furthermore, there is no
     way to test if a macro is called within a %include.  To handle this
-    particular scenario, the %mp_abort() macro ill test for the existence of
-    the _SYSINCLUDEFILEDEVICE variable and return the outputs (msg,mac) inside
+    particular scenario, the %mp_abort() macro will test for the existence of
+    the `_SYSINCLUDEFILEDEVICE` variable and return the outputs (msg,mac) inside
     this dataset.
     It will then run an abort cancel FILE to stop the include running, and pass
     the dataset back.
-    NOTE - it is NOT possible to read this dataset as part of this macro - when
-    running abort cancel FILE, ALL macros are closed, so instead it is necessary
-    to run the following line in the source program, immediately after any macro
-    that contains (or contains a macro that contains) this mp_include macro:
-    </br><code>%mp_abort(mode=INCLUDE)</code>
+    NOTE - it is NOT possible to read this dataset as part of _this_ macro -
+    when running abort cancel FILE, ALL macros are closed, so instead it is
+    necessary to invoke "%mp_abort(mode=INCLUDE)" OUTSIDE of any macro wrappers.
 
 
   @version 9.4

@@ -1,8 +1,8 @@
 /**
   @file
-  @brief Performs a %include
+  @brief Performs a wrapped \%include
   @details This macro wrapper is necessary if you need your included code to
-  know that it is being %included.
+  know that it is being \%included.
 
   If you are using %include in a regular program, you could make use of the
   following macro variables:
@@ -46,16 +46,14 @@ https://documentation.sas.com/doc/en/pgmsascdc/9.4_3.5/mcrolref/n1j5tcc0n2xczyn1
   @param [in] errds= (work.mp_abort_errds) There is no clean way to end a
     process within a %include called within a macro.  Furthermore, there is no
     way to test if a macro is called within a %include.  To handle this
-    particular scenario, the %mp_abort() macro ill test for the existence of
-    the _SYSINCLUDEFILEDEVICE variable and return the outputs (msg,mac) inside
+    particular scenario, the %mp_abort() macro will test for the existence of
+    the `_SYSINCLUDEFILEDEVICE` variable and return the outputs (msg,mac) inside
     this dataset.
     It will then run an abort cancel FILE to stop the include running, and pass
     the dataset back.
-    NOTE - it is NOT possible to read this dataset as part of this macro - when
-    running abort cancel FILE, ALL macros are closed, so instead it is necessary
-    to run the following line in the source program, immediately after any macro
-    that contains (or contains a macro that contains) this mp_include macro:
-    </br><code>%mp_abort(mode=INCLUDE)</code>
+    NOTE - it is NOT possible to read this dataset as part of _this_ macro -
+    when running abort cancel FILE, ALL macros are closed, so instead it is
+    necessary to invoke "%mp_abort(mode=INCLUDE)" OUTSIDE of any macro wrappers.
 
 
   @version 9.4

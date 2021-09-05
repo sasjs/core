@@ -1715,14 +1715,20 @@ Usage:
   %then %do;
     options obs=max replace nosyntaxcheck mprint;
     %if &mode=INCLUDE %then %do;
-      data _null_;
-        set &errds;
-        call symputx('iftrue',iftrue,'l');
-        call symputx('mac',mac,'l');
-        call symputx('msg',msg,'l');
-        putlog (_all_)(=);
-      run;
-      %if (&iftrue)=0 %then %return;
+      %if %sysfunc(exist(&errds))=1 %then %do;
+        data _null_;
+          set &errds;
+          call symputx('iftrue',iftrue,'l');
+          call symputx('mac',mac,'l');
+          call symputx('msg',msg,'l');
+          putlog (_all_)(=);
+        run;
+        %if (&iftrue)=0 %then %return;
+      %end;
+      %else %do;
+        %put &sysmacroname: No include errors found;
+        %return;
+      %end;
     %end;
 
     /* extract log errs / warns, if exist */

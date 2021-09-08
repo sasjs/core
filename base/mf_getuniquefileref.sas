@@ -8,30 +8,40 @@
       %let fileref2=%mf_getuniquefileref();
       %put &fileref1 &fileref2;
 
-  which returns:
+  which returns something similar to:
 
-> mcref0 mcref1
+> #LN01295 #LN01297
 
-  @param prefix= first part of fileref. Remember that filerefs can only be 8
-    characters, so a 7 letter prefix would mean that `maxtries` should be 10.
-  @param maxtries= the last part of the libref.  Provide an integer value.
+  A previous version of this macro worked by assigning sequential filerefs.
+  The current version uses the native "find a unique fileref" functionality
+  within the filename function, which is 100 times faster.
+
+  @param prefix= Deprecated.  Will be removed in a future release.
+  @param maxtries= Deprecated. Will be removed in a future release.
 
   @version 9.2
   @author Allan Bowe
 **/
 
-%macro mf_getuniquefileref(prefix=mcref,maxtries=1000);
-  %local x fname;
-  %let x=0;
-  %do x=0 %to &maxtries;
-  %if %sysfunc(fileref(&prefix&x)) > 0 %then %do;
-    %let fname=&prefix&x;
+%macro mf_getuniquefileref(prefix=0,maxtries=1000);
+  %local rc fname;
+  %if &prefix=0 %then %do;
     %let rc=%sysfunc(filename(fname,,temp));
     %if &rc %then %put %sysfunc(sysmsg());
-    &prefix&x
-    %*put &sysmacroname: Fileref &prefix&x was assigned and returned;
-    %return;
+    &fname
   %end;
+  %else %do;
+    %local x;
+    %let x=0;
+    %do x=0 %to &maxtries;
+    %if %sysfunc(fileref(&prefix&x)) > 0 %then %do;
+      %let fname=&prefix&x;
+      %let rc=%sysfunc(filename(fname,,temp));
+      %if &rc %then %put %sysfunc(sysmsg());
+      &prefix&x
+      %return;
+    %end;
+    %end;
+    %put unable to find available fileref in range &prefix.0-&maxtries;
   %end;
-  %put unable to find available fileref in range &prefix.0-&maxtries;
 %mend mf_getuniquefileref;

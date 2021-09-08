@@ -703,39 +703,60 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
 /**
   @file
   @brief Assigns and returns an unused fileref
-  @details
+  @details  Using the native approach for assigning filerefs fails as some
+  procedures (such as proc http) do not recognise the temporary names (starting
+  with a hash), returning a message such as:
+
+  > ERROR 22-322: Expecting a name.
+
+  This macro works by attempting a random fileref (with a prefix), seeing if it
+  is already assigned, and if not - returning the fileref.
+
+  If your process can accept filerefs with the hash (#) prefix, then set
+  `prefix=0` to revert to the native approach - which is significantly faster
+  when there are a lot of filerefs in a session.
+
   Use as follows:
 
       %let fileref1=%mf_getuniquefileref();
-      %let fileref2=%mf_getuniquefileref();
+      %let fileref2=%mf_getuniquefileref(prefix=0);
       %put &fileref1 &fileref2;
 
-  which returns:
+  which returns filerefs similar to:
 
-> mcref0 mcref1
+> _7432233 #LN00070
 
-  @param prefix= first part of fileref. Remember that filerefs can only be 8
-    characters, so a 7 letter prefix would mean that `maxtries` should be 10.
-  @param maxtries= the last part of the libref.  Provide an integer value.
+  @param [in] prefix= (_) first part of fileref. Remember that filerefs can only
+    be 8 characters, so a 7 letter prefix would mean `maxtries` should be 10.
+    if using zero (0) as the prefix, a native assignment is used.
+  @param [in] maxtries= (1000) the last part of the libref. Must be an integer.
 
   @version 9.2
   @author Allan Bowe
 **/
 
-%macro mf_getuniquefileref(prefix=mcref,maxtries=1000);
-  %local x fname;
-  %let x=0;
-  %do x=0 %to &maxtries;
-  %if %sysfunc(fileref(&prefix&x)) > 0 %then %do;
-    %let fname=&prefix&x;
+%macro mf_getuniquefileref(prefix=_,maxtries=1000);
+  %local rc fname;
+  %if &prefix=0 %then %do;
     %let rc=%sysfunc(filename(fname,,temp));
     %if &rc %then %put %sysfunc(sysmsg());
-    &prefix&x
-    %*put &sysmacroname: Fileref &prefix&x was assigned and returned;
-    %return;
+    &fname
   %end;
+  %else %do;
+    %local x len;
+    %let len=%eval(8-%length(&prefix));
+    %let x=0;
+    %do x=0 %to &maxtries;
+      %let fname=&prefix%substr(%sysfunc(ranuni(0)),3,&len);
+      %if %sysfunc(fileref(&fname)) > 0 %then %do;
+        %let rc=%sysfunc(filename(fname,,temp));
+        %if &rc %then %put %sysfunc(sysmsg());
+        &fname
+        %return;
+      %end;
+    %end;
+    %put unable to find available fileref after &maxtries attempts;
   %end;
-  %put unable to find available fileref in range &prefix.0-&maxtries;
 %mend mf_getuniquefileref;/**
   @file
   @brief Returns an unused libref
@@ -7523,6 +7544,63 @@ alter table &libds modify &var char(&len);
 
 %mend mp_validatecol;
 /**
+  @file
+  @brief Fix the `_WEBIN` variables provided to SAS web services
+  @details When uploading files to SAS Stored Processes or Viya Jobs a number
+  of global macro variables are automatically created - however there are some
+  differences in behaviour both between SAS 9 and Viya, and also between a
+  single file upload and a multi-file upload.
+
+  This macro "straightens" up the global macro variables to make it easier /
+  simpler to write code that works in both environments and with a variable
+  number of file inputs.
+
+  After running this macro, the following global variables will *always* exist:
+  @li `_WEBIN_FILE_COUNT`
+  @li `_WEBIN_FILENAME1`
+  @li `_WEBIN_FILEREF1`
+  @li `_WEBIN_NAME1`
+
+  Usage:
+
+    %mp_webin()
+
+  This was created as a macro procedure (over a macro function) as it will also
+  use the filename statement in Viya environments (where `_webin_fileuri` is
+  provided).
+
+  <h4> SAS Macros </h4>
+  @li mf_getplatform.sas
+
+**/
+
+%macro mp_webin();
+
+/* prepare global variables */
+%global _webin_file_count
+  _webin_filename _webin_filename1
+  _webin_fileref _webin_fileref1
+  _webin_fileuri _webin_fileuri1
+  _webin_name _webin_name1
+  ;
+
+/* create initial versions */
+%let _webin_file_count=%eval(&_webin_file_count+0);
+%let _webin_filename1=%sysfunc(coalescec(&_webin_filename1,&_webin_filename));
+%let _webin_fileref1=%sysfunc(coalescec(&_webin_fileref1,&_webin_fileref));
+%let _webin_fileuri1=%sysfunc(coalescec(&_webin_fileuri1,&_webin_fileuri));
+%let _webin_name1=%sysfunc(coalescec(&_webin_name1,&_webin_name));
+
+
+/* If Viya, create temporary fileref(s) */
+%local i;
+%if %mf_getplatform()=SASVIYA %then %do i=1 %to &_webin_file_count;
+  %let _webin_fileref&i=%mf_getuniquefileref(prefix=0);
+  filename &&_webin_fileref&i filesrvc "&&_webin_fileuri&i";
+%end;
+
+
+%mend mp_webin;/**
   @file
   @brief Creates a zip file
   @details For DIRECTORY usage, will ignore subfolders. For DATASET usage,

@@ -7595,7 +7595,7 @@ alter table &libds modify &var char(&len);
 /* If Viya, create temporary fileref(s) */
 %local i;
 %if %mf_getplatform()=SASVIYA %then %do i=1 %to &_webin_file_count;
-  %let _webin_fileref&i=%mf_getuniquefileref(prefix=0);
+  %let _webin_fileref&i=%mf_getuniquefileref();
   filename &&_webin_fileref&i filesrvc "&&_webin_fileuri&i";
 %end;
 
@@ -15794,6 +15794,7 @@ options noquotelenmax;
   run;
   libname &libref2 JSON fileref=&fname2;
   data &outds;
+    length id $36 name $128 uri $64 type $32 description $256;
     set &libref2..items;
   run;
   filename &fname2 clear;

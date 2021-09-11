@@ -122,6 +122,7 @@ options noquotelenmax;
   run;
   libname &libref2 JSON fileref=&fname2;
   data &outds;
+    length id $36 name $128 uri $64 type $32 description $256;
     set &libref2..items;
   run;
   filename &fname2 clear;

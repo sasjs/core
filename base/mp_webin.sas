@@ -26,6 +26,7 @@
 
   <h4> SAS Macros </h4>
   @li mf_getplatform.sas
+  @li mf_getuniquefileref.sas
 
 **/
 

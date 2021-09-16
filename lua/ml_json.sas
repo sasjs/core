@@ -389,6 +389,6 @@ data _null_;
   put '-- JSON.LUA ENDS HERE ';
 run;
 
-%inc "%sysfunc(pathname(work))/ml_json.lua";
+%inc "%sysfunc(pathname(work))/ml_json.lua" /source2;
 
 %mend ml_json;

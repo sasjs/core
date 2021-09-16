@@ -10,7 +10,7 @@ end
 
 -- open file and perform the substitution
 file = io.open(fpath,"r")
-fcontent = file:read()
+fcontent = file:read("*all")
 file:close()
 fcontent = string.gsub(
   fcontent,

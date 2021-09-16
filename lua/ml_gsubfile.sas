@@ -24,7 +24,7 @@ data _null_;
   put ' ';
   put '-- open file and perform the substitution ';
   put 'file = io.open(fpath,"r") ';
-  put 'fcontent = file:read() ';
+  put 'fcontent = file:read("*all") ';
   put 'file:close() ';
   put 'fcontent = string.gsub( ';
   put '  fcontent, ';
@@ -39,6 +39,6 @@ data _null_;
   put 'io.close(file) ';
 run;
 
-%inc "%sysfunc(pathname(work))/ml_gsubfile.lua";
+%inc "%sysfunc(pathname(work))/ml_gsubfile.lua" /source2;
 
 %mend ml_gsubfile;

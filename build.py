@@ -22,7 +22,7 @@ for file in files:
         for line in infile:
           ml.write("  put '" + line.rstrip().replace("'","''") + " ';\n")
     ml.write("run;\n\n")
-    ml.write("%inc \"%sysfunc(pathname(work))/" + name + ".lua\";\n\n")
+    ml.write("%inc \"%sysfunc(pathname(work))/" + name + ".lua\" /source2;\n\n")
     ml.write("%mend " + name + ";\n")
 
 ml.close()

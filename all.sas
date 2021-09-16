@@ -1806,7 +1806,7 @@ Usage:
     /* send response in SASjs JSON format */
     data _null_;
       file _webout mod lrecl=32000 encoding='utf-8';
-      length msg $32767 debug $8;
+      length msg $32767 ;
       sasdatetime=datetime();
       msg=cats(symget('msg'),'\n\nLog Extract:\n',symget('logmsg'));
       /* escape the quotes */
@@ -1837,13 +1837,15 @@ Usage:
       _PROGRAM=quote(trim(resolve(symget('_PROGRAM'))));
       put ',"_PROGRAM" : ' _PROGRAM ;
       put ",""SYSCC"" : ""&syscc"" ";
-      put ",""SYSERRORTEXT"" : ""&syserrortext"" ";
+      syserrortext=quote(trim(symget('syserrortext')));
+      put ",""SYSERRORTEXT"" : " syserrortext;
       put ",""SYSHOSTNAME"" : ""&syshostname"" ";
       put ",""SYSJOBID"" : ""&sysjobid"" ";
       put ",""SYSSITE"" : ""&syssite"" ";
       sysvlong=quote(trim(symget('sysvlong')));
       put ',"SYSVLONG" : ' sysvlong;
-      put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" ";
+      syswarningtext=quote(trim(symget('syswarningtext')));
+      put ",""SYSWARNINGTEXT"" : " syswarningtext;
       put ',"END_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '" ';
       put "}" @;
       if debug ge '"131"' then put '>>weboutEND<<';

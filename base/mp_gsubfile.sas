@@ -15,7 +15,7 @@
         file "&file";
         put "&str";
       run;
-      %mp_gsubfile(file=&file, pattern=str, replacement=rep)
+      %mp_gsubfile(file=&file, patternvar=str, replacevar=rep)
       data _null_;
         infile "&file";
         input;

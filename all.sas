@@ -4265,8 +4265,6 @@ filename &fref1 clear;
 
   @version 9.2
   @author Allan Bowe
-  @copyright Macro People Ltd - this is a licensed product and
-    NOT FOR RESALE OR DISTRIBUTION.
 
 **/
 
@@ -6104,14 +6102,14 @@ select distinct lowcase(memname)
   We take the standard definition one step further by embedding the informat
   in the table header row, like so:
 
-      |var1:$|var2:best.|var3:date9.|
+      |var1:$32|var2:best.|var3:date9.|
       |---|---|---|
       |some text|42|01JAN1960|
       |blah|1|31DEC1999|
 
   Which resolves to:
 
-  |var1:$|var2:best.|var3:date9.|
+  |var1:$32|var2:best.|var3:date9.|
   |---|---|---|
   |some text|42|01JAN1960|
   |blah|1|31DEC1999|

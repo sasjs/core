@@ -26,8 +26,6 @@
 
   @version 9.2
   @author Allan Bowe
-  @copyright Macro People Ltd - this is a licensed product and
-    NOT FOR RESALE OR DISTRIBUTION.
 
 **/
 

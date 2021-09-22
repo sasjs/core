@@ -115,6 +115,14 @@
   select count(*) into: orig from &lib..&ds;
   quit;
 
+  %local notfound;
+  proc sql outobs=10 noprint;
+  select distinct &col  into: notfound separated by ' '
+    from &lib..&ds
+    where &col not in (
+      select &ccol from &clib..&cds
+    );
+
   %mp_abort(iftrue= (&syscc ne 0)
     ,mac=&sysmacroname
     ,msg=%str(syscc=&syscc after macro query)
@@ -125,7 +133,7 @@
     test_description=symget('desc');
     test_result='FAIL';
     test_comments="&sysmacroname: &lib..&ds..&col has &result values "
-      !!"not in &clib..&cds..&ccol ";
+      !!"not in &clib..&cds..&ccol.. First 10 vals:"!!symget('notfound');
   %if &test=ANYVAL %then %do;
     if &result < &orig then test_result='PASS';
   %end;

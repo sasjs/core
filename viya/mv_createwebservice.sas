@@ -590,6 +590,7 @@ data _null_;
   put '    put ",""SYSCC"" : ""&syscc"" "; ';
   put '    put ",""SYSERRORTEXT"" : ""&syserrortext"" "; ';
   put '    put ",""SYSHOSTNAME"" : ""&syshostname"" "; ';
+  put '    put ",""SYSSCPL"" : ""&sysscpl"" "; ';
   put '    put ",""SYSSITE"" : ""&syssite"" "; ';
   put '    sysvlong=quote(trim(symget(''sysvlong''))); ';
   put '    put '',"SYSVLONG" : '' sysvlong; ';

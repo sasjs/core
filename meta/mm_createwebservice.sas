@@ -385,6 +385,7 @@ data _null_;
   put '    put ",""SYSERRORTEXT"" : ""&syserrortext"" "; ';
   put '    put ",""SYSHOSTNAME"" : ""&syshostname"" "; ';
   put '    put ",""SYSJOBID"" : ""&sysjobid"" "; ';
+  put '    put ",""SYSSCPL"" : ""&sysscpl"" "; ';
   put '    put ",""SYSSITE"" : ""&syssite"" "; ';
   put '    sysvlong=quote(trim(symget(''sysvlong''))); ';
   put '    put '',"SYSVLONG" : '' sysvlong; ';

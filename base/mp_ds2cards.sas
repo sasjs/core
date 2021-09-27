@@ -159,7 +159,8 @@ data datalines_2;
     * binary data must be converted, to store in text format.  It is identified
     * by the presence of the $HEX keyword in the format.
     */
-  else if upcase(format)=:'$HEX' then dataline=cats('put(',name,',',format,')');
+  else if upcase(format)=:'$HEX' then
+    dataline=cats('put(trim(',name,'),',format,')');
   else dataline=name;
 run;
 

@@ -3371,8 +3371,8 @@ run;
 %let nvars=0;
 proc sql noprint;
 select count(*) into: nvars from dictionary.columns
-  where libname="%scan(%upcase(&base_ds),1)"
-    and memname="%scan(%upcase(&base_ds),2)";
+  where upcase(libname)="%scan(%upcase(&base_ds),1)"
+    and upcase(memname)="%scan(%upcase(&base_ds),2)";
 %if &nvars=0 %then %do;
   %put %str(WARN)ING: Dataset &base_ds has no variables, will not be converted.;
   %return;
@@ -3428,8 +3428,8 @@ proc sql
 reset outobs=max;
 create table datalines1 as
   select name,type,length,varnum,format,label from dictionary.columns
-  where libname="%upcase(%scan(&base_ds,1))"
-    and memname="%upcase(%scan(&base_ds,2))";
+  where upcase(libname)="%upcase(%scan(&base_ds,1))"
+    and upcase(memname)="%upcase(%scan(&base_ds,2))";
 
 /**
   Due to long decimals cannot use best. format
@@ -4412,21 +4412,21 @@ run;
 /* must use SQL as proc datasets does not support length changes */
 proc sql noprint;
 create table &outds as
-  select a.TABLE_CATALOG as libref
-    ,a.TABLE_NAME
+  select upcase(a.TABLE_CATALOG) as libref
+    ,upcase(a.TABLE_NAME) as TABLE_NAME
     ,a.constraint_type
     ,a.constraint_name
     ,b.column_name
   from dictionary.TABLE_CONSTRAINTS a
   left join dictionary.constraint_column_usage  b
-  on a.TABLE_CATALOG=b.TABLE_CATALOG
-    and a.TABLE_NAME=b.TABLE_NAME
+  on upcase(a.TABLE_CATALOG)=upcase(b.TABLE_CATALOG)
+    and upcase(a.TABLE_NAME)=upcase(b.TABLE_NAME)
     and a.constraint_name=b.constraint_name
-  where a.TABLE_CATALOG="&lib"
-    and b.TABLE_CATALOG="&lib"
+  where upcase(a.TABLE_CATALOG)="&lib"
+    and upcase(b.TABLE_CATALOG)="&lib"
   %if "&ds" ne "" %then %do;
-    and a.TABLE_NAME="&ds"
-    and b.TABLE_NAME="&ds"
+    and upcase(a.TABLE_NAME)="&ds"
+    and upcase(b.TABLE_NAME)="&ds"
   %end;
   ;
 
@@ -4977,7 +4977,7 @@ run;
   proc sql noprint;
   select sysvalue into: schemaactual
     from dictionary.libnames
-    where libname="&libref" and engine='SQLSVR';
+    where upcase(libname)="&libref" and engine='SQLSVR';
   %let schema=%sysfunc(coalescec(&schemaactual,&schema,&libref));
 
   %do x=1 %to %sysfunc(countw(&dsnlist));
@@ -5070,7 +5070,7 @@ run;
   proc sql noprint;
   select sysvalue into: schemaactual
     from dictionary.libnames
-    where libname="&libref" and engine='POSTGRES';
+    where upcase(libname)="&libref" and engine='POSTGRES';
   %let schema=%sysfunc(coalescec(&schemaactual,&schema,&libref));
   data _null_;
     file &fref mod;

@@ -2,12 +2,21 @@
   @file
   @brief Create a CARDS file from a SAS dataset.
   @details Uses dataset attributes to convert all data into datalines.
-    Running the generated file will rebuild the original dataset.
+    Running the generated file will rebuild the original dataset.  Includes
+    support for large decimals, binary data, PROCESSED_DTTM columns, and
+    alternative encoding.  If the input dataset is empty, the cards file will
+    still be created.
+
+    Additional support to generate a random sample and max rows.
+
   Usage:
 
       %mp_ds2cards(base_ds=sashelp.class
+        , tgt_ds=work.class
         , cards_file= "C:\temp\class.sas"
-        , maxobs=5)
+        , showlog=NO
+        , maxobs=5
+      )
 
   TODO:
     - labelling the dataset
@@ -18,15 +27,24 @@
                   that is converted to a cards file.
   @param [in] tgt_ds= Table that the generated cards file would create.
     Optional - if omitted, will be same as BASE_DS.
-  @param [out] cards_file= Location in which to write the (.sas) cards file
-  @param [in] maxobs= to limit output to the first <code>maxobs</code>
-    observations
-  @param [in] showlog= whether to show generated cards file in the SAS log
-    (YES/NO)
-  @param [in] outencoding= provide encoding value for file statement (eg utf-8)
-  @param [in] append= If NO then will rebuild the cards file if it already
+  @param [out] cards_file= ("%sysfunc(pathname(work))/cardgen.sas") Location in
+    which to write the (.sas) cards file
+  @param [in] maxobs= (max) To limit output to the first <code>maxobs</code>
+    observations, enter an integer here.
+  @param [in] random_sample= (NO) Set to YES to generate a random sample of
+    data.  Can be quite slow.
+  @param [in] showlog= (YES) Whether to show generated cards file in the SAS
+    log.  Valid values:
+    @li YES
+    @li NO
+  @param [in] outencoding= Provide encoding value for file statement (eg utf-8)
+  @param [in] append= (NO) If NO then will rebuild the cards file if it already
     exists, otherwise will append to it.  Used by the mp_lib2cards.sas macro.
 
+  <h4> Related Macros </h4>
+  @li mp_lib2cards.sas
+  @li mp_ds2inserts.sas
+  @li mp_mdtablewrite.sas
 
   @version 9.2
   @author Allan Bowe
@@ -51,7 +69,7 @@
 %if (&tgt_ds = ) %then %let tgt_ds=&base_ds;
 %if %index(&tgt_ds,.)=0 %then %let tgt_ds=WORK.%scan(&base_ds,2,.);
 %if ("&outencoding" ne "") %then %let outencoding=encoding="&outencoding";
-%if ("&append" = "") %then %let append=;
+%if ("&append" = "" or "&append" = "NO") %then %let append=;
 %else %let append=mod;
 
 /* get varcount */
@@ -137,6 +155,11 @@ data datalines_2;
       ,put(',name,',best32.-l)
       ,substrn(put(',name,',bestd32.-l),1
       ,findc(put(',name,',bestd32.-l),"0","TBK")))');
+  /**
+    * binary data must be converted, to store in text format.  It is identified
+    * by the presence of the $HEX keyword in the format.
+    */
+  else if upcase(format)=:'$HEX' then dataline=cats('put(',name,',',format,')');
   else dataline=name;
 run;
 
@@ -162,7 +185,8 @@ data _null_;
 
 
 /* Build input statement */
-  if type='char' then type3=':$char.';
+  if upcase(format)=:'$HEX' then type3=':'!!format;
+  else if type='char' then type3=':$char.';
   str2=put(name,$33.)||type3;
 
 
@@ -216,7 +240,7 @@ data _null_;
       put "input ";
       %do i = 1 %to &nvars.;
         %if(%length(&&input_stmt_&i..)) %then
-          put "   &&input_stmt_&i..";
+          put "  &&input_stmt_&i..";
         ;
       %end;
       put ";";

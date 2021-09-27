@@ -211,7 +211,7 @@ run;
   proc sql noprint;
   select sysvalue into: schemaactual
     from dictionary.libnames
-    where libname="&libref" and engine='SQLSVR';
+    where upcase(libname)="&libref" and engine='SQLSVR';
   %let schema=%sysfunc(coalescec(&schemaactual,&schema,&libref));
 
   %do x=1 %to %sysfunc(countw(&dsnlist));
@@ -304,7 +304,7 @@ run;
   proc sql noprint;
   select sysvalue into: schemaactual
     from dictionary.libnames
-    where libname="&libref" and engine='POSTGRES';
+    where upcase(libname)="&libref" and engine='POSTGRES';
   %let schema=%sysfunc(coalescec(&schemaactual,&schema,&libref));
   data _null_;
     file &fref mod;

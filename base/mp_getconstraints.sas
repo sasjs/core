@@ -39,21 +39,21 @@
 /* must use SQL as proc datasets does not support length changes */
 proc sql noprint;
 create table &outds as
-  select a.TABLE_CATALOG as libref
-    ,a.TABLE_NAME
+  select upcase(a.TABLE_CATALOG) as libref
+    ,upcase(a.TABLE_NAME) as TABLE_NAME
     ,a.constraint_type
     ,a.constraint_name
     ,b.column_name
   from dictionary.TABLE_CONSTRAINTS a
   left join dictionary.constraint_column_usage  b
-  on a.TABLE_CATALOG=b.TABLE_CATALOG
-    and a.TABLE_NAME=b.TABLE_NAME
+  on upcase(a.TABLE_CATALOG)=upcase(b.TABLE_CATALOG)
+    and upcase(a.TABLE_NAME)=upcase(b.TABLE_NAME)
     and a.constraint_name=b.constraint_name
-  where a.TABLE_CATALOG="&lib"
-    and b.TABLE_CATALOG="&lib"
+  where upcase(a.TABLE_CATALOG)="&lib"
+    and upcase(b.TABLE_CATALOG)="&lib"
   %if "&ds" ne "" %then %do;
-    and a.TABLE_NAME="&ds"
-    and b.TABLE_NAME="&ds"
+    and upcase(a.TABLE_NAME)="&ds"
+    and upcase(b.TABLE_NAME)="&ds"
   %end;
   ;
 

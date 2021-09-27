@@ -58,8 +58,8 @@
 %let nvars=0;
 proc sql noprint;
 select count(*) into: nvars from dictionary.columns
-  where libname="%scan(%upcase(&base_ds),1)"
-    and memname="%scan(%upcase(&base_ds),2)";
+  where upcase(libname)="%scan(%upcase(&base_ds),1)"
+    and upcase(memname)="%scan(%upcase(&base_ds),2)";
 %if &nvars=0 %then %do;
   %put %str(WARN)ING: Dataset &base_ds has no variables, will not be converted.;
   %return;
@@ -115,8 +115,8 @@ proc sql
 reset outobs=max;
 create table datalines1 as
   select name,type,length,varnum,format,label from dictionary.columns
-  where libname="%upcase(%scan(&base_ds,1))"
-    and memname="%upcase(%scan(&base_ds,2))";
+  where upcase(libname)="%upcase(%scan(&base_ds,1))"
+    and upcase(memname)="%upcase(%scan(&base_ds,2))";
 
 /**
   Due to long decimals cannot use best. format

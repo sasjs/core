@@ -3556,7 +3556,7 @@ data _null_;
       put 'run;';
     end;
     else do;
-      put "infile cards dsd delimiter=',';";
+      put "infile cards dsd;";
       put "input ";
       %do i = 1 %to &nvars.;
         %if(%length(&&input_stmt_&i..)) %then

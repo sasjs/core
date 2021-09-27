@@ -1856,7 +1856,7 @@ Usage:
 
     %if "&sysprocessmode " = "SAS Stored Process Server " %then %do;
       data _null_;
-        putlog 'stpsrvset program error and syscc';
+        putlog 'stpsrvset program err and syscc';
         rc=stpsrvset('program error', 0);
         call symputx("syscc",0,"g");
       run;
@@ -1902,6 +1902,62 @@ Usage:
 %mend mp_abort;
 
 /** @endcond *//**
+  @file
+  @brief Append (concatenate) two or more files.
+  @details Will append one more more `appendrefs` (filerefs) to a `baseref`.
+  Uses a binary mechanism, so will work with any file type.  For that reason -
+  use with care!   And supply your own trailing carriage returns in each file..
+
+  Usage:
+
+        filename tmp1 temp;
+        filename tmp2 temp;
+        filename tmp3 temp;
+        data _null_; file tmp1; put 'base file';
+        data _null_; file tmp2; put 'append1';
+        data _null_; file tmp3; put 'append2';
+        run;
+        %mp_appendfile(baseref=tmp1, appendrefs=tmp2 tmp3)
+
+
+  @param [in] baseref= Fileref of the base file (should exist)
+  @param [in] appendrefs= One or more filerefs to be appended to the base
+    fileref.  Space separated.
+
+  @version 9.2
+  @author Allan Bowe, source: https://github.com/sasjs/core
+
+  <h4> SAS Macros </h4>
+  @li mp_abort.sas
+  @li mp_binarycopy.sas
+
+
+**/
+
+%macro mp_appendfile(
+  baseref=0,
+  appendrefs=0
+)/*/STORE SOURCE*/;
+
+%mp_abort(iftrue= (&baseref=0)
+  ,mac=&sysmacroname
+  ,msg=%str(Baseref NOT specified!)
+)
+%mp_abort(iftrue= (&appendrefs=0)
+  ,mac=&sysmacroname
+  ,msg=%str(Appendrefs NOT specified!)
+)
+
+%local i;
+%do i=1 %to %sysfunc(countw(&appendrefs));
+  %mp_abort(iftrue= (&syscc>0)
+    ,mac=&sysmacroname
+    ,msg=%str(syscc=&syscc)
+  )
+  %mp_binarycopy(inref=%scan(&appendrefs,&i), outref=&baseref, mode=APPEND)
+%end;
+
+%mend mp_appendfile;/**
   @file
   @brief Generic assertion
   @details Useful in the context of writing sasjs tests.  The results of the
@@ -2132,6 +2188,7 @@ Usage:
 
   <h4> SAS Macros </h4>
   @li mf_existds.sas
+  @li mf_getuniquename.sas
   @li mf_nobs.sas
   @li mp_abort.sas
 
@@ -2217,13 +2274,25 @@ Usage:
   select count(*) into: orig from &lib..&ds;
   quit;
 
-  %local notfound;
-  proc sql outobs=10 noprint;
-  select distinct &col  into: notfound separated by ' '
+  %local notfound tmp1 tmp2;
+  %let tmp1=%mf_getuniquename();
+  %let tmp2=%mf_getuniquename();
+
+  /* this is a bit convoluted - but using sql outobs=10 throws warnings */
+  proc sql noprint;
+  create view &tmp1 as
+    select distinct &col
     from &lib..&ds
     where &col not in (
       select &ccol from &clib..&cds
     );
+  data &tmp2;
+    set &tmp1;
+    if _n_>10 then stop;
+  run;
+  proc sql;
+  select distinct &col  into: notfound separated by ' ' from &tmp2;
+
 
   %mp_abort(iftrue= (&syscc ne 0)
     ,mac=&sysmacroname

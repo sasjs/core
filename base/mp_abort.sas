@@ -208,7 +208,7 @@
 
     %if "&sysprocessmode " = "SAS Stored Process Server " %then %do;
       data _null_;
-        putlog 'stpsrvset program error and syscc';
+        putlog 'stpsrvset program err and syscc';
         rc=stpsrvset('program error', 0);
         call symputx("syscc",0,"g");
       run;

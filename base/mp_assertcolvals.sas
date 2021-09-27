@@ -30,6 +30,7 @@
 
   <h4> SAS Macros </h4>
   @li mf_existds.sas
+  @li mf_getuniquename.sas
   @li mf_nobs.sas
   @li mp_abort.sas
 
@@ -115,13 +116,25 @@
   select count(*) into: orig from &lib..&ds;
   quit;
 
-  %local notfound;
-  proc sql outobs=10 noprint;
-  select distinct &col  into: notfound separated by ' '
+  %local notfound tmp1 tmp2;
+  %let tmp1=%mf_getuniquename();
+  %let tmp2=%mf_getuniquename();
+
+  /* this is a bit convoluted - but using sql outobs=10 throws warnings */
+  proc sql noprint;
+  create view &tmp1 as
+    select distinct &col
     from &lib..&ds
     where &col not in (
       select &ccol from &clib..&cds
     );
+  data &tmp2;
+    set &tmp1;
+    if _n_>10 then stop;
+  run;
+  proc sql;
+  select distinct &col  into: notfound separated by ' ' from &tmp2;
+
 
   %mp_abort(iftrue= (&syscc ne 0)
     ,mac=&sysmacroname

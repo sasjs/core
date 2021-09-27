@@ -54,7 +54,7 @@ proc compare base=work.binarybase compare=work.binarycompare;
 run;
 
 %mp_assert(
-  iftrue=(&sysinfo=1),
-  desc=work.binarybase dataset is identical except for ds label,
+  iftrue=(&sysinfo=0),
+  desc=work.binarybase dataset is identical,
   outds=work.test_results
 )

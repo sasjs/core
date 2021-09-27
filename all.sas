@@ -3474,7 +3474,12 @@ data datalines_2;
     */
   else if upcase(format)=:'$HEX' then
     dataline=cats('put(trim(',name,'),',format,')');
-  else dataline=name;
+  /**
+    * There is no easy way to store line breaks in a cards file.
+    * To discuss this, use: https://github.com/sasjs/core/issues/80
+    * Removing all nonprintables with kw (keep writeable)
+    */
+  else dataline=cats('compress(',name,', ,"kw")');
 run;
 
 proc sql noprint;

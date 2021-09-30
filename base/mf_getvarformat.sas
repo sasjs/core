@@ -51,7 +51,8 @@
     %end;
   %end;
   %else %do;
-    %put dataset &libds not opened! (rc=&dsid);
+    %put &sysmacroname: dataset &libds not opened! (rc=&dsid);
+    %put &sysmacroname: %sysfunc(sysmsg());
     %return;
   %end;
 

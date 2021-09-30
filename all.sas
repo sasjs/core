@@ -975,7 +975,8 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
     %end;
   %end;
   %else %do;
-    %put dataset &libds not opened! (rc=&dsid);
+    %put &sysmacroname: dataset &libds not opened! (rc=&dsid);
+    %put &sysmacroname: %sysfunc(sysmsg());
     %return;
   %end;
 
@@ -1037,7 +1038,11 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
       %let vlen = %str( );
     %end;
   %end;
-  %else %put dataset &libds not opened! (rc=&dsid);
+  %else %do;
+    %put &sysmacroname: dataset &libds not opened! (rc=&dsid);
+    %put &sysmacroname: %sysfunc(sysmsg());
+    %return;
+  %end;
 
   /* Close dataset */
   %let rc = %sysfunc(close(&dsid));
@@ -1161,7 +1166,11 @@ returns:
       %let vnum = %str( );
     %end;
   %end;
-  %else %put dataset &ds not opened! (rc=&dsid);
+  %else %do;
+    %put &sysmacroname: dataset &libds not opened! (rc=&dsid);
+    %put &sysmacroname: %sysfunc(sysmsg());
+    %return;
+  %end;
 
   /* Close dataset */
   %let rc = %sysfunc(close(&dsid));
@@ -1210,7 +1219,11 @@ Usage:
       %let vtype = %str( );
     %end;
   %end;
-  %else %put dataset &libds not opened! (rc=&dsid);
+  %else %do;
+    %put &sysmacroname: dataset &libds not opened! (rc=&dsid);
+    %put &sysmacroname: %sysfunc(sysmsg());
+    %return;
+  %end;
 
   /* Close dataset */
   %let rc = %sysfunc(close(&dsid));

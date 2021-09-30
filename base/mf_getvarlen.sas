@@ -43,7 +43,11 @@
       %let vlen = %str( );
     %end;
   %end;
-  %else %put dataset &libds not opened! (rc=&dsid);
+  %else %do;
+    %put &sysmacroname: dataset &libds not opened! (rc=&dsid);
+    %put &sysmacroname: %sysfunc(sysmsg());
+    %return;
+  %end;
 
   /* Close dataset */
   %let rc = %sysfunc(close(&dsid));

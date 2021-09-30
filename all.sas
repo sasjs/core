@@ -1830,7 +1830,7 @@ Usage:
       msg=cats('"',msg,'"');
       if symexist('_debug') then debug=quote(trim(symget('_debug')));
       else debug='""';
-      if debug ge '"131"' then put '>>weboutBEGIN<<';
+      put '>>weboutBEGIN<<';
       put '{"START_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '"';
       put ',"sasjsAbort" : [{';
       put ' "MSG":' msg ;
@@ -1862,7 +1862,7 @@ Usage:
       put ",""SYSWARNINGTEXT"" : " syswarningtext;
       put ',"END_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '" ';
       put "}" @;
-      if debug ge '"131"' then put '>>weboutEND<<';
+      put '>>weboutEND<<';
     run;
 
     %put _all_;

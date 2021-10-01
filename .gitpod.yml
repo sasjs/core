@@ -1,5 +1,5 @@
 tasks:
-  - init: nvm install --latest-npm && npm i -g @sasjs/cli
+  - init: nvm install --lts && npm i -g @sasjs/cli
 
 image:
   file: .gitpod.dockerfile
@@ -20,6 +20,6 @@ github:
     # add a "Review in Gitpod" button as a comment to pull requests (defaults to true)
     addComment: true
     # add a "Review in Gitpod" button to pull requests (defaults to false)
-    addBadge: true
+    addBadge: false
     # add a label once the prebuild is ready to pull requests (defaults to false)
     addLabel: prebuilt-in-gitpod

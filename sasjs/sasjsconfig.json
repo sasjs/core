@@ -50,7 +50,10 @@
       "appLoc": "/Shared Data/temp/macrocore",
       "macroFolders": [
         "tests/sas9only"
-      ]
+      ],
+      "deployConfig": {
+        "deployServicePack": true
+      }
     },
     {
       "name": "docsonly",

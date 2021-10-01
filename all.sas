@@ -4466,8 +4466,11 @@ create table &outds as
   on upcase(a.TABLE_CATALOG)=upcase(b.TABLE_CATALOG)
     and upcase(a.TABLE_NAME)=upcase(b.TABLE_NAME)
     and a.constraint_name=b.constraint_name
-  where upcase(a.TABLE_CATALOG)="&lib"
-    and upcase(b.TABLE_CATALOG)="&lib"
+/**
+  * We cannot apply this clause to the underlying dictionary table.  See:
+  * https://communities.sas.com/t5/SAS-Programming/Unexpected-Where-Clause-behaviour-in-dictionary-TABLE/m-p/771554#M244867
+  */
+  where calculated libref="&lib"
   %if "&ds" ne "" %then %do;
     and upcase(a.TABLE_NAME)="&ds"
     and upcase(b.TABLE_NAME)="&ds"

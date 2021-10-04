@@ -98,7 +98,18 @@
       "contributions": [
         "ideas"
       ]
+    },
+    {
+      "login": "VladislavParhomchik",
+      "name": "Vladislav Parhomchik",
+      "avatar_url": "https://avatars.githubusercontent.com/u/83717836?v=4",
+      "profile": "https://github.com/VladislavParhomchik",
+      "contributions": [
+        "test",
+        "review"
+      ]
     }
   ],
-  "contributorsPerLine": 7
+  "contributorsPerLine": 7,
+  "skipCi": true
 }

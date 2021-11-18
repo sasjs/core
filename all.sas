@@ -7567,10 +7567,10 @@ run;
   @file mp_unzip.sas
   @brief Unzips a zip file
   @details Opens the zip file and copies all the contents to another directory.
-    It is not possible to retain permissions / timestamps, also the BOF marker
-    is lost so it cannot extract binary files.
+  It is not possible to retain permissions / timestamps, also the BOF marker
+  is lost so it cannot extract binary files.
 
-    Usage:
+  Usage:
 
       filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
@@ -7581,8 +7581,9 @@ run;
   @li mf_mkdir.sas
   @li mf_getuniquefileref.sas
 
-  @param ziploc= fileref or quoted full path to zip file ("/path/to/file.zip")
-  @param outdir= directory in which to write the outputs (created if non existant)
+  @param ziploc= Fileref or quoted full path to zip file ("/path/to/file.zip")
+  @param outdir= (%sysfunc(pathname(work))) Directory in which to write the
+    outputs (created if non existant)
 
   @version 9.4
   @author Allan Bowe
@@ -7600,7 +7601,8 @@ run;
 %let fname2=%mf_getuniquefileref();
 %let fname3=%mf_getuniquefileref();
 
-filename &fname1 ZIP &ziploc; * Macro variable &datazip would be read from the file*;
+/* Macro variable &datazip would be read from the file */
+filename &fname1 ZIP &ziploc;
 
 /* Read the "members" (files) from the ZIP file */
 data _data_(keep=memname isFolder);
@@ -7789,6 +7791,42 @@ alter table &libds modify &var char(&len);
 %mend mp_validatecol;
 /**
   @file
+  @brief Wait until a file arrives before continuing execution
+  @details Loops with a `sleep()` command until a file arrives or the max wait
+  period expires.
+
+  @example
+
+  Wait 3 minutes OR for /tmp/flag.txt to appear
+
+    %mp_wait4file(/tmp/flag.txt , maxwait=60*3)
+
+  @param [in] file The file to wait for.  Must be provided.
+  @param [in] maxwait= (0) Number of seconds to wait.  If set to zero, will
+    loop indefinitely (to a maximum of 46 days, per SAS [documentation](
+      https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a001418809.htm
+    )).  Otherwise, execution will proceed upon sleep expiry.
+  @param [in] interval= (1) The wait period between sleeps, in seconds
+
+
+**/
+
+%macro mp_wait4file(file, maxwait=0, interval=1);
+
+%if %str(&file)=%str() %then %do;
+  %put %str(ERR)OR: file not provided;
+%end;
+
+data _null_;
+  maxwait=&maxwait;
+  if maxwait=0 then maxwait=60*60*24*46;
+  do until (fileexist("&file") or slept>maxwait );
+    slept=sum(slept,sleep(&interval,1));
+  end;
+run;
+
+%mend mp_wait4file;/**
+  @file
   @brief Fix the `_WEBIN` variables provided to SAS web services
   @details When uploading files to SAS Stored Processes or Viya Jobs a number
   of global macro variables are automatically created - however there are some
@@ -7863,10 +7901,17 @@ alter table &libds modify &var char(&len);
   @li mp_dirlist.sas
 
   @param in= unquoted filepath, dataset of files or directory to zip
-  @param type= FILE, DATASET, DIRECTORY. (FILE / DATASET not ready yet)
-  @param outname= output file to create, without .zip extension
-  @param outpath= location for output zip file
+  @param type= (FILE) Valid values:
+    @li FILE - /full/path/and/filename.extension to a particular file
+    @li DATASET - a dataset containing a list of files to zip (see `incol`)
+    @li DIRECTORY - a directory to zip
+  @param outname= (FILE) Output file to create, _without_ .zip extension
+  @param outpath= (%sysfunc(pathname(WORK))) Parent folder for output zip file
   @param incol= if DATASET input, say which column contains the filepath
+
+  <h4> Related Macros </h4>
+  @li mp_unzip.sas
+  @li mp_zip.test.sas
 
   @version 9.2
   @author Allan Bowe
@@ -7898,9 +7943,9 @@ ods package open nopf;
     set &ds;
     length __command $4000;
     if file_or_folder='file';
-    command=cats('ods package add file="',filepath
+    __command=cats('ods package add file="',filepath
       ,'" mimetype="application/x-compress";');
-    call execute(command);
+    call execute(__command);
   run;
   /* tidy up */
   %if &debug=NO %then %do;
@@ -7911,11 +7956,10 @@ ods package open nopf;
   data _null_;
     set &in;
     length __command $4000;
-    command=cats('ods package add file="',&incol
+    __command=cats('ods package add file="',&incol
       ,'" mimetype="application/x-compress";');
-    call execute(command);
+    call execute(__command);
   run;
-  ods package add file="&in" mimetype="application/x-compress";
 %end;
 
 

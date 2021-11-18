@@ -2,10 +2,10 @@
   @file mp_unzip.sas
   @brief Unzips a zip file
   @details Opens the zip file and copies all the contents to another directory.
-    It is not possible to retain permissions / timestamps, also the BOF marker
-    is lost so it cannot extract binary files.
+  It is not possible to retain permissions / timestamps, also the BOF marker
+  is lost so it cannot extract binary files.
 
-    Usage:
+  Usage:
 
       filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
@@ -16,8 +16,9 @@
   @li mf_mkdir.sas
   @li mf_getuniquefileref.sas
 
-  @param ziploc= fileref or quoted full path to zip file ("/path/to/file.zip")
-  @param outdir= directory in which to write the outputs (created if non existant)
+  @param ziploc= Fileref or quoted full path to zip file ("/path/to/file.zip")
+  @param outdir= (%sysfunc(pathname(work))) Directory in which to write the
+    outputs (created if non existant)
 
   @version 9.4
   @author Allan Bowe
@@ -35,7 +36,8 @@
 %let fname2=%mf_getuniquefileref();
 %let fname3=%mf_getuniquefileref();
 
-filename &fname1 ZIP &ziploc; * Macro variable &datazip would be read from the file*;
+/* Macro variable &datazip would be read from the file */
+filename &fname1 ZIP &ziploc;
 
 /* Read the "members" (files) from the ZIP file */
 data _data_(keep=memname isFolder);

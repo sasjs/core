@@ -16,10 +16,17 @@
   @li mp_dirlist.sas
 
   @param in= unquoted filepath, dataset of files or directory to zip
-  @param type= FILE, DATASET, DIRECTORY. (FILE / DATASET not ready yet)
-  @param outname= output file to create, without .zip extension
-  @param outpath= location for output zip file
+  @param type= (FILE) Valid values:
+    @li FILE - /full/path/and/filename.extension to a particular file
+    @li DATASET - a dataset containing a list of files to zip (see `incol`)
+    @li DIRECTORY - a directory to zip
+  @param outname= (FILE) Output file to create, _without_ .zip extension
+  @param outpath= (%sysfunc(pathname(WORK))) Parent folder for output zip file
   @param incol= if DATASET input, say which column contains the filepath
+
+  <h4> Related Macros </h4>
+  @li mp_unzip.sas
+  @li mp_zip.test.sas
 
   @version 9.2
   @author Allan Bowe
@@ -51,9 +58,9 @@ ods package open nopf;
     set &ds;
     length __command $4000;
     if file_or_folder='file';
-    command=cats('ods package add file="',filepath
+    __command=cats('ods package add file="',filepath
       ,'" mimetype="application/x-compress";');
-    call execute(command);
+    call execute(__command);
   run;
   /* tidy up */
   %if &debug=NO %then %do;
@@ -64,11 +71,10 @@ ods package open nopf;
   data _null_;
     set &in;
     length __command $4000;
-    command=cats('ods package add file="',&incol
+    __command=cats('ods package add file="',&incol
       ,'" mimetype="application/x-compress";');
-    call execute(command);
+    call execute(__command);
   run;
-  ods package add file="&in" mimetype="application/x-compress";
 %end;
 
 

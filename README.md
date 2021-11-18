@@ -189,7 +189,7 @@ If you find this library useful, please leave a [star](https://github.com/sasjs/
 
 ## Contributors ✨
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-9-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-10-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
 
@@ -209,6 +209,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
   <tr>
     <td align="center"><a href="https://github.com/kkchandok"><img src="https://avatars.githubusercontent.com/u/46090627?v=4?s=100" width="100px;" alt=""/><br /><sub><b>kkchandok</b></sub></a><br /><a href="#ideas-kkchandok" title="Ideas, Planning, & Feedback">🤔</a></td>
     <td align="center"><a href="https://github.com/VladislavParhomchik"><img src="https://avatars.githubusercontent.com/u/83717836?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Vladislav Parhomchik</b></sub></a><br /><a href="https://github.com/sasjs/core/commits?author=VladislavParhomchik" title="Tests">⚠️</a> <a href="https://github.com/sasjs/core/pulls?q=is%3Apr+reviewed-by%3AVladislavParhomchik" title="Reviewed Pull Requests">👀</a></td>
+    <td align="center"><a href="https://github.com/vznesh"><img src="https://avatars.githubusercontent.com/u/28916792?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Vignesh T.</b></sub></a><br /><a href="https://github.com/sasjs/core/issues?q=author%3Avznesh" title="Bug reports">🐛</a></td>
   </tr>
 </table>
 

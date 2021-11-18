@@ -108,6 +108,15 @@
         "test",
         "review"
       ]
+    },
+    {
+      "login": "vznesh",
+      "name": "Vignesh T.",
+      "avatar_url": "https://avatars.githubusercontent.com/u/28916792?v=4",
+      "profile": "https://github.com/vznesh",
+      "contributions": [
+        "bug"
+      ]
     }
   ],
   "contributorsPerLine": 7,

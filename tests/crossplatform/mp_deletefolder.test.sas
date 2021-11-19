@@ -12,8 +12,8 @@
 **/
 
 /**
- * TEST 1
- */
+  * TEST 1
+  */
 /* create a folder */
 
 %let work=%sysfunc(pathname(work));

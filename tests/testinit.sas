@@ -11,6 +11,6 @@
   %if &_debug=2477 %then %do;
     options mprint;
   %end;
-%mend;
+%mend loglevel;
 
 %loglevel()

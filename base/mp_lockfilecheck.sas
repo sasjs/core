@@ -17,6 +17,7 @@
 
   <h4> Related Macros </h4>
   @li mp_lockanytable.sas
+  @li mp_lockfilecheck.test.sas
 
   @version 9.2
 **/

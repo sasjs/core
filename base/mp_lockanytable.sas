@@ -26,6 +26,9 @@
   @li mp_lockfilecheck.sas
   @li mf_getuser.sas
 
+  <h4> Related Macros </h4>
+  @li mp_lockanytable.test.sas
+
   @version 9.2
 
 **/

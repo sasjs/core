@@ -51,6 +51,9 @@
   <h4> SAS Macros </h4>
   @li mp_dropmembers.sas
 
+  <h4> Related Macros </h4>
+  @li mp_dirlist.test.sas
+
   @version 9.2
   @author Allan Bowe
 **/
@@ -71,7 +74,7 @@ data;run;
 
 /* drop main (top) table if it exists */
 %if &level=0 %then %do;
-  %mp_dropmembers(&outds, libref=WORK)
+  %mp_dropmembers(%scan(&outds,-1,.), libref=WORK)
 %end;
 
 data &out_ds(compress=no

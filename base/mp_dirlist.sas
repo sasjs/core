@@ -44,7 +44,11 @@
     - filename (just the file name)
     - ext (.extension)
     - msg (system message if any issues)
+    - level (depth of folder)
     - OS SPECIFIC variables, if <code>getattrs=</code> is used.
+
+  <h4> SAS Macros </h4>
+  @li mp_dropmembers.sas
 
   @version 9.2
   @author Allan Bowe
@@ -54,14 +58,26 @@
     , fref=0
     , outds=work.mp_dirlist
     , getattrs=NO
+    , level=0 /* The level of recursion to perform.  For internal use only. */
 )/*/STORE SOURCE*/;
 %let getattrs=%upcase(&getattrs)XX;
 
-data &outds(compress=no
-    keep=file_or_folder filepath filename ext msg directory
+/* temp table */
+%local out_ds;
+data;run;
+%let out_ds=%str(&syslast);
+
+/* drop main (top) table if it exists */
+%if &level=0 %then %do;
+  %mp_dropmembers(&outds, libref=WORK)
+%end;
+
+data &out_ds(compress=no
+    keep=file_or_folder filepath filename ext msg directory level
   );
   length directory filepath $500 fref fref2 $8 file_or_folder $6 filename $80
     ext $20 msg $200;
+  retain level &level;
   %if &fref=0 %then %do;
     rc = filename(fref, "&path");
   %end;
@@ -119,8 +135,8 @@ data &outds(compress=no
 run;
 
 %if %substr(&getattrs,1,1)=Y %then %do;
-  data &outds;
-    set &outds;
+  data &out_ds;
+    set &out_ds;
     length infoname infoval $60 fref $8;
     rc=filename(fref,filepath);
     drop rc infoname fid i close fref;
@@ -161,10 +177,33 @@ run;
   run;
   proc sort;
     by filepath sasname;
-  proc transpose data=&outds out=&outds(drop=_:);
+  proc transpose data=&out_ds out=&out_ds(drop=_:);
     id sasname;
     var infoval;
     by filepath file_or_folder filename ext ;
   run;
 %end;
+
+/* update main table */
+proc append base=&outds data=&out_ds;
+run;
+
+data &outds;
+  set &outds(where=(filepath ne ''));
+run;
+
+/* recursive call */
+data _null_;
+  set &out_ds;
+  where file_or_folder='folder';
+  code=cats('%nrstr(%mp_dirlist(path=',filepath,",outds=&outds"
+    ,",getattrs=&getattrs,level=%eval(&level+1)))");
+  put code=;
+  call execute(code);
+run;
+
+/* tidy up */
+proc sql;
+drop table &out_ds;
+
 %mend mp_dirlist;

@@ -186,12 +186,12 @@ run;
   run;
 %end;
 
-/* update main table */
-proc append base=&outds data=&out_ds;
+data &out_ds;
+  set &out_ds(where=(filepath ne ''));
 run;
 
-data &outds;
-  set &outds(where=(filepath ne ''));
+/* update main table */
+proc append base=&outds data=&out_ds;
 run;
 
 /* recursive call */

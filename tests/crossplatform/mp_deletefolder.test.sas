@@ -1,12 +1,13 @@
 /**
   @file
-  @brief Testing mp_dirlist.sas macro
+  @brief Testing mp_deletefolder.sas macro
 
   <h4> SAS Macros </h4>
-  @li mf_nobs.sas
+  @li mp_deletefolder.sas
   @li mf_mkdir.sas
-  @li mp_dirlist.sas
+  @li mf_nobs.sas
   @li mp_assert.sas
+  @li mp_dirlist.sas
 
 **/
 
@@ -29,22 +30,21 @@ run;
 
 %mp_assert(
   iftrue=(%mf_nobs(work.mytable)=6),
-  desc=All levels returned,
+  desc=Temp data successfully created,
   outds=work.test_results
 )
 
-%mp_dirlist(path=&root, outds=myTable2, maxdepth=2)
+%mp_deletefolder(&root/a)
+
+%mp_dirlist(path=&root, outds=work.myTable2, maxdepth=MAX)
+
+data _null_;
+  set work.mytable2;
+  putlog (_all_)(=);
+run;
 
 %mp_assert(
-  iftrue=(%mf_nobs(work.mytable2)=5),
-  desc=Top two levels returned,
-  outds=work.test_results
-)
-
-%mp_dirlist(path=&root, outds=work.myTable3, maxdepth=0)
-
-%mp_assert(
-  iftrue=(%mf_nobs(work.mytable3)=2),
-  desc=Top level returned,
+  iftrue=(%mf_nobs(work.mytable2)=1),
+  desc=Subfolder and contents successfully deleted,
   outds=work.test_results
 )

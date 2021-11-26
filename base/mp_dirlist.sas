@@ -3,20 +3,13 @@
   @brief Returns all files and subdirectories within a specified parent
   @details When used with getattrs=NO, is not OS specific (uses dopen / dread).
 
-  If getattrs=YES then the doptname / foptname functions are used to scan all
-  properties - any characters that are not valid in a SAS name (v7) are simply
-  stripped, and the table is transposed so theat each property is a column
-  and there is one file per row.  An attempt is made to get all properties
-  whether a file or folder, but some files/folders cannot be accessed, and so
-  not all properties can / will be populated.
-
   Credit for the rename approach:
   https://communities.sas.com/t5/SAS-Programming/SAS-Function-to-convert-string-to-Legal-SAS-Name/m-p/27375/highlight/true#M5003
 
 
   usage:
 
-      %mp_dirlist(path=/some/location,outds=myTable)
+      %mp_dirlist(path=/some/location, outds=myTable, maxdepth=MAX)
 
       %mp_dirlist(outds=cwdfileprops, getattrs=YES)
 
@@ -30,11 +23,19 @@
   X CMD) do please raise an issue!
 
 
-  @param path= for which to return contents
-  @param fref= Provide a DISK engine fileref as an alternative to PATH
-  @param outds= the output dataset to create
-  @param getattrs= YES/NO (default=NO).  Uses doptname and foptname to return
-  all attributes for each file / folder.
+  @param [in] path= for which to return contents
+  @param [in] fref= Provide a DISK engine fileref as an alternative to PATH
+  @param [in] maxdepth= (0) Set to a positive integer to indicate the level of
+    subdirectory scan recursion - eg 3, to go `./3/levels/deep`.  For unlimited
+    recursion, set to MAX.
+  @param [out] outds= the output dataset to create
+  @param [out] getattrs= (NO)  If getattrs=YES then the doptname / foptname
+    functions are used to scan all properties - any characters that are not
+    valid in a SAS name (v7) are simply stripped, and the table is transposed
+    so theat each property is a column and there is one file per row.  An
+    attempt is made to get all properties whether a file or folder, but some
+    files/folders cannot be accessed, and so not all properties can / will be
+    populated.
 
 
   @returns outds contains the following variables:
@@ -44,7 +45,11 @@
     - filename (just the file name)
     - ext (.extension)
     - msg (system message if any issues)
+    - level (depth of folder)
     - OS SPECIFIC variables, if <code>getattrs=</code> is used.
+
+  <h4> SAS Macros </h4>
+  @li mp_dropmembers.sas
 
   @version 9.2
   @author Allan Bowe
@@ -54,14 +59,27 @@
     , fref=0
     , outds=work.mp_dirlist
     , getattrs=NO
+    , maxdepth=0
+    , level=0 /* The level of recursion to perform.  For internal use only. */
 )/*/STORE SOURCE*/;
 %let getattrs=%upcase(&getattrs)XX;
 
-data &outds(compress=no
-    keep=file_or_folder filepath filename ext msg directory
+/* temp table */
+%local out_ds;
+data;run;
+%let out_ds=%str(&syslast);
+
+/* drop main (top) table if it exists */
+%if &level=0 %then %do;
+  %mp_dropmembers(&outds, libref=WORK)
+%end;
+
+data &out_ds(compress=no
+    keep=file_or_folder filepath filename ext msg directory level
   );
   length directory filepath $500 fref fref2 $8 file_or_folder $6 filename $80
     ext $20 msg $200;
+  retain level &level;
   %if &fref=0 %then %do;
     rc = filename(fref, "&path");
   %end;
@@ -119,8 +137,8 @@ data &outds(compress=no
 run;
 
 %if %substr(&getattrs,1,1)=Y %then %do;
-  data &outds;
-    set &outds;
+  data &out_ds;
+    set &out_ds;
     length infoname infoval $60 fref $8;
     rc=filename(fref,filepath);
     drop rc infoname fid i close fref;
@@ -161,10 +179,35 @@ run;
   run;
   proc sort;
     by filepath sasname;
-  proc transpose data=&outds out=&outds(drop=_:);
+  proc transpose data=&out_ds out=&out_ds(drop=_:);
     id sasname;
     var infoval;
     by filepath file_or_folder filename ext ;
   run;
 %end;
+
+data &out_ds;
+  set &out_ds(where=(filepath ne ''));
+run;
+
+/* update main table */
+proc append base=&outds data=&out_ds;
+run;
+
+/* recursive call */
+%if &maxdepth>&level or &maxdepth=MAX %then %do;
+  data _null_;
+    set &out_ds;
+    where file_or_folder='folder';
+    code=cats('%nrstr(%mp_dirlist(path=',filepath,",outds=&outds"
+      ,",getattrs=&getattrs,level=%eval(&level+1),maxdepth=&maxdepth))");
+    put code=;
+    call execute(code);
+  run;
+%end;
+
+/* tidy up */
+proc sql;
+drop table &out_ds;
+
 %mend mp_dirlist;

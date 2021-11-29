@@ -36,8 +36,8 @@ run;
 )
 
 /**
- * copy it
- */
+  * copy it
+  */
 %let newfolder=%sysfunc(pathname(work))/new;
 %mp_copyfolder(&root,&newfolder)
 

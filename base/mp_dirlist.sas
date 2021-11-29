@@ -202,6 +202,7 @@ run;
   data _null_;
     set &out_ds;
     where file_or_folder='folder';
+    length code $10000;
     code=cats('%nrstr(%mp_dirlist(path=',filepath,",outds=&outds"
       ,",getattrs=&getattrs,level=%eval(&level+1),maxdepth=&maxdepth))");
     put code=;

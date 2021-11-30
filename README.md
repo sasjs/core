@@ -83,7 +83,7 @@ Wait - this is a macro library - what is LUA doing here?  Well, it is a little k
 
 To contribute, simply write your freeform LUA in the LUA folder.  Then run the `build.py`, which will convert your LUA into a data step with put statements, and create the macro wrapper with a `ml_` prefix.  You can then use your module in any program by running:
 
-```
+```sas
 /* compile the lua module */
 %ml_yourmodule()
 
@@ -126,12 +126,13 @@ filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
 - one macro per file
 - prefixes:
   - _mf_ for macro functions (can be used in open code).
-  - _mp_ for macro procedures (which generate sas code)
+  - _ml_ for macros that are used to compile LUA modules
   - _mm_ for metadata macros (interface with the metadata server).
   - _mmx_ for macros that use metadata and are XCMD enabled
+  - _mp_ for macro procedures (which generate sas code)
+  - _ms_ for macro procedures that will only work with [@sasjs/server](https://github.com/sasjs/server)
+  - _mv_ for macro procedures that will only work in Viya
   - _mx_ for macros that are XCMD enabled
-  - _ml_ for macros that are used to compile LUA modules
-  - _mv_ for macros that will only work in Viya
 - follow verb-noun convention
 - unix style line endings (lf)
 - individual lines should be no more than 80 characters long

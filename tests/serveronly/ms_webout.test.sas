@@ -15,10 +15,10 @@
 data some datasets;
   x=1;
 run;
-%mm_webout(OPEN,fref=&fref)
-%mm_webout(ARR,some,fref=&fref)
-%mm_webout(OBJ,datasets,fref=&fref)
-%mm_webout(CLOSE,fref=&fref)
+%ms_webout(OPEN,fref=&fref)
+%ms_webout(ARR,some,fref=&fref)
+%ms_webout(OBJ,datasets,fref=&fref)
+%ms_webout(CLOSE,fref=&fref)
 
 libname test JSON (&fref);
 data root;

@@ -55,7 +55,18 @@
 
  */
 
- /*! \dir Tests
+/*! \dir server
+ *  \brief Macros used with [sasjs/server](https://server.sasjs.io)
+ *  \details These macros have the following attributes:
+
+        * OS independent
+        * sasjs/server aware
+        * No X command
+        * Prefixes: _ms_
+
+ */
+
+ /*! \dir tests
  *  \brief SASjs Tests
  *  \details These folders contain the macro tests.  They are first compiled
    and deployed (sasjs cbd) then executed (sasjs test).

@@ -66,7 +66,7 @@
 
  */
 
- /*! \dir tests
+/*! \dir tests
  *  \brief SASjs Tests
  *  \details These folders contain the macro tests.  They are first compiled
    and deployed (sasjs cbd) then executed (sasjs test).
@@ -83,7 +83,7 @@
 
  */
 
- /*! \dir lua
+/*! \dir lua
  *  \brief Lua macros
  *  \details These macros have the following attributes:
 

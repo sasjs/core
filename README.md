@@ -1,7 +1,6 @@
 # Macro Core
 [![npm package][npm-image]][npm-url]
 [![Github Workflow][githubworkflow-image]][githubworkflow-url]
-[![Dependency Status][dependency-image]][dependency-url]
 [![npm](https://img.shields.io/npm/dt/@sasjs/core)]()
 ![Snyk Vulnerabilities for npm package](https://img.shields.io/snyk/vulnerabilities/npm/@sasjs/core)
 [![License](https://img.shields.io/apm/l/atomic-design-ui.svg)](/LICENSE)
@@ -16,9 +15,7 @@
 [npm-url]:http://npmjs.org/package/@sasjs/core
 [githubworkflow-image]:https://github.com/sasjs/core/actions/workflows/main.yml/badge.svg
 [githubworkflow-url]:https://github.com/sasjs/core/blob/main/.github/workflows/main.yml
-[dependency-image]:https://david-dm.org/sasjs/core.svg
 [dependency-url]:https://github.com/sasjs/core/blob/main/package.json
-
 
 
 Much quality. Many standards. The **Macro Core** library exists to save time and development effort! Herein ye shall find a veritable host of MIT-licenced, production quality SAS macros. These are a mix of tools, utilities, functions and code generators that are useful in the context of [Application Development](https://sasapps.io) on the SAS platform (eg https://datacontroller.io). [Contributions](https://github.com/sasjs/core/blob/main/CONTRIBUTING.md) are welcomed.
@@ -32,43 +29,55 @@ filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
 
 Documentation: https://core.sasjs.io
 
-# Components
+## Components
 
-**base** library (SAS9/Viya)
+### **base** library (SAS9/Viya)
 
 - OS independent
 - Not metadata aware
 - No X command
 - Prefixes: _mf_, _mp_
 
-**fcmp** library (SAS9/Viya)
+#### **fcmp** library (SAS9/Viya)
 - Function and macro names are identical, except for special cases
 - Prefixes: _mcf_
 
 The fcmp macros are used to generate fcmp functions, and can be used with or
 without the `proc fcmp` wrapper.
 
-**meta** library (SAS9 only)
+### **meta** library (SAS9 only)
+
+Macros used in SAS EBI, which connect to the metadata server.
 
 - OS independent
 - Metadata aware
 - No X command
 - Prefixes: _mm_
 
-**viya** library (Viya only)
+### **server** library (@sasjs/server only)
+These macros are used for building applications using [@sasjs/server](https://server.sasjs.io) - an open source REST API for Desktop SAS.
+
+- OS independent
+- @sasjs/server aware
+- No X command
+- Prefixes: _ms_
+
+### **viya** library (Viya only)
+
+Macros used for interfacing with SAS Viya.
 
 - OS independent
 - No X command
-- Prefixes: _mv_
+- Prefixes: _mv_, _mvf_
 
-**metax** library (SAS9 only)
+### **metax** library (SAS9 only)
 
 - OS specific
 - Metadata aware
 - X command enabled
 - Prefixes: _mmw_,_mmu_,_mmx_
 
-**lua** library
+### **lua** library
 
 Wait - this is a macro library - what is LUA doing here?  Well, it is a little known fact that you CAN run LUA within a SAS Macro.  It has to be written to a text file with a `.lua` extension, from where you can `%include` it.  So, without using the `proc lua` wrapper.
 
@@ -89,7 +98,7 @@ run;
 - X command enabled
 - Prefixes: _mmw_,_mmu_,_mmx_
 
-# Installation
+## Installation
 
 First, download the repo to a location your SAS system can access. Then update your sasautos path to include the components you wish to have available, eg:
 
@@ -107,9 +116,9 @@ filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
 %inc mc;
 ```
 
-# Standards
+## Standards
 
-## File Properties
+### File Properties
 
 - filenames much match macro names
 - filenames must be lowercase, without spaces
@@ -129,7 +138,7 @@ filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
 - UTF-8
 
 
-## Header Properties
+### Header Properties
 
 The **Macro Core** documentation is created using [doxygen](http://www.doxygen.nl). A full list of attributes can be found [here](http://www.doxygen.nl/manual/commands.html) but the following are most relevant:
 
@@ -143,7 +152,7 @@ The **Macro Core** documentation is created using [doxygen](http://www.doxygen.n
 
 All macros must be commented in the doxygen format, to enable the [online documentation](https://core.sasjs.io).
 
-### Dependencies
+#### Dependencies
 SAS code can contain one of two types of dependency - SAS Macros, and SAS Includes.  When compiling projects using the [SASjs CLI](https://cli.sasjs.io) the doxygen header is scanned for `  @li` items under the following headers:
 
 ```sas
@@ -161,7 +170,7 @@ The CLI can then extract all the dependencies and insert as precode (SAS Macros)
 When contributing to this library, it is therefore important to ensure that all dependencies are listed in the header in this format.
 
 
-## Coding Standards
+### Coding Standards
 
 - Indentation = 2 spaces. No tabs!
 - no trailing white space
@@ -174,7 +183,7 @@ When contributing to this library, it is therefore important to ensure that all 
 - Avoid naming collisions! All macro variables should be local scope. Use system generated work tables where possible - eg `data ; set sashelp.class; run; data &output; set &syslast; run;`
 - The use of `quit;` for `proc sql` is optional unless you are looking to benefit from the timing statistics.
 
-# General Notes
+## General Notes
 
 - All macros should be compatible with SAS versions from support level B and above (so currently 9.2 and later). If an earlier version is not supported, then the macro should say as such in the header documentation, and exit gracefully (eg `%if %sysevalf(&sysver<9.3) %then %return`).
 
@@ -183,7 +192,6 @@ When contributing to this library, it is therefore important to ensure that all 
 If you find this library useful, please leave a [star](https://github.com/sasjs/core/stargazers) and help us grow our star graph!
 
 ![](https://starchart.cc/sasjs/core.svg)
-
 
 
 

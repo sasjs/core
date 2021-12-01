@@ -5,6 +5,7 @@
     "fcmp",
     "meta",
     "metax",
+    "server",
     "viya",
     "lua",
     "tests/crossplatform"
@@ -50,6 +51,18 @@
       "appLoc": "/Shared Data/temp/macrocore",
       "macroFolders": [
         "tests/sas9only"
+      ],
+      "deployConfig": {
+        "deployServicePack": true
+      }
+    },
+    {
+      "name": "server",
+      "serverUrl": "https://sas.analytium.co.uk:5001",
+      "serverType": "SASJS",
+      "appLoc": "/Shared Data/temp/macrocore",
+      "macroFolders": [
+        "tests/serveronly"
       ],
       "deployConfig": {
         "deployServicePack": true

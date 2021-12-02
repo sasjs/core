@@ -2779,7 +2779,8 @@ run;
   /* create folders and copy content */
   data _null_;
     set work.&tempds;
-    filepath2="&target/"!!substr(filepath,%length(&source)+2);
+    if _n_ = 1 then dpos+sum(length(directory),2);
+    filepath2="&target/"!!substr(filepath,dpos);
     if file_or_folder='folder' then call execute('%mf_mkdir('!!filepath2!!')');
     else do;
       length fref1 fref2 $8;

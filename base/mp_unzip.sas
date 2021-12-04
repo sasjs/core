@@ -31,18 +31,18 @@
   ,outdir=%sysfunc(pathname(work))
 )/*/STORE SOURCE*/;
 
-%local fname1 fname2 fname3;
-%let fname1=%mf_getuniquefileref();
-%let fname2=%mf_getuniquefileref();
-%let fname3=%mf_getuniquefileref();
+%local f1 f2 f3;
+%let f1=%mf_getuniquefileref();
+%let f2=%mf_getuniquefileref();
+%let f3=%mf_getuniquefileref();
 
 /* Macro variable &datazip would be read from the file */
-filename &fname1 ZIP &ziploc;
+filename &f1 ZIP &ziploc;
 
 /* Read the "members" (files) from the ZIP file */
 data _data_(keep=memname isFolder);
   length memname $200 isFolder 8;
-  fid=dopen("&fname1");
+  fid=dopen("&f1");
   if fid=0 then stop;
   memcount=dnum(fid);
   do i=1 to memcount;
@@ -53,16 +53,21 @@ data _data_(keep=memname isFolder);
   end;
   rc=dclose(fid);
 run;
-filename &fname1 clear;
+filename &f1 clear;
 
 /* loop through each entry and either create the subfolder or extract member */
+%mf_mkdir(&outdir)
 data _null_;
   set &syslast;
   if isFolder then call execute('%mf_mkdir(&outdir/'!!memname!!')');
-  else call execute('filename &fname2 zip &ziploc member='
-    !!quote(trim(memname))!!';filename &fname3 "&outdir/'
-    !!trim(memname)!!'" recfm=n;data _null_; rc=fcopy("&fname2","&fname3");run;'
-    !!'filename &fname2 clear; filename &fname3 clear;');
+  else do;
+    call execute(
+      cats('filename &f2 zip &ziploc member="',memname,'" recfm=n;')
+    );
+    call execute('filename &f3 "&outdir/'!!trim(memname)!!'" recfm=n;');
+    call execute('data _null_; rc=fcopy("&f2","&f3");run;');
+    call execute('filename &f2 clear; filename &f3 clear;');
+  end;
 run;
 
 %mend mp_unzip;

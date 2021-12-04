@@ -4,22 +4,22 @@
   @details Useful for capturing constraints before they are dropped / reapplied
   during an update.
 
-        proc sql;
-        create table work.example(
-          TX_FROM float format=datetime19.,
-          DD_TYPE char(16),
-          DD_SOURCE char(2048),
-          DD_SHORTDESC char(256),
-          constraint pk primary key(tx_from, dd_type,dd_source),
-          constraint unq unique(tx_from, dd_type),
-          constraint nnn not null(DD_SHORTDESC)
-        );
+      proc sql;
+      create table work.example(
+        TX_FROM float format=datetime19.,
+        DD_TYPE char(16),
+        DD_SOURCE char(2048),
+        DD_SHORTDESC char(256),
+        constraint pk primary key(tx_from, dd_type,dd_source),
+        constraint unq unique(tx_from, dd_type),
+        constraint nnn not null(DD_SHORTDESC)
+      );
 
       %mp_getconstraints(lib=work,ds=example,outds=work.constraints)
 
-  @param lib= The target library (default=WORK)
-  @param ds= The target dataset.  Leave blank (default) for all datasets.
-  @param outds the output dataset
+  @param [in] lib= (WORK) The target library
+  @param [in] ds= The target dataset.  Leave blank (default) for all datasets.
+  @param [out] outds= (mp_getconstraints) the output dataset
 
   <h4> SAS Macros </h4>
 

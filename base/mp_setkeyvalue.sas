@@ -9,11 +9,14 @@
   <h4> SAS Macros </h4>
   @li mf_existds.sas
 
-  @param key Provide a key on which to perform the lookup
-  @param value Provide a value
-  @param type= either C or N will populate valc and valn respectively.  C is
-              default.
-  @param libds= define the target table to hold the parameters
+  <h4> Related Macros </h4>
+  @li mf_getvalue.sas
+
+  @param [in] key Provide a key on which to perform the lookup
+  @param [in] value Provide a value
+  @param [in] type= either C or N will populate valc and valn respectively.
+    C is default.
+  @param [out] libds= define the target table to hold the parameters
 
   @version 9.2
   @author Allan Bowe

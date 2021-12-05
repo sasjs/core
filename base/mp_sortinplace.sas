@@ -15,8 +15,11 @@
 
   <h4> SAS Macros </h4>
   @li mf_existds.sas
+  @li mf_getquotedstr.sas
   @li mf_getuniquename.sas
+  @li mf_nobs.sas
   @li mp_abort.sas
+  @li mp_getpk.sas
 
   <h4> Related Macros </h4>
   @li mf_getvalue.sas
@@ -32,7 +35,7 @@
 %macro mp_sortinplace(libds
 )/*/STORE SOURCE*/;
 
-%local lib ds tempds1 tempds2 tempvw;
+%local lib ds tempds1 tempds2 tempvw sortkey;
 
 /* perform validations */
 %mp_abort(iftrue=(%sysfunc(countw(&libds,.)) ne 1)
@@ -53,17 +56,53 @@
 
 /* grab a copy of the constraints so we know what to sort by */
 %let tempds1=%mf_getuniquename(prefix=&sysmacroname);
-%mp_getconstraints(lib=&lib,ds=example,outds=work.&tempds1)
+%mp_getpk(lib=&lib,ds=&ds,outds=work.&tempds1)
 
-/* create empty copy, WITH constraints, in the same library */
+%if %mf_nobs(work.&tempds1)=0 %then %do;
+  %put &sysmacroname: No PK found in &lib..&ds;
+  %put Sorting will not take place;
+  %return;
+%end;
+
+data _null_;
+  set work.&tempds1;
+  call symputx('sortkey',pk_fields);
+run;
+
+
+/* create empty copy, with ALL constraints, in the same library */
 %let tempds2=%mf_getuniquename(prefix=&sysmacroname);
 proc append base=&lib..&tempds2 data=&libds(obs=0);
 run;
 
+/* create sorted view */
 %let tempvw=%mf_getuniquename(prefix=&sysmacroname);
 proc sql;
+create view work.&tempvw as select * from &lib..&ds
+order by %mf_getquotedstr(&sortkey,quote=%str());
 
+/* append sorted data */
+proc append base=&lib..&tempds2 data=work.&tempvw;
+run;
 
+/* do validations */
+%mp_abort(iftrue=(&syscc ne 0)
+  ,mac=&sysmacroname
+  ,msg=%str(syscc=&syscc prior to replace operation)
+)
+%mp_abort(iftrue=(%mf_nobs(&lib..&tempds2) ne %mf_nobs(&lib..&ds))
+  ,mac=mp_sortinplace
+  ,msg=%str(new dataset has a different number of logical obs to the old)
+)
+
+/* drop old dataset */
+proc sql;
+drop table &lib..&ds;
+
+/* rename the new dataset */
+proc datasets library=&lib;
+  change &tempds2=&ds;
+run;
 
 
 %mend mp_sortinplace;

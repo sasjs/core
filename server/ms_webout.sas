@@ -159,6 +159,7 @@
     autoexec=quote(trim(getoption('autoexec')));
     put ',"AUTOEXEC" : ' autoexec;
     memsize="%sysfunc(INPUTN(%sysfunc(getoption(memsize)), best.),sizekmg.)";
+    memsize=quote(cats(memsize));
     put ',"MEMSIZE" : ' memsize;
     put "}" @;
   %if %str(&_debug) ge 131 %then %do;

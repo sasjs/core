@@ -48,13 +48,20 @@
       "name": "sas9",
       "serverUrl": "https://sas.analytium.co.uk:8343",
       "serverType": "SAS9",
+      "httpsAgentOptions": {
+        "allowInsecureRequests": false
+      },
       "appLoc": "/Shared Data/temp/macrocore",
       "macroFolders": [
         "tests/sas9only"
       ],
+      "programFolders": [],
       "deployConfig": {
-        "deployServicePack": true
-      }
+        "deployServicePack": true,
+        "deployScripts": []
+      },
+      "serverName": "SASApp",
+      "repositoryName": "Foundation"
     },
     {
       "name": "server",

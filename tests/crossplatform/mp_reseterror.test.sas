@@ -17,7 +17,7 @@ lock sashelp.class;
 %mp_reseterror()
 
 %mp_assert(
-  iftrue=(&success=1),
-  desc=Checking sashelp table cannot be locked,
+  iftrue=(&syscc=0),
+  desc=Checking error condition was fixed,
   outds=work.test_results
 )

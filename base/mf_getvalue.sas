@@ -10,6 +10,9 @@
   <h4> SAS Macros </h4>
   @li mf_getattrn.sas
 
+  <h4> Related Macros </h4>
+  @li mp_setkeyvalue.sas
+
   @param libds dataset to query
   @param variable the variable which contains the value to return.
   @param filter contents of where clause

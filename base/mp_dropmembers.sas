@@ -17,8 +17,9 @@
   @li mf_isblank.sas
 
 
-  @param list space separated list of datasets / views, WITHOUT libref
-  @param libref= (WORK) Note - you can only drop from a single library at a time
+  @param [in] list space separated list of datasets / views, WITHOUT libref
+  @param [in] libref= (WORK) Note - you can only drop from one library at a time
+  @param [in] iftrue= (1=1) Conditionally drop tables, eg if &debug=N
 
   @version 9.2
   @author Allan Bowe
@@ -28,7 +29,10 @@
 %macro mp_dropmembers(
     list /* space separated list of datasets / views */
     ,libref=WORK  /* can only drop from a single library at a time */
+    ,iftrue=%str(1=1)
 )/*/STORE SOURCE*/;
+
+  %if not(%eval(%unquote(&iftrue))) %then %return;
 
   %if %mf_isblank(&list) %then %do;
     %put NOTE: nothing to drop!;

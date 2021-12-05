@@ -56,6 +56,10 @@ options noquotelenmax;
 
   @param libds library.dataset
   @return output returns 1 or 0
+
+  <h4> Related Macros </h4>
+  @li mf_existds.test.sas
+
   @warning Untested on tables registered in metadata but not physically present
   @version 9.2
   @author Allan Bowe
@@ -870,6 +874,9 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
 
   <h4> SAS Macros </h4>
   @li mf_getattrn.sas
+
+  <h4> Related Macros </h4>
+  @li mp_setkeyvalue.sas
 
   @param libds dataset to query
   @param variable the variable which contains the value to return.
@@ -2346,6 +2353,10 @@ Usage:
 
       %mp_assertdsobs(sashelp.class) %* tests if any observations are present;
 
+      %mp_assertdsobs(sashelp.class,test=ATLEAST 10) %* pass if >9 obs present;
+
+      %mp_assertdsobs(sashelp.class,test=ATMOST 20) %* pass if <21 obs present;
+
   <h4> SAS Macros </h4>
   @li mf_nobs.sas
   @li mp_abort.sas
@@ -2357,9 +2368,9 @@ Usage:
     @li HASOBS - Test is a PASS if the input dataset has any observations
     @li EMPTY - Test is a PASS if input dataset is empty
     @li EQUALS [integer] - Test passes if row count matches the provided integer
-    @LI ATLEAST [integer] - Test passes if row count is more than or equal to
+    @li ATLEAST [integer] - Test passes if row count is more than or equal to
       the provided integer
-    @LI ATMOST [integer] - Test passes if row count is less than or equal to
+    @li ATMOST [integer] - Test passes if row count is less than or equal to
       the provided integer
   @param [out] outds= (work.test_results) The output dataset to contain the
   results.  If it does not exist, it will be created, with the following format:
@@ -3495,8 +3506,9 @@ drop table &out_ds;
   @li mf_isblank.sas
 
 
-  @param list space separated list of datasets / views, WITHOUT libref
-  @param libref= (WORK) Note - you can only drop from a single library at a time
+  @param [in] list space separated list of datasets / views, WITHOUT libref
+  @param [in] libref= (WORK) Note - you can only drop from one library at a time
+  @param [in] iftrue= (1=1) Conditionally drop tables, eg if &debug=N
 
   @version 9.2
   @author Allan Bowe
@@ -3506,7 +3518,10 @@ drop table &out_ds;
 %macro mp_dropmembers(
     list /* space separated list of datasets / views */
     ,libref=WORK  /* can only drop from a single library at a time */
+    ,iftrue=%str(1=1)
 )/*/STORE SOURCE*/;
+
+  %if not(%eval(%unquote(&iftrue))) %then %return;
 
   %if %mf_isblank(&list) %then %do;
     %put NOTE: nothing to drop!;
@@ -4614,24 +4629,27 @@ run;
   @details Useful for capturing constraints before they are dropped / reapplied
   during an update.
 
-        proc sql;
-        create table work.example(
-          TX_FROM float format=datetime19.,
-          DD_TYPE char(16),
-          DD_SOURCE char(2048),
-          DD_SHORTDESC char(256),
-          constraint pk primary key(tx_from, dd_type,dd_source),
-          constraint unq unique(tx_from, dd_type),
-          constraint nnn not null(DD_SHORTDESC)
-        );
+      proc sql;
+      create table work.example(
+        TX_FROM float format=datetime19.,
+        DD_TYPE char(16),
+        DD_SOURCE char(2048),
+        DD_SHORTDESC char(256),
+        constraint pk primary key(tx_from, dd_type,dd_source),
+        constraint unq unique(tx_from, dd_type),
+        constraint nnn not null(DD_SHORTDESC)
+      );
 
       %mp_getconstraints(lib=work,ds=example,outds=work.constraints)
 
-  @param lib= The target library (default=WORK)
-  @param ds= The target dataset.  Leave blank (default) for all datasets.
-  @param outds the output dataset
+  @param [in] lib= (WORK) The target library
+  @param [in] ds= The target dataset.  Leave blank (default) for all datasets.
+  @param [in] mdebug= (0) Set to 1 to preserve temp tables, print var values etc
+  @param [out] outds= (mp_getconstraints) the output dataset
 
   <h4> SAS Macros </h4>
+  @li mf_getuniquename.sas
+  @li mp_dropmembers.sas
 
   @version 9.2
   @author Allan Bowe
@@ -4641,10 +4659,32 @@ run;
 %macro mp_getconstraints(lib=WORK
   ,ds=
   ,outds=mp_getconstraints
+  ,mdebug=0
 )/*/STORE SOURCE*/;
 
 %let lib=%upcase(&lib);
 %let ds=%upcase(&ds);
+
+/**
+  * Neither dictionary tables nor sashelp provides a constraint order column,
+  * however they DO arrive in the correct order.  So, create the col.
+  **/
+%local vw;
+%let vw=%mf_getuniquename(prefix=mp_getconstraints_vw_);
+data &vw /view=&vw;
+  set sashelp.vcncolu;
+  where TABLE_CATALOG="&lib";
+
+  /* use retain approach to reset the constraint order with each constraint */
+  length tmp $1000;
+  retain tmp;
+  drop tmp;
+  if tmp ne catx('|',libref,table_name,constraint_type,constraint_name) then do;
+    constraint_order=1;
+  end;
+  else constraint_order+1;
+  tmp=catx('|',libref, table_name, constraint_type,constraint_name);
+run;
 
 /* must use SQL as proc datasets does not support length changes */
 proc sql noprint;
@@ -4654,8 +4694,9 @@ create table &outds as
     ,a.constraint_type
     ,a.constraint_name
     ,b.column_name
+    ,b.constraint_order
   from dictionary.TABLE_CONSTRAINTS a
-  left join dictionary.constraint_column_usage  b
+  left join &vw  b
   on upcase(a.TABLE_CATALOG)=upcase(b.TABLE_CATALOG)
     and upcase(a.TABLE_NAME)=upcase(b.TABLE_NAME)
     and a.constraint_name=b.constraint_name
@@ -4668,7 +4709,14 @@ create table &outds as
     and upcase(a.TABLE_NAME)="&ds"
     and upcase(b.TABLE_NAME)="&ds"
   %end;
+  order by libref, table_name, constraint_name, constraint_order
   ;
+
+/* tidy up */
+%mp_dropmembers(
+  &vw,
+  iftrue=(&mdebug=0)
+)
 
 %mend mp_getconstraints;/**
   @file
@@ -5476,6 +5524,259 @@ create table &outds (rename=(
   run;
 
 %mend mp_getmaxvarlengths;/**
+  @file
+  @brief Extract the primary key fields from a table or library
+  @details Examines the constraints to identify primary key fields - indicated
+  by an explicit PK constraint, or a unique index that is also NOT NULL.
+
+  Can be executed at both table and library level.  Supports both BASE engine
+  libraries and SQL Server.
+
+  Usage:
+
+      proc sql;
+      create table work.example(
+        TX_FROM float format=datetime19.,
+        DD_TYPE char(16),
+        DD_SOURCE char(2048),
+        DD_SHORTDESC char(256),
+        constraint pk primary key(tx_from, dd_type,dd_source),
+        constraint unq unique(tx_from, dd_type),
+        constraint nnn not null(DD_SHORTDESC)
+      );
+      %mp_getpk(work,ds=example)
+
+  Returns:
+
+
+  @param [in] lib The libref to examine
+  @param [in] ds= (0) Select the dataset to examine, else use 0 for all tables
+  @param [in] mdebug= (0) Set to 1 to preserve temp tables, print var values etc
+  @param [out] outds= (work.mp_getpk) The name of the output table to create.
+
+  <h4> SAS Macros </h4>
+  @li mf_getengine.sas
+  @li mf_getschema.sas
+  @li mp_dropmembers.sas
+  @li mp_getconstraints.sas
+
+  <h4> Related Macros </h4>
+  @li mp_getpk.test.sas
+
+  @version 9.3
+  @author Macro People Ltd
+**/
+
+%macro mp_getpk(
+  lib,
+  ds=0,
+  outds=work.mp_getpk,
+  mdebug=0
+)/*/STORE SOURCE*/;
+
+
+%local engine schema ds1 ds2 ds3 dsn tabs1 tabs2 sum pk4sure pkdefault finalpks;
+
+%let lib=%upcase(&lib);
+%let ds=%upcase(&ds);
+%let engine=%mf_getengine(&lib);
+%let schema=%mf_getschema(&lib);
+
+%let ds1=%mf_getuniquename(prefix=getpk_ds1);
+%let ds2=%mf_getuniquename(prefix=getpk_ds2);
+%let ds3=%mf_getuniquename(prefix=getpk_ds3);
+%let tabs1=%mf_getuniquename(prefix=getpk_tabs1);
+%let tabs2=%mf_getuniquename(prefix=getpk_tabs2);
+%let sum=%mf_getuniquename(prefix=getpk_sum);
+%let pk4sure=%mf_getuniquename(prefix=getpk_pk4sure);
+%let pkdefault=%mf_getuniquename(prefix=getpk_pkdefault);
+%let finalpks=%mf_getuniquename(prefix=getpk_finalpks);
+
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
+proc sql;
+create table &ds1 as
+  select  libname as libref
+    ,upcase(memname) as dsn
+    ,memtype
+    ,upcase(name) as name
+    ,type
+    ,length
+    ,varnum
+    ,label
+    ,format
+    ,idxusage
+    ,notnull
+  from dictionary.columns
+  where upcase(libname)="&lib"
+%if &ds ne 0 %then %do;
+    and upcase(memname)="&ds"
+%end;
+  ;
+
+
+%if &engine=SQLSVR %then %do;
+  proc sql;
+  connect using &lib;
+  create table work.&ds2 as
+  select * from connection to &lib(
+  select
+      s.name as SchemaName,
+      t.name as memname,
+      tc.name as name,
+      ic.key_ordinal as KeyOrderNr
+  from
+      sys.schemas s
+      inner join sys.tables t   on s.schema_id=t.schema_id
+      inner join sys.indexes i  on t.object_id=i.object_id
+      inner join sys.index_columns ic on i.object_id=ic.object_id
+                                    and i.index_id=ic.index_id
+      inner join sys.columns tc on ic.object_id=tc.object_id
+                              and ic.column_id=tc.column_id
+  where i.is_primary_key=1
+    and s.name=%str(%')&schema%str(%')
+  order by t.name, ic.key_ordinal ;
+  );disconnect from &lib;
+  create table &ds3 as
+    select a.*
+      ,case when b.name is not null then 1 else 0 end as pk_ind
+    from work.&ds1 a
+    left join work.&ds2 b
+    on a.dsn=b.memname
+      and upcase(a.name)=upcase(b.name)
+    order by libref,dsn;
+%end;
+%else %do;
+
+  %if &ds = 0 %then %let dsn=;
+
+  /* get all constraints, in constraint order*/
+  %mp_getconstraints(lib=&lib,ds=&dsn,outds=work.&ds2)
+
+  /* extract cols that are clearly primary keys */
+  proc sql;
+  create table &pk4sure as
+    select libref
+      ,table_name
+      ,constraint_name
+      ,constraint_order
+      ,column_name as name
+    from work.&ds2
+    where constraint_type='PRIMARY'
+    order by 1,2,3,4;
+
+  /* extract unique constraints where every col is also NOT NULL */
+  proc sql;
+  create table &sum as
+    select a.libref
+      ,a.table_name
+      ,a.constraint_name
+      ,count(a.column_name) as unq_cnt
+      ,count(b.column_name) as nul_cnt
+    from work.&ds2(where=(constraint_type ='UNIQUE')) a
+    left join work.&ds2(where=(constraint_type ='NOT NULL')) b
+    on a.libref=b.libref
+      and a.table_name=b.table_name
+      and a.column_name=b.column_name
+    group by 1,2,3
+    having unq_cnt=nul_cnt;
+
+  /* extract cols from the relevant unique constraints */
+  create table &pkdefault as
+    select a.libref
+      ,a.table_name
+      ,a.constraint_name
+      ,b.constraint_order
+      ,b.column_name as name
+    from &sum a
+    left join &ds2(where=(constraint_type ='UNIQUE')) b
+    on a.libref=b.libref
+      and a.table_name=b.table_name
+      and a.constraint_name=b.constraint_name
+    order by 1,2,3,4;
+
+  /* create one table */
+  data &finalpks;
+    set &pkdefault &pk4sure ;
+    pk_ind=1;
+    /* if there are multiple unique constraints, take the first */
+    by libref table_name constraint_name;
+    retain keepme;
+    if first.table_name then keepme=1;
+    if first.constraint_name and not first.table_name then keepme=0;
+    if keepme=1;
+  run;
+
+  /* join back to starting table */
+  proc sql;
+  create table &ds3 as
+    select a.*
+      ,b.constraint_order
+      ,case when b.pk_ind=1 then 1 else 0 end as pk_ind
+    from work.&ds1 a
+    left join work.&finalpks b
+    on a.libref=b.libref
+      and a.dsn=b.table_name
+      and upcase(a.name)=upcase(b.name)
+    order by libref,dsn,constraint_order;
+%end;
+
+
+/* prepare tables */
+proc sql;
+create table work.&tabs1 as select
+  libname as libref
+  ,upcase(memname) as dsn
+  ,memtype
+  ,dbms_memtype
+  ,typemem
+  ,memlabel
+  ,nvar
+  ,compress
+from dictionary.tables
+  where upcase(libname)="&lib"
+%if &ds ne 0 %then %do;
+    and upcase(memname)="&ds"
+%end;
+  ;
+data &tabs2;
+  set &ds3;
+  length pk_fields $512;
+  retain pk_fields;
+  by libref dsn constraint_order;
+  if first.dsn then pk_fields='';
+  if pk_ind=1 then pk_fields=catx(' ',pk_fields,name);
+  if last.dsn then output;
+run;
+
+proc sql;
+create table &outds as
+  select a.libref
+    ,a.dsn
+    ,a.memtype
+    ,a.dbms_memtype
+    ,a.typemem
+    ,a.memlabel
+    ,a.nvar
+    ,a.compress
+    ,b.pk_fields
+  from work.&tabs1 a
+  left join work.&tabs2 b
+  on a.libref=b.libref
+    and a.dsn=b.dsn;
+
+/* tidy up */
+%mp_dropmembers(
+  &ds1 &ds2 &ds3 &dsn &tabs1 &tabs2 &sum &pk4sure &pkdefault &finalpks,
+  iftrue=(&mdebug=0)
+)
+
+%mend mp_getpk;/**
   @file
   @brief Performs a text substitution on a file
   @details Makes use of the GSUB function in LUA to perform a text substitution
@@ -7375,11 +7676,14 @@ proc sql
   <h4> SAS Macros </h4>
   @li mf_existds.sas
 
-  @param key Provide a key on which to perform the lookup
-  @param value Provide a value
-  @param type= either C or N will populate valc and valn respectively.  C is
-              default.
-  @param libds= define the target table to hold the parameters
+  <h4> Related Macros </h4>
+  @li mf_getvalue.sas
+
+  @param [in] key Provide a key on which to perform the lookup
+  @param [in] value Provide a value
+  @param [in] type= either C or N will populate valc and valn respectively.
+    C is default.
+  @param [out] libds= define the target table to hold the parameters
 
   @version 9.2
   @author Allan Bowe
@@ -7416,6 +7720,123 @@ proc sql
   quit;
 
 %mend mp_setkeyvalue;/**
+  @file
+  @brief Sorts a SAS dataset in place, preserving constraints
+  @details Generally if a dataset contains indexes, then it is not necessary to
+  sort it before performing operations such as merges / joins etc.
+  That said, there are a few edge cases where it can be desirable:
+
+    @li To improve performance for particular scenarios
+    @li To allow adjacent records to be viewed directly in the dataset
+    @li To reduce dataset size (eg when there are deleted records)
+
+  This macro will only work for BASE (V9) engine libraries.  It works by
+  creating a copy of the dataset (without data, WITH constraints) in the same
+  library, appending a sorted view into it, and finally - renaming it.
+
+  Example usage:
+
+      proc sql;
+      create table work.example as
+        select * from sashelp.class;
+      alter table work.example
+        add constraint pk primary key(name);
+      %mp_sortinplace(work.example)
+
+  @param [in] libds The libref.datasetname that needs to be sorted
+
+  <h4> SAS Macros </h4>
+  @li mf_existds.sas
+  @li mf_getengine.sas
+  @li mf_getquotedstr.sas
+  @li mf_getuniquename.sas
+  @li mf_nobs.sas
+  @li mp_abort.sas
+  @li mp_getpk.sas
+
+  <h4> Related Macros </h4>
+  @li mp_sortinplace.test.sas
+
+  @version 9.2
+  @author Allan Bowe
+  @source https://github.com/sasjs/core
+
+**/
+
+%macro mp_sortinplace(libds
+)/*/STORE SOURCE*/;
+
+%local lib ds tempds1 tempds2 tempvw sortkey;
+
+/* perform validations */
+%mp_abort(iftrue=(%sysfunc(countc(&libds,.)) ne 1)
+  ,mac=mp_sortinplace
+  ,msg=%str(LIBDS (&libds) should have LIBREF.DATASET format)
+)
+%mp_abort(iftrue=(%mf_existds(&libds)=0)
+  ,mac=mp_sortinplace
+  ,msg=%str(&libds does not exist)
+)
+
+%let lib=%scan(&libds,1,.);
+%let ds=%scan(&libds,2,.);
+%mp_abort(iftrue=(%mf_getengine(&lib) ne V9)
+  ,mac=mp_sortinplace
+  ,msg=%str(&lib is not a BASE engine library)
+)
+
+/* grab a copy of the constraints so we know what to sort by */
+%let tempds1=%mf_getuniquename(prefix=&sysmacroname);
+%mp_getpk(lib=&lib,ds=&ds,outds=work.&tempds1)
+
+%if %mf_nobs(work.&tempds1)=0 %then %do;
+  %put &sysmacroname: No PK found in &lib..&ds;
+  %put Sorting will not take place;
+  %return;
+%end;
+
+data _null_;
+  set work.&tempds1;
+  call symputx('sortkey',pk_fields);
+run;
+
+
+/* create empty copy, with ALL constraints, in the same library */
+%let tempds2=%mf_getuniquename(prefix=&sysmacroname);
+proc append base=&lib..&tempds2 data=&libds(obs=0);
+run;
+
+/* create sorted view */
+%let tempvw=%mf_getuniquename(prefix=&sysmacroname);
+proc sql;
+create view work.&tempvw as select * from &lib..&ds
+order by %mf_getquotedstr(&sortkey,quote=%str());
+
+/* append sorted data */
+proc append base=&lib..&tempds2 data=work.&tempvw;
+run;
+
+/* do validations */
+%mp_abort(iftrue=(&syscc ne 0)
+  ,mac=mp_sortinplace
+  ,msg=%str(syscc=&syscc prior to replace operation)
+)
+%mp_abort(iftrue=(%mf_nobs(&lib..&tempds2) ne %mf_nobs(&lib..&ds))
+  ,mac=mp_sortinplace
+  ,msg=%str(new dataset has a different number of logical obs to the old)
+)
+
+/* drop old dataset */
+proc sql;
+drop table &lib..&ds;
+
+/* rename the new dataset */
+proc datasets library=&lib;
+  change &tempds2=&ds;
+run;
+
+
+%mend mp_sortinplace;/**
   @file
   @brief Capture session start / finish times and request details
   @details For details, see
@@ -8116,18 +8537,22 @@ run;
 
   Usage:
 
-      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      filename mc url
+        "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
       %mp_unzip(ziploc="/some/file.zip",outdir=/some/folder)
 
-  <h4> SAS Macros </h4>
-  @li mf_mkdir.sas
-  @li mf_getuniquefileref.sas
+  More info:  https://blogs.sas.com/content/sasdummy/2015/05/11/using-filename-zip-to-unzip-and-read-data-files-in-sas/
 
   @param ziploc= Fileref or quoted full path to zip file ("/path/to/file.zip")
   @param outdir= (%sysfunc(pathname(work))) Directory in which to write the
     outputs (created if non existant)
+
+  <h4> SAS Macros </h4>
+  @li mf_mkdir.sas
+  @li mf_getuniquefileref.sas
+  @li mp_binarycopy.sas
 
   @version 9.4
   @author Allan Bowe
@@ -8140,18 +8565,20 @@ run;
   ,outdir=%sysfunc(pathname(work))
 )/*/STORE SOURCE*/;
 
-%local fname1 fname2 fname3;
-%let fname1=%mf_getuniquefileref();
-%let fname2=%mf_getuniquefileref();
-%let fname3=%mf_getuniquefileref();
+%local f1 f2 ;
+%let f1=%mf_getuniquefileref();
+%let f2=%mf_getuniquefileref();
 
 /* Macro variable &datazip would be read from the file */
-filename &fname1 ZIP &ziploc;
+filename &f1 ZIP &ziploc;
+
+/* create target folder */
+%mf_mkdir(&outdir)
 
 /* Read the "members" (files) from the ZIP file */
 data _data_(keep=memname isFolder);
   length memname $200 isFolder 8;
-  fid=dopen("&fname1");
+  fid=dopen("&f1");
   if fid=0 then stop;
   memcount=dnum(fid);
   do i=1 to memcount;
@@ -8162,19 +8589,36 @@ data _data_(keep=memname isFolder);
   end;
   rc=dclose(fid);
 run;
-filename &fname1 clear;
+
+filename &f2 temp;
 
 /* loop through each entry and either create the subfolder or extract member */
 data _null_;
   set &syslast;
+  file &f2;
   if isFolder then call execute('%mf_mkdir(&outdir/'!!memname!!')');
-  else call execute('filename &fname2 zip &ziploc member='
-    !!quote(trim(memname))!!';filename &fname3 "&outdir/'
-    !!trim(memname)!!'" recfm=n;data _null_; rc=fcopy("&fname2","&fname3");run;'
-    !!'filename &fname2 clear; filename &fname3 clear;');
+  else do;
+    qname=quote(cats("&outdir/",memname));
+    bname=cats('(',memname,')');
+    put '/* hat tip: "data _null_" on SAS-L */';
+    put 'data _null_;';
+    put '  infile &f1 ' bname ' lrecl=256 recfm=F length=length eof=eof unbuf;';
+    put '  file ' qname ' lrecl=256 recfm=N;';
+    put '  input;';
+    put '  put _infile_ $varying256. length;';
+    put '  return;';
+    put 'eof:';
+    put '  stop;';
+    put 'run;';
+  end;
 run;
 
-%mend mp_unzip;/**
+%inc &f2/source2;
+
+filename &f2 clear;
+
+%mend mp_unzip;
+/**
   @file mp_updatevarlength.sas
   @brief Change the length of a variable
   @details The library is assumed to be assigned.  Simple character updates

@@ -34,5 +34,8 @@
   },
   "devDependencies": {
     "@sasjs/cli": "^2.39.0"
+  },
+  "dependencies": {
+    "ts-loader": "^9.2.6"
   }
 }

@@ -7,18 +7,22 @@
 
   Usage:
 
-      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      filename mc url
+        "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
       %mp_unzip(ziploc="/some/file.zip",outdir=/some/folder)
 
-  <h4> SAS Macros </h4>
-  @li mf_mkdir.sas
-  @li mf_getuniquefileref.sas
+  More info:  https://blogs.sas.com/content/sasdummy/2015/05/11/using-filename-zip-to-unzip-and-read-data-files-in-sas/
 
   @param ziploc= Fileref or quoted full path to zip file ("/path/to/file.zip")
   @param outdir= (%sysfunc(pathname(work))) Directory in which to write the
     outputs (created if non existant)
+
+  <h4> SAS Macros </h4>
+  @li mf_mkdir.sas
+  @li mf_getuniquefileref.sas
+  @li mp_binarycopy.sas
 
   @version 9.4
   @author Allan Bowe
@@ -31,13 +35,15 @@
   ,outdir=%sysfunc(pathname(work))
 )/*/STORE SOURCE*/;
 
-%local f1 f2 f3;
+%local f1 f2 ;
 %let f1=%mf_getuniquefileref();
 %let f2=%mf_getuniquefileref();
-%let f3=%mf_getuniquefileref();
 
 /* Macro variable &datazip would be read from the file */
 filename &f1 ZIP &ziploc;
+
+/* create target folder */
+%mf_mkdir(&outdir)
 
 /* Read the "members" (files) from the ZIP file */
 data _data_(keep=memname isFolder);
@@ -53,21 +59,32 @@ data _data_(keep=memname isFolder);
   end;
   rc=dclose(fid);
 run;
-filename &f1 clear;
+
+filename &f2 temp;
 
 /* loop through each entry and either create the subfolder or extract member */
-%mf_mkdir(&outdir)
 data _null_;
   set &syslast;
+  file &f2;
   if isFolder then call execute('%mf_mkdir(&outdir/'!!memname!!')');
   else do;
-    call execute(
-      cats('filename &f2 zip &ziploc member="',memname,'" recfm=n;')
-    );
-    call execute('filename &f3 "&outdir/'!!trim(memname)!!'" recfm=n;');
-    call execute('data _null_; rc=fcopy("&f2","&f3");run;');
-    call execute('filename &f2 clear; filename &f3 clear;');
+    qname=quote(cats("&outdir/",memname));
+    bname=cats('(',memname,')');
+    put '/* hat tip: "data _null_" on SAS-L */';
+    put 'data _null_;';
+    put '  infile &f1 ' bname ' lrecl=256 recfm=F length=length eof=eof unbuf;';
+    put '  file ' qname ' lrecl=256 recfm=N;';
+    put '  input;';
+    put '  put _infile_ $varying256. length;';
+    put '  return;';
+    put 'eof:';
+    put '  stop;';
+    put 'run;';
   end;
 run;
+
+%inc &f2/source2;
+
+filename &f2 clear;
 
 %mend mp_unzip;

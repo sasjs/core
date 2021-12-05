@@ -5562,6 +5562,7 @@ create table &outds (rename=(
 
   <h4> Related Macros </h4>
   @li mp_getpk.test.sas
+  @li mp_guesspk.sas
 
   @version 9.3
   @author Macro People Ltd
@@ -5830,33 +5831,38 @@ create table &outds as
 
 %mend mp_gsubfile;
 /**
-  @file mp_guesspk.sas
+  @file
   @brief Guess the primary key of a table
-  @details Tries to guess the primary key of a table based on the following logic:
+  @details Tries to guess the primary key of a table based on the following
+  logic:
 
       * Columns with nulls are ignored
       * Return only column combinations that provide unique results
-      * Start from one column, then move out to include composite keys of 2 to 6 columns
+      * Start from one column, then move out to composite keys of 2 to 6 columns
 
   The library of the target should be assigned before using this macro.
 
   Usage:
 
-      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      filename mc url
+        "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
       %mp_guesspk(sashelp.class,outds=classpks)
 
   @param baseds The dataset to analyse
   @param outds= The output dataset to contain the possible PKs
-  @param max_guesses= The total number of possible primary keys to generate.  A
-    table is likely to have multiple unlikely PKs, so no need to list them all. Default=3.
-  @param min_rows= The minimum number of rows a table should have in order to try
-    and guess the PK.  Default=5.
+  @param max_guesses= (3) The total number of possible primary keys to generate.
+    A table may have multiple unlikely PKs, so no need to list them all.
+  @param min_rows= (5) The minimum number of rows a table should have in order
+    to try and guess the PK.
 
   <h4> SAS Macros </h4>
   @li mf_getvarlist.sas
   @li mf_getuniquename.sas
   @li mf_nobs.sas
+
+  <h4> Related Macros </h4>
+  @li mp_getpk.sas
 
   @version 9.3
   @author Allan Bowe
@@ -6027,7 +6033,8 @@ create table &outds as
           %let lev4=%scan(&posspks,&l);
           %if &lev1 ne &lev4 and &lev2 ne &lev4 and &lev3 ne &lev4 %then %do;
             /* check for four level uniqueness */
-            proc sort data=&pkds(keep=&lev1 &lev2 &lev3 &lev4) out=&tmpds noduprec;
+            proc sort data=&pkds(keep=&lev1 &lev2 &lev3 &lev4)
+                out=&tmpds noduprec;
               by _all_;
             run;
             %if %mf_nobs(&tmpds)=&rows %then %do;
@@ -6064,7 +6071,8 @@ create table &outds as
             %let lev5=%scan(&posspks,&m);
             %if &lev1 ne &lev5 & &lev2 ne &lev5 & &lev3 ne &lev5 & &lev4 ne &lev5 %then %do;
               /* check for four level uniqueness */
-              proc sort data=&pkds(keep=&lev1 &lev2 &lev3 &lev4 &lev5) out=&tmpds noduprec;
+              proc sort data=&pkds(keep=&lev1 &lev2 &lev3 &lev4 &lev5)
+                  out=&tmpds noduprec;
                 by _all_;
               run;
               %if %mf_nobs(&tmpds)=&rows %then %do;
@@ -6113,7 +6121,8 @@ create table &outds as
                 run;
                 %if %mf_nobs(&tmpds)=&rows %then %do;
                   proc sql;
-                  insert into &outds values("&lev1 &lev2 &lev3 &lev4 &lev5 &lev6");
+                  insert into &outds
+                    values("&lev1 &lev2 &lev3 &lev4 &lev5 &lev6");
                   %if %mf_nobs(&outds) ge &max_guesses %then %do;
                     %put &sysmacroname: Max PKs reached at Level 6 for &baseds;
                     %return;

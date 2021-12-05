@@ -91,7 +91,7 @@
 
 %else %if &action=ARR or &action=OBJ %then %do;
   %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt,jref=&fref
-    ,engine=&jsonengine,dbg=%str(&_debug)
+    ,engine=DATASTEP,dbg=%str(&_debug)
   )
 %end;
 %else %if &action=CLOSE %then %do;
@@ -124,8 +124,8 @@
         put " ""&wt"" : {";
         put '"nlobs":' nlobs;
         put ',"nvars":' nvars;
-      %mp_jsonout(OBJ,&tempds,jref=&fref,dslabel=colattrs,engine=&jsonengine)
-      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,engine=&jsonengine)
+      %mp_jsonout(OBJ,&tempds,jref=&fref,dslabel=colattrs,engine=DATASTEP)
+      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,engine=DATASTEP)
       data _null_; file &fref mod encoding='utf-8';
         put "}";
     %end;

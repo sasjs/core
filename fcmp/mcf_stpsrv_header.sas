@@ -54,6 +54,9 @@
   @param [out] pkg= (utils) The output package in which to create the function.
     Uses a 3 part format:  libref.catalog.package
 
+  <h4> SAS Macros </h4>
+  @li mf_existfunction.sas
+
 **/
 
 %macro mcf_stpsrv_header(wrap=NO
@@ -62,6 +65,8 @@
   ,cat=SASJS
   ,pkg=UTILS
 )/*/STORE SOURCE*/;
+
+%if %mf_existfunction(stpsrv_header)=1 %then %return;
 
 %if &wrap=YES  %then %do;
   proc fcmp outcat=&lib..&cat..&pkg;

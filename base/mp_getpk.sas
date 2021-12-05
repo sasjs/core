@@ -23,6 +23,10 @@
 
   Returns:
 
+|libref:$8.|dsn:$32.|memtype:$8.|dbms_memtype:$32.|typemem:$8.|memlabel:$256.|nvar:best.|compress:$8.|pk_fields:$512.|
+|---|---|---|---|---|---|---|---|---|
+|WORK|EXAMPLE|DATA| |DATA| |4|NO|TX_FROM DD_TYPE DD_SOURCE|
+
 
   @param [in] lib The libref to examine
   @param [in] ds= (0) Select the dataset to examine, else use 0 for all tables

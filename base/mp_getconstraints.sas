@@ -19,6 +19,7 @@
 
   @param [in] lib= (WORK) The target library
   @param [in] ds= The target dataset.  Leave blank (default) for all datasets.
+  @param [in] mdebug= (0) Set to 1 to preserve temp tables, print var values etc
   @param [out] outds= (mp_getconstraints) the output dataset
 
   <h4> SAS Macros </h4>
@@ -33,6 +34,7 @@
 %macro mp_getconstraints(lib=WORK
   ,ds=
   ,outds=mp_getconstraints
+  ,mdebug=0
 )/*/STORE SOURCE*/;
 
 %let lib=%upcase(&lib);

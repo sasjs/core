@@ -8,6 +8,10 @@
 
       %mp_assertdsobs(sashelp.class) %* tests if any observations are present;
 
+      %mp_assertdsobs(sashelp.class,test=ATLEAST 10) %* pass if >9 obs present;
+
+      %mp_assertdsobs(sashelp.class,test=ATMOST 20) %* pass if <21 obs present;
+
   <h4> SAS Macros </h4>
   @li mf_nobs.sas
   @li mp_abort.sas
@@ -19,9 +23,9 @@
     @li HASOBS - Test is a PASS if the input dataset has any observations
     @li EMPTY - Test is a PASS if input dataset is empty
     @li EQUALS [integer] - Test passes if row count matches the provided integer
-    @LI ATLEAST [integer] - Test passes if row count is more than or equal to
+    @li ATLEAST [integer] - Test passes if row count is more than or equal to
       the provided integer
-    @LI ATMOST [integer] - Test passes if row count is less than or equal to
+    @li ATMOST [integer] - Test passes if row count is less than or equal to
       the provided integer
   @param [out] outds= (work.test_results) The output dataset to contain the
   results.  If it does not exist, it will be created, with the following format:

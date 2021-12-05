@@ -31,21 +31,21 @@ Documentation: https://core.sasjs.io
 
 ## Components
 
-### **base** library (SAS9/Viya)
+### BASE library (SAS9/Viya)
 
 - OS independent
 - Not metadata aware
 - No X command
 - Prefixes: _mf_, _mp_
 
-#### **fcmp** library (SAS9/Viya)
+#### FCMP library (SAS9/Viya)
 - Function and macro names are identical, except for special cases
 - Prefixes: _mcf_
 
 The fcmp macros are used to generate fcmp functions, and can be used with or
 without the `proc fcmp` wrapper.
 
-### **meta** library (SAS9 only)
+### META library (SAS9 only)
 
 Macros used in SAS EBI, which connect to the metadata server.
 
@@ -54,7 +54,7 @@ Macros used in SAS EBI, which connect to the metadata server.
 - No X command
 - Prefixes: _mm_
 
-### **server** library (@sasjs/server only)
+### SERVER library (@sasjs/server only)
 These macros are used for building applications using [@sasjs/server](https://server.sasjs.io) - an open source REST API for Desktop SAS.
 
 - OS independent
@@ -62,7 +62,7 @@ These macros are used for building applications using [@sasjs/server](https://se
 - No X command
 - Prefixes: _ms_
 
-### **viya** library (Viya only)
+### VIYA library (Viya only)
 
 Macros used for interfacing with SAS Viya.
 
@@ -70,14 +70,14 @@ Macros used for interfacing with SAS Viya.
 - No X command
 - Prefixes: _mv_, _mvf_
 
-### **metax** library (SAS9 only)
+### METAX library (SAS9 only)
 
 - OS specific
 - Metadata aware
 - X command enabled
 - Prefixes: _mmw_,_mmu_,_mmx_
 
-### **lua** library
+### LUA library
 
 Wait - this is a macro library - what is LUA doing here?  Well, it is a little known fact that you CAN run LUA within a SAS Macro.  It has to be written to a text file with a `.lua` extension, from where you can `%include` it.  So, without using the `proc lua` wrapper.
 

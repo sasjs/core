@@ -37,6 +37,7 @@
 
   <h4> Related Macros </h4>
   @li mp_getpk.test.sas
+  @li mp_guesspk.sas
 
   @version 9.3
   @author Macro People Ltd

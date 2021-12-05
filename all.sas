@@ -56,6 +56,10 @@ options noquotelenmax;
 
   @param libds library.dataset
   @return output returns 1 or 0
+
+  <h4> Related Macros </h4>
+  @li mf_existds.test.sas
+
   @warning Untested on tables registered in metadata but not physically present
   @version 9.2
   @author Allan Bowe
@@ -2349,6 +2353,10 @@ Usage:
 
       %mp_assertdsobs(sashelp.class) %* tests if any observations are present;
 
+      %mp_assertdsobs(sashelp.class,test=ATLEAST 10) %* pass if >9 obs present;
+
+      %mp_assertdsobs(sashelp.class,test=ATMOST 20) %* pass if <21 obs present;
+
   <h4> SAS Macros </h4>
   @li mf_nobs.sas
   @li mp_abort.sas
@@ -2360,9 +2368,9 @@ Usage:
     @li HASOBS - Test is a PASS if the input dataset has any observations
     @li EMPTY - Test is a PASS if input dataset is empty
     @li EQUALS [integer] - Test passes if row count matches the provided integer
-    @LI ATLEAST [integer] - Test passes if row count is more than or equal to
+    @li ATLEAST [integer] - Test passes if row count is more than or equal to
       the provided integer
-    @LI ATMOST [integer] - Test passes if row count is less than or equal to
+    @li ATMOST [integer] - Test passes if row count is less than or equal to
       the provided integer
   @param [out] outds= (work.test_results) The output dataset to contain the
   results.  If it does not exist, it will be created, with the following format:
@@ -7726,15 +7734,28 @@ proc sql
   creating a copy of the dataset (without data, WITH constraints) in the same
   library, appending a sorted view into it, and finally - renaming it.
 
-  <h4> SAS Macros </h4>
-  @li mf_existds.sas
-  @li mf_getuniquename.sas
-  @li mp_abort.sas
+  Example usage:
 
-  <h4> Related Macros </h4>
-  @li mf_getvalue.sas
+      proc sql;
+      create table work.example as
+        select * from sashelp.class;
+      alter table work.example
+        add constraint pk primary key(name);
+      %mp_sortinplace(work.example)
 
   @param [in] libds The libref.datasetname that needs to be sorted
+
+  <h4> SAS Macros </h4>
+  @li mf_existds.sas
+  @li mf_getengine.sas
+  @li mf_getquotedstr.sas
+  @li mf_getuniquename.sas
+  @li mf_nobs.sas
+  @li mp_abort.sas
+  @li mp_getpk.sas
+
+  <h4> Related Macros </h4>
+  @li mp_sortinplace.test.sas
 
   @version 9.2
   @author Allan Bowe
@@ -7745,38 +7766,74 @@ proc sql
 %macro mp_sortinplace(libds
 )/*/STORE SOURCE*/;
 
-%local lib ds tempds1 tempds2 tempvw;
+%local lib ds tempds1 tempds2 tempvw sortkey;
 
 /* perform validations */
-%mp_abort(iftrue=(%sysfunc(countw(&libds,.)) ne 1)
-  ,mac=&sysmacroname
+%mp_abort(iftrue=(%sysfunc(countc(&libds,.)) ne 1)
+  ,mac=mp_sortinplace
   ,msg=%str(LIBDS (&libds) should have LIBREF.DATASET format)
 )
 %mp_abort(iftrue=(%mf_existds(&libds)=0)
-  ,mac=&sysmacroname
+  ,mac=mp_sortinplace
   ,msg=%str(&libds does not exist)
 )
 
 %let lib=%scan(&libds,1,.);
 %let ds=%scan(&libds,2,.);
-%mp_abort(iftrue=(&lib ne V9)
-  ,mac=&sysmacroname
+%mp_abort(iftrue=(%mf_getengine(&lib) ne V9)
+  ,mac=mp_sortinplace
   ,msg=%str(&lib is not a BASE engine library)
 )
 
 /* grab a copy of the constraints so we know what to sort by */
 %let tempds1=%mf_getuniquename(prefix=&sysmacroname);
-%mp_getconstraints(lib=&lib,ds=example,outds=work.&tempds1)
+%mp_getpk(lib=&lib,ds=&ds,outds=work.&tempds1)
 
-/* create empty copy, WITH constraints, in the same library */
+%if %mf_nobs(work.&tempds1)=0 %then %do;
+  %put &sysmacroname: No PK found in &lib..&ds;
+  %put Sorting will not take place;
+  %return;
+%end;
+
+data _null_;
+  set work.&tempds1;
+  call symputx('sortkey',pk_fields);
+run;
+
+
+/* create empty copy, with ALL constraints, in the same library */
 %let tempds2=%mf_getuniquename(prefix=&sysmacroname);
 proc append base=&lib..&tempds2 data=&libds(obs=0);
 run;
 
+/* create sorted view */
 %let tempvw=%mf_getuniquename(prefix=&sysmacroname);
 proc sql;
+create view work.&tempvw as select * from &lib..&ds
+order by %mf_getquotedstr(&sortkey,quote=%str());
 
+/* append sorted data */
+proc append base=&lib..&tempds2 data=work.&tempvw;
+run;
 
+/* do validations */
+%mp_abort(iftrue=(&syscc ne 0)
+  ,mac=mp_sortinplace
+  ,msg=%str(syscc=&syscc prior to replace operation)
+)
+%mp_abort(iftrue=(%mf_nobs(&lib..&tempds2) ne %mf_nobs(&lib..&ds))
+  ,mac=mp_sortinplace
+  ,msg=%str(new dataset has a different number of logical obs to the old)
+)
+
+/* drop old dataset */
+proc sql;
+drop table &lib..&ds;
+
+/* rename the new dataset */
+proc datasets library=&lib;
+  change &tempds2=&ds;
+run;
 
 
 %mend mp_sortinplace;/**
@@ -8480,18 +8537,22 @@ run;
 
   Usage:
 
-      filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
+      filename mc url
+        "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
       %mp_unzip(ziploc="/some/file.zip",outdir=/some/folder)
 
-  <h4> SAS Macros </h4>
-  @li mf_mkdir.sas
-  @li mf_getuniquefileref.sas
+  More info:  https://blogs.sas.com/content/sasdummy/2015/05/11/using-filename-zip-to-unzip-and-read-data-files-in-sas/
 
   @param ziploc= Fileref or quoted full path to zip file ("/path/to/file.zip")
   @param outdir= (%sysfunc(pathname(work))) Directory in which to write the
     outputs (created if non existant)
+
+  <h4> SAS Macros </h4>
+  @li mf_mkdir.sas
+  @li mf_getuniquefileref.sas
+  @li mp_binarycopy.sas
 
   @version 9.4
   @author Allan Bowe
@@ -8504,13 +8565,15 @@ run;
   ,outdir=%sysfunc(pathname(work))
 )/*/STORE SOURCE*/;
 
-%local f1 f2 f3;
+%local f1 f2 ;
 %let f1=%mf_getuniquefileref();
 %let f2=%mf_getuniquefileref();
-%let f3=%mf_getuniquefileref();
 
 /* Macro variable &datazip would be read from the file */
 filename &f1 ZIP &ziploc;
+
+/* create target folder */
+%mf_mkdir(&outdir)
 
 /* Read the "members" (files) from the ZIP file */
 data _data_(keep=memname isFolder);
@@ -8526,24 +8589,36 @@ data _data_(keep=memname isFolder);
   end;
   rc=dclose(fid);
 run;
-filename &f1 clear;
+
+filename &f2 temp;
 
 /* loop through each entry and either create the subfolder or extract member */
-%mf_mkdir(&outdir)
 data _null_;
   set &syslast;
+  file &f2;
   if isFolder then call execute('%mf_mkdir(&outdir/'!!memname!!')');
   else do;
-    call execute(
-      cats('filename &f2 zip &ziploc member="',memname,'" recfm=n;')
-    );
-    call execute('filename &f3 "&outdir/'!!trim(memname)!!'" recfm=n;');
-    call execute('data _null_; rc=fcopy("&f2","&f3");run;');
-    call execute('filename &f2 clear; filename &f3 clear;');
+    qname=quote(cats("&outdir/",memname));
+    bname=cats('(',memname,')');
+    put '/* hat tip: "data _null_" on SAS-L */';
+    put 'data _null_;';
+    put '  infile &f1 ' bname ' lrecl=256 recfm=F length=length eof=eof unbuf;';
+    put '  file ' qname ' lrecl=256 recfm=N;';
+    put '  input;';
+    put '  put _infile_ $varying256. length;';
+    put '  return;';
+    put 'eof:';
+    put '  stop;';
+    put 'run;';
   end;
 run;
 
-%mend mp_unzip;/**
+%inc &f2/source2;
+
+filename &f2 clear;
+
+%mend mp_unzip;
+/**
   @file mp_updatevarlength.sas
   @brief Change the length of a variable
   @details The library is assumed to be assigned.  Simple character updates

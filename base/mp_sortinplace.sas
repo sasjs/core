@@ -13,8 +13,20 @@
   creating a copy of the dataset (without data, WITH constraints) in the same
   library, appending a sorted view into it, and finally - renaming it.
 
+  Example usage:
+
+      proc sql;
+      create table work.example as
+        select * from sashelp.class;
+      alter table work.example
+        add constraint pk primary key(name);
+      %mp_sortinplace(work.example)
+
+  @param [in] libds The libref.datasetname that needs to be sorted
+
   <h4> SAS Macros </h4>
   @li mf_existds.sas
+  @li mf_getengine.sas
   @li mf_getquotedstr.sas
   @li mf_getuniquename.sas
   @li mf_nobs.sas
@@ -22,9 +34,7 @@
   @li mp_getpk.sas
 
   <h4> Related Macros </h4>
-  @li mf_getvalue.sas
-
-  @param [in] libds The libref.datasetname that needs to be sorted
+  @li mp_sortinplace.test.sas
 
   @version 9.2
   @author Allan Bowe
@@ -38,19 +48,19 @@
 %local lib ds tempds1 tempds2 tempvw sortkey;
 
 /* perform validations */
-%mp_abort(iftrue=(%sysfunc(countw(&libds,.)) ne 1)
-  ,mac=&sysmacroname
+%mp_abort(iftrue=(%sysfunc(countc(&libds,.)) ne 1)
+  ,mac=mp_sortinplace
   ,msg=%str(LIBDS (&libds) should have LIBREF.DATASET format)
 )
 %mp_abort(iftrue=(%mf_existds(&libds)=0)
-  ,mac=&sysmacroname
+  ,mac=mp_sortinplace
   ,msg=%str(&libds does not exist)
 )
 
 %let lib=%scan(&libds,1,.);
 %let ds=%scan(&libds,2,.);
-%mp_abort(iftrue=(&lib ne V9)
-  ,mac=&sysmacroname
+%mp_abort(iftrue=(%mf_getengine(&lib) ne V9)
+  ,mac=mp_sortinplace
   ,msg=%str(&lib is not a BASE engine library)
 )
 
@@ -87,7 +97,7 @@ run;
 
 /* do validations */
 %mp_abort(iftrue=(&syscc ne 0)
-  ,mac=&sysmacroname
+  ,mac=mp_sortinplace
   ,msg=%str(syscc=&syscc prior to replace operation)
 )
 %mp_abort(iftrue=(%mf_nobs(&lib..&tempds2) ne %mf_nobs(&lib..&ds))

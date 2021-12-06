@@ -89,7 +89,7 @@ run;
 %let tempvw=%mf_getuniquename(prefix=&sysmacroname);
 proc sql;
 create view work.&tempvw as select * from &lib..&ds
-order by %mf_getquotedstr(&sortkey,quote=%str());
+order by %mf_getquotedstr(&sortkey,quote=N);
 
 /* append sorted data */
 proc append base=&lib..&tempds2 data=work.&tempvw;

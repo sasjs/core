@@ -626,12 +626,12 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
   for:
 > "these","words","are","double","quoted"
 
-  @param in_str the unquoted, spaced delimited string to transform
-  @param dlm= the delimeter to be applied to the output (default comma)
-  @param indlm= the delimeter used for the input (default is space)
-  @param quote= the quote mark to apply (S=Single, D=Double). If any other value
-    than uppercase S or D is supplied, then that value will be used as the
-    quoting character.
+  @param [in] in_str The unquoted, spaced delimited string to transform
+  @param [in] dlm= The delimeter to be applied to the output (default comma)
+  @param [in] indlm= (,) The delimeter used for the input (default is space)
+  @param [in] quote= (S) The quote mark to apply (S=Single, D=Double, N=None).
+    If any other value than uppercase S or D is supplied, then that value will
+    be used as the quoting character.
   @return output returns a string with the newly quoted / delimited output.
 
   @version 9.2
@@ -641,9 +641,10 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
 
 %macro mf_getquotedstr(IN_STR,DLM=%str(,),QUOTE=S,indlm=%str( )
 )/*/STORE SOURCE*/;
-  %if &quote=S %then %let quote=%str(%');
-  %else %if &quote=D %then %let quote=%str(%");
-  %else %let quote=%str();
+  /* credit Rowland Hale  - byte34 is double quote, 39 is single quote */
+  %if &quote=S %then %let quote=%qsysfunc(byte(39));
+  %else %if &quote=D %then %let quote=%qsysfunc(byte(34));
+  %else %if &quote=N %then %let quote=;
   %local i item buffer;
   %let i=1;
   %do %while (%qscan(&IN_STR,&i,%str(&indlm)) ne %str() ) ;
@@ -7946,7 +7947,7 @@ run;
 %let tempvw=%mf_getuniquename(prefix=&sysmacroname);
 proc sql;
 create view work.&tempvw as select * from &lib..&ds
-order by %mf_getquotedstr(&sortkey,quote=%str());
+order by %mf_getquotedstr(&sortkey,quote=N);
 
 /* append sorted data */
 proc append base=&lib..&tempds2 data=work.&tempvw;

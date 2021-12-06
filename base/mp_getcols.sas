@@ -51,7 +51,7 @@ data &outds(keep=name type length varnum format label ddtype);
     else if formatd=0 then format=cats(format2,formatl,'.');
     else format=cats(format2,formatl,'.',formatd);
     type='N';
-    if format=:'DATETIME' then ddtype='DATETIME';
+    if format=:'DATETIME' or format=:'E8601DT' then ddtype='DATETIME';
     else if format=:'DATE' or format=:'DDMMYY' or format=:'MMDDYY'
       or format=:'YYMMDD' or format=:'E8601DA' or format=:'B8601DA'
       or format=:'MONYY'

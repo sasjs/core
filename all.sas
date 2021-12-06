@@ -626,12 +626,12 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
   for:
 > "these","words","are","double","quoted"
 
-  @param in_str the unquoted, spaced delimited string to transform
-  @param dlm= the delimeter to be applied to the output (default comma)
-  @param indlm= the delimeter used for the input (default is space)
-  @param quote= the quote mark to apply (S=Single, D=Double). If any other value
-    than uppercase S or D is supplied, then that value will be used as the
-    quoting character.
+  @param [in] in_str The unquoted, spaced delimited string to transform
+  @param [in] dlm= The delimeter to be applied to the output (default comma)
+  @param [in] indlm= (,) The delimeter used for the input (default is space)
+  @param [in] quote= (S) The quote mark to apply (S=Single, D=Double, N=None).
+    If any other value than uppercase S or D is supplied, then that value will
+    be used as the quoting character.
   @return output returns a string with the newly quoted / delimited output.
 
   @version 9.2
@@ -641,9 +641,10 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
 
 %macro mf_getquotedstr(IN_STR,DLM=%str(,),QUOTE=S,indlm=%str( )
 )/*/STORE SOURCE*/;
-  %if &quote=S %then %let quote=%str(%');
-  %else %if &quote=D %then %let quote=%str(%");
-  %else %let quote=%str();
+  /* credit Rowland Hale  - byte34 is double quote, 39 is single quote */
+  %if &quote=S %then %let quote=%qsysfunc(byte(39));
+  %else %if &quote=D %then %let quote=%qsysfunc(byte(34));
+  %else %if &quote=N %then %let quote=;
   %local i item buffer;
   %let i=1;
   %do %while (%qscan(&IN_STR,&i,%str(&indlm)) ne %str() ) ;
@@ -4612,7 +4613,7 @@ data &outds(keep=name type length varnum format label ddtype);
     else if formatd=0 then format=cats(format2,formatl,'.');
     else format=cats(format2,formatl,'.',formatd);
     type='N';
-    if format=:'DATETIME' then ddtype='DATETIME';
+    if format=:'DATETIME' or format=:'E8601DT' then ddtype='DATETIME';
     else if format=:'DATE' or format=:'DDMMYY' or format=:'MMDDYY'
       or format=:'YYMMDD' or format=:'E8601DA' or format=:'B8601DA'
       or format=:'MONYY'
@@ -6325,6 +6326,59 @@ run;
 filename &tempref clear;
 
 %mend mp_include;/**
+  @file
+  @brief Initialise session with useful settings and variables
+  @details Implements a set of recommended options for general SAS use.  This
+    macro is NOT used elsewhere within the core library (other than in tests),
+    but it is used by the SASjs team when building web services for
+    SAS-Powered applications elsewhere.
+
+    If you have a good idea for an option, setting, or useful global variable -
+    feel free to [raise an issue](https://github.com/sasjs/core/issues/new)!
+
+    All global variables are prefixed with "SASJS_" (unless modfied with the
+    prefix parameter).
+
+  @param [in] prefix= (SASJS) The prefix to apply to the global macro variables
+
+
+  @version 9.2
+  @author Allan Bowe
+
+**/
+
+%macro mp_init(prefix=
+)/*/STORE SOURCE*/;
+
+  %global
+    &prefix._INIT_NUM   /* initialisation time as numeric             */
+    &prefix._INIT_DTTM  /* initialisation time in E8601DT26.6 format */
+  ;
+  %if %eval(&&&prefix._INIT_NUM>0) %then %return;  /* only run once */
+
+  data _null_;
+    dttm=datetime();
+    call symputx("&prefix._init_num",dttm);
+    call symputx("&prefix._init_dttm",put(dttm,E8601DT26.6));
+  run;
+
+  options
+    autocorrect             /* disallow mis-spelled procedure names           */
+    compress=CHAR           /* default is none so ensure we have something!   */
+    datastmtchk=ALLKEYWORDS /* protection from overwriting input datasets     */
+    errorcheck=STRICT       /* catch errors in libname/filename statements    */
+    fmterr                  /* ensure error when a format cannot be found     */
+    mergenoby=ERROR         /*
+    missing=.    /* some sites change this which causes hard to detect errors */
+    noquotelenmax           /* avoid warnings for long strings                */
+    noreplace               /* avoid overwriting permanent datasets           */
+    ps=max                  /* reduce log size slightly                       */
+    validmemname=COMPATIBLE /* avoid special characters etc in table names    */
+    validvarname=V7         /* avoid special characters etc in variable names */
+    varlenchk=ERROR         /* fail hard if truncation (data loss) can result */
+  ;
+
+%mend mp_init;/**
   @file mp_jsonout.sas
   @brief Writes JSON in SASjs format to a fileref
   @details PROC JSON is faster but will produce errs like the ones below if
@@ -7063,6 +7117,92 @@ lock &libds clear;
 
 %mend mp_lockfilecheck;/**
   @file
+  @brief Create sample data based on the structure of an empty table
+  @details Many SAS projects involve sensitive datasets.  One way to _ensure_
+    the data is anonymised, is never to receive it in the first place!  Often
+    consultants are provided with empty tables, and expected to create complex
+    ETL flows.
+
+    This macro can help by taking an empty table, and populating it with data
+    according to the variable types and formats.
+
+    TODO:
+      @li Respect PKs
+      @li Respect NOT NULLs
+      @li Consider dates, datetimes, times, integers etc
+
+  Usage:
+
+      proc sql;
+      create table work.example(
+        TX_FROM float format=datetime19.,
+        DD_TYPE char(16),
+        DD_SOURCE char(2048),
+        DD_SHORTDESC char(256),
+        constraint pk primary key(tx_from, dd_type,dd_source),
+        constraint nnn not null(DD_SHORTDESC)
+      );
+      %mp_makedata(work.example)
+
+  @param [in] libds The empty table in which to create data
+  @param [out] obs= (500) The number of records to create.
+
+  <h4> SAS Macros </h4>
+  @li mf_getuniquename.sas
+  @li mf_getvarlen.sas
+  @li mf_nobs.sas
+  @li mp_getcols.sas
+  @li mp_getpk.sas
+
+  @version 9.2
+  @author Allan Bowe
+
+**/
+
+%macro mp_makedata(libds
+  ,obs=500
+)/*/STORE SOURCE*/;
+
+%local ds1 c1 n1 i col charvars numvars;
+
+%if %mf_nobs(&libds)>0 %then %do;
+  %put &sysmacroname: &libds has data, it will not be recreated;
+  %return;
+%end;
+
+%local ds1 c1 n1;
+%let ds1=%mf_getuniquename(prefix=mp_makedata);
+%let c1=%mf_getuniquename(prefix=mp_makedatacol);
+%let n1=%mf_getuniquename(prefix=mp_makedatacol);
+data &ds1;
+  if 0 then set &libds;
+  do _n_=1 to &obs;
+    &c1=repeat(uuidgen(),10);
+    &n1=ranuni(1)*5000000;
+    drop &c1 &n1;
+    %let charvars=%mf_getvarlist(&libds,typefilter=C);
+    %do i=1 %to %sysfunc(countw(&charvars));
+      %let col=%scan(&charvars,&i);
+      &col=subpad(&c1,1,%mf_getvarlen(&libds,&col));
+    %end;
+
+    %let numvars=%mf_getvarlist(&libds,typefilter=N);
+    %do i=1 %to %sysfunc(countw(&numvars));
+      %let col=%scan(&numvars,&i);
+      &col=&n1;
+    %end;
+    output;
+  end;
+run;
+
+proc append base=&libds data=&ds1;
+run;
+
+proc sql;
+drop table &ds1;
+
+%mend mp_makedata;/**
+  @file
   @brief Create a Markdown Table from a dataset
   @details A markdown table is a simple table representation for use in
   documents written in markdown format.
@@ -7377,6 +7517,32 @@ insert into &outds select distinct * from &append_ds;
 
 %mend mp_recursivejoin;
 /**
+  @file
+  @brief Reset when an err condition occurs
+  @details When building apps, sometimes an operation must be attempted that
+  can cause an err condition.  There is no try catch in SAS! So the err state
+  must be caught and reset.
+
+  This macro attempts to do that reset.
+
+  @version 9.2
+  @author Allan Bowe
+
+**/
+
+%macro mp_reseterror(
+)/*/STORE SOURCE*/;
+
+options obs=max replace nosyntaxcheck;
+%let syscc=0;
+
+%if "&sysprocessmode " = "SAS Stored Process Server " %then %do;
+  data _null_;
+    rc=stpsrvset('program error', 0);
+  run;
+%end;
+
+%mend mp_reseterror;/**
   @file
   @brief Reset an option to original value
   @details Inspired by the SAS Jedi -
@@ -7823,7 +7989,7 @@ run;
 %let tempvw=%mf_getuniquename(prefix=&sysmacroname);
 proc sql;
 create view work.&tempvw as select * from &lib..&ds
-order by %mf_getquotedstr(&sortkey,quote=%str());
+order by %mf_getquotedstr(&sortkey,quote=N);
 
 /* append sorted data */
 proc append base=&lib..&tempds2 data=work.&tempvw;

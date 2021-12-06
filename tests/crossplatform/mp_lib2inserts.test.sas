@@ -11,9 +11,10 @@
 **/
 
 /* grab 20 datasets from SASHELP */
-%let path=%sysfunc(pathname(work));
+%let work=%sysfunc(pathname(work));
+%let path=&work/new;
 %mf_mkdir(&path)
-libname sashlp "&path";
+libname sashlp "&work";
 proc sql noprint;
 create table members as
   select distinct lowcase(memname) as memname
@@ -31,6 +32,7 @@ run;
 %mp_lib2inserts(sashlp, schema=work, outref=tempref,maxobs=50)
 
 /* check if it actually runs */
+libname sashlp "&path";
 options source2;
 %inc tempref;
 

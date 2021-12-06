@@ -6367,15 +6367,15 @@ filename &tempref clear;
     compress=CHAR           /* default is none so ensure we have something!   */
     datastmtchk=ALLKEYWORDS /* protection from overwriting input datasets     */
     errorcheck=STRICT       /* catch errors in libname/filename statements    */
-    fmterr                  /* ensure error when a format cannot be found     */
-    mergenoby=ERROR         /* Throw error when a merge has no BY variables   */
+    fmterr                  /* ensure err   when a format cannot be found     */
+    mergenoby=%str(ERR)OR   /* Throw err   when a merge has no BY variables   */
     missing=.    /* some sites change this which causes hard to detect errors */
     noquotelenmax           /* avoid warnings for long strings                */
     noreplace               /* avoid overwriting permanent datasets           */
     ps=max                  /* reduce log size slightly                       */
     validmemname=COMPATIBLE /* avoid special characters etc in table names    */
     validvarname=V7         /* avoid special characters etc in variable names */
-    varlenchk=ERROR         /* fail hard if truncation (data loss) can result */
+    varlenchk=%str(ERR)OR   /* fail hard if truncation (data loss) can result */
   ;
 
 %mend mp_init;/**

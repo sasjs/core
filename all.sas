@@ -6368,7 +6368,7 @@ filename &tempref clear;
     datastmtchk=ALLKEYWORDS /* protection from overwriting input datasets     */
     errorcheck=STRICT       /* catch errors in libname/filename statements    */
     fmterr                  /* ensure error when a format cannot be found     */
-    mergenoby=ERROR         /*
+    mergenoby=ERROR         /* Throw error when a merge has no BY variables   */
     missing=.    /* some sites change this which causes hard to detect errors */
     noquotelenmax           /* avoid warnings for long strings                */
     noreplace               /* avoid overwriting permanent datasets           */

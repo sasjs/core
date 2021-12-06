@@ -7126,7 +7126,10 @@ lock &libds clear;
     This macro can help by taking an empty table, and populating it with data
     according to the variable types and formats.
 
-    The primary key is respected, as well as any NOT NULL constraints.
+    TODO:
+      @li Respect PKs
+      @li Respect NOT NULLs
+      @li Consider dates, datetimes, times, integers etc
 
   Usage:
 
@@ -7145,6 +7148,8 @@ lock &libds clear;
   @param [out] obs= (500) The number of records to create.
 
   <h4> SAS Macros </h4>
+  @li mf_getuniquename.sas
+  @li mf_getvarlen.sas
   @li mf_nobs.sas
   @li mp_getcols.sas
   @li mp_getpk.sas
@@ -7158,6 +7163,43 @@ lock &libds clear;
   ,obs=500
 )/*/STORE SOURCE*/;
 
+%local ds1 c1 n1 i col charvars numvars;
+
+%if %mf_nobs(&libds)>0 %then %do;
+  %put &sysmacroname: &libds has data, it will not be recreated;
+  %return;
+%end;
+
+%local ds1 c1 n1;
+%let ds1=%mf_getuniquename(prefix=mp_makedata);
+%let c1=%mf_getuniquename(prefix=mp_makedatacol);
+%let n1=%mf_getuniquename(prefix=mp_makedatacol);
+data &ds1;
+  if 0 then set &libds;
+  do _n_=1 to &obs;
+    &c1=repeat(uuidgen(),10);
+    &n1=ranuni(1)*5000000;
+    drop &c1 &n1;
+    %let charvars=%mf_getvarlist(&libds,typefilter=C);
+    %do i=1 %to %sysfunc(countw(&charvars));
+      %let col=%scan(&charvars,&i);
+      &col=subpad(&c1,1,%mf_getvarlen(&libds,&col));
+    %end;
+
+    %let numvars=%mf_getvarlist(&libds,typefilter=N);
+    %do i=1 %to %sysfunc(countw(&numvars));
+      %let col=%scan(&numvars,&i);
+      &col=&n1;
+    %end;
+    output;
+  end;
+run;
+
+proc append base=&libds data=&ds1;
+run;
+
+proc sql;
+drop table &ds1;
 
 %mend mp_makedata;/**
   @file

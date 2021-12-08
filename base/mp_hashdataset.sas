@@ -21,6 +21,7 @@
 
   @param [in] libds dataset to hash
   @param [in] salt= Provide a salt (could be, for instance, the dataset name)
+  @param [in] iftrue= A condition under which the macro should be executed.
   @param [out] outds= (work.mf_hashdataset) The output dataset to create. This
   will contain one column (hashkey) with one observation (a hex32.
   representation of the input hash)
@@ -35,10 +36,14 @@
 %macro mp_hashdataset(
   libds,
   outds=,
-  salt=
+  salt=,
+  iftrue=%str(1=1)
 )/*/STORE SOURCE*/;
+
+  %if not(%eval(%unquote(&iftrue))) %then %return;
+
   %if %mf_getattrn(&libds,NLOBS)=0 %then %do;
-    %put %str(WARN)ING: Dataset &libds is empty;, or is not a dataset;
+    %put %str(WARN)ING: Dataset &libds is empty, or is not a dataset;
   %end;
   %else %if %mf_getattrn(&libds,NLOBS)<0 %then %do;
     %put %str(ERR)OR: Dataset &libds is not a dataset;

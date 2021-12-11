@@ -7742,22 +7742,28 @@ drop table &tempds;
   Usage:
 
       %mp_searchdata(lib=sashelp, string=Jan)
-      %mp_searchdata(lib=sashelp, numval=1)
+      %mp_searchdata(lib=sashelp, ds=bird, numval=1)
+      %mp_searchdata(lib=sashelp, ds=class, string=l,outobs=5)
 
 
   Outputs zero or more tables to an MPSEARCH library with specific records.
 
-  @param lib=  the libref to search (should be already assigned)
-  @param ds= the dataset to search (leave blank to search entire library)
-  @param string= the string value to search
-  @param numval= the numeric value to search (must be exact)
-  @param outloc= the directory in which to create the output datasets with
-    matching rows.  Will default to a subfolder in the WORK library.
-  @param outobs= set to a positive integer to restrict the number of
+  @param [in] lib=  The libref to search (should be already assigned)
+  @param [in] ds= The dataset to search (leave blank to search entire library)
+  @param [in] string= String value to search (case sensitive, can be partial)
+  @param [in] numval= Numeric value to search (must be exact)
+  @param [out] outloc= (0) Optionally specify the directory in which to
+    create the the output datasets with matching rows.  By default it will
+    write them to a temporary subdirectory within the WORK folder.
+  @param [out] outlib= (MPSEARCH) Assign a different libref to the output
+    library containing the matching datasets / records
+  @param [in] outobs= set to a positive integer to restrict the number of
     observations
-  @param filter_text= add a (valid) filter clause to further filter the results
+  @param [in] filter_text= (1=1) Add a (valid) filter clause to further filter
+    the results.
 
   <h4> SAS Macros </h4>
+  @li mf_getuniquename.sas
   @li mf_getvarlist.sas
   @li mf_getvartype.sas
   @li mf_mkdir.sas
@@ -7767,11 +7773,12 @@ drop table &tempds;
   @author Allan Bowe
 **/
 
-%macro mp_searchdata(lib=sashelp
+%macro mp_searchdata(lib=
   ,ds=
   ,string= /* the query will use a contains (?) operator */
   ,numval= /* numeric must match exactly */
-  ,outloc=%sysfunc(pathname(work))/mpsearch
+  ,outloc=0
+  ,outlib=MPSEARCH
   ,outobs=-1
   ,filter_text=%str(1=1)
 )/*/STORE SOURCE*/;
@@ -7788,8 +7795,12 @@ drop table &tempds;
 %if &string = %then %let type=N;
 %else %let type=C;
 
+%if "&outloc"="0" %then %do;
+  %let outloc=%sysfunc(pathname(work))/%mf_getuniquename();
+%end;
+
 %mf_mkdir(&outloc)
-libname mpsearch "&outloc";
+libname &outlib "&outloc";
 
 /* get the list of tables in the library */
 proc sql noprint;
@@ -7801,11 +7812,6 @@ select distinct memname into: table_list separated by ' '
 %end;
   ;
 /* check that we have something to check */
-proc sql
-%if &outobs>-1 %then %do;
-  outobs=&outobs
-%end;
-;
 %if %length(&table_list)=0 %then %put library &lib contains no tables!;
 /* loop through each table */
 %else %do table_num=1 %to %sysfunc(countw(&table_list,%str( )));
@@ -7816,10 +7822,10 @@ proc sql
   %end;
   %else %do;
     %let check_tm=%sysfunc(datetime());
-    /* build sql statement */
-    create table mpsearch.&table as select * from &lib..&table
-      where %unquote(&filter_text) and
-    (0
+    /* prep input */
+    data &outlib..&table;
+      set &lib..&table;
+      where %unquote(&filter_text) and ( 0
     /* loop through columns */
     %do colnum=1 %to %sysfunc(countw(&vars,%str( )));
       %let col=%scan(&vars,&colnum,%str( ));
@@ -7833,15 +7839,20 @@ proc sql
         or ("&col"n = &numval)
       %end;
     %end;
-    );
+      );
+    %if &outobs>-1 %then %do;
+      if _n_ > &outobs then stop;
+    %end;
+    run;
     %put Search query for &table took
       %sysevalf(%sysfunc(datetime())-&check_tm) seconds;
-    %if &sqlrc ne 0 %then %do;
-      %put %str(WAR)NING: SQLRC=&sqlrc when processing &table;
+    %if &syscc ne 0 %then %do;
+      %put %str(ERR)ROR: SYSCC=&syscc when processing &lib..&table;
       %return;
     %end;
-    %if %mf_nobs(mpsearch.&table)=0 %then %do;
-      drop table mpsearch.&table;
+    %if %mf_nobs(&outlib..&table)=0 %then %do;
+      proc sql;
+      drop table &outlib..&table;
     %end;
   %end;
 %end;

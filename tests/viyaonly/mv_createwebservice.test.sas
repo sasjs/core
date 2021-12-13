@@ -33,6 +33,7 @@ run;
 %put TEST1: checking web service code;
 data work.test_results;
   length test_description $256 test_result $4 test_comments $256;
+  if _n_=1 then call missing (of _all_);
   infile compare end=eof;
   input;
   if eof then do;

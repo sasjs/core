@@ -239,7 +239,7 @@ run;
   %let abortme=1;
 %end;
 
-/* catch errors - mp_abort must be called outside of a logic block */
+/* catch errs - mp_abort must be called outside of a logic block */
 %mp_abort(iftrue=(&abortme=1),
   msg=%superq(msg),
   mac=&sysmacroname

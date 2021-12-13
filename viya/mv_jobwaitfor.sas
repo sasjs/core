@@ -168,6 +168,7 @@ run;
 data &outds;
   format _program uri $128. state $32. stateDetails $32. timestamp datetime19.
     jobparams $32767.;
+  call missing (of _all_);
   stop;
 run;
 

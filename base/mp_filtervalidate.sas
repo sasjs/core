@@ -33,8 +33,8 @@
   @param [in] targetds The target dataset against which to verify the query
   @param [out] abort= (YES) If YES will call mp_abort.sas on any exceptions
   @param [out] outds= (work.mp_filtervalidate) Output dataset containing the
-  error / warning message, if one exists.  If this table contains any rows,
-  there are problems!
+    err / warning message, if one exists.  If this table contains any rows,
+    there are problems!
 
   <h4> SAS Macros </h4>
   @li mf_getuniquefileref.sas

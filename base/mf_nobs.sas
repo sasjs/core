@@ -12,7 +12,7 @@
   @param libds library.dataset
 
   @return output returns result of the attrn value supplied, or log message
-    if error.
+    if err.
 
 
   @version 9.2

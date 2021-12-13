@@ -49,7 +49,7 @@
     autocorrect             /* disallow mis-spelled procedure names           */
     compress=CHAR           /* default is none so ensure we have something!   */
     datastmtchk=ALLKEYWORDS /* protection from overwriting input datasets     */
-    errorcheck=STRICT       /* catch errs in libname/filename statements      */
+    %str(err)orcheck=STRICT /* catch errs in libname/filename statements      */
     fmterr                  /* ensure err when a format cannot be found       */
     mergenoby=%str(ERR)OR   /* throw err when a merge has no BY variables     */
     missing=.               /* changing this can cause hard to detect errs    */

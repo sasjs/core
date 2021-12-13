@@ -51,7 +51,7 @@ Usage:
     %end;
 
     /*
-      Now create the directory.  Complain loudly of any errors.
+      Now create the directory.  Complain loudly of any errs.
     */
 
     %let dname = %sysfunc(dcreate(&child, &parent));

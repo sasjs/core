@@ -55,6 +55,8 @@
   /* create folders and copy content */
   data _null_;
     set work.&tempds;
+    length msg $256;
+    call missing(msg);
     if _n_ = 1 then dpos+sum(length(directory),2);
     filepath2="&target/"!!substr(filepath,dpos);
     if file_or_folder='folder' then call execute('%mf_mkdir('!!filepath2!!')');
@@ -63,9 +65,9 @@
       rc1=filename(fref1,filepath,'disk','recfm=n');
       rc2=filename(fref2,filepath2,'disk','recfm=n');
       if fcopy(fref1,fref2) ne 0 then do;
-        sysmsg=sysmsg();
+        msg=sysmsg();
         putlog "%str(ERR)OR: Unable to copy " filepath " to " filepath2;
-        putlog sysmg=;
+        putlog msg=;
       end;
     end;
     rc=filename(fref1);

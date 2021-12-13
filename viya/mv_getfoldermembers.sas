@@ -123,6 +123,7 @@ options noquotelenmax;
   libname &libref2 JSON fileref=&fname2;
   data &outds;
     length id $36 name $128 uri $64 type $32 description $256;
+    if _n_=1 then call missing (of _all_);
     set &libref2..items;
   run;
   filename &fname2 clear;

@@ -1,15 +1,21 @@
 /**
   @file
-  @brief Converts every value in a dataset to it's formatted value
+  @brief Converts every value in a dataset to formatted value
   @details Converts every value to it's formatted value.  All variables will
-  become character, and will be in the same order.
+  become character, and will be in the same order as the original dataset.
+
+  Lengths will be adjusted according to the format lengths, where applicable.
 
   Usage:
 
       %mp_ds2fmtds(sashelp.cars,work.cars)
+      %mp_ds2fmtds(sashelp.vallopt,vw_vallopt)
 
   @param [in] libds The library.dataset to be converted
   @param [out] outds The dataset to create.
+
+  <h4> SAS Macros </h4>
+  @li mf_existds.sas
 
   <h4> Related Macros <h4>
   @li mp_jsonout.sas
@@ -22,8 +28,9 @@
 )/*/STORE SOURCE*/;
 
 /* validations */
-%if not %sysfunc(exist(&libds)) %then %do;
-  %put %str(WARN)ING:  &libds does not exist;
+
+%if not %mf_existds(libds=&libds) %then %do;
+  %put %str(WARN)ING:  &libds does not exist as either a VIEW or DATASET;
   %return;
 %end;
 %if %index(&libds,.)=0 %then %let libds=WORK.&libds;

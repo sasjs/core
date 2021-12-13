@@ -116,6 +116,7 @@ data _null_;
     if _n_>&maxobs then stop;
   %end;
   length _____str $32767;
+  call missing(_____str);
   format _numeric_ best.;
   format _character_ ;
   %local i comma var vtype vfmt;

@@ -48,17 +48,17 @@
 %let vw=%mf_getuniquename(prefix=mp_getconstraints_vw_);
 data &vw /view=&vw;
   set sashelp.vcncolu;
-  where TABLE_CATALOG="&lib";
+  where table_catalog="&lib";
 
   /* use retain approach to reset the constraint order with each constraint */
   length tmp $1000;
   retain tmp;
   drop tmp;
-  if tmp ne catx('|',libref,table_name,constraint_type,constraint_name) then do;
+  if tmp ne catx('|',table_catalog,table_name,constraint_name) then do;
     constraint_order=1;
   end;
   else constraint_order+1;
-  tmp=catx('|',libref, table_name, constraint_type,constraint_name);
+  tmp=catx('|',table_catalog, table_name,constraint_name);
 run;
 
 /* must use SQL as proc datasets does not support length changes */

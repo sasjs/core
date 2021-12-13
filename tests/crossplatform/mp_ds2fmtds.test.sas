@@ -15,10 +15,12 @@ filename inc temp;
 data _null_;
   set work.test;
   file inc;
-  line=cats('%mp_ds2fmtds(sashelp.',memname,',',memname,')');
+  libds=cats('sashelp.',memname);
+  if exist(libds) then line=cats('%mp_ds2fmtds(',libds,',',memname,')');
   put line;
 run;
 
+options obs=50;
 %inc inc;
 
 %mp_assert(

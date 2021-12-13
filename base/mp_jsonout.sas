@@ -63,7 +63,7 @@
 %if &action=OPEN %then %do;
   options nobomfile;
   data _null_;file &jref encoding='utf-8';
-    put '{"START_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '"';
+    put '{"PROCESSED_DTTM" : "' "%sysfunc(datetime(),E8601DT26.6)" '"';
   run;
 %end;
 %else %if (&action=ARR or &action=OBJ) %then %do;

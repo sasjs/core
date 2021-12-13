@@ -5,7 +5,7 @@
     Run without arguments to see a list of detectable features.
     Note - this list is based on known versions of SAS rather than
     actual feature detection, as that is tricky / impossible to do
-    without generating errors in most cases.
+    without generating errs in most cases.
 
         %put %mf_existfeature(PROCLUA);
 

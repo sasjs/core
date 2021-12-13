@@ -79,7 +79,7 @@ options noquotelenmax;
     Run without arguments to see a list of detectable features.
     Note - this list is based on known versions of SAS rather than
     actual feature detection, as that is tricky / impossible to do
-    without generating errors in most cases.
+    without generating errs in most cases.
 
         %put %mf_existfeature(PROCLUA);
 
@@ -362,7 +362,7 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
   @param attr full list in [documentation](
     https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000147794.htm)
   @return output returns result of the attrc value supplied, or -1 and log
-    message if error.
+    message if err.
 
   @version 9.2
   @author Allan Bowe
@@ -395,7 +395,7 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
   @param attr Common values are NLOBS and NVARS, full list in [documentation](
   http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000212040.htm)
   @return output returns result of the attrn value supplied, or -1 and log
-    message if error.
+    message if err.
 
   @version 9.2
   @author Allan Bowe
@@ -1421,7 +1421,7 @@ Usage:
     %end;
 
     /*
-      Now create the directory.  Complain loudly of any errors.
+      Now create the directory.  Complain loudly of any errs.
     */
 
     %let dname = %sysfunc(dcreate(&child, &parent));
@@ -1468,7 +1468,7 @@ Usage:
   @param libds library.dataset
 
   @return output returns result of the attrn value supplied, or log message
-    if error.
+    if err.
 
 
   @version 9.2
@@ -2791,6 +2791,8 @@ run;
   /* create folders and copy content */
   data _null_;
     set work.&tempds;
+    length msg $256;
+    call missing(msg);
     if _n_ = 1 then dpos+sum(length(directory),2);
     filepath2="&target/"!!substr(filepath,dpos);
     if file_or_folder='folder' then call execute('%mf_mkdir('!!filepath2!!')');
@@ -2799,9 +2801,9 @@ run;
       rc1=filename(fref1,filepath,'disk','recfm=n');
       rc2=filename(fref2,filepath2,'disk','recfm=n');
       if fcopy(fref1,fref2) ne 0 then do;
-        sysmsg=sysmsg();
+        msg=sysmsg();
         putlog "%str(ERR)OR: Unable to copy " filepath " to " filepath2;
-        putlog sysmg=;
+        putlog msg=;
       end;
     end;
     rc=filename(fref1);
@@ -3876,16 +3878,22 @@ run;
 
 %mend mp_ds2csv;/**
   @file
-  @brief Converts every value in a dataset to it's formatted value
+  @brief Converts every value in a dataset to formatted value
   @details Converts every value to it's formatted value.  All variables will
-  become character, and will be in the same order.
+  become character, and will be in the same order as the original dataset.
+
+  Lengths will be adjusted according to the format lengths, where applicable.
 
   Usage:
 
       %mp_ds2fmtds(sashelp.cars,work.cars)
+      %mp_ds2fmtds(sashelp.vallopt,vw_vallopt)
 
   @param [in] libds The library.dataset to be converted
   @param [out] outds The dataset to create.
+
+  <h4> SAS Macros </h4>
+  @li mf_existds.sas
 
   <h4> Related Macros <h4>
   @li mp_jsonout.sas
@@ -3898,8 +3906,9 @@ run;
 )/*/STORE SOURCE*/;
 
 /* validations */
-%if not %sysfunc(exist(&libds)) %then %do;
-  %put %str(WARN)ING:  &libds does not exist;
+
+%if not %mf_existds(libds=&libds) %then %do;
+  %put %str(WARN)ING:  &libds does not exist as either a VIEW or DATASET;
   %return;
 %end;
 %if %index(&libds,.)=0 %then %let libds=WORK.&libds;
@@ -4089,6 +4098,7 @@ data _null_;
     if _n_>&maxobs then stop;
   %end;
   length _____str $32767;
+  call missing(_____str);
   format _numeric_ best.;
   format _character_ ;
   %local i comma var vtype vfmt;
@@ -4489,8 +4499,8 @@ filename &outref temp;
   @param [in] targetds The target dataset against which to verify the query
   @param [out] abort= (YES) If YES will call mp_abort.sas on any exceptions
   @param [out] outds= (work.mp_filtervalidate) Output dataset containing the
-  error / warning message, if one exists.  If this table contains any rows,
-  there are problems!
+    err / warning message, if one exists.  If this table contains any rows,
+    there are problems!
 
   <h4> SAS Macros </h4>
   @li mf_getuniquefileref.sas
@@ -4674,17 +4684,17 @@ run;
 %let vw=%mf_getuniquename(prefix=mp_getconstraints_vw_);
 data &vw /view=&vw;
   set sashelp.vcncolu;
-  where TABLE_CATALOG="&lib";
+  where table_catalog="&lib";
 
   /* use retain approach to reset the constraint order with each constraint */
   length tmp $1000;
   retain tmp;
   drop tmp;
-  if tmp ne catx('|',libref,table_name,constraint_type,constraint_name) then do;
+  if tmp ne catx('|',table_catalog,table_name,constraint_name) then do;
     constraint_order=1;
   end;
   else constraint_order+1;
-  tmp=catx('|',libref, table_name, constraint_type,constraint_name);
+  tmp=catx('|',table_catalog, table_name,constraint_name);
 run;
 
 /* must use SQL as proc datasets does not support length changes */
@@ -5194,7 +5204,7 @@ run;
     %let curds=%scan(&dsnlist,&x);
     data _null_;
       file &fref mod;
-      length nm lab $1024 typ $20;
+      length lab $1024 typ $20;
       set &colinfo (where=(upcase(memname)="&curds")) end=last;
 
       if _n_=1 then do;
@@ -6333,15 +6343,25 @@ filename &tempref clear;
 %mend mp_include;/**
   @file
   @brief Initialise session with useful settings and variables
-  @details Implements a set of recommended options for general SAS use.  This
-    macro is NOT used elsewhere within the core library (other than in tests),
-    but it is used by the SASjs team when building web services for
-    SAS-Powered applications elsewhere.
+  @details Implements a "strict" set of SAS options for use in defensive
+    programming.  Highly recommended, if you want your code to run on some
+    other machine.
 
-    If you have a good idea for an option, setting, or useful global variable -
-    feel free to [raise an issue](https://github.com/sasjs/core/issues/new)!
+    This macro is recommended to be compiled and invoked in the `initProgram`
+    for SASjs [Jobs](https://cli.sasjs.io/sasjsconfig.html#jobConfig_initProgram
+    ), [Services](
+    https://cli.sasjs.io/sasjsconfig.html#serviceConfig_initProgram) and [Tests]
+    (https://cli.sasjs.io/sasjsconfig.html#testConfig_initProgram).
 
-    All global variables are prefixed with "SASJS_" (unless modfied with the
+    For non SASjs projects, you could invoke in the autoexec, or in your own
+    solution initialisation macro.
+
+
+    If you have a good idea for another useful option, setting, or global
+    variable - feel free to [raise an issue](
+    https://github.com/sasjs/core/issues/new)!
+
+    All global variables are prefixed with "SASJS" (unless modified with the
     prefix parameter).
 
   @param [in] prefix= (SASJS) The prefix to apply to the global macro variables
@@ -6371,15 +6391,16 @@ filename &tempref clear;
     autocorrect             /* disallow mis-spelled procedure names           */
     compress=CHAR           /* default is none so ensure we have something!   */
     datastmtchk=ALLKEYWORDS /* protection from overwriting input datasets     */
-    errorcheck=STRICT       /* catch errors in libname/filename statements    */
-    fmterr                  /* ensure err   when a format cannot be found     */
-    mergenoby=%str(ERR)OR   /* Throw err   when a merge has no BY variables   */
-    missing=.    /* some sites change this which causes hard to detect errors */
+    %str(err)orcheck=STRICT /* catch errs in libname/filename statements      */
+    fmterr                  /* ensure err when a format cannot be found       */
+    mergenoby=%str(ERR)OR   /* throw err when a merge has no BY variables     */
+    missing=.               /* changing this can cause hard to detect errs    */
     noquotelenmax           /* avoid warnings for long strings                */
     noreplace               /* avoid overwriting permanent datasets           */
     ps=max                  /* reduce log size slightly                       */
     validmemname=COMPATIBLE /* avoid special characters etc in table names    */
     validvarname=V7         /* avoid special characters etc in variable names */
+    varinitchk=%str(ERR)OR  /* avoid data mistakes from variable name typos   */
     varlenchk=%str(ERR)OR   /* fail hard if truncation (data loss) can result */
   ;
 
@@ -6448,7 +6469,7 @@ filename &tempref clear;
 %if &action=OPEN %then %do;
   options nobomfile;
   data _null_;file &jref encoding='utf-8';
-    put '{"START_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '"';
+    put '{"PROCESSED_DTTM" : "' "%sysfunc(datetime(),E8601DT26.6)" '"';
   run;
 %end;
 %else %if (&action=ARR or &action=OBJ) %then %do;
@@ -7010,7 +7031,7 @@ run;
   %let abortme=1;
 %end;
 
-/* catch errors - mp_abort must be called outside of a logic block */
+/* catch errs - mp_abort must be called outside of a logic block */
 %mp_abort(iftrue=(&abortme=1),
   msg=%superq(msg),
   mac=&sysmacroname
@@ -11112,7 +11133,7 @@ data _null_;
   put '%if &action=OPEN %then %do; ';
   put '  options nobomfile; ';
   put '  data _null_;file &jref encoding=''utf-8''; ';
-  put '    put ''{"START_DTTM" : "'' "%sysfunc(datetime(),datetime20.3)" ''"''; ';
+  put '    put ''{"PROCESSED_DTTM" : "'' "%sysfunc(datetime(),E8601DT26.6)" ''"''; ';
   put '  run; ';
   put '%end; ';
   put '%else %if (&action=ARR or &action=OBJ) %then %do; ';
@@ -16194,7 +16215,7 @@ data _null_;
   put '%if &action=OPEN %then %do; ';
   put '  options nobomfile; ';
   put '  data _null_;file &jref encoding=''utf-8''; ';
-  put '    put ''{"START_DTTM" : "'' "%sysfunc(datetime(),datetime20.3)" ''"''; ';
+  put '    put ''{"PROCESSED_DTTM" : "'' "%sysfunc(datetime(),E8601DT26.6)" ''"''; ';
   put '  run; ';
   put '%end; ';
   put '%else %if (&action=ARR or &action=OBJ) %then %do; ';
@@ -17441,6 +17462,7 @@ options noquotelenmax;
   libname &libref2 JSON fileref=&fname2;
   data &outds;
     length id $36 name $128 uri $64 type $32 description $256;
+    if _n_=1 then call missing (of _all_);
     set &libref2..items;
   run;
   filename &fname2 clear;
@@ -19525,6 +19547,7 @@ run;
 data &outds;
   format _program uri $128. state $32. stateDetails $32. timestamp datetime19.
     jobparams $32767.;
+  call missing (of _all_);
   stop;
 run;
 

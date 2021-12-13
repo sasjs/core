@@ -10,7 +10,7 @@
   @param attr full list in [documentation](
     https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000147794.htm)
   @return output returns result of the attrc value supplied, or -1 and log
-    message if error.
+    message if err.
 
   @version 9.2
   @author Allan Bowe

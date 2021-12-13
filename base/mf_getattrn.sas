@@ -10,7 +10,7 @@
   @param attr Common values are NLOBS and NVARS, full list in [documentation](
   http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000212040.htm)
   @return output returns result of the attrn value supplied, or -1 and log
-    message if error.
+    message if err.
 
   @version 9.2
   @author Allan Bowe

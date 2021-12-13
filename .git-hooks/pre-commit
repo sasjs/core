@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 sasjs lint
 
 # Avoid commits to the master branch

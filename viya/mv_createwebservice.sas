@@ -243,7 +243,7 @@ data _null_;
   put '%if &action=OPEN %then %do; ';
   put '  options nobomfile; ';
   put '  data _null_;file &jref encoding=''utf-8''; ';
-  put '    put ''{"START_DTTM" : "'' "%sysfunc(datetime(),datetime20.3)" ''"''; ';
+  put '    put ''{"PROCESSED_DTTM" : "'' "%sysfunc(datetime(),E8601DT26.6)" ''"''; ';
   put '  run; ';
   put '%end; ';
   put '%else %if (&action=ARR or &action=OBJ) %then %do; ';

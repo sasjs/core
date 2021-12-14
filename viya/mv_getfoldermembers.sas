@@ -100,6 +100,8 @@ options noquotelenmax;
   %local href cnt;
   %let cnt=0;
   data _null_;
+    length rel href $512;
+    call missing(rel,href);
     set &libref1..links;
     if rel='members' then do;
       url=cats("'","&base_uri",href,"?limit=10000'");

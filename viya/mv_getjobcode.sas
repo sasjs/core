@@ -92,6 +92,8 @@ data;run;
 %local joburi;
 %let joburi=0;
 data _null_;
+  length name uri $512;
+  call missing(name,uri);
   set &foldermembers;
   if name="&name" and uri=:'/jobDefinitions/definitions'
     then call symputx('joburi',uri);

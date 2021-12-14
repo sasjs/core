@@ -17471,6 +17471,8 @@ options noquotelenmax;
   %local href cnt;
   %let cnt=0;
   data _null_;
+    length rel href $512;
+    call missing(rel,href);
     set &libref1..links;
     if rel='members' then do;
       url=cats("'","&base_uri",href,"?limit=10000'");
@@ -17790,6 +17792,8 @@ data;run;
 %local joburi;
 %let joburi=0;
 data _null_;
+  length name uri $512;
+  call missing(name,uri);
   set &foldermembers;
   if name="&name" and uri=:'/jobDefinitions/definitions'
     then call symputx('joburi',uri);

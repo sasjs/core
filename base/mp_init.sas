@@ -56,6 +56,7 @@
     noquotelenmax           /* avoid warnings for long strings                */
     noreplace               /* avoid overwriting permanent datasets           */
     ps=max                  /* reduce log size slightly                       */
+    ls=max                  /* reduce log a bit more, + avoid word truncation */
     validmemname=COMPATIBLE /* avoid special characters etc in table names    */
     validvarname=V7         /* avoid special characters etc in variable names */
     varinitchk=%str(ERR)OR  /* avoid data mistakes from variable name typos   */

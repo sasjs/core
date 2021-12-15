@@ -34,15 +34,17 @@
 )/*/STORE SOURCE*/;
 
   %global
-    &prefix._INIT_NUM   /* initialisation time as numeric             */
-    &prefix._INIT_DTTM  /* initialisation time in E8601DT26.6 format */
+    &prefix._INIT_NUM   /* initialisation time as numeric                   */
+    &prefix._INIT_DTTM  /* initialisation time in E8601DT26.6 format        */
+    &prefix.WORK        /* avoid typing %sysfunc(pathname(work)) every time */
   ;
   %if %eval(&&&prefix._INIT_NUM>0) %then %return;  /* only run once */
 
   data _null_;
     dttm=datetime();
-    call symputx("&prefix._init_num",dttm);
-    call symputx("&prefix._init_dttm",put(dttm,E8601DT26.6));
+    call symputx("&prefix._init_num",dttm,'g');
+    call symputx("&prefix._init_dttm",put(dttm,E8601DT26.6),'g');
+    call symputx("&prefix.work",pathname('WORK'),'g');
   run;
 
   options
@@ -56,7 +58,7 @@
     noquotelenmax           /* avoid warnings for long strings                */
     noreplace               /* avoid overwriting permanent datasets           */
     ps=max                  /* reduce log size slightly                       */
-    ls=max                  /* reduce log a bit more, + avoid word truncation */
+    ls=max                  /* reduce log even more and avoid word truncation */
     validmemname=COMPATIBLE /* avoid special characters etc in table names    */
     validvarname=V7         /* avoid special characters etc in variable names */
     varinitchk=%str(ERR)OR  /* avoid data mistakes from variable name typos   */

@@ -88,6 +88,7 @@ run;
 /* prepare the errds */
 data &errds;
   length msg mac $1000;
+  call missing(msg,mac);
   iftrue='1=0';
 run;
 

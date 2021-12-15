@@ -70,5 +70,5 @@
     %put &sysmacroname: SYSMSG= %sysfunc(sysmsg());
     %let rc=%sysfunc(close(&dsid));
   %end;
-  &outvar
+  %do;%unquote(&outvar)%end;
 %mend mf_getvarlist;

@@ -6421,7 +6421,7 @@ filename &tempref clear;
   run;
 
   options
-    autocorrect             /* disallow mis-spelled procedure names           */
+    noautocorrect           /* disallow misspelled procedure names            */
     compress=CHAR           /* default is none so ensure we have something!   */
     datastmtchk=ALLKEYWORDS /* protection from overwriting input datasets     */
     %str(err)orcheck=STRICT /* catch errs in libname/filename statements      */

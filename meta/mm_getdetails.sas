@@ -45,7 +45,7 @@ run;
 data &outattrs;
   keep type name value;
   length type $4 name $256 value $32767;
-  rc1=1;n1=1;type='Prop';
+  rc1=1;n1=1;type='Prop';name='';value='';
   do while(rc1>0);
     rc1=metadata_getnprp("&uri",n1,name,value);
     if rc1>0 then output;

@@ -39,7 +39,7 @@
 data &outds;
   length uri serveruri conn_uri domainuri libname ServerContext AuthDomain
     path_schema usingpkguri type tableuri $256 id $17
-    libdesc $200 libref engine $8 IsDBMSLibname $1
+    libdesc $200 libref engine $8 IsDBMSLibname IsPreassigned $1
     tablename $50 /* metadata table names can be longer than $32 */
     ;
   keep libname libdesc libref engine ServerContext path_schema AuthDomain

@@ -12232,7 +12232,7 @@ run;
 data &outattrs;
   keep type name value;
   length type $4 name $256 value $32767;
-  rc1=1;n1=1;type='Prop';
+  rc1=1;n1=1;type='Prop';name='';value='';
   do while(rc1>0);
     rc1=metadata_getnprp("&uri",n1,name,value);
     if rc1>0 then output;
@@ -13857,7 +13857,7 @@ run;
 data &outds;
   length uri serveruri conn_uri domainuri libname ServerContext AuthDomain
     path_schema usingpkguri type tableuri $256 id $17
-    libdesc $200 libref engine $8 IsDBMSLibname $1
+    libdesc $200 libref engine $8 IsDBMSLibname IsPreassigned $1
     tablename $50 /* metadata table names can be longer than $32 */
     ;
   keep libname libdesc libref engine ServerContext path_schema AuthDomain

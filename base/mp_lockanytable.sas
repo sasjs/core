@@ -180,7 +180,7 @@ run;
     %else %do;
       data _null_;
         putlog 'NOTE-' / 'NOTE-';
-        putlog "NOTE- &sysmacroname: Table &lib..&ds locked at "@
+        putlog "NOTE- &sysmacroname: Table &lib..&ds locked at "@;
         putlog " %sysfunc(datetime(),datetime19.) (iteration &x)"@;
         putlog 'NOTE-' / 'NOTE-';
       run;

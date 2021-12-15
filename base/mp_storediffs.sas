@@ -9,6 +9,11 @@
     works on any SAS platform (Viya, SAS 9, Foundation) and is free for up to 5
     users.
 
+    NOTE - this macro does not validate the inputs. It is assumed that the
+    datasets containing the new / changed / deleted rows are CORRECT, contain
+    no additional (or missing columns), and that the originals dataset contains
+    all relevant base records (and no additionals).
+
     Usage:
 
         data work.orig work.deleted work.changed work.appended;
@@ -33,6 +38,7 @@
           ,modds=work.changed
           ,appds=work.appended
           ,outds=work.final
+          ,mdebug=1
         )
 
   @param [in] libds Target table against which the changes were applied
@@ -44,10 +50,11 @@
   @param [in] modds= (0) Dataset with modified records
   @param [out] outds= (work.mp_storediffs) Output table containing stored data.
     Has the following format:
+
         proc sql;
         create table &outds(
           load_ref char(36) label='unique load reference',
-          processed_dttm num format=E8601DT26.6, label='Processed at timestamp'
+          processed_dttm num format=E8601DT26.6 label='Processed at timestamp',
           libref char(8) label='Library Reference (8 chars)',
           dsn char(32) label='Dataset Name (32 chars)',
           key_hash char(32) label=
@@ -60,17 +67,22 @@
           tgtvar_nm char(32) label='Target variable name (32 chars)',
           oldval_num num label='Old (numeric) value',
           newval_num num label='New (numeric) value',
-          oldval_char char(32767) label='Old (character) value',,
+          oldval_char char(32767) label='Old (character) value',
           newval_char char(32767) label='New (character) value',
+          constraint pk_mpe_audit
+            primary key(load_ref,libref,dsn,key_hash,tgtvar_nm)
         );
+
     @param [in] processed_dttm= (0) Provide a datetime constant in relation to
       the actual load time.  If not provided, current timestamp is used.
+    @param [in] mdebug= set to 1 to enable DEBUG messages and preserve outputs
     @param [out] loadref= (0) Provide a unique key to reference the load,
       otherwise a UUID will be generated.
 
   <h4> SAS Macros </h4>
   @li mf_getquotedstr.sas
   @li mf_getuniquename.sas
+  @li mf_getvarlist.sas
 
   @version 9.2
   @author Allan Bowe
@@ -86,7 +98,14 @@
   ,outds=work.mp_storediffs
   ,loadref=0
   ,processed_dttm=0
+  ,mdebug=0
 )/*/STORE SOURCE*/;
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
 
 /* set up unique and temporary vars */
 %local ds1 ds2 ds3 ds4 hashkey inds_auto inds_keep dslist;
@@ -95,7 +114,7 @@
 %let ds3=%upcase(work.%mf_getuniquename(prefix=mpsd_ds3));
 %let ds4=%upcase(work.%mf_getuniquename(prefix=mpsd_ds4));
 %let hashkey=%upcase(%mf_getuniquename(prefix=mpsd_hashkey));
-%let inds_auto=%upcase(%mf_getuniquename(prefix=mpsd_inds_auto);
+%let inds_auto=%upcase(%mf_getuniquename(prefix=mpsd_inds_auto));
 %let inds_keep=%upcase(%mf_getuniquename(prefix=mpsd_inds_keep));
 
 %let dslist=&origds;
@@ -123,7 +142,7 @@
 /* hash the key and append all the tables (marking the source) */
 data &ds1;
   set &dslist indsname=&inds_auto;
-  &hashkey=put(md5(cats(%mf_getquotedstr(&key,quote=N))),$hex32.);
+  &hashkey=put(md5(catx('|',%mf_getquotedstr(&key,quote=N))),$hex32.);
   &inds_keep=&inds_auto;
 proc sort;
   by &inds_keep &hashkey;
@@ -146,6 +165,10 @@ run;
 data &ds4;
   length &inds_keep $41 tgtvar_nm $32;
   set &ds2 &ds3 indsname=&inds_auto;
+
+  tgtvar_nm=upcase(tgtvar_nm);
+  if tgtvar_nm in (%upcase(%mf_getvarlist(&libds,dlm=%str(,),quote=DOUBLE)));
+
   if &inds_auto="&ds2" then tgtvar_type='N';
   else if &inds_auto="&ds3" then tgtvar_type='C';
   else do;
@@ -187,11 +210,15 @@ create table &outds as
       else 1
       end as is_diff
     ,b.tgtvar_type length=1
-    ,a.newval_num as oldval_num
+    ,case when b.move_type='D' then b.newval_num
+      else a.newval_num
+      end as oldval_num
     ,case when b.move_type='D' then .
       else b.newval_num
       end as newval_num
-    ,a.newval_char as oldval_char length=32767
+    ,case when b.move_type='D' then b.newval_char
+      else a.newval_char
+      end as oldval_char length=32767
     ,case when b.move_type='D' then ''
       else b.newval_char
       end as newval_char length=32767
@@ -201,8 +228,10 @@ create table &outds as
   and a.key_hash=b.key_hash
   order by move_type, key_hash,is_pk desc, tgtvar_nm;
 
-%mp_dropmembers(&ds1 &ds2 &ds3 &ds4)
+%if &mdebug=0 %then %do;
+  proc sql;
+  drop table &ds1, &ds2, &ds3, &ds4;
+%end;
 
 %mend mp_storediffs;
-
 /** @endcond */

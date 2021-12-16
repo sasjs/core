@@ -16,8 +16,8 @@
 > "these","words","are","double","quoted"
 
   @param [in] in_str The unquoted, spaced delimited string to transform
-  @param [in] dlm= The delimeter to be applied to the output (default comma)
-  @param [in] indlm= (,) The delimeter used for the input (default is space)
+  @param [in] dlm= (,) The delimeter to be applied to the output (default comma)
+  @param [in] indlm= ( ) The delimeter used for the input (default is space)
   @param [in] quote= (S) The quote mark to apply (S=Single, D=Double, N=None).
     If any other value than uppercase S or D is supplied, then that value will
     be used as the quoting character.
@@ -28,7 +28,10 @@
 **/
 
 
-%macro mf_getquotedstr(IN_STR,DLM=%str(,),QUOTE=S,indlm=%str( )
+%macro mf_getquotedstr(IN_STR
+  ,DLM=%str(,)
+  ,QUOTE=S
+  ,indlm=%str( )
 )/*/STORE SOURCE*/;
   /* credit Rowland Hale  - byte34 is double quote, 39 is single quote */
   %if &quote=S %then %let quote=%qsysfunc(byte(39));

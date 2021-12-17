@@ -4353,6 +4353,103 @@ run;
 
 %mend mp_ds2inserts;/**
   @file
+  @brief Create a Markdown Table from a dataset
+  @details A markdown table is a simple table representation for use in
+  documents written in markdown format.
+
+  An online generator is available here:
+  https://www.tablesgenerator.com/markdown_tables
+
+  This structure is also used by the Macro Core library for documenting input/
+  output datasets, as well as the sasjs/cli tool for documenting inputs/outputs
+  for web services.
+
+  We take the standard definition one step further by embedding the informat
+  in the table header row, like so:
+
+      |var1:$32|var2:best.|var3:date9.|
+      |---|---|---|
+      |some text|42|01JAN1960|
+      |blah|1|31DEC1999|
+
+  Which resolves to:
+
+  |var1:$32|var2:best.|var3:date9.|
+  |---|---|---|
+  |some text|42|01JAN1960|
+  |blah|1|31DEC1999|
+
+
+  Usage:
+
+      %mp_ds2md(sashelp.class)
+
+  @param [in] libds the library / dataset to create or read from.
+  @param [out] outref= (mdtable) Fileref to contain the markdown
+  @param [out] showlog= (YES) Set to NO to avoid printing markdown to the log
+
+  <h4> SAS Macros </h4>
+  @li mf_getvarlist.sas
+  @li mf_getvarformat.sas
+
+  @version 9.3
+  @author Allan Bowe
+**/
+
+%macro mp_ds2md(
+  libds,
+  outref=mdtable,
+  showlog=YES
+)/*/STORE SOURCE*/;
+
+/* check fileref is assigned */
+%if %sysfunc(fileref(&outref)) > 0 %then %do;
+  filename &outref temp;
+%end;
+
+%local vars;
+%let vars=%upcase(%mf_getvarlist(&libds));
+
+/* create the header row */
+data _null_;
+  file &outref;
+  length line $32767;
+  call missing(line);
+  put '|'
+%local i var fmt;
+%do i=1 %to %sysfunc(countw(&vars));
+  %let var=%scan(&vars,&i);
+  %let fmt=%lowcase(%mf_getvarformat(&libds,&var,force=1));
+  "&var:&fmt|"
+%end;
+  ;
+  put '|'
+%do i=1 %to %sysfunc(countw(&vars));
+  "---|"
+%end;
+  ;
+run;
+
+/* write out the data */
+data _null_;
+  file &outref mod dlm='|' lrecl=32767;
+  set &libds ;
+  length line $32767;
+  line='|`'!!cats(%mf_getvarlist(&libds,dlm=%str(%)!!' `|`'!!cats%()))!!' `|';
+  put line;
+run;
+
+%if %upcase(&showlog)=YES %then %do;
+  options ps=max;
+  data _null_;
+    infile &outref;
+    input;
+    putlog _infile_;
+  run;
+%end;
+
+%mend mp_ds2md;/**
+  @file
   @brief Checks an input filter table for validity
   @details Performs checks on the input table to ensure it arrives in the
   correct format.  This is necessary to prevent code injection.  Will update
@@ -5679,7 +5776,7 @@ run;
   |---|---|---|---|---|---|---|---|---|---|---|---|---|
   | | | | |$|F|B|1|0|32767|0|1|0|
   | | | | |$|I|B|1|0|32767|0|1|0|
-  | | |/opt/sas/sas9/SASHome/SASFoundation/9.4/sasexe|UWIANYDT|$ANYDTIF|I|U|1|0|60|0|19|0|
+  |` `|` `|/opt/sas/sas9/SASHome/SASFoundation/9.4/sasexe|UWIANYDT|$ANYDTIF|I|U|1|0|60|0|19|0|
   | | |/opt/sas/sas9/SASHome/SASFoundation/9.4/sasexe|UWFASCII|$ASCII|F|U|1|0|32767|0|1|0|
   | | |/opt/sas/sas9/SASHome/SASFoundation/9.4/sasexe|UWIASCII|$ASCII|I|U|1|0|32767|0|1|0|
   | | |/opt/sas/sas9/SASHome/SASFoundation/9.4/sasexe|UWFBASE6|$BASE64X|F|U|1|0|32767|0|1|0|
@@ -5688,12 +5785,12 @@ run;
   @param [out] outdetail= (0) Provide an output dataset in which to export all
     the custom format definitions (from proc format CNTLOUT).  Definitions:
 https://support.sas.com/documentation/cdl/en/proc/61895/HTML/default/viewer.htm#a002473477.htm
-  Sample data:
+    Sample data:
 
   |FMTNAME:$32.|START:$16.|END:$16.|LABEL:$256.|MIN:best.|MAX:best.|DEFAULT:best.|LENGTH:best.|FUZZ:best.|PREFIX:$2.|MULT:best.|FILL:$1.|NOEDIT:best.|TYPE:$1.|SEXCL:$1.|EEXCL:$1.|HLO:$13.|DECSEP:$1.|DIG3SEP:$1.|DATATYPE:$8.|LANGUAGE:$8.|
   |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-  |WHICHPATH|0|0|path1|1|40|28|28|1E-12||0||0|N|N|N| | | | | |
-  |WHICHPATH|`**OTHER**`|`**OTHER**`|big fat problem if not path1|1|40|28|28|1E-12||0||0|N|N|N|O| | | | |
+  |`WHICHPATH `|`0 `|`0 `|`path1 `|`1 `|`40 `|`28 `|`28 `|`1E-12 `|` `|`0 `|` `|`0 `|`N `|`N `|`N `|` `|` `|` `|` `|` `|
+  |`WHICHPATH `|`**OTHER** `|`**OTHER** `|`big fat problem if not path1 `|`1 `|`40 `|`28 `|`28 `|`1E-12 `|` `|`0 `|` `|`0 `|`N `|`N `|`N `|`O `|` `|` `|` `|` `|
 
   <h4> SAS Macros </h4>
   @li mf_dedup.sas
@@ -7543,13 +7640,13 @@ data &ds1;
     &n1=ranuni(1)*5000000;
     drop &c1 &n1;
     %let charvars=%mf_getvarlist(&libds,typefilter=C);
-    %do i=1 %to %sysfunc(countw(&charvars));
+    %if &charvars ^= %then %do i=1 %to %sysfunc(countw(&charvars));
       %let col=%scan(&charvars,&i);
       &col=subpad(&c1,1,%mf_getvarlen(&libds,&col));
     %end;
 
     %let numvars=%mf_getvarlist(&libds,typefilter=N);
-    %do i=1 %to %sysfunc(countw(&numvars));
+    %if &numvars ^= %then %do i=1 %to %sysfunc(countw(&numvars));
       %let col=%scan(&numvars,&i);
       &col=&n1;
     %end;
@@ -7564,104 +7661,6 @@ proc sql;
 drop table &ds1;
 
 %mend mp_makedata;/**
-  @file
-  @brief Create a Markdown Table from a dataset
-  @details A markdown table is a simple table representation for use in
-  documents written in markdown format.
-
-  An online generator is available here:
-  https://www.tablesgenerator.com/markdown_tables
-
-  This structure is also used by the Macro Core library for documenting input/
-  output datasets, as well as the sasjs/cli tool for documenting inputs/outputs
-  for web services.
-
-  We take the standard definition one step further by embedding the informat
-  in the table header row, like so:
-
-      |var1:$32|var2:best.|var3:date9.|
-      |---|---|---|
-      |some text|42|01JAN1960|
-      |blah|1|31DEC1999|
-
-  Which resolves to:
-
-  |var1:$32|var2:best.|var3:date9.|
-  |---|---|---|
-  |some text|42|01JAN1960|
-  |blah|1|31DEC1999|
-
-
-  Usage:
-
-      %mp_mdtablewrite(libds=sashelp.class,showlog=YES)
-
-
-  <h4> SAS Macros </h4>
-  @li mf_getvarlist.sas
-  @li mf_getvarformat.sas
-
-  @param [in] libds= the library / dataset to create or read from.
-  @param [out] fref= Fileref to contain the markdown. Default=mdtable.
-  @param [out] showlog= set to YES to show the markdown in the log. Default=NO.
-
-  @version 9.3
-  @author Allan Bowe
-**/
-
-%macro mp_mdtablewrite(
-  libds=,
-  fref=mdtable,
-  showlog=NO
-)/*/STORE SOURCE*/;
-
-/* check fileref is assigned */
-%if %sysfunc(fileref(&fref)) > 0 %then %do;
-  filename &fref temp;
-%end;
-
-%local vars;
-%let vars=%mf_getvarlist(&libds);
-
-/* create the header row */
-data _null_;
-  file &fref;
-  length line $32767;
-  call missing(line);
-  put '|'
-%local i var fmt;
-%do i=1 %to %sysfunc(countw(&vars));
-  %let var=%scan(&vars,&i);
-  %let fmt=%mf_getvarformat(&libds,&var,force=1);
-  "&var:&fmt|"
-%end;
-  ;
-  put '|'
-%do i=1 %to %sysfunc(countw(&vars));
-  "---|"
-%end;
-  ;
-run;
-
-/* write out the data */
-data _null_;
-  file &fref mod dlm='|' lrecl=32767;
-  set &libds ;
-  length line $32767;
-  line=cats('|',%mf_getvarlist(&libds,dlm=%str(,'|',)),'|');
-  put line;
-run;
-
-%if %upcase(&showlog)=YES %then %do;
-  options ps=max;
-  data _null_;
-    infile &fref;
-    input;
-    putlog _infile_;
-  run;
-%end;
-
-%mend mp_mdtablewrite;/**
   @file
   @brief Logs the time the macro was executed in a control dataset.
   @details If the dataset does not exist, it is created.  Usage:

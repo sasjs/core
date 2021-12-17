@@ -23,7 +23,7 @@
   |---|---|---|---|---|---|---|---|---|---|---|---|---|
   | | | | |$|F|B|1|0|32767|0|1|0|
   | | | | |$|I|B|1|0|32767|0|1|0|
-  | | |/opt/sas/sas9/SASHome/SASFoundation/9.4/sasexe|UWIANYDT|$ANYDTIF|I|U|1|0|60|0|19|0|
+  |` `|` `|/opt/sas/sas9/SASHome/SASFoundation/9.4/sasexe|UWIANYDT|$ANYDTIF|I|U|1|0|60|0|19|0|
   | | |/opt/sas/sas9/SASHome/SASFoundation/9.4/sasexe|UWFASCII|$ASCII|F|U|1|0|32767|0|1|0|
   | | |/opt/sas/sas9/SASHome/SASFoundation/9.4/sasexe|UWIASCII|$ASCII|I|U|1|0|32767|0|1|0|
   | | |/opt/sas/sas9/SASHome/SASFoundation/9.4/sasexe|UWFBASE6|$BASE64X|F|U|1|0|32767|0|1|0|
@@ -32,12 +32,12 @@
   @param [out] outdetail= (0) Provide an output dataset in which to export all
     the custom format definitions (from proc format CNTLOUT).  Definitions:
 https://support.sas.com/documentation/cdl/en/proc/61895/HTML/default/viewer.htm#a002473477.htm
-  Sample data:
+    Sample data:
 
   |FMTNAME:$32.|START:$16.|END:$16.|LABEL:$256.|MIN:best.|MAX:best.|DEFAULT:best.|LENGTH:best.|FUZZ:best.|PREFIX:$2.|MULT:best.|FILL:$1.|NOEDIT:best.|TYPE:$1.|SEXCL:$1.|EEXCL:$1.|HLO:$13.|DECSEP:$1.|DIG3SEP:$1.|DATATYPE:$8.|LANGUAGE:$8.|
   |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-  |WHICHPATH|0|0|path1|1|40|28|28|1E-12||0||0|N|N|N| | | | | |
-  |WHICHPATH|`**OTHER**`|`**OTHER**`|big fat problem if not path1|1|40|28|28|1E-12||0||0|N|N|N|O| | | | |
+  |`WHICHPATH `|`0 `|`0 `|`path1 `|`1 `|`40 `|`28 `|`28 `|`1E-12 `|` `|`0 `|` `|`0 `|`N `|`N `|`N `|` `|` `|` `|` `|` `|
+  |`WHICHPATH `|`**OTHER** `|`**OTHER** `|`big fat problem if not path1 `|`1 `|`40 `|`28 `|`28 `|`1E-12 `|` `|`0 `|` `|`0 `|`N `|`N `|`N `|`O `|` `|` `|` `|` `|
 
   <h4> SAS Macros </h4>
   @li mf_dedup.sas

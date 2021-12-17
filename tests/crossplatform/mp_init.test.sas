@@ -15,7 +15,7 @@
 
 %let initial_value=&sasjs_init_num;
 
-%mp_init();
+%mp_init()
 
 %mp_assert(
   iftrue=("&initial_value"="&sasjs_init_num"),

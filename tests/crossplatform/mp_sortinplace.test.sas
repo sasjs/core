@@ -40,3 +40,30 @@ run;
   desc=Check if sort was appplied,
   outds=work.test_results
 )
+
+/** Test 2 - table without PK  */
+proc sql;
+create table work.example2 as
+  select * from sashelp.classfit;
+%mp_sortinplace(work.example2)
+%mp_assert(
+  iftrue=(
+    %str(&syscc)=%str(0)
+  ),
+  desc=Ensure no errors when no key exists,
+  outds=work.test_results
+)
+
+%let test2=0;
+data _null_;
+  set work.example2;
+  call symputx('test2',name);
+  stop;
+run;
+%mp_assert(
+  iftrue=(
+    %str(&test2)=%str(Alfred)
+  ),
+  desc=Check if sort was appplied when no index exists,
+  outds=work.test_results
+)

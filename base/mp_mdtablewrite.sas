@@ -62,6 +62,7 @@
 data _null_;
   file &fref;
   length line $32767;
+  call missing(line);
   put '|'
 %local i var fmt;
 %do i=1 %to %sysfunc(countw(&vars));

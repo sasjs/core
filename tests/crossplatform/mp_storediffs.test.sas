@@ -62,3 +62,41 @@ run;
   desc=All values have a match,
   test=ALLVALS
 )
+
+/* Test for when there are no actual changes */
+data work.orig work.deleted work.changed work.appended;
+  set sashelp.class;
+  output work.orig;
+run;
+%mp_storediffs(sashelp.class,work.orig,NAME
+  ,delds=work.deleted
+  ,modds=work.changed
+  ,appds=work.appended
+  ,outds=work.final2
+  ,mdebug=1
+)
+%mp_assertdsobs(work.final2,
+  desc=No changes produces 0 records,
+  test=EQUALS 0,
+  outds=work.test_results
+)
+
+/* Test for deletes only */
+data work.orig work.deleted work.changed work.appended;
+  set sashelp.class;
+  output work.orig;
+  if _n_>5 then output work.deleted;
+run;
+
+%mp_storediffs(sashelp.class,work.orig,NAME
+  ,delds=work.deleted
+  ,modds=work.changed
+  ,appds=work.appended
+  ,outds=work.final3
+  ,mdebug=1
+)
+%mp_assertdsobs(work.final3,
+  desc=Delete has 70 records,
+  test=EQUALS 70,
+  outds=work.test_results
+)

@@ -70,7 +70,7 @@ data &ds1;
     %end;
 
     %let numvars=%mf_getvarlist(&libds,typefilter=N);
-     %if &numvars ^= %then %do i=1 %to %sysfunc(countw(&numvars));
+    %if &numvars ^= %then %do i=1 %to %sysfunc(countw(&numvars));
       %let col=%scan(&numvars,&i);
       &col=&n1;
     %end;

@@ -65,7 +65,7 @@ run;
 %mp_getformats(fmtlist=WHICHPATH,outsummary=sum,outdetail=detail2)
 %let tst2=0;
 data _null_;
-  set detail1;
+  set detail2;
   if fmtname='WHICHPATH' and start='**OTHER**' then call symputx('tst2',label);
   putlog (_all_)(=);
 run;

@@ -65,10 +65,10 @@
             'Did value change? (1/0/-1).  Always -1 for appends and deletes.',
           tgtvar_type char(1) label='Either (C)haracter or (N)umeric',
           tgtvar_nm char(32) label='Target variable name (32 chars)',
-          oldval_num num label='Old (numeric) value',
-          newval_num num label='New (numeric) value',
-          oldval_char char(32767) label='Old (character) value',
-          newval_char char(32767) label='New (character) value',
+          oldval_num num format=best32. label='Old (numeric) value',
+          newval_num num format=best32. label='New (numeric) value',
+          oldval_char char(32765) label='Old (character) value',
+          newval_char char(32765) label='New (character) value',
           constraint pk_mpe_audit
             primary key(load_ref,libref,dsn,key_hash,tgtvar_nm)
         );
@@ -212,18 +212,18 @@ create table &outds as
     ,b.tgtvar_type length=1
     ,case when b.move_type='D' then b.newval_num
       else a.newval_num
-      end as oldval_num
+      end as oldval_num format=best32.
     ,case when b.move_type='D' then .
       else b.newval_num
-      end as newval_num
+      end as newval_num format=best32.
     ,case when b.move_type='D' then b.newval_char
       else a.newval_char
-      end as oldval_char length=32767
+      end as oldval_char length=32765
     ,case when b.move_type='D' then ''
       else b.newval_char
-      end as newval_char length=32767
+      end as newval_char length=32765
   from &ds4(where=(move_type='O')) as a
-  full join &ds4(where=(move_type ne 'O')) as b
+  right join &ds4(where=(move_type ne 'O')) as b
   on a.tgtvar_nm=b.tgtvar_nm
   and a.key_hash=b.key_hash
   order by move_type, key_hash,is_pk desc, tgtvar_nm;

@@ -30,7 +30,7 @@
 
 **/
 
-%macro mp_init(prefix=
+%macro mp_init(prefix=SASJS
 )/*/STORE SOURCE*/;
 
   %global

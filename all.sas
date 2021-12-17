@@ -570,6 +570,109 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
 
 %mend mf_getfilesize ;/**
   @file
+  @brief Returns a distinct list of formats from a table
+  @details Reads the dataset header and returns a distinct list of formats
+  applied.
+
+        %put NOTE- %mf_getfmtlist(sashelp.prdsale);
+        %put NOTE- %mf_getfmtlist(sashelp.shoes);
+        %put NOTE- %mf_getfmtlist(sashelp.demographics);
+
+  returns:
+
+  > DOLLAR $CHAR W MONNAME
+  > $CHAR BEST DOLLAR
+  > BEST Z $CHAR COMMA PERCENTN
+
+
+  @param [in] libds Two part library.dataset reference.
+
+  <h4> SAS Macros </h4>
+  @li mf_getfmtname.sas
+
+  @version 9.2
+  @author Allan Bowe
+
+**/
+
+%macro mf_getfmtlist(libds
+)/*/STORE SOURCE*/;
+/* declare local vars */
+%local out dsid nvars x rc fmt;
+
+/* open dataset in macro */
+%let dsid=%sysfunc(open(&libds));
+
+/* continue if dataset exists */
+%if &dsid %then %do;
+  /* loop each variable in the dataset */
+  %let nvars=%sysfunc(attrn(&dsid,NVARS));
+  %do x=1 %to &nvars;
+    /* grab format and check it exists */
+    %let fmt=%sysfunc(varfmt(&dsid,&x));
+    %if %quote(&fmt) ne %quote() %then %let fmt=%mf_getfmtname(&fmt);
+    %else %do;
+      /* assign default format depending on variable type */
+      %if %sysfunc(vartype(&dsid, &x))=C %then %let fmt=$CHAR;
+      %else %let fmt=BEST;
+    %end;
+    /* concatenate unique list of formats */
+    %if %sysfunc(indexw(&out,&fmt,%str( )))=0 %then %let out=&out &fmt;
+  %end;
+  %let rc=%sysfunc(close(&dsid));
+%end;
+%else %do;
+  %put &sysmacroname: Unable to open &libds (rc=&dsid);
+  %put &sysmacroname: SYSMSG= %sysfunc(sysmsg());
+  %let rc=%sysfunc(close(&dsid));
+%end;
+/* send them out without spaces or quote markers */
+%do;%unquote(&out)%end;
+%mend mf_getfmtlist;/**
+  @file
+  @brief Extracts a format name from a fully defined format
+  @details Converts formats in like $thi3. and th13.2 $THI and TH.
+  Usage:
+
+      %put %mf_getfmtname(8.);
+      %put %mf_getfmtname($4.);
+      %put %mf_getfmtname(comma14.10);
+
+  Returns:
+
+  > W
+  > $CHAR
+  > COMMA
+
+  Note that system defaults are inferred from the values provided.
+
+  @param [in] fmt The fully defined format. If left blank, nothing is returned.
+
+  @returns The name (without width or decimal) of the format.
+
+  @version 9.2
+  @author Allan Bowe
+
+**/
+
+%macro mf_getfmtname(fmt
+)/*/STORE SOURCE*/ /minoperator mindelimiter=' ';
+
+%local out dsid nvars x rc fmt;
+
+/* extract actual format name from the format definition */
+%let fmt=%scan(&fmt,1,.);
+%do %while(%substr(&fmt,%length(&fmt),1) in 1 2 3 4 5 6 7 8 9 0);
+  %if %length(&fmt)=1 %then %let fmt=W;
+  %else %let fmt=%substr(&fmt,1,%length(&fmt)-1);
+%end;
+
+%if &fmt=$ %then %let fmt=$CHAR;
+
+/* send them out without spaces or quote markers */
+%do;%unquote(%upcase(&fmt))%end;
+%mend mf_getfmtname;/**
+  @file
   @brief retrieves a key value pair from a control dataset
   @details By default, control dataset is work.mp_setkeyvalue.  Usage:
 
@@ -681,8 +784,8 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
 > "these","words","are","double","quoted"
 
   @param [in] in_str The unquoted, spaced delimited string to transform
-  @param [in] dlm= The delimeter to be applied to the output (default comma)
-  @param [in] indlm= (,) The delimeter used for the input (default is space)
+  @param [in] dlm= (,) The delimeter to be applied to the output (default comma)
+  @param [in] indlm= ( ) The delimeter used for the input (default is space)
   @param [in] quote= (S) The quote mark to apply (S=Single, D=Double, N=None).
     If any other value than uppercase S or D is supplied, then that value will
     be used as the quoting character.
@@ -693,7 +796,10 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
 **/
 
 
-%macro mf_getquotedstr(IN_STR,DLM=%str(,),QUOTE=S,indlm=%str( )
+%macro mf_getquotedstr(IN_STR
+  ,DLM=%str(,)
+  ,QUOTE=S
+  ,indlm=%str( )
 )/*/STORE SOURCE*/;
   /* credit Rowland Hale  - byte34 is double quote, 39 is single quote */
   %if &quote=S %then %let quote=%qsysfunc(byte(39));
@@ -5549,6 +5655,150 @@ run;
 %end;
 
 %mend mp_getddl;/**
+  @file
+  @brief Export format definitions
+  @details Formats are exported from the first (if any) catalog entry in the
+  FMTSEARCH path.
+
+  Formats are taken from the library / dataset reference and / or a static
+  format list.
+
+  Example usage:
+
+      %mp_getformats(lib=sashelp,ds=prdsale,outsummary=work.dictable)
+
+  @param [in] lib= (0) The libref for which to return formats.
+  @todo Enable exporting of formats for an entire library
+  @param [in] ds= (0) The dataset from which to obtain format definitions
+  @param [in] fmtlist= (0) A list of additional format names
+  @param [out] outsummary= (work.mp_getformats_summary) Output dataset
+    containing summary definitions - structure taken from dictionary.formats as
+    follows:
+|libname:$8.|memname:$32.|path:$1024.|objname:$32.|fmtname:$32.|fmttype:$1.|source:$1.|minw:best.|mind:best.|maxw:best.|maxd:best.|d
+efw:best.|defd:best.|
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+|||||$|F|B|1|0|32767|0|1|0|
+|||||$|I|B|1|0|32767|0|1|0|
+|||/opt/sas/sas9/SASHome/SASFoundation/9.4/sasexe|UWIANYDT|$ANYDTIF|I|U|1|0|60|0|19|0|
+|||/opt/sas/sas9/SASHome/SASFoundation/9.4/sasexe|UWFASCII|$ASCII|F|U|1|0|32767|0|1|0|
+|||/opt/sas/sas9/SASHome/SASFoundation/9.4/sasexe|UWIASCII|$ASCII|I|U|1|0|32767|0|1|0|
+|||/opt/sas/sas9/SASHome/SASFoundation/9.4/sasexe|UWFBASE6|$BASE64X|F|U|1|0|32767|0|1|0|
+|||/opt/sas/sas9/SASHome/SASFoundation/9.4/sasexe|UWIBASE6|$BASE64X|I|U|1|0|32767|0|1|0|
+|||/opt/sas/sas9/SASHome/SASFoundation/9.4/sasexe|UWFBIDI|$BIDI|F|U|1|0|32767|0|1|0|
+|||||$BINARY|F|B|1|0|32767|0|8|0|
+|||||$BINARY|I|B|1|0|32767|0|8|0|
+
+  @param [out] outdetail= (0) Provide an output dataset in which to export all
+    the custom format definitions (from proc format CNTLOUT).  Definitions:
+https://support.sas.com/documentation/cdl/en/proc/61895/HTML/default/viewer.htm#a002473477.htm
+  Sample data:
+
+  |NAME $|LENGTH 8|VARNUM 8|LABEL $|FORMAT $49|TYPE $1 |DDTYPE $|
+  |---|---|---|---|---|---|---|
+  |AIR|8|2|international airline travel (thousands)|8.|N|NUMERIC|
+  |DATE|8|1|DATE|MONYY.|N|DATE|
+  |REGION|3|3|REGION|$3.|C|CHARACTER|
+
+  <h4> SAS Macros </h4>
+  @li mf_dedup.sas
+  @li mf_getfmtlist.sas
+  @li mf_getfmtname.sas
+  @li mf_getquotedstr.sas
+  @li mf_getuniquename.sas
+
+
+  <h4> Related Macros </h4>
+  @li mp_getformats.test.sas
+
+  @version 9.2
+  @author Allan Bowe
+
+**/
+
+%macro mp_getformats(lib=0
+  ,ds=0
+  ,fmtlist=0
+  ,outsummary=work.mp_getformats_summary
+  ,outdetail=0
+);
+
+%local i fmt allfmts tempds fmtcnt;
+
+%if "&fmtlist" ne "0" %then %do i=1 %to %sysfunc(countw(&fmtlist,,%str( )));
+  /* ensure format list contains format _name_ only */
+  %let fmt=%scan(&fmtlist,&i,%str( ));
+  %let fmt=%mf_getfmtname(&fmt);
+  %let allfmts=&allfmts &fmt;
+%end;
+
+%if &ds=0 and &lib ne 0 %then %do;
+  /* grab formats from library */
+  /* to do */
+%end;
+%else %if &ds ne 0 and &lib ne 0 %then %do;
+  /* grab formats from dataset */
+  %let allfmts=%mf_getfmtlist(&lib..&ds) &allfmts;
+%end;
+
+/* ensure list is unique */
+%let allfmts=%mf_dedup(%upcase(&allfmts));
+
+/* create summary table */
+%if %index(&outsummary,.)=0 %then %let outsummary=WORK.&outsummary;
+proc sql;
+create table &outsummary as
+  select * from dictionary.formats
+  where fmtname in (%mf_getquotedstr(&allfmts,quote=D))
+    and fmttype='F';
+
+%if "&outdetail" ne "0" %then %do;
+  /* ensure base table always exists */
+  proc sql;
+  create table &outdetail(
+      FMTNAME char(32)     label='Format name'
+      ,START char(16)     label='Starting value for format'
+      ,END char(16)     label='Ending value for format'
+      ,LABEL char(256)     label='Format value label'
+      ,MIN num length=3     label='Minimum length'
+      ,MAX num length=3     label='Maximum length'
+      ,DEFAULT num length=3     label='Default length'
+      ,LENGTH num length=3     label='Format length'
+      ,FUZZ num     label='Fuzz value'
+      ,PREFIX char(2)     label='Prefix characters'
+      ,MULT num     label='Multiplier'
+      ,FILL char(1)     label='Fill character'
+      ,NOEDIT num length=3     label='Is picture string noedit?'
+      ,TYPE char(1)     label='Type of format'
+      ,SEXCL char(1)     label='Start exclusion'
+      ,EEXCL char(1)     label='End exclusion'
+      ,HLO char(13)     label='Additional information'
+      ,DECSEP char(1)     label='Decimal separator'
+      ,DIG3SEP char(1)     label='Three-digit separator'
+      ,DATATYPE char(8)     label='Date/time/datetime?'
+      ,LANGUAGE char(8)     label='Language for date strings'
+  );
+  /* grab the location of each format */
+  %let fmtcnt=0;
+  data _null_;
+    set &outsummary;
+    if not missing(libname);
+    x+1;
+    call symputx(cats('fmtloc',x),cats(libname,'.',memname),'l');
+    call symputx(cats('fmtname',x),fmtname,'l');
+    call symputx('fmtcnt',x,'l');
+  run;
+  /* export each format and append to the output table */
+  %let tempds=%mf_getuniquename(prefix=mp_getformats);
+  %do i=1 %to &fmtcnt;
+    proc format library=&&fmtloc&i CNTLOUT=&tempds;
+      select &&fmtname&i;
+    run;
+    proc append base=&outdetail data=&tempds;
+    run;
+  %end;
+%end;
+
+%mend mp_getformats;/**
   @file mp_getmaxvarlengths.sas
   @brief Scans a dataset to find the max length of the variable values
   @details
@@ -6459,19 +6709,21 @@ filename &tempref clear;
 
 **/
 
-%macro mp_init(prefix=
+%macro mp_init(prefix=SASJS
 )/*/STORE SOURCE*/;
 
   %global
-    &prefix._INIT_NUM   /* initialisation time as numeric             */
-    &prefix._INIT_DTTM  /* initialisation time in E8601DT26.6 format */
+    &prefix._INIT_NUM   /* initialisation time as numeric                   */
+    &prefix._INIT_DTTM  /* initialisation time in E8601DT26.6 format        */
+    &prefix.WORK        /* avoid typing %sysfunc(pathname(work)) every time */
   ;
   %if %eval(&&&prefix._INIT_NUM>0) %then %return;  /* only run once */
 
   data _null_;
     dttm=datetime();
-    call symputx("&prefix._init_num",dttm);
-    call symputx("&prefix._init_dttm",put(dttm,E8601DT26.6));
+    call symputx("&prefix._init_num",dttm,'g');
+    call symputx("&prefix._init_dttm",put(dttm,E8601DT26.6),'g');
+    call symputx("&prefix.work",pathname('WORK'),'g');
   run;
 
   options
@@ -6485,6 +6737,7 @@ filename &tempref clear;
     noquotelenmax           /* avoid warnings for long strings                */
     noreplace               /* avoid overwriting permanent datasets           */
     ps=max                  /* reduce log size slightly                       */
+    ls=max                  /* reduce log even more and avoid word truncation */
     validmemname=COMPATIBLE /* avoid special characters etc in table names    */
     validvarname=V7         /* avoid special characters etc in variable names */
     varinitchk=%str(ERR)OR  /* avoid data mistakes from variable name typos   */
@@ -8029,13 +8282,15 @@ select distinct memname into: table_list separated by ' '
   sort it before performing operations such as merges / joins etc.
   That said, there are a few edge cases where it can be desirable:
 
-    @li To improve performance for particular scenarios
     @li To allow adjacent records to be viewed directly in the dataset
-    @li To reduce dataset size (eg when there are deleted records)
+    @li To apply compression, or to remove deleted records
+    @li To improve performance for specific queries
 
   This macro will only work for BASE (V9) engine libraries.  It works by
   creating a copy of the dataset (without data, WITH constraints) in the same
-  library, appending a sorted view into it, and finally - renaming it.
+  library, appending a sorted view into it, and finally - renaming it.  By
+  default, COMPRESS=CHAR and REUSE=YES will be applied, this behaviour can
+  be adjusted using the `dsoptions=` parameter.
 
   Example usage:
 
@@ -8053,6 +8308,7 @@ select distinct memname into: table_list separated by ' '
   @li mf_getengine.sas
   @li mf_getquotedstr.sas
   @li mf_getuniquename.sas
+  @li mf_getvarlist.sas
   @li mf_nobs.sas
   @li mp_abort.sas
   @li mp_getpk.sas
@@ -8098,6 +8354,10 @@ select distinct memname into: table_list separated by ' '
   %return;
 %end;
 
+/* fallback sortkey is all fields */
+%let sortkey=%mf_getvarlist(&libds);
+
+/* overlay actual sort key if it exists */
 data _null_;
   set work.&tempds1;
   call symputx('sortkey',pk_fields);
@@ -8206,10 +8466,10 @@ run;
             'Did value change? (1/0/-1).  Always -1 for appends and deletes.',
           tgtvar_type char(1) label='Either (C)haracter or (N)umeric',
           tgtvar_nm char(32) label='Target variable name (32 chars)',
-          oldval_num num label='Old (numeric) value',
-          newval_num num label='New (numeric) value',
-          oldval_char char(32767) label='Old (character) value',
-          newval_char char(32767) label='New (character) value',
+          oldval_num num format=best32. label='Old (numeric) value',
+          newval_num num format=best32. label='New (numeric) value',
+          oldval_char char(32765) label='Old (character) value',
+          newval_char char(32765) label='New (character) value',
           constraint pk_mpe_audit
             primary key(load_ref,libref,dsn,key_hash,tgtvar_nm)
         );
@@ -8353,18 +8613,18 @@ create table &outds as
     ,b.tgtvar_type length=1
     ,case when b.move_type='D' then b.newval_num
       else a.newval_num
-      end as oldval_num
+      end as oldval_num format=best32.
     ,case when b.move_type='D' then .
       else b.newval_num
-      end as newval_num
+      end as newval_num format=best32.
     ,case when b.move_type='D' then b.newval_char
       else a.newval_char
-      end as oldval_char length=32767
+      end as oldval_char length=32765
     ,case when b.move_type='D' then ''
       else b.newval_char
-      end as newval_char length=32767
+      end as newval_char length=32765
   from &ds4(where=(move_type='O')) as a
-  full join &ds4(where=(move_type ne 'O')) as b
+  right join &ds4(where=(move_type ne 'O')) as b
   on a.tgtvar_nm=b.tgtvar_nm
   and a.key_hash=b.key_hash
   order by move_type, key_hash,is_pk desc, tgtvar_nm;
@@ -13759,12 +14019,11 @@ run;
 %if %length(&tree)>0 %then %do;
   /* get tree info */
   %mm_gettree(tree=&tree,inds=&outds, outds=&outds, mDebug=&mDebug)
-    %if %mf_nobs(&outds)=0 %then %do;
+  %if %mf_nobs(&outds)=0 %then %do;
     %put NOTE:  Tree &tree did not exist!!;
     %return;
   %end;
 %end;
-
 
 
 data &outds ;

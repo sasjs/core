@@ -5,13 +5,15 @@
   sort it before performing operations such as merges / joins etc.
   That said, there are a few edge cases where it can be desirable:
 
-    @li To improve performance for particular scenarios
     @li To allow adjacent records to be viewed directly in the dataset
-    @li To reduce dataset size (eg when there are deleted records)
+    @li To apply compression, or to remove deleted records
+    @li To improve performance for specific queries
 
   This macro will only work for BASE (V9) engine libraries.  It works by
   creating a copy of the dataset (without data, WITH constraints) in the same
-  library, appending a sorted view into it, and finally - renaming it.
+  library, appending a sorted view into it, and finally - renaming it.  By
+  default, COMPRESS=CHAR and REUSE=YES will be applied, this behaviour can
+  be adjusted using the `dsoptions=` parameter.
 
   Example usage:
 
@@ -29,6 +31,7 @@
   @li mf_getengine.sas
   @li mf_getquotedstr.sas
   @li mf_getuniquename.sas
+  @li mf_getvarlist.sas
   @li mf_nobs.sas
   @li mp_abort.sas
   @li mp_getpk.sas
@@ -74,6 +77,10 @@
   %return;
 %end;
 
+/* fallback sortkey is all fields */
+%let sortkey=%mf_getvarlist(&libds);
+
+/* overlay actual sort key if it exists */
 data _null_;
   set work.&tempds1;
   call symputx('sortkey',pk_fields);

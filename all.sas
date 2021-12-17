@@ -5690,10 +5690,10 @@ run;
 https://support.sas.com/documentation/cdl/en/proc/61895/HTML/default/viewer.htm#a002473477.htm
   Sample data:
 
- |FMTNAME:$32.|START:$16.|END:$16.|LABEL:$256.|MIN:best.|MAX:best.|DEFAULT:best.|LENGTH:best.|FUZZ:best.|PREFIX:$2.|MULT:best.|FILL:$1.|NOEDIT:best.|TYPE:$1.|SEXCL:$1.|EEXCL:$1.|HLO:$13.|DECSEP:$1.|DIG3SEP:$1.|DATATYPE:$8.|LANGUAGE:$8.|
- |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
- |WHICHPATH|0|0|path1|1|40|28|28|1E-12||0||0|N|N|N| | | | | |
- |WHICHPATH|`**OTHER**`|`**OTHER**`|big fat problem if not path1|1|40|28|28|1E-12||0||0|N|N|N|O| | | | |
+  |FMTNAME:$32.|START:$16.|END:$16.|LABEL:$256.|MIN:best.|MAX:best.|DEFAULT:best.|LENGTH:best.|FUZZ:best.|PREFIX:$2.|MULT:best.|FILL:$1.|NOEDIT:best.|TYPE:$1.|SEXCL:$1.|EEXCL:$1.|HLO:$13.|DECSEP:$1.|DIG3SEP:$1.|DATATYPE:$8.|LANGUAGE:$8.|
+  |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+  |WHICHPATH|0|0|path1|1|40|28|28|1E-12||0||0|N|N|N| | | | | |
+  |WHICHPATH|`**OTHER**`|`**OTHER**`|big fat problem if not path1|1|40|28|28|1E-12||0||0|N|N|N|O| | | | |
 
   <h4> SAS Macros </h4>
   @li mf_dedup.sas

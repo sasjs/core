@@ -83,7 +83,7 @@
 /* overlay actual sort key if it exists */
 data _null_;
   set work.&tempds1;
-  call symputx('sortkey',pk_fields);
+  call symputx('sortkey',coalescec(pk_fields,symget('sortkey')));
 run;
 
 

@@ -18,30 +18,26 @@
   @param [out] outsummary= (work.mp_getformats_summary) Output dataset
     containing summary definitions - structure taken from dictionary.formats as
     follows:
-|libname:$8.|memname:$32.|path:$1024.|objname:$32.|fmtname:$32.|fmttype:$1.|source:$1.|minw:best.|mind:best.|maxw:best.|maxd:best.|d
-efw:best.|defd:best.|
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-|||||$|F|B|1|0|32767|0|1|0|
-|||||$|I|B|1|0|32767|0|1|0|
-|||/opt/sas/sas9/SASHome/SASFoundation/9.4/sasexe|UWIANYDT|$ANYDTIF|I|U|1|0|60|0|19|0|
-|||/opt/sas/sas9/SASHome/SASFoundation/9.4/sasexe|UWFASCII|$ASCII|F|U|1|0|32767|0|1|0|
-|||/opt/sas/sas9/SASHome/SASFoundation/9.4/sasexe|UWIASCII|$ASCII|I|U|1|0|32767|0|1|0|
-|||/opt/sas/sas9/SASHome/SASFoundation/9.4/sasexe|UWFBASE6|$BASE64X|F|U|1|0|32767|0|1|0|
-|||/opt/sas/sas9/SASHome/SASFoundation/9.4/sasexe|UWIBASE6|$BASE64X|I|U|1|0|32767|0|1|0|
-|||/opt/sas/sas9/SASHome/SASFoundation/9.4/sasexe|UWFBIDI|$BIDI|F|U|1|0|32767|0|1|0|
-|||||$BINARY|F|B|1|0|32767|0|8|0|
-|||||$BINARY|I|B|1|0|32767|0|8|0|
+
+  |libname:$8.|memname:$32.|path:$1024.|objname:$32.|fmtname:$32.|fmttype:$1.|source:$1.|minw:best.|mind:best.|maxw:best.|maxd:best.|defw:best.|defd:best.|
+  |---|---|---|---|---|---|---|---|---|---|---|---|---|
+  | | | | |$|F|B|1|0|32767|0|1|0|
+  | | | | |$|I|B|1|0|32767|0|1|0|
+  | | |/opt/sas/sas9/SASHome/SASFoundation/9.4/sasexe|UWIANYDT|$ANYDTIF|I|U|1|0|60|0|19|0|
+  | | |/opt/sas/sas9/SASHome/SASFoundation/9.4/sasexe|UWFASCII|$ASCII|F|U|1|0|32767|0|1|0|
+  | | |/opt/sas/sas9/SASHome/SASFoundation/9.4/sasexe|UWIASCII|$ASCII|I|U|1|0|32767|0|1|0|
+  | | |/opt/sas/sas9/SASHome/SASFoundation/9.4/sasexe|UWFBASE6|$BASE64X|F|U|1|0|32767|0|1|0|
+
 
   @param [out] outdetail= (0) Provide an output dataset in which to export all
     the custom format definitions (from proc format CNTLOUT).  Definitions:
 https://support.sas.com/documentation/cdl/en/proc/61895/HTML/default/viewer.htm#a002473477.htm
   Sample data:
 
-  |NAME $|LENGTH 8|VARNUM 8|LABEL $|FORMAT $49|TYPE $1 |DDTYPE $|
-  |---|---|---|---|---|---|---|
-  |AIR|8|2|international airline travel (thousands)|8.|N|NUMERIC|
-  |DATE|8|1|DATE|MONYY.|N|DATE|
-  |REGION|3|3|REGION|$3.|C|CHARACTER|
+ |FMTNAME:$32.|START:$16.|END:$16.|LABEL:$256.|MIN:best.|MAX:best.|DEFAULT:best.|LENGTH:best.|FUZZ:best.|PREFIX:$2.|MULT:best.|FILL:$1.|NOEDIT:best.|TYPE:$1.|SEXCL:$1.|EEXCL:$1.|HLO:$13.|DECSEP:$1.|DIG3SEP:$1.|DATATYPE:$8.|LANGUAGE:$8.|
+ |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+ |WHICHPATH|0|0|path1|1|40|28|28|1E-12||0||0|N|N|N| | | | | |
+ |WHICHPATH|`**OTHER**`|`**OTHER**`|big fat problem if not path1|1|40|28|28|1E-12||0||0|N|N|N|O| | | | |
 
   <h4> SAS Macros </h4>
   @li mf_dedup.sas

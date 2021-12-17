@@ -62,13 +62,13 @@
 %put output location=&jref;
 %if &action=OPEN %then %do;
   options nobomfile;
-  data _null_;file &jref encoding='utf-8';
+  data _null_;file &jref encoding='utf-8' termstr=lf;
     put '{"PROCESSED_DTTM" : "' "%sysfunc(datetime(),E8601DT26.6)" '"';
   run;
 %end;
 %else %if (&action=ARR or &action=OBJ) %then %do;
   options validvarname=upcase;
-  data _null_;file &jref mod encoding='utf-8';
+  data _null_;file &jref mod encoding='utf-8' termstr=lf;
     put ", ""%lowcase(%sysfunc(coalescec(&dslabel,&ds)))"":";
 
   %if &engine=PROCJSON %then %do;
@@ -147,7 +147,7 @@
       run;
       %let ds=&fmtds;
     %end; /* &fmt=Y */
-    data _null_;file &jref mod encoding='utf-8';
+    data _null_;file &jref mod encoding='utf-8' termstr=lf;
       put "["; call symputx('cols',0,'l');
     proc sort
       data=sashelp.vcolumn(where=(libname='WORK' & memname="%upcase(&ds)"))
@@ -192,7 +192,7 @@
     /* write to temp loc to avoid _webout truncation
       - https://support.sas.com/kb/49/325.html */
     filename _sjs temp lrecl=131068 encoding='utf-8';
-    data _null_; file _sjs lrecl=131068 encoding='utf-8' mod;
+    data _null_; file _sjs lrecl=131068 encoding='utf-8' mod termstr=lf;
       set &tempds;
       if _n_>1 then put "," @; put
       %if &action=ARR %then "[" ; %else "{" ;
@@ -219,14 +219,14 @@
       rc = fclose(fileid);
     run;
     filename _sjs clear;
-    data _null_; file &jref mod encoding='utf-8';
+    data _null_; file &jref mod encoding='utf-8' termstr=lf;
       put "]";
     run;
   %end;
 %end;
 
 %else %if &action=CLOSE %then %do;
-  data _null_;file &jref encoding='utf-8' mod;
+  data _null_;file &jref encoding='utf-8' mod termstr=lf;
     put "}";
   run;
 %end;

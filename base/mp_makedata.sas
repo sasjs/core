@@ -64,13 +64,13 @@ data &ds1;
     &n1=ranuni(1)*5000000;
     drop &c1 &n1;
     %let charvars=%mf_getvarlist(&libds,typefilter=C);
-    %do i=1 %to %sysfunc(countw(&charvars));
+    %if &charvars ^= %then %do i=1 %to %sysfunc(countw(&charvars));
       %let col=%scan(&charvars,&i);
       &col=subpad(&c1,1,%mf_getvarlen(&libds,&col));
     %end;
 
     %let numvars=%mf_getvarlist(&libds,typefilter=N);
-    %do i=1 %to %sysfunc(countw(&numvars));
+     %if &numvars ^= %then %do i=1 %to %sysfunc(countw(&numvars));
       %let col=%scan(&numvars,&i);
       &col=&n1;
     %end;

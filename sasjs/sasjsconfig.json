@@ -32,7 +32,9 @@
       "name": "viya",
       "serverUrl": "https://sas.analytium.co.uk",
       "serverType": "SASVIYA",
-      "allowInsecureRequests": false,
+      "httpsAgentOptions": {
+        "allowInsecureRequests": false
+      },
       "appLoc": "/Public/temp/macrocore",
       "macroFolders": [
         "tests/viyaonly"

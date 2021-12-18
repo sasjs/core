@@ -79,7 +79,7 @@
   OPTIONS NOBOMFILE;
 
   /* setup json */
-  data _null_;file &fref encoding='utf-8';
+  data _null_;file &fref encoding='utf-8' termstr=lf;
   %if %str(&_debug) ge 131 %then %do;
     put '>>weboutBEGIN<<';
   %end;
@@ -108,14 +108,14 @@
       i+1;
       call symputx('wt'!!left(i),name,'l');
       call symputx('wtcnt',i,'l');
-    data _null_; file &fref mod encoding='utf-8';
+    data _null_; file &fref mod encoding='utf-8' termstr=lf;
       put ",""WORK"":{";
     %do i=1 %to &wtcnt;
       %let wt=&&wt&i;
       proc contents noprint data=&wt
         out=_data_ (keep=name type length format:);
       run;%let tempds=%scan(&syslast,2,.);
-      data _null_; file &fref mod encoding='utf-8';
+      data _null_; file &fref mod encoding='utf-8' termstr=lf;
         dsid=open("WORK.&wt",'is');
         nlobs=attrn(dsid,'NLOBS');
         nvars=attrn(dsid,'NVARS');
@@ -126,15 +126,15 @@
         put ',"nvars":' nvars;
       %mp_jsonout(OBJ,&tempds,jref=&fref,dslabel=colattrs,engine=DATASTEP)
       %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,engine=DATASTEP)
-      data _null_; file &fref mod encoding='utf-8';
+      data _null_; file &fref mod encoding='utf-8' termstr=lf;
         put "}";
     %end;
-    data _null_; file &fref mod encoding='utf-8';
+    data _null_; file &fref mod encoding='utf-8' termstr=lf termstr=lf;
       put "}";
     run;
   %end;
   /* close off json */
-  data _null_;file &fref mod encoding='utf-8';
+  data _null_;file &fref mod encoding='utf-8' termstr=lf;
     _PROGRAM=quote(trim(resolve(symget('_PROGRAM'))));
     put ",""SYSUSERID"" : ""&sysuserid"" ";
     put ",""MF_GETUSER"" : ""%mf_getuser()"" ";
@@ -147,7 +147,9 @@
     put ",""SYSHOSTNAME"" : ""&syshostname"" ";
     put ",""SYSPROCESSID"" : ""&SYSPROCESSID"" ";
     put ",""SYSPROCESSMODE"" : ""&SYSPROCESSMODE"" ";
-    put ",""SYSPROCESSNAME"" : ""&SYSPROCESSNAME"" ";
+    length SYSPROCESSNAME $512;
+    SYSPROCESSNAME=quote(urlencode(cats(SYSPROCESSNAME)));
+    put ",""SYSPROCESSNAME"" : " SYSPROCESSNAME;
     put ",""SYSJOBID"" : ""&sysjobid"" ";
     put ",""SYSSCPL"" : ""&sysscpl"" ";
     put ",""SYSSITE"" : ""&syssite"" ";
@@ -156,7 +158,8 @@
     put ',"SYSVLONG" : ' sysvlong;
     put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" ";
     put ',"END_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '" ';
-    autoexec=quote(trim(getoption('autoexec')));
+    length autoexec $512;
+    autoexec=quote(urlencode(trim(getoption('autoexec'))));
     put ',"AUTOEXEC" : ' autoexec;
     memsize="%sysfunc(INPUTN(%sysfunc(getoption(memsize)), best.),sizekmg.)";
     memsize=quote(cats(memsize));

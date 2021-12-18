@@ -11,9 +11,7 @@
 
   This macro will only work for BASE (V9) engine libraries.  It works by
   creating a copy of the dataset (without data, WITH constraints) in the same
-  library, appending a sorted view into it, and finally - renaming it.  By
-  default, COMPRESS=CHAR and REUSE=YES will be applied, this behaviour can
-  be adjusted using the `dsoptions=` parameter.
+  library, appending a sorted view into it, and finally - renaming it.
 
   Example usage:
 
@@ -41,7 +39,6 @@
 
   @version 9.2
   @author Allan Bowe
-  @source https://github.com/sasjs/core
 
 **/
 

@@ -7909,13 +7909,15 @@ options obs=max replace nosyntaxcheck;
   @brief Reset an option to original value
   @details Inspired by the SAS Jedi -
 https://blogs.sas.com/content/sastraining/2012/08/14/jedi-sas-tricks-reset-sas-system-options
-    Called as follows:
 
-    options obs=30;
-    %mp_resetoption(OBS)
+  Called as follows:
+
+      options obs=30 ps=max;
+      %mp_resetoption(OBS)
+      %mp_resetoption(PS)
 
 
-  @param option the option to reset
+  @param [in] option the option to reset
 
   @version 9.2
   @author Allan Bowe
@@ -8284,9 +8286,7 @@ select distinct memname into: table_list separated by ' '
 
   This macro will only work for BASE (V9) engine libraries.  It works by
   creating a copy of the dataset (without data, WITH constraints) in the same
-  library, appending a sorted view into it, and finally - renaming it.  By
-  default, COMPRESS=CHAR and REUSE=YES will be applied, this behaviour can
-  be adjusted using the `dsoptions=` parameter.
+  library, appending a sorted view into it, and finally - renaming it.
 
   Example usage:
 
@@ -8314,7 +8314,6 @@ select distinct memname into: table_list separated by ' '
 
   @version 9.2
   @author Allan Bowe
-  @source https://github.com/sasjs/core
 
 **/
 

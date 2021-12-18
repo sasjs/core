@@ -10144,7 +10144,7 @@ run;
       prop='Connection.DBMS.Property.SERVER.Name.xmlKey.txt';
       rc=metadata_getprop(uri,prop,server,"");
     end;
-    if server^='' then server='server='!!server;
+    if server^='' then server='server='!!quote(cats(server));
     call symputx('server',server,'l');
 
     /* get SCHEMA value */
@@ -10290,11 +10290,11 @@ run;
   run;
 
   %put NOTE: Executing the following:/; %put NOTE-;
-  %put NOTE- libname &libref TERADATA server=&path schema=&schema ;
+  %put NOTE- libname &libref TERADATA server="&path" schema=&schema ;
   %put NOTe-   authdomain=&authdomain;
   %put NOTE-;
 
-  libname &libref TERADATA server=&path schema=&schema authdomain=&authdomain;
+  libname &libref TERADATA server="&path" schema=&schema authdomain=&authdomain;
 %end;
 %else %if &engine= %then %do;
   %put NOTE: Libref &libref is not registered in metadata;

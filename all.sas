@@ -1533,6 +1533,45 @@ Usage:
 
 %mend mf_isint;/**
   @file
+  @brief Checks whether a string follows correct library.dataset format
+  @details Many macros in the core library accept a library.dataset parameter
+  referred to as 'libds'.  This macro validates the structure of that parameter,
+  eg:
+
+    @li 8 character libref?
+    @li 32 character dataset?
+    @li contains a period?
+
+  It does NOT check whether the dataset exists, or if the library is assigned.
+
+  Usage:
+
+      %put %mf_islibds(work.something)=1;
+      %put %mf_islibds(nolib)=0;
+      %put %mf_islibds(badlibref.ds)=0;
+      %put %mf_islibds(w.t.f)=0;
+
+  @param [in] libds The string to be checked
+
+  @return output Returns 1 if libds is valid, 0 if it is not
+
+  <h4> Related Macros </h4>
+  @li mf_islibds.test.sas
+  @li mp_validatecol.sas
+
+  @version 9.2
+**/
+
+%macro mf_islibds(libds
+)/*/STORE SOURCE*/;
+
+%local regex;
+%let regex=%sysfunc(prxparse(%str(/^[_a-z]\w{0,7}\.[_a-z]\w{0,31}$/i)));
+
+%sysfunc(prxmatch(&regex,&libds))
+
+%mend mf_islibds;/**
+  @file
   @brief Returns physical location of various SAS items
   @details Returns location of the PlatformObjectFramework tools
     Usage:
@@ -7640,8 +7679,6 @@ lock &libds clear;
     according to the variable types and formats.
 
     TODO:
-      @li Respect PKs
-      @li Respect NOT NULLs
       @li Consider dates, datetimes, times, integers etc
 
   Usage:
@@ -7657,12 +7694,15 @@ lock &libds clear;
       );
       %mp_makedata(work.example)
 
-  @param [in] libds The empty table in which to create data
-  @param [out] obs= (500) The number of records to create.
+  @param [in] libds The empty table (libref.dataset) in which to create data
+  @param [out] obs= (500) The maximum number of records to create.  The table
+    is sorted with nodup on the primary key, so the actual number of records may
+    be lower than this.
 
   <h4> SAS Macros </h4>
   @li mf_getuniquename.sas
   @li mf_getvarlen.sas
+  @li mf_islibds.sas
   @li mf_nobs.sas
   @li mp_getcols.sas
   @li mp_getpk.sas
@@ -7674,45 +7714,59 @@ lock &libds clear;
 
 %macro mp_makedata(libds
   ,obs=500
+  ,seed=1
 )/*/STORE SOURCE*/;
 
-%local ds1 c1 n1 i col charvars numvars;
+%local ds1 ds2 lib ds pk_fields i col charvars numvars ispk;
 
-%if %mf_nobs(&libds)>0 %then %do;
+%if %mf_islibds(&libds)=0 %then %do;
+  %put &sysmacroname: Invalid libds (&libds) - should be library.dataset format;
+  %return;
+%end;
+%else %if %mf_nobs(&libds)>0 %then %do;
   %put &sysmacroname: &libds has data, it will not be recreated;
   %return;
 %end;
 
-%local ds1 c1 n1;
-%let ds1=%mf_getuniquename(prefix=mp_makedata);
-%let c1=%mf_getuniquename(prefix=mp_makedatacol);
-%let n1=%mf_getuniquename(prefix=mp_makedatacol);
-data &ds1;
+/* set up temporary vars */
+%let ds1=%mf_getuniquename(prefix=mp_makedatads1);
+%let ds2=%mf_getuniquename(prefix=mp_makedatads2);
+%let lib=%scan(&libds,1,.);
+%let ds=%scan(&libds,2,.);
+
+/* grab the primary key vars */
+%mp_getpk(&lib,ds=&ds,outds=&ds1)
+
+proc sql noprint;
+select pk_fields into: pk_fields from &ds1;
+
+data &ds2;
   if 0 then set &libds;
   do _n_=1 to &obs;
-    &c1=repeat(uuidgen(),10);
-    &n1=ranuni(1)*5000000;
-    drop &c1 &n1;
     %let charvars=%mf_getvarlist(&libds,typefilter=C);
     %if &charvars ^= %then %do i=1 %to %sysfunc(countw(&charvars));
       %let col=%scan(&charvars,&i);
-      &col=subpad(&c1,1,%mf_getvarlen(&libds,&col));
+      /* create random value based on observation number and colum length */
+      &col=substr(put(md5(_n_),$hex32.),1,%mf_getvarlen(&libds,&col));
     %end;
 
     %let numvars=%mf_getvarlist(&libds,typefilter=N);
     %if &numvars ^= %then %do i=1 %to %sysfunc(countw(&numvars));
       %let col=%scan(&numvars,&i);
-      &col=&n1;
+      &col=_n_;
     %end;
     output;
   end;
 run;
+proc sort data=&ds2 nodupkey;
+  by &pk_fields;
+run;
 
-proc append base=&libds data=&ds1;
+proc append base=&libds data=&ds2;
 run;
 
 proc sql;
-drop table &ds1;
+drop table &ds1, &ds2;
 
 %mend mp_makedata;/**
   @file

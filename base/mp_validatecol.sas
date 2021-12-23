@@ -20,10 +20,13 @@
       ;;;;
       run;
 
+  Tip - when contributing, use https://regex101.com to test the regex validity!
+
   @param [in] incol The column to be validated
   @param [in] rule The rule to apply.  Current rules:
     @li ISNUM - checks if the variable is numeric
     @li LIBDS - matches LIBREF.DATASET format
+    @li FORMAT - checks if the provided format is syntactically valid
   @param [out] outcol The variable to create, with the results of the match
 
   <h4> SAS Macros </h4>
@@ -55,6 +58,20 @@
     &tempcol=prxparse('/^[_a-z]\w{0,7}\.[_a-z]\w{0,31}$/i');
     if missing(&tempcol) then do;
       putlog "%str(ERR)OR: Invalid expression for LIBDS";
+      stop;
+    end;
+    drop &tempcol;
+  end;
+  if prxmatch(&tempcol, trim(&incol)) then &outcol=1;
+  else &outcol=0;
+%end;
+%else %if &rule=FORMAT %then %do;
+  /* match valid format - regex could probably be improved */
+  if _n_=1 then do;
+    retain &tempcol;
+    &tempcol=prxparse('/^[_a-z\$]\w{0,31}\.[0-9]*$/i');
+    if missing(&tempcol) then do;
+      putlog "%str(ERR)OR: Invalid expression for FORMAT";
       stop;
     end;
     drop &tempcol;

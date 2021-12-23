@@ -12,9 +12,10 @@
   contributors of Chris Hemedingers blog [post](
   http://blogs.sas.com/content/sasdummy/2013/06/04/find-a-sas-library-engine/)
 
-  @param libref Library reference (also accepts a 2 level libds ref).
+  @param [in] libref Library reference (also accepts a 2 level libds ref).
 
-  @return output returns the library engine for the FIRST library encountered.
+  @return output returns the library engine (uppercase) for the FIRST library
+    encountered.
 
   @warning will only return the FIRST library engine - for concatenated
     libraries, with different engines, inconsistent results may be encountered.
@@ -46,7 +47,7 @@
     %let rc= %sysfunc(close(&dsid));
   %end;
 
-  &engine
+  %upcase(&engine)
 
 %mend mf_getengine;
 

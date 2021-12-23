@@ -48,6 +48,7 @@ https://support.sas.com/documentation/cdl/en/proc/61895/HTML/default/viewer.htm#
 
 
   <h4> Related Macros </h4>
+  @li mp_applyformats.sas
   @li mp_getformats.test.sas
 
   @version 9.2

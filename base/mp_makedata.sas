@@ -33,10 +33,14 @@
   <h4> SAS Macros </h4>
   @li mf_getuniquename.sas
   @li mf_getvarlen.sas
+  @li mf_getvarlist.sas
   @li mf_islibds.sas
   @li mf_nobs.sas
   @li mp_getcols.sas
   @li mp_getpk.sas
+
+  <h4> Related Macros </h4>
+  @li mp_makedata.test.sas
 
   @version 9.2
   @author Allan Bowe
@@ -69,7 +73,7 @@
 %mp_getpk(&lib,ds=&ds,outds=&ds1)
 
 proc sql noprint;
-select pk_fields into: pk_fields from &ds1;
+select coalescec(pk_fields,'_all_') into: pk_fields from &ds1;
 
 data &ds2;
   if 0 then set &libds;
@@ -78,7 +82,7 @@ data &ds2;
     %if &charvars ^= %then %do i=1 %to %sysfunc(countw(&charvars));
       %let col=%scan(&charvars,&i);
       /* create random value based on observation number and colum length */
-      &col=substr(put(md5(_n_),$hex32.),1,%mf_getvarlen(&libds,&col));
+      &col=repeat(put(md5(cats(_n_)),$hex32.),%mf_getvarlen(&libds,&col)/32);
     %end;
 
     %let numvars=%mf_getvarlist(&libds,typefilter=N);

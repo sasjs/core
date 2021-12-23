@@ -7,8 +7,12 @@
 
         %put %mf_existvar(work.someds, somevar)
 
-  @param libds (positional) - 2 part dataset or view reference
-  @param var (positional) - variable name
+  @param [in] libds 2 part dataset or view reference
+  @param [in] var variable name
+
+  <h4> Related Macros </h4>
+  @li mf_existvar.test.sas
+
   @version 9.2
   @author Allan Bowe
 **/

@@ -92,6 +92,7 @@ data &ds2;
     %end;
     output;
   end;
+  stop;
 run;
 proc sort data=&ds2 nodupkey;
   by &pk_fields;

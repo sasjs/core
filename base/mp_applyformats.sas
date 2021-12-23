@@ -39,7 +39,7 @@
 
   @param [in] inds The input dataset containing the formats to apply (and where
     to apply them).  Example structure:
-  |LIB:$4.|DS:$7.|VAR:$32.|FMT:$49.|
+  |LIB:$8.|DS:$32.|VAR:$32.|FMT:$49.|
   |---|---|---|---|
   |`WORK `|`EXAMPLE `|`ACTUAL `|`DOLLAR12.2 `|
   |`WORK `|`EXAMPLE `|`COUNTRY `|`$CHAR10. `|

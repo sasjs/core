@@ -60,3 +60,36 @@ run;
   test=EQUALS 4,
   outds=work.test_results
 )
+
+/**
+  * Test 3 - FORMAT
+  */
+data test3;
+  infile datalines4 dsd;
+  input;
+  infile=_infile_;
+  %mp_validatecol(infile,FORMAT,is_format)
+  if is_format=1;
+datalines4;
+$.
+$format.
+$format12.2
+somenum.
+somenum12.4
+above are good
+the rest are bad
+%abort
+1&somethingverybad.
+&
++-1
+.
+a.A
+$format12.1b
+$format12.1b1
+;;;;
+run;
+%mp_assertdsobs(work.test3,
+  desc=Test3 - ISFORMAT,
+  test=EQUALS 5,
+  outds=work.test_results
+)

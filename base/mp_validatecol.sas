@@ -20,10 +20,13 @@
       ;;;;
       run;
 
+  For more examples, see mp_validatecol.test.sas
+
   Tip - when contributing, use https://regex101.com to test the regex validity!
 
   @param [in] incol The column to be validated
   @param [in] rule The rule to apply.  Current rules:
+    @li ISINT - checks if the variable is an integer
     @li ISNUM - checks if the variable is numeric
     @li LIBDS - matches LIBREF.DATASET format
     @li FORMAT - checks if the provided format is syntactically valid
@@ -31,6 +34,9 @@
 
   <h4> SAS Macros </h4>
   @li mf_getuniquename.sas
+
+  <h4> Related Macros </h4>
+  @li mp_validatecol.test.sas
 
   @version 9.3
 **/
@@ -41,7 +47,13 @@
 %local tempcol;
 %let tempcol=%mf_getuniquename();
 
-%if &rule=ISNUM %then %do;
+%if &rule=ISINT %then %do;
+  &tempcol=input(&incol,?? best32.);
+  &outcol=0;
+  if not missing(&tempcol) then if mod(&incol,1)=0 then &outcol=1;
+  drop &tempcol;
+%end;
+%else %if &rule=ISNUM %then %do;
   /*
     credit SØREN LASSEN
     https://sasmacro.blogspot.com/2009/06/welcome-isnum-macro.html

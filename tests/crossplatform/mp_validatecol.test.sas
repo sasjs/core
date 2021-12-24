@@ -93,3 +93,37 @@ run;
   test=EQUALS 5,
   outds=work.test_results
 )
+
+/**
+  * Test 4 - ISINT
+  */
+data test4;
+  infile datalines4 dsd;
+  input;
+  infile=_infile_;
+  %mp_validatecol(infile,ISINT,is_integer)
+  if is_integer=1;
+datalines4;
+1
+1234
+-134
+-1.0
+1.0
+0
+above are good
+the rest are bad
+%abort
+1&somethingverybad.
+&
++-1
+.
+a.A
+$format12.1b
+$format12.1b1
+;;;;
+run;
+%mp_assertdsobs(work.test4,
+  desc=Test4 - ISFORMAT,
+  test=EQUALS 6,
+  outds=work.test_results
+)

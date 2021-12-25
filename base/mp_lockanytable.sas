@@ -5,19 +5,29 @@
   Only useful if every update uses the macro!   Used heavily within
   [Data Controller for SAS](https://datacontroller.io).
 
-  The underlying table is structured as per the MAKETABLE action.
-
   @param [in] action The action to be performed.  Valid values:
     @li LOCK - Sets the lock flag, also confirms if a SAS lock is available
     @li UNLOCK - Unlocks the table
-    @li MAKETABLE - creates the control table (ctl_ds)
   @param [in] lib= (WORK) The libref of the table to lock.  Should already be
     assigned.
   @param [in] ds= The dataset to lock
   @param [in] ref= A meaningful reference to enable the lock to be traced. Max
     length is 200 characters.
   @param [out] ctl_ds= (0) The control table which controls the actual locking.
-    Should already be assigned and available.
+    Should already be assigned and available.  Definition as follows:
+
+        proc sql;
+        create table &ctl_ds(
+            lock_lib char(8),
+            lock_ds char(32),
+            lock_status_cd char(10) not null,
+            lock_user_nm char(100) not null ,
+            lock_ref char(200),
+            lock_pid char(10),
+            lock_start_dttm num format=E8601DT26.6,
+            lock_end_dttm num format=E8601DT26.6,
+          constraint pk_mp_lockanytable primary key(lock_lib,lock_ds));
+
   @param [in] loops= (25) Number of times to check for a lock.
   @param [in] loop_secs= (1) Seconds to wait between each lock attempt
 
@@ -220,19 +230,6 @@ run;
     %put NOTE: Unrecognised STATUS_CD (&status) in &ctl_ds;
     %let abortme=1;
   %end;
-%end;
-%else %if &action=MAKETABLE %then %do;
-  proc sql;
-  create table &ctl_ds(
-      lock_lib char(8),
-      lock_ds char(32),
-      lock_status_cd char(10) not null,
-      lock_user_nm char(100) not null ,
-      lock_ref char(200),
-      lock_pid char(10),
-      lock_start_dttm num format=E8601DT26.6,
-      lock_end_dttm num format=E8601DT26.6,
-    constraint pk_mp_lockanytable primary key(lock_lib,lock_ds));
 %end;
 %else %do;
   %let msg=lock_anytable given unsupported action (&action);

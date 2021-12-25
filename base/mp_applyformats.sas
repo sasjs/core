@@ -1,9 +1,9 @@
 /**
   @file
   @brief Apply a set of formats to a table
-  @details Applies a set of formats to one or more SAS datasets.  Can be used
-    to migrate formats from one table to another.  The input table must contain
-    the following columns:
+  @details Applies a set of formats to the metadata of one or more SAS datasets.
+    Can be used to migrate formats from one table to another.  The input table
+    must contain the following columns:
 
     @li lib - the libref of the table to be updated
     @li ds - the dataset to be updated

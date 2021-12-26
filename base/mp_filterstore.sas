@@ -133,10 +133,10 @@ run;
   data &ds2;
     if 0 then set &filter_detail;
     set &queryds;
-    format filter_hash $hex32. filter_line 8. processed_dttm E8601DT26.6;
+    format filter_hash $hex32. filter_line 8.;
     filter_hash="&filter_hash";
     filter_line=_n_;
-    PROCESSED_DTTM="%sysfunc(datetime(),E8601DT26.6)"dt;
+    PROCESSED_DTTM=%sysfunc(datetime());
   run;
   %mp_lockanytable(LOCK,
     lib=%scan(&filter_detail,1,.)
@@ -160,7 +160,7 @@ run;
     if 0 then set &filter_summary;
     filter_table=symget('libds');
     filter_hash="&filter_hash";
-    PROCESSED_DTTM="%sysfunc(datetime(),E8601DT26.6)"dt;
+    PROCESSED_DTTM=%sysfunc(datetime());
     output;
     stop;
   run;

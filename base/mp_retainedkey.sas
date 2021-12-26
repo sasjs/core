@@ -24,19 +24,12 @@
   @li permlib.base_table - the target table to be loaded (**not** loaded by this
     macro)
   @li permlib.maxkeytable - optional, used to store load metaadata.
-  The structure is as follows:
+    The definition is available by running mp_coretable.sas as follows:
+    `mp_coretable(MAXKEYTABLE)`.
+  @li permlib.locktable - Necessary if maxkeytable is being populated. The
+    definition is available by running mp_coretable.sas as follows:
+    `mp_coretable(LOCKTABLE)`.
 
-      proc sql;
-      create table yourlib.maxkeytable(
-          keytable varchar(41) label='Base table in libref.dataset format',
-          keycolumn char(32) format=$32.
-            label='The Retained key field containing the key values.',
-          max_key num label=
-            'Integer representing current max RK or SK value in the KEYTABLE',
-          processed_dttm num format=E8601DT26.6
-            label='Datetime this value was last updated',
-        constraint pk_mpe_maxkeyvalues
-            primary key(keytable));
 
   @param [in] base_lib= (WORK) Libref of the base (target) table.
   @param [in] base_dsn= (BASETABLE) Name of the base (target) table.
@@ -102,7 +95,7 @@
 %let tempds1=%mf_getuniquename();
 %let tempds2=%mf_getuniquename();
 %let comma_pk=%mf_getquotedstr(in_str=%str(&business_key),dlm=%str(,),quote=);
-
+%let outds=%sysfunc(ifc(%index(&outds,.)=0,work.&outds,&outds));
 /* validation checks */
 %let iserr=0;
 %if &syscc>0 %then %do;
@@ -133,14 +126,18 @@
 %do x=1 %to %sysfunc(countw(&business_key));
   /* check business key values exist */
   %let key_field=%scan(&business_key,&x,%str( ));
-  %if (not %mf_existvar(&app_libds,&key_field))
-    or (not %mf_existvar(&base_libds,&key_field))
-  %then %do;
+  %if not %mf_existvar(&app_libds,&key_field) %then %do;
     %let iserr=1;
-    %let msg=Business key (&key_field) not found!;
+    %let msg=Business key (&key_field) not found on &app_libds!;
+    %goto err;
+  %end;
+  %else %if not %mf_existvar(&base_libds,&key_field) %then %do;
+    %let iserr=1;
+    %let msg=Business key (&key_field) not found on &base_libds!;
+    %goto err;
   %end;
 %end;
-
+%err:
 %if &iserr=1 %then %do;
   /* err case so first perform an unlock of the base table before exiting */
   %mp_lockanytable(
@@ -204,7 +201,7 @@ quit;
   * Update maxkey table if link provided
   */
 %if &maxkeytable ne 0 %then %do;
-  proc sql;
+  proc sql noprint;
   select count(*) into: check from &maxkeytable
     where upcase(keytable)="&base_libds";
 

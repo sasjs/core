@@ -14,19 +14,8 @@
   @param [in] ref= A meaningful reference to enable the lock to be traced. Max
     length is 200 characters.
   @param [out] ctl_ds= (0) The control table which controls the actual locking.
-    Should already be assigned and available.  Definition as follows:
-
-        proc sql;
-        create table &ctl_ds(
-            lock_lib char(8),
-            lock_ds char(32),
-            lock_status_cd char(10) not null,
-            lock_user_nm char(100) not null ,
-            lock_ref char(200),
-            lock_pid char(10),
-            lock_start_dttm num format=E8601DT26.6,
-            lock_end_dttm num format=E8601DT26.6,
-          constraint pk_mp_lockanytable primary key(lock_lib,lock_ds));
+    Should already be assigned and available.  The definition is available by
+    running mp_coretable.sas as follows:  `mp_coretable(LOCKTABLE)`.
 
   @param [in] loops= (25) Number of times to check for a lock.
   @param [in] loop_secs= (1) Seconds to wait between each lock attempt

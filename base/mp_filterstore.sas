@@ -2,10 +2,11 @@
   @file
   @brief Checks & Stores an input filter table and returns the Filter Key
   @details Used to generate a FILTER_RK from an input query dataset.  This
-  process requires several permanent tables (names are configurable):
-
-  @li filterdetail (contains raw values)
-  @li filtersummary (contains summary data about the filter)
+  process requires several permanent tables (names are configurable).  The
+  benefit of storing query values at backend is to enable stored 'views' of
+  filtered tables at frontend (ie, when building [SAS-Powered Apps](
+  https://sasapps.io)).  This macro is also used in [Data Controller for SAS](
+  https://datacontroller.io).
 
 
   @param [in] libds= The target dataset to be filtered (lib should be assigned)
@@ -16,21 +17,26 @@
 |AND|AND|1|SOME_BESTNUM|>|1|
 |AND|AND|1|SOME_TIME|=|77333|
   @param [in] filter_summary= (PERM.FILTER_SUMMARY) Permanent table containing
-    summary filter values. Structure:
+    summary filter values.  The definition is available by running
+    mp_coretable.sas as follows:  `mp_coretable(FILTER_SUMMARY)`. Example
+    values:
 |FILTER_RK:best.|FILTER_HASH:$32.|FILTER_TABLE:$41.|PROCESSED_DTTM:datetime19.|
 |---|---|---|---|
 |`1 `|`540E96F566D194AB58DD4C413C99C9DB `|`VIYA6014.MPE_TABLES `|`1956084246 `|
 |`2 `|`87737DB9EEE2650F5C89956CEAD0A14F `|`VIYA6014.MPE_X_TEST `|`1956084452.1`|
 |`3 `|`8048BD908DBBD83D013560734E90D394 `|`VIYA6014.MPE_TABLES `|`1956093620.6`|
   @param [in] filter_detail= (PERM.FILTER_DETAIL) Permanent table containing
-    detailed (raw) filter values. Structure:
+    detailed (raw) filter values. The definition is available by running
+    mp_coretable.sas as follows:  `mp_coretable(FILTER_DETAIL)`. Example
+    values:
 |FILTER_HASH:$32.|FILTER_LINE:best.|GROUP_LOGIC:$3.|SUBGROUP_LOGIC:$3.|SUBGROUP_ID:best.|VARIABLE_NM:$32.|OPERATOR_NM:$12.|RAW_VALUE:$4000.|PROCESSED_DTTM:datetime19.|
 |---|---|---|---|---|---|---|---|---|
 |`540E96F566D194AB58DD4C413C99C9DB `|`1 `|`AND `|`AND `|`1 `|`LIBREF `|`CONTAINS `|`DC`|`1956084245.8 `|
 |`540E96F566D194AB58DD4C413C99C9DB `|`2 `|`AND `|`OR `|`2 `|`DSN `|`= `|` MPE_LOCK_ANYTABLE `|`1956084245.8 `|
 |`87737DB9EEE2650F5C89956CEAD0A14F `|`1 `|`AND `|`AND `|`1 `|`PRIMARY_KEY_FIELD `|`IN `|`(1,2,3) `|`1956084451.9 `|
   @param [in] lock_table= (PERM.LOCK_TABLE) Permanent locking table.  Used to
-    manage concurrent access.  Described in mp_lockanytable.sas.
+    manage concurrent access.  The definition is available by running
+    mp_coretable.sas as follows:  `mp_coretable(LOCKTABLE)`.
   @param [in] maxkeytable= (0) Optional permanent reference table used for
     retained key tracking.  Described in mp_retainedkey.sas.
   @param [in] mdebug= set to 1 to enable DEBUG messages
@@ -94,6 +100,7 @@
 %mp_filtercheck(&queryds,targetds=&libds,abort=YES)
 
 /* hash the result */
+%let ds1=%mf_getuniquename(prefix=hashds);
 %mp_hashdataset(&queryds,outds=&ds1,salt=&libds)
 %let filter_hash=%upcase(%mf_getvalue(&ds1,hashkey));
 %if &mdebug=1 %then %do;
@@ -124,6 +131,7 @@ run;
   /* update detail table first */
   %let ds2=%mf_getuniquename(prefix=filterdetail);
   data &ds2;
+    if 0 then set &filter_detail;
     set &queryds;
     format filter_hash $hex32. filter_line 8. processed_dttm E8601DT26.6;
     filter_hash="&filter_hash";
@@ -168,13 +176,13 @@ run;
   %mp_retainedkey(
     base_lib=%scan(&filter_summary,1,.)
     ,base_dsn=%scan(&filter_summary,2,.)
-    ,append_lib=%scan(&ds3,1,.)
-    ,append_dsn=%scan(&ds3,2,.)
+    ,append_lib=work
+    ,append_dsn=&ds3
     ,retained_key=filter_rk
     ,business_key=filter_hash
     ,maxkeytable=&maxkeytable
     ,locktable=&lock_table
-    ,outds=&ds4
+    ,outds=work.&ds4
   )
   proc append base=&filter_summary data=&ds4;
   run;

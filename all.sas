@@ -5311,42 +5311,16 @@ run;
   ,mac=mp_filterstore
   ,msg=%str(syscc=&syscc after hash check)
 )
-%mp_abort(iftrue= ("&filter_hash"=" ")
+%mp_abort(iftrue= ("&filter_hash "=" ")
   ,mac=mp_filterstore
   ,msg=%str(problem with filter_hash generation)
 )
 
 %if %mf_nobs(&outresult)=0 %then %do;
 
-  /* update detail table first */
-  %let ds2=%mf_getuniquename(prefix=filterdetail);
-  data &ds2;
-    if 0 then set &filter_detail;
-    set &queryds;
-    format filter_hash $hex32. filter_line 8.;
-    filter_hash="&filter_hash";
-    filter_line=_n_;
-    PROCESSED_DTTM=%sysfunc(datetime());
-  run;
-  %mp_lockanytable(LOCK,
-    lib=%scan(&filter_detail,1,.)
-    ,ds=%scan(&filter_detail,2,.)
-    ,ref=MP_FILTERSTORE update - &filter_hash
-    ,ctl_ds=&lock_table
-  )
-  proc append base=&filter_detail data=&ds2;
-  run;
-
-  %mp_lockanytable(UNLOCK,
-    lib=%scan(&filter_detail,1,.)
-    ,ds=%scan(&filter_detail,2,.)
-    ,ref=MP_FILTERSTORE update - &filter_hash
-    ,ctl_ds=&lock_table
-  )
-
-  /* now update summary table */
+  /* first update summary table */
   %let ds3=%mf_getuniquename(prefix=filtersum);
-  data &ds3;
+  data work.&ds3;
     if 0 then set &filter_summary;
     filter_table=symget('libds');
     filter_hash="&filter_hash";
@@ -5358,7 +5332,7 @@ run;
   %mp_lockanytable(LOCK,
     lib=%scan(&filter_summary,1,.)
     ,ds=%scan(&filter_summary,2,.)
-    ,ref=MP_FILTERSTORE update - &filter_hash
+    ,ref=MP_FILTERSTORE summary update - &filter_hash
     ,ctl_ds=&lock_table
   )
 
@@ -5380,14 +5354,56 @@ run;
   %mp_lockanytable(UNLOCK,
     lib=%scan(&filter_summary,1,.)
     ,ds=%scan(&filter_summary,2,.)
-    ,ref=MP_FILTERSTORE update - &filter_hash
+    ,ref=MP_FILTERSTORE summary update - &filter_hash
     ,ctl_ds=&lock_table
   )
+
+  %if &syscc ne 0 %then %do;
+    data _null_;
+      set &ds4;
+      putlog (_all_)(=);
+    run;
+    %goto err;
+  %end;
 
   data &outresult;
     set &filter_summary;
     where filter_hash="&filter_hash";
   run;
+
+  /* Next, update detail table */
+  %let ds2=%mf_getuniquename(prefix=filterdetail);
+  data &ds2;
+    if 0 then set &filter_detail;
+    set &queryds;
+    format filter_hash $hex32. filter_line 8.;
+    filter_hash="&filter_hash";
+    filter_line=_n_;
+    PROCESSED_DTTM=%sysfunc(datetime());
+  run;
+  %mp_lockanytable(LOCK,
+    lib=%scan(&filter_detail,1,.)
+    ,ds=%scan(&filter_detail,2,.)
+    ,ref=MP_FILTERSTORE update - &filter_hash
+    ,ctl_ds=&lock_table
+  )
+  proc append base=&filter_detail data=&ds2;
+  run;
+
+  %mp_lockanytable(UNLOCK,
+    lib=%scan(&filter_detail,1,.)
+    ,ds=%scan(&filter_detail,2,.)
+    ,ref=MP_FILTERSTORE detail update &filter_hash
+    ,ctl_ds=&lock_table
+  )
+
+  %if &syscc ne 0 %then %do;
+    data _null_;
+      set &ds2;
+      putlog (_all_)(=);
+    run;
+    %goto err;
+  %end;
 
 %end;
 
@@ -5395,6 +5411,7 @@ proc sort data=&filter_detail(where=(filter_hash="&filter_hash")) out=&outquery;
   by filter_line;
 run;
 
+%err:
 %mp_abort(iftrue= (&syscc ne 0)
   ,mac=mp_filterstore
   ,msg=%str(syscc=&syscc on macro exit)

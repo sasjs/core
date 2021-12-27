@@ -1,6 +1,6 @@
 {
   "name": "@sasjs/core",
-  "description": "Production Ready Macros for SAS Application Developers",
+  "description": "Macros for SAS Application Developers",
   "license": "MIT",
   "keywords": [
     "SAS",

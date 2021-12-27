@@ -1,5 +1,5 @@
 {
-  "$schema": "https://cli.sasjs.io/sasjsconfig-schema.json",
+  "$schema": "https://raw.githubusercontent.com/sasjs/utils/main/src/types/sasjsconfig-schema.json",
   "macroFolders": [
     "base",
     "fcmp",

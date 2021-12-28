@@ -5539,11 +5539,11 @@ filename &fref1 clear;
 
   @param ds The dataset from which to obtain column metadata
   @param outds= (work.cols) The output dataset to create. Sample data:
-  |NAME $|LENGTH 8|VARNUM 8|LABEL $|FORMAT $49|TYPE $1 |DDTYPE $|
-  |---|---|---|---|---|---|---|
-  |AIR|8|2|international airline travel (thousands)|8.|N|NUMERIC|
-  |DATE|8|1|DATE|MONYY.|N|DATE|
-  |REGION|3|3|REGION|$3.|C|CHARACTER|
+|NAME:$32.|LENGTH:best.|VARNUM:best.|LABEL:$256.|FMTNAME:$32.|FORMAT:$49.|TYPE:$1.|DDTYPE:$9.|
+|---|---|---|---|---|---|---|---|
+|`AIR `|`8 `|`2 `|`international airline travel (thousands) `|` `|`8. `|`N `|`NUMERIC `|
+|`DATE `|`8 `|`1 `|`DATE `|`MONYY `|`MONYY. `|`N `|`DATE `|
+|`REGION `|`3 `|`3 `|`REGION `|` `|`$3. `|`C `|`CHARACTER `|
 
   <h4> Related Macros </h4>
   @li mf_getvarlist.sas
@@ -5555,26 +5555,27 @@ filename &fref1 clear;
 **/
 
 %macro mp_getcols(ds, outds=work.cols);
-
+%local dropds;
 proc contents noprint data=&ds
   out=_data_ (keep=name type length label varnum format:);
 run;
-data &outds(keep=name type length varnum format label ddtype);
-  set &syslast(rename=(format=format2 type=type2));
+%let dropds=&syslast;
+data &outds(keep=name type length varnum format label ddtype fmtname);
+  set &dropds(rename=(format=fmtname type=type2));
   name=upcase(name);
   if type2=2 then do;
     length format $49.;
-    if format2='' then format=cats('$',length,'.');
-    else if formatl=0 then format=cats(format2,'.');
-    else format=cats(format2,formatl,'.');
+    if fmtname='' then format=cats('$',length,'.');
+    else if formatl=0 then format=cats(fmtname,'.');
+    else format=cats(fmtname,formatl,'.');
     type='C';
     ddtype='CHARACTER';
   end;
   else do;
-    if format2='' then format=cats(length,'.');
-    else if formatl=0 then format=cats(format2,'.');
-    else if formatd=0 then format=cats(format2,formatl,'.');
-    else format=cats(format2,formatl,'.',formatd);
+    if fmtname='' then format=cats(length,'.');
+    else if formatl=0 then format=cats(fmtname,'.');
+    else if formatd=0 then format=cats(fmtname,formatl,'.');
+    else format=cats(fmtname,formatl,'.',formatd);
     type='N';
     if format=:'DATETIME' or format=:'E8601DT' then ddtype='DATETIME';
     else if format=:'DATE' or format=:'DDMMYY' or format=:'MMDDYY'
@@ -5586,7 +5587,8 @@ data &outds(keep=name type length varnum format label ddtype);
   end;
   if label='' then label=name;
 run;
-
+proc sql;
+drop table &dropds;
 %mend mp_getcols;/**
   @file mp_getconstraints.sas
   @brief Get constraint details at column level

@@ -142,16 +142,16 @@ run;
 proc sql noprint;
 select distinct lib into: liblist separated by ' ' from &inds;
 %put &=liblist;
-%do i=1 %to %sysfunc(countw(&liblist));
+%if %length(&liblist)>0 %then %do i=1 %to %sysfunc(countw(&liblist));
   %let lib=%scan(&liblist,1);
   %let engine=%mf_getengine(&lib);
   %if &engine ne V9 and &engine ne BASE %then %do;
     %let msg=&lib has &engine engine - formats cannot be applied;
-    proc sql;
     insert into &outds set lib="&lib",ds="_all_",var="_all", msg="&msg" ;
     %if &errds=0 %then %put %str(ERR)OR: &msg;
   %end;
 %end;
+quit;
 
 %if %mf_nobs(&outds)>0 %then %return;
 

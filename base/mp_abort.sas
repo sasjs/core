@@ -110,8 +110,8 @@
     %if %symexist(SYSPRINTTOLOG) %then %let logloc=&SYSPRINTTOLOG;
     %else %let logloc=%qsysfunc(getoption(LOG));
     proc printto log=log;run;
+    %let logline=0;
     %if %length(&logloc)>0 %then %do;
-      %let logline=0;
       data _null_;
         infile &logloc lrecl=5000;
         input; putlog _infile_;
@@ -160,7 +160,10 @@
       file _webout mod lrecl=32000 encoding='utf-8';
       length msg $32767 ;
       sasdatetime=datetime();
-      msg=cats(symget('msg'),'\n\nLog Extract:\n',symget('logmsg'));
+      msg=symget('msg');
+    %if &logline>0 %then %do;
+      msg=cats(msg,'\n\nLog Extract:\n',symget('logmsg'));
+    %end;
       /* escape the quotes */
       msg=tranwrd(msg,'"','\"');
       /* ditch the CRLFs as chrome complains */

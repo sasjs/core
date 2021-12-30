@@ -34,6 +34,11 @@ data work.test;
   call symputx('dtval',dtval);
 run;
 
+%mp_assert(
+  iftrue=(&syscc=0),
+  desc=Checking for error condition,
+  outds=work.test_results
+)
 
 %mp_assert(
   iftrue=(&dtval=&compare),

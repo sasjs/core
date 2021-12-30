@@ -188,6 +188,13 @@ When contributing to this library, it is therefore important to ensure that all 
 
 - All macros should be compatible with SAS versions from support level B and above (so currently 9.2 and later). If an earlier version is not supported, then the macro should say as such in the header documentation, and exit gracefully (eg `%if %sysevalf(&sysver<9.3) %then %return`).
 
+## Breaking Changes
+
+We are currently on major release v3.  The following changes are planned when the next major (breaking) release becomes necessary:
+
+* Remove `dbg` parameter from mp_jsonout.sas (implement mdebug instead)
+* Remove `END_DTTM` and `START_DTTM` from mx_webout JSON
+
 ## Star Gazing
 
 If you find this library useful, please leave a [star](https://github.com/sasjs/core/stargazers) and help us grow our star graph!

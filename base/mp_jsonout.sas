@@ -31,22 +31,20 @@
   [sasjs adapter](https://github.com/sasjs/adapter).
   For more information see https://sasjs.io
 
-  @param action Valid values:
+  @param [in] action Valid values:
     @li OPEN - opens the JSON
     @li OBJ - sends a table with each row as an object
     @li ARR - sends a table with each row in an array
     @li CLOSE - closes the JSON
-
-  @param ds the dataset to send.  Must be a work table.
-  @param jref= the fileref to which to send the JSON
-  @param dslabel= the name to give the table in the exported JSON
-  @param fmt= Whether to keep or strip formats from the table
-  @param engine= Which engine to use to send the JSON, valid options are:
+  @param [in] ds The dataset to send.  Must be a work table.
+  @param [out] jref= (_webout) The fileref to which to send the JSON
+  @param [out] dslabel= The name to give the table in the exported JSON
+  @param [in] fmt= (Y) Whether to keep (Y) or strip (N) formats from the table
+  @param [in] engine= (DATASTEP) Which engine to use to send the JSON. Options:
     @li PROCJSON (default)
     @li DATASTEP (more reliable when data has non standard characters)
-
-  @param dbg= DEPRECATED - was used to conditionally add PRETTY to
-    proc json but this can cause line truncation in large files.
+  @param [in] missing= (NULL) Special numeric missing values can be sent as NULL
+    (eg `null`) or as STRING values (eg `".a"` or `".b"`)
 
   <h4> Related Macros <h4>
   @li mp_ds2fmtds.sas
@@ -57,9 +55,11 @@
 
 **/
 
-%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=DATASTEP,dbg=0
+%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=DATASTEP
+  ,dbg=0 /* DEPRECATED */
+  ,missing=NULL
 )/*/STORE SOURCE*/;
-%put output location=&jref;
+%put &sysmacroname: output location=&jref;
 %if &action=OPEN %then %do;
   options nobomfile;
   data _null_;file &jref encoding='utf-8' ;
@@ -72,10 +72,16 @@
     put ", ""%lowcase(%sysfunc(coalescec(&dslabel,&ds)))"":";
 
   %if &engine=PROCJSON %then %do;
+    %if &missing=STRING %then %do;
+      %put &sysmacroname: Special Missings are not supported in proc json.;
+      %put &sysmacroname: Switching to DATASTEP engine;
+      %goto datastep;
+    %end;
     data;run;%let tempds=&syslast;
     proc sql;drop table &tempds;
     data &tempds /view=&tempds;set &ds;
     %if &fmt=N %then format _numeric_ best32.;;
+    /* PRETTY is necessary to avoid line truncation in large files */
     proc json out=&jref pretty
         %if &action=ARR %then nokeys ;
         ;export &tempds / nosastags fmtnumeric;
@@ -83,6 +89,7 @@
     proc sql;drop view &tempds;
   %end;
   %else %if &engine=DATASTEP %then %do;
+    %datastep:
     %local cols i tempds;
     %let cols=0;
     %if %sysfunc(exist(&ds)) ne 1 & %sysfunc(exist(&ds,VIEW)) ne 1 %then %do;
@@ -163,7 +170,15 @@
     run;
 
     proc format; /* credit yabwon for special null removal */
-      value bart ._ - .z = null
+    value bart
+    %if &missing=NULL %then %do;
+      ._ - .z = null
+    %end;
+    %else %do;
+      ._ = [quote()]
+      . = null
+      .a - .z = [quote()]
+    %end;
       other = [best.];
 
     data;run; %let tempds=&syslast; /* temp table for spesh char management */

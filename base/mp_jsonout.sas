@@ -40,14 +40,11 @@
   @param [out] jref= (_webout) The fileref to which to send the JSON
   @param [out] dslabel= The name to give the table in the exported JSON
   @param [in] fmt= (Y) Whether to keep (Y) or strip (N) formats from the table
-  @param engine= (DATASTEP) Which engine to use to send the JSON. Options:
+  @param [in] engine= (DATASTEP) Which engine to use to send the JSON. Options:
     @li PROCJSON (default)
     @li DATASTEP (more reliable when data has non standard characters)
-  @param missing= (NULL) Special numeric missing values can be sent as NULL
+  @param [in] missing= (NULL) Special numeric missing values can be sent as NULL
     (eg `null`) or as STRING values (eg `".a"` or `".b"`)
-
-  @param dbg= DEPRECATED - was used to conditionally add PRETTY to
-    proc json but this can cause line truncation in large files.
 
   <h4> Related Macros <h4>
   @li mp_ds2fmtds.sas

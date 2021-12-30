@@ -54,9 +54,9 @@
     that location
   @param [in] adapter= the macro uses the sasjs adapter by default.  To use
     another adapter, add a (different) fileref here.
-  @param [in] contextname= Choose a specific context on which to run the Job.  Leave
-    blank to use the default context.  From Viya 3.5 it is possible to configure
-    a shared context - see
+  @param [in] contextname= Choose a specific context on which to run the Job.
+    Leave blank to use the default context.  From Viya 3.5 it is possible to
+    configure a shared context - see
 https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5pyhn1wg3ja0drdl6h.htm&docsetVersion=3.5&locale=en
   @param [in] mdebug=(0) set to 1 to enable DEBUG messages
 
@@ -237,7 +237,8 @@ data _null_;
   put "/* Created on %sysfunc(datetime(),datetime19.) by &sysuserid */";
 /* WEBOUT BEGIN */
   put ' ';
-  put '%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=DATASTEP,dbg=0 ';
+  put '%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=DATASTEP ';
+  put '  ,dbg=0 /* DEPRECATED */ ';
   put '  ,missing=NULL ';
   put ')/*/STORE SOURCE*/; ';
   put '%put &sysmacroname: output location=&jref; ';
@@ -645,8 +646,8 @@ data _null_;
   put '%global __program _program;';
   put '%let _program=%sysfunc(coalescec(&__program,&_program));';
   put ' ';
-  put '%macro webout(action,ds,dslabel=,fmt=);';
-  put '  %mv_webout(&action,ds=&ds,dslabel=&dslabel,fmt=&fmt)';
+  put '%macro webout(action,ds,dslabel=,fmt=,missing=NULL);';
+  put '  %mv_webout(&action,ds=&ds,dslabel=&dslabel,fmt=&fmt,missing=&missing)';
   put '%mend;';
 run;
 

@@ -89,7 +89,8 @@ data _null_;
   put "/* Created on %sysfunc(datetime(),datetime19.) by %mf_getuser() */";
 /* WEBOUT BEGIN */
   put ' ';
-  put '%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=DATASTEP,dbg=0 ';
+  put '%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=DATASTEP ';
+  put '  ,dbg=0 /* DEPRECATED */ ';
   put '  ,missing=NULL ';
   put ')/*/STORE SOURCE*/; ';
   put '%put &sysmacroname: output location=&jref; ';
@@ -434,8 +435,8 @@ data _null_;
   put ' ';
   put '%mend mf_getuser; ';
 /* WEBOUT END */
-  put '%macro webout(action,ds,dslabel=,fmt=);';
-  put '  %mm_webout(&action,ds=&ds,dslabel=&dslabel,fmt=&fmt)';
+  put '%macro webout(action,ds,dslabel=,fmt=,missing=NULL);';
+  put '  %mm_webout(&action,ds=&ds,dslabel=&dslabel,fmt=&fmt,missing=&missing)';
   put '%mend;';
 run;
 

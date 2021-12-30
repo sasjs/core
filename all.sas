@@ -7549,14 +7549,11 @@ filename &tempref clear;
   @param [out] jref= (_webout) The fileref to which to send the JSON
   @param [out] dslabel= The name to give the table in the exported JSON
   @param [in] fmt= (Y) Whether to keep (Y) or strip (N) formats from the table
-  @param engine= (DATASTEP) Which engine to use to send the JSON. Options:
+  @param [in] engine= (DATASTEP) Which engine to use to send the JSON. Options:
     @li PROCJSON (default)
     @li DATASTEP (more reliable when data has non standard characters)
-  @param missing= (NULL) Special numeric missing values can be sent as NULL
+  @param [in] missing= (NULL) Special numeric missing values can be sent as NULL
     (eg `null`) or as STRING values (eg `".a"` or `".b"`)
-
-  @param dbg= DEPRECATED - was used to conditionally add PRETTY to
-    proc json but this can cause line truncation in large files.
 
   <h4> Related Macros <h4>
   @li mp_ds2fmtds.sas
@@ -7567,7 +7564,8 @@ filename &tempref clear;
 
 **/
 
-%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=DATASTEP,dbg=0
+%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=DATASTEP
+  ,dbg=0 /* DEPRECATED */
   ,missing=NULL
 )/*/STORE SOURCE*/;
 %put &sysmacroname: output location=&jref;
@@ -12673,7 +12671,8 @@ data _null_;
   put "/* Created on %sysfunc(datetime(),datetime19.) by %mf_getuser() */";
 /* WEBOUT BEGIN */
   put ' ';
-  put '%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=DATASTEP,dbg=0 ';
+  put '%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=DATASTEP ';
+  put '  ,dbg=0 /* DEPRECATED */ ';
   put '  ,missing=NULL ';
   put ')/*/STORE SOURCE*/; ';
   put '%put &sysmacroname: output location=&jref; ';
@@ -13018,8 +13017,8 @@ data _null_;
   put ' ';
   put '%mend mf_getuser; ';
 /* WEBOUT END */
-  put '%macro webout(action,ds,dslabel=,fmt=);';
-  put '  %mm_webout(&action,ds=&ds,dslabel=&dslabel,fmt=&fmt)';
+  put '%macro webout(action,ds,dslabel=,fmt=,missing=NULL);';
+  put '  %mm_webout(&action,ds=&ds,dslabel=&dslabel,fmt=&fmt,missing=&missing)';
   put '%mend;';
 run;
 
@@ -17594,9 +17593,9 @@ run;
     that location
   @param [in] adapter= the macro uses the sasjs adapter by default.  To use
     another adapter, add a (different) fileref here.
-  @param [in] contextname= Choose a specific context on which to run the Job.  Leave
-    blank to use the default context.  From Viya 3.5 it is possible to configure
-    a shared context - see
+  @param [in] contextname= Choose a specific context on which to run the Job.
+    Leave blank to use the default context.  From Viya 3.5 it is possible to
+    configure a shared context - see
 https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5pyhn1wg3ja0drdl6h.htm&docsetVersion=3.5&locale=en
   @param [in] mdebug=(0) set to 1 to enable DEBUG messages
 
@@ -17777,7 +17776,8 @@ data _null_;
   put "/* Created on %sysfunc(datetime(),datetime19.) by &sysuserid */";
 /* WEBOUT BEGIN */
   put ' ';
-  put '%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=DATASTEP,dbg=0 ';
+  put '%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=DATASTEP ';
+  put '  ,dbg=0 /* DEPRECATED */ ';
   put '  ,missing=NULL ';
   put ')/*/STORE SOURCE*/; ';
   put '%put &sysmacroname: output location=&jref; ';
@@ -18185,8 +18185,8 @@ data _null_;
   put '%global __program _program;';
   put '%let _program=%sysfunc(coalescec(&__program,&_program));';
   put ' ';
-  put '%macro webout(action,ds,dslabel=,fmt=);';
-  put '  %mv_webout(&action,ds=&ds,dslabel=&dslabel,fmt=&fmt)';
+  put '%macro webout(action,ds,dslabel=,fmt=,missing=NULL);';
+  put '  %mv_webout(&action,ds=&ds,dslabel=&dslabel,fmt=&fmt,missing=&missing)';
   put '%mend;';
 run;
 

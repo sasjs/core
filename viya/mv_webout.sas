@@ -20,13 +20,15 @@
         %mv_webout(CLOSE)
 
 
-  @param action Either OPEN, ARR, OBJ or CLOSE
-  @param ds The dataset to send back to the frontend
-  @param _webout= fileref for returning the json
-  @param fref=(_mvwtemp) Temp fileref to which to write the output
-  @param dslabel= value to use instead of the real name for sending to JSON
-  @param fmt=(Y) change to N to strip formats from output
-  @param stream=(Y) Change to N if not streaming to _webout
+  @param [in] action Either OPEN, ARR, OBJ or CLOSE
+  @param [in] ds The dataset to send back to the frontend
+  @param [in] _webout= fileref for returning the json
+  @param [out] fref=(_mvwtemp) Temp fileref to which to write the output
+  @param [out] dslabel= value to use instead of table name for sending to JSON
+  @param [in] fmt=(Y) change to N to strip formats from output
+  @param [in] stream=(Y) Change to N if not streaming to _webout
+  @param [in] missing= (NULL) Special numeric missing values can be sent as NULL
+    (eg `null`) or as STRING values (eg `".a"` or `".b"`)
 
   <h4> SAS Macros </h4>
   @li mp_jsonout.sas
@@ -36,7 +38,7 @@
   @author Allan Bowe, source: https://github.com/sasjs/core
 
 **/
-%macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=Y,stream=Y);
+%macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=Y,stream=Y,missing=NULL);
 %global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name
   sasjs_tables SYS_JES_JOB_URI;
 %if %index("&_debug",log) %then %let _debug=131;
@@ -163,7 +165,7 @@
 %end;
 %else %if &action=ARR or &action=OBJ %then %do;
     %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt
-      ,jref=&fref,engine=DATASTEP,dbg=%str(&_debug)
+      ,jref=&fref,engine=DATASTEP,missing=&missing
     )
 %end;
 %else %if &action=CLOSE %then %do;

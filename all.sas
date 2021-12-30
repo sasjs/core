@@ -7540,19 +7540,20 @@ filename &tempref clear;
   [sasjs adapter](https://github.com/sasjs/adapter).
   For more information see https://sasjs.io
 
-  @param action Valid values:
+  @param [in] action Valid values:
     @li OPEN - opens the JSON
     @li OBJ - sends a table with each row as an object
     @li ARR - sends a table with each row in an array
     @li CLOSE - closes the JSON
-
-  @param ds the dataset to send.  Must be a work table.
-  @param jref= the fileref to which to send the JSON
-  @param dslabel= the name to give the table in the exported JSON
-  @param fmt= Whether to keep or strip formats from the table
-  @param engine= Which engine to use to send the JSON, valid options are:
+  @param [in] ds The dataset to send.  Must be a work table.
+  @param [out] jref= (_webout) The fileref to which to send the JSON
+  @param [out] dslabel= The name to give the table in the exported JSON
+  @param [in] fmt= (Y) Whether to keep (Y) or strip (N) formats from the table
+  @param engine= (DATASTEP) Which engine to use to send the JSON. Options:
     @li PROCJSON (default)
     @li DATASTEP (more reliable when data has non standard characters)
+  @param missing= (NULL) Special numeric missing values can be sent as NULL
+    (eg `null`) or as STRING values (eg `".a"` or `".b"`)
 
   @param dbg= DEPRECATED - was used to conditionally add PRETTY to
     proc json but this can cause line truncation in large files.
@@ -7567,8 +7568,9 @@ filename &tempref clear;
 **/
 
 %macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=DATASTEP,dbg=0
+  ,missing=NULL
 )/*/STORE SOURCE*/;
-%put output location=&jref;
+%put &sysmacroname: output location=&jref;
 %if &action=OPEN %then %do;
   options nobomfile;
   data _null_;file &jref encoding='utf-8' ;
@@ -7581,10 +7583,16 @@ filename &tempref clear;
     put ", ""%lowcase(%sysfunc(coalescec(&dslabel,&ds)))"":";
 
   %if &engine=PROCJSON %then %do;
+    %if &missing=STRING %then %do;
+      %put &sysmacroname: Special Missings are not supported in proc json.;
+      %put &sysmacroname: Switching to DATASTEP engine;
+      %goto datastep;
+    %end;
     data;run;%let tempds=&syslast;
     proc sql;drop table &tempds;
     data &tempds /view=&tempds;set &ds;
     %if &fmt=N %then format _numeric_ best32.;;
+    /* PRETTY is necessary to avoid line truncation in large files */
     proc json out=&jref pretty
         %if &action=ARR %then nokeys ;
         ;export &tempds / nosastags fmtnumeric;
@@ -7592,6 +7600,7 @@ filename &tempref clear;
     proc sql;drop view &tempds;
   %end;
   %else %if &engine=DATASTEP %then %do;
+    %datastep:
     %local cols i tempds;
     %let cols=0;
     %if %sysfunc(exist(&ds)) ne 1 & %sysfunc(exist(&ds,VIEW)) ne 1 %then %do;
@@ -7672,7 +7681,15 @@ filename &tempref clear;
     run;
 
     proc format; /* credit yabwon for special null removal */
-      value bart ._ - .z = null
+    value bart
+    %if &missing=NULL %then %do;
+      ._ - .z = null
+    %end;
+    %else %do;
+      ._ = [quote()]
+      . = null
+      .a - .z = [quote()]
+    %end;
       other = [best.];
 
     data;run; %let tempds=&syslast; /* temp table for spesh char management */
@@ -12657,8 +12674,9 @@ data _null_;
 /* WEBOUT BEGIN */
   put ' ';
   put '%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=DATASTEP,dbg=0 ';
+  put '  ,missing=NULL ';
   put ')/*/STORE SOURCE*/; ';
-  put '%put output location=&jref; ';
+  put '%put &sysmacroname: output location=&jref; ';
   put '%if &action=OPEN %then %do; ';
   put '  options nobomfile; ';
   put '  data _null_;file &jref encoding=''utf-8'' ; ';
@@ -12671,10 +12689,16 @@ data _null_;
   put '    put ", ""%lowcase(%sysfunc(coalescec(&dslabel,&ds)))"":"; ';
   put ' ';
   put '  %if &engine=PROCJSON %then %do; ';
+  put '    %if &missing=STRING %then %do; ';
+  put '      %put &sysmacroname: Special Missings are not supported in proc json.; ';
+  put '      %put &sysmacroname: Switching to DATASTEP engine; ';
+  put '      %goto datastep; ';
+  put '    %end; ';
   put '    data;run;%let tempds=&syslast; ';
   put '    proc sql;drop table &tempds; ';
   put '    data &tempds /view=&tempds;set &ds; ';
   put '    %if &fmt=N %then format _numeric_ best32.;; ';
+  put '    /* PRETTY is necessary to avoid line truncation in large files */ ';
   put '    proc json out=&jref pretty ';
   put '        %if &action=ARR %then nokeys ; ';
   put '        ;export &tempds / nosastags fmtnumeric; ';
@@ -12682,6 +12706,7 @@ data _null_;
   put '    proc sql;drop view &tempds; ';
   put '  %end; ';
   put '  %else %if &engine=DATASTEP %then %do; ';
+  put '    %datastep: ';
   put '    %local cols i tempds; ';
   put '    %let cols=0; ';
   put '    %if %sysfunc(exist(&ds)) ne 1 & %sysfunc(exist(&ds,VIEW)) ne 1 %then %do; ';
@@ -12762,7 +12787,15 @@ data _null_;
   put '    run; ';
   put ' ';
   put '    proc format; /* credit yabwon for special null removal */ ';
-  put '      value bart ._ - .z = null ';
+  put '    value bart ';
+  put '    %if &missing=NULL %then %do; ';
+  put '      ._ - .z = null ';
+  put '    %end; ';
+  put '    %else %do; ';
+  put '      ._ = [quote()] ';
+  put '      . = null ';
+  put '      .a - .z = [quote()] ';
+  put '    %end; ';
   put '      other = [best.]; ';
   put ' ';
   put '    data;run; %let tempds=&syslast; /* temp table for spesh char management */ ';
@@ -12830,7 +12863,7 @@ data _null_;
   put '  run; ';
   put '%end; ';
   put '%mend mp_jsonout; ';
-  put '%macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y); ';
+  put '%macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y,missing=NULL); ';
   put '%global _webin_file_count _webin_fileref1 _webin_name1 _program _debug ';
   put '  sasjs_tables; ';
   put '%local i tempds jsonengine; ';
@@ -12895,7 +12928,7 @@ data _null_;
   put ' ';
   put '%else %if &action=ARR or &action=OBJ %then %do; ';
   put '  %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt,jref=&fref ';
-  put '    ,engine=&jsonengine,dbg=%str(&_debug) ';
+  put '    ,engine=&jsonengine,missing=&missing ';
   put '  ) ';
   put '%end; ';
   put '%else %if &action=CLOSE %then %do; ';
@@ -16315,17 +16348,19 @@ run;
         %mm_webout(CLOSE)
 
 
-  @param action Either FETCH, OPEN, ARR, OBJ or CLOSE
-  @param ds The dataset to send back to the frontend
-  @param dslabel= value to use instead of the real name for sending to JSON
-  @param fmt=(Y) Set to N to send back unformatted values
-  @param fref=(_webout) The fileref to which to write the JSON
+  @param [in] action Either FETCH, OPEN, ARR, OBJ or CLOSE
+  @param [in] ds The dataset to send back to the frontend
+  @param [out] dslabel= Value to use instead of table name for sending to JSON
+  @param [in] fmt=(Y) Set to N to send back unformatted values
+  @param [out] fref= (_webout) The fileref to which to write the JSON
+  @param [in] missing= (NULL) Special numeric missing values can be sent as NULL
+    (eg `null`) or as STRING values (eg `".a"` or `".b"`)
 
   @version 9.3
   @author Allan Bowe
 
 **/
-%macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y);
+%macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y,missing=NULL);
 %global _webin_file_count _webin_fileref1 _webin_name1 _program _debug
   sasjs_tables;
 %local i tempds jsonengine;
@@ -16390,7 +16425,7 @@ run;
 
 %else %if &action=ARR or &action=OBJ %then %do;
   %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt,jref=&fref
-    ,engine=&jsonengine,dbg=%str(&_debug)
+    ,engine=&jsonengine,missing=&missing
   )
 %end;
 %else %if &action=CLOSE %then %do;
@@ -16614,11 +16649,13 @@ run;
         %ms_webout(CLOSE)
 
 
-  @param action Either FETCH, OPEN, ARR, OBJ or CLOSE
-  @param ds The dataset to send back to the frontend
-  @param dslabel= value to use instead of the real name for sending to JSON
-  @param fmt=(Y) Set to N to send back unformatted values
-  @param fref=(_webout) The fileref to which to write the JSON
+  @param [in] action Either FETCH, OPEN, ARR, OBJ or CLOSE
+  @param [in] ds The dataset to send back to the frontend
+  @param [out] dslabel= value to use instead of table name for sending to JSON
+  @param [in] fmt= (Y) Set to N to send back unformatted values
+  @param [out] fref= (_webout) The fileref to which to write the JSON
+  @param [in] missing= (NULL) Special numeric missing values can be sent as NULL
+    (eg `null`) or as STRING values (eg `".a"` or `".b"`)
 
   <h4> SAS Macros </h4>
   @li mp_jsonout.sas
@@ -16633,7 +16670,7 @@ run;
 
 **/
 
-%macro ms_webout(action,ds,dslabel=,fref=_webout,fmt=Y);
+%macro ms_webout(action,ds,dslabel=,fref=_webout,fmt=Y,missing=NULL);
 %global _webin_file_count _webin_fileref1 _webin_name1 _program _debug
   sasjs_tables;
 
@@ -16685,7 +16722,7 @@ run;
 
 %else %if &action=ARR or &action=OBJ %then %do;
   %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt,jref=&fref
-    ,engine=DATASTEP,dbg=%str(&_debug)
+    ,engine=DATASTEP,missing=&missing
   )
 %end;
 %else %if &action=CLOSE %then %do;
@@ -17741,8 +17778,9 @@ data _null_;
 /* WEBOUT BEGIN */
   put ' ';
   put '%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=DATASTEP,dbg=0 ';
+  put '  ,missing=NULL ';
   put ')/*/STORE SOURCE*/; ';
-  put '%put output location=&jref; ';
+  put '%put &sysmacroname: output location=&jref; ';
   put '%if &action=OPEN %then %do; ';
   put '  options nobomfile; ';
   put '  data _null_;file &jref encoding=''utf-8'' ; ';
@@ -17755,10 +17793,16 @@ data _null_;
   put '    put ", ""%lowcase(%sysfunc(coalescec(&dslabel,&ds)))"":"; ';
   put ' ';
   put '  %if &engine=PROCJSON %then %do; ';
+  put '    %if &missing=STRING %then %do; ';
+  put '      %put &sysmacroname: Special Missings are not supported in proc json.; ';
+  put '      %put &sysmacroname: Switching to DATASTEP engine; ';
+  put '      %goto datastep; ';
+  put '    %end; ';
   put '    data;run;%let tempds=&syslast; ';
   put '    proc sql;drop table &tempds; ';
   put '    data &tempds /view=&tempds;set &ds; ';
   put '    %if &fmt=N %then format _numeric_ best32.;; ';
+  put '    /* PRETTY is necessary to avoid line truncation in large files */ ';
   put '    proc json out=&jref pretty ';
   put '        %if &action=ARR %then nokeys ; ';
   put '        ;export &tempds / nosastags fmtnumeric; ';
@@ -17766,6 +17810,7 @@ data _null_;
   put '    proc sql;drop view &tempds; ';
   put '  %end; ';
   put '  %else %if &engine=DATASTEP %then %do; ';
+  put '    %datastep: ';
   put '    %local cols i tempds; ';
   put '    %let cols=0; ';
   put '    %if %sysfunc(exist(&ds)) ne 1 & %sysfunc(exist(&ds,VIEW)) ne 1 %then %do; ';
@@ -17846,7 +17891,15 @@ data _null_;
   put '    run; ';
   put ' ';
   put '    proc format; /* credit yabwon for special null removal */ ';
-  put '      value bart ._ - .z = null ';
+  put '    value bart ';
+  put '    %if &missing=NULL %then %do; ';
+  put '      ._ - .z = null ';
+  put '    %end; ';
+  put '    %else %do; ';
+  put '      ._ = [quote()] ';
+  put '      . = null ';
+  put '      .a - .z = [quote()] ';
+  put '    %end; ';
   put '      other = [best.]; ';
   put ' ';
   put '    data;run; %let tempds=&syslast; /* temp table for spesh char management */ ';
@@ -17914,7 +17967,7 @@ data _null_;
   put '  run; ';
   put '%end; ';
   put '%mend mp_jsonout; ';
-  put '%macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=Y,stream=Y); ';
+  put '%macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=Y,stream=Y,missing=NULL); ';
   put '%global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name ';
   put '  sasjs_tables SYS_JES_JOB_URI; ';
   put '%if %index("&_debug",log) %then %let _debug=131; ';
@@ -18041,7 +18094,7 @@ data _null_;
   put '%end; ';
   put '%else %if &action=ARR or &action=OBJ %then %do; ';
   put '    %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt ';
-  put '      ,jref=&fref,engine=DATASTEP,dbg=%str(&_debug) ';
+  put '      ,jref=&fref,engine=DATASTEP,missing=&missing ';
   put '    ) ';
   put '%end; ';
   put '%else %if &action=CLOSE %then %do; ';
@@ -21746,13 +21799,15 @@ filename &fref1 clear;
         %mv_webout(CLOSE)
 
 
-  @param action Either OPEN, ARR, OBJ or CLOSE
-  @param ds The dataset to send back to the frontend
-  @param _webout= fileref for returning the json
-  @param fref=(_mvwtemp) Temp fileref to which to write the output
-  @param dslabel= value to use instead of the real name for sending to JSON
-  @param fmt=(Y) change to N to strip formats from output
-  @param stream=(Y) Change to N if not streaming to _webout
+  @param [in] action Either OPEN, ARR, OBJ or CLOSE
+  @param [in] ds The dataset to send back to the frontend
+  @param [in] _webout= fileref for returning the json
+  @param [out] fref=(_mvwtemp) Temp fileref to which to write the output
+  @param [out] dslabel= value to use instead of table name for sending to JSON
+  @param [in] fmt=(Y) change to N to strip formats from output
+  @param [in] stream=(Y) Change to N if not streaming to _webout
+  @param [in] missing= (NULL) Special numeric missing values can be sent as NULL
+    (eg `null`) or as STRING values (eg `".a"` or `".b"`)
 
   <h4> SAS Macros </h4>
   @li mp_jsonout.sas
@@ -21762,7 +21817,7 @@ filename &fref1 clear;
   @author Allan Bowe, source: https://github.com/sasjs/core
 
 **/
-%macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=Y,stream=Y);
+%macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=Y,stream=Y,missing=NULL);
 %global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name
   sasjs_tables SYS_JES_JOB_URI;
 %if %index("&_debug",log) %then %let _debug=131;
@@ -21889,7 +21944,7 @@ filename &fref1 clear;
 %end;
 %else %if &action=ARR or &action=OBJ %then %do;
     %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt
-      ,jref=&fref,engine=DATASTEP,dbg=%str(&_debug)
+      ,jref=&fref,engine=DATASTEP,missing=&missing
     )
 %end;
 %else %if &action=CLOSE %then %do;

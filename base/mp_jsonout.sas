@@ -55,7 +55,8 @@
 
 **/
 
-%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=DATASTEP,dbg=0
+%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=DATASTEP
+  ,dbg=0 /* DEPRECATED */
   ,missing=NULL
 )/*/STORE SOURCE*/;
 %put &sysmacroname: output location=&jref;

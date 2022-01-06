@@ -12,6 +12,7 @@ Usage:
     %* parmcards lets us write to a text file from open code ;
     filename ft15f001 temp;
     parmcards4;
+        %webout(FETCH)
         %* do some sas, any inputs are now already WORK tables;
         data example1 example2;
           set sashelp.class;
@@ -24,11 +25,8 @@ Usage:
     ;;;;
     %mm_createwebservice(path=/Public/app/common,name=appInit,code=ft15f001)
 
-  <h4> SAS Macros </h4>
-  @li mm_createstp.sas
-  @li mf_getuser.sas
-  @li mm_createfolder.sas
-  @li mm_deletestp.sas
+  For more examples of using these web services with the SASjs Adapter, see:
+  https://github.com/sasjs/adapter#readme
 
   @param path= The full path (in SAS Metadata) where the service will be created
   @param name= Stored Process name.  Avoid spaces - testing has shown that
@@ -37,15 +35,21 @@ Usage:
   @param desc= The description of the service (optional)
   @param precode= Space separated list of filerefs, pointing to the code that
     needs to be attached to the beginning of the service (optional)
-  @param code=(ft15f001) Space seperated fileref(s) of the actual code to be
+  @param code= (ft15f001) Space seperated fileref(s) of the actual code to be
     added
-  @param server=(SASApp) The server which will run the STP.  Server name or uri
+  @param server= (SASApp) The server which will run the STP.  Server name or uri
     is fine.
-  @param mDebug=(0) set to 1 to show debug messages in the log
-  @param replace=(YES) select NO to avoid replacing an existing service in that
+  @param mDebug= (0) set to 1 to show debug messages in the log
+  @param replace= (YES) select NO to avoid replacing an existing service in that
     location
-  @param adapter=(sasjs) the macro uses the sasjs adapter by default.  To use
+  @param adapter= (sasjs) the macro uses the sasjs adapter by default.  To use
     another adapter, add a (different) fileref here.
+
+  <h4> SAS Macros </h4>
+  @li mm_createstp.sas
+  @li mf_getuser.sas
+  @li mm_createfolder.sas
+  @li mm_deletestp.sas
 
   @version 9.2
   @author Allan Bowe
@@ -89,11 +93,16 @@ data _null_;
   put "/* Created on %sysfunc(datetime(),datetime19.) by %mf_getuser() */";
 /* WEBOUT BEGIN */
   put ' ';
-  put '%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=DATASTEP ';
+  put '%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y ';
+  put '  ,engine=DATASTEP ';
   put '  ,dbg=0 /* DEPRECATED */ ';
   put '  ,missing=NULL ';
+  put '  ,showmeta=NO ';
   put ')/*/STORE SOURCE*/; ';
-  put '%put &sysmacroname: output location=&jref; ';
+  put '%local tempds colinfo fmtds i numcols; ';
+  put '%let numcols=0; ';
+  put '%let fmtds=_null_; ';
+  put ' ';
   put '%if &action=OPEN %then %do; ';
   put '  options nobomfile; ';
   put '  data _null_;file &jref encoding=''utf-8'' ; ';
@@ -102,17 +111,60 @@ data _null_;
   put '%end; ';
   put '%else %if (&action=ARR or &action=OBJ) %then %do; ';
   put '  options validvarname=upcase; ';
-  put '  data _null_;file &jref mod encoding=''utf-8'' ; ';
+  put '  data _null_; file &jref encoding=''utf-8'' mod; ';
   put '    put ", ""%lowcase(%sysfunc(coalescec(&dslabel,&ds)))"":"; ';
+  put ' ';
+  put '  /* grab col defs */ ';
+  put '  proc contents noprint data=&ds ';
+  put '    out=_data_(keep=name type length format formatl formatd varnum label); ';
+  put '  run; ';
+  put '  %let colinfo=%scan(&syslast,2,.); ';
+  put '  proc sort data=&colinfo; ';
+  put '    by varnum; ';
+  put '  run; ';
+  put '  /* move meta to mac vars */ ';
+  put '  data _null_; ';
+  put '    if _n_=1 then call symputx(''numcols'',nobs,''l''); ';
+  put '    set &colinfo end=last nobs=nobs; ';
+  put '    name=upcase(name); ';
+  put '    /* fix formats */ ';
+  put '    if type=2 or type=6 then do; ';
+  put '      typelong=''char''; ';
+  put '      length fmt $49.; ';
+  put '      if format='''' then fmt=cats(''$'',length,''.''); ';
+  put '      else if formatl=0 then fmt=cats(format,''.''); ';
+  put '      else fmt=cats(format,formatl,''.''); ';
+  put '      newlen=max(formatl,length); ';
+  put '    end; ';
+  put '    else do; ';
+  put '      typelong=''num''; ';
+  put '      if format='''' then fmt=''best.''; ';
+  put '      else if formatl=0 then fmt=cats(format,''.''); ';
+  put '      else if formatd=0 then fmt=cats(format,formatl,''.''); ';
+  put '      else fmt=cats(format,formatl,''.'',formatd); ';
+  put '      /* needs to be wide, for datetimes etc */ ';
+  put '      newlen=max(length,formatl,24); ';
+  put '    end; ';
+  put '    /* 32 char unique name */ ';
+  put '    newname=''sasjs''!!substr(cats(put(md5(name),$hex32.)),1,27); ';
+  put ' ';
+  put '    call symputx(cats(''name'',_n_),name,''l''); ';
+  put '    call symputx(cats(''newname'',_n_),newname,''l''); ';
+  put '    call symputx(cats(''len'',_n_),newlen,''l''); ';
+  put '    call symputx(cats(''fmt'',_n_),fmt,''l''); ';
+  put '    call symputx(cats(''type'',_n_),type,''l''); ';
+  put '    call symputx(cats(''typelong'',_n_),typelong,''l''); ';
+  put '    call symputx(cats(''label'',_n_),coalescec(label,name),''l''); ';
+  put '  run; ';
+  put ' ';
+  put '  %let tempds=%substr(_%sysfunc(compress(%sysfunc(uuidgen()),-)),1,32); ';
   put ' ';
   put '  %if &engine=PROCJSON %then %do; ';
   put '    %if &missing=STRING %then %do; ';
-  put '      %put &sysmacroname: Special Missings are not supported in proc json.; ';
+  put '      %put &sysmacroname: Special Missings not supported in proc json.; ';
   put '      %put &sysmacroname: Switching to DATASTEP engine; ';
   put '      %goto datastep; ';
   put '    %end; ';
-  put '    data;run;%let tempds=&syslast; ';
-  put '    proc sql;drop table &tempds; ';
   put '    data &tempds /view=&tempds;set &ds; ';
   put '    %if &fmt=N %then format _numeric_ best32.;; ';
   put '    /* PRETTY is necessary to avoid line truncation in large files */ ';
@@ -120,91 +172,35 @@ data _null_;
   put '        %if &action=ARR %then nokeys ; ';
   put '        ;export &tempds / nosastags fmtnumeric; ';
   put '    run; ';
-  put '    proc sql;drop view &tempds; ';
   put '  %end; ';
   put '  %else %if &engine=DATASTEP %then %do; ';
   put '    %datastep: ';
-  put '    %local cols i tempds; ';
-  put '    %let cols=0; ';
-  put '    %if %sysfunc(exist(&ds)) ne 1 & %sysfunc(exist(&ds,VIEW)) ne 1 %then %do; ';
+  put '    %if %sysfunc(exist(&ds)) ne 1 & %sysfunc(exist(&ds,VIEW)) ne 1 ';
+  put '    %then %do; ';
   put '      %put &sysmacroname:  &ds NOT FOUND!!!; ';
   put '      %return; ';
   put '    %end; ';
-  put '    %if &fmt=Y %then %do; ';
-  put '      %put converting every variable to a formatted variable; ';
-  put '      /* see mp_ds2fmtds.sas for source */ ';
-  put '      proc contents noprint data=&ds ';
-  put '        out=_data_(keep=name type length format formatl formatd varnum); ';
-  put '      run; ';
-  put '      proc sort; ';
-  put '        by varnum; ';
-  put '      run; ';
-  put '      %local fmtds; ';
-  put '      %let fmtds=%scan(&syslast,2,.); ';
-  put '      /* prepare formats and varnames */ ';
-  put '      data _null_; ';
-  put '        if _n_=1 then call symputx(''nobs'',nobs,''l''); ';
-  put '        set &fmtds end=last nobs=nobs; ';
-  put '        name=upcase(name); ';
-  put '        /* fix formats */ ';
-  put '        if type=2 or type=6 then do; ';
-  put '          length fmt $49.; ';
-  put '          if format='''' then fmt=cats(''$'',length,''.''); ';
-  put '          else if formatl=0 then fmt=cats(format,''.''); ';
-  put '          else fmt=cats(format,formatl,''.''); ';
-  put '          newlen=max(formatl,length); ';
-  put '        end; ';
-  put '        else do; ';
-  put '          if format='''' then fmt=''best.''; ';
-  put '          else if formatl=0 then fmt=cats(format,''.''); ';
-  put '          else if formatd=0 then fmt=cats(format,formatl,''.''); ';
-  put '          else fmt=cats(format,formatl,''.'',formatd); ';
-  put '          /* needs to be wide, for datetimes etc */ ';
-  put '          newlen=max(length,formatl,24); ';
-  put '        end; ';
-  put '        /* 32 char unique name */ ';
-  put '        newname=''sasjs''!!substr(cats(put(md5(name),$hex32.)),1,27); ';
   put ' ';
-  put '        call symputx(cats(''name'',_n_),name,''l''); ';
-  put '        call symputx(cats(''newname'',_n_),newname,''l''); ';
-  put '        call symputx(cats(''len'',_n_),newlen,''l''); ';
-  put '        call symputx(cats(''fmt'',_n_),fmt,''l''); ';
-  put '        call symputx(cats(''type'',_n_),type,''l''); ';
-  put '      run; ';
-  put '      data &fmtds; ';
+  put '    %if &fmt=Y %then %do; ';
+  put '      data _data_; ';
   put '        /* rename on entry */ ';
   put '        set &ds(rename=( ';
-  put '      %local i; ';
-  put '      %do i=1 %to &nobs; ';
+  put '      %do i=1 %to &numcols; ';
   put '        &&name&i=&&newname&i ';
   put '      %end; ';
   put '        )); ';
-  put '      %do i=1 %to &nobs; ';
+  put '      %do i=1 %to &numcols; ';
   put '        length &&name&i $&&len&i; ';
   put '        &&name&i=left(put(&&newname&i,&&fmt&i)); ';
   put '        drop &&newname&i; ';
   put '      %end; ';
   put '        if _error_ then call symputx(''syscc'',1012); ';
   put '      run; ';
-  put '      %let ds=&fmtds; ';
-  put '    %end; /* &fmt=Y */ ';
-  put '    data _null_;file &jref mod encoding=''utf-8'' ; ';
-  put '      put "["; call symputx(''cols'',0,''l''); ';
-  put '    proc sort ';
-  put '      data=sashelp.vcolumn(where=(libname=''WORK'' & memname="%upcase(&ds)")) ';
-  put '      out=_data_; ';
-  put '      by varnum; ';
-  put ' ';
-  put '    data _null_; ';
-  put '      set _last_ end=last; ';
-  put '      call symputx(cats(''name'',_n_),name,''l''); ';
-  put '      call symputx(cats(''type'',_n_),type,''l''); ';
-  put '      call symputx(cats(''len'',_n_),length,''l''); ';
-  put '      if last then call symputx(''cols'',_n_,''l''); ';
-  put '    run; ';
+  put '      %let fmtds=&syslast; ';
+  put '    %end; ';
   put ' ';
   put '    proc format; /* credit yabwon for special null removal */ ';
-  put '    value bart ';
+  put '    value bart (default=40) ';
   put '    %if &missing=NULL %then %do; ';
   put '      ._ - .z = null ';
   put '    %end; ';
@@ -215,20 +211,18 @@ data _null_;
   put '    %end; ';
   put '      other = [best.]; ';
   put ' ';
-  put '    data;run; %let tempds=&syslast; /* temp table for spesh char management */ ';
-  put '    proc sql; drop table &tempds; ';
   put '    data &tempds/view=&tempds; ';
   put '      attrib _all_ label=''''; ';
-  put '      %do i=1 %to &cols; ';
-  put '        %if &&type&i=char %then %do; ';
+  put '      %do i=1 %to &numcols; ';
+  put '        %if &&typelong&i=char %then %do; ';
   put '          length &&name&i $32767; ';
   put '          format &&name&i $32767.; ';
   put '        %end; ';
   put '      %end; ';
-  put '      set &ds; ';
+  put '      set &fmtds &ds; ';
   put '      format _numeric_ bart.; ';
-  put '    %do i=1 %to &cols; ';
-  put '      %if &&type&i=char %then %do; ';
+  put '    %do i=1 %to &numcols; ';
+  put '      %if &&typelong&i=char %then %do; ';
   put '        &&name&i=''"''!!trim(prxchange(''s/"/\"/'',-1, ';
   put '                    prxchange(''s/''!!''0A''x!!''/\n/'',-1, ';
   put '                    prxchange(''s/''!!''0D''x!!''/\r/'',-1, ';
@@ -238,49 +232,70 @@ data _null_;
   put '      %end; ';
   put '    %end; ';
   put '    run; ';
+  put ' ';
   put '    /* write to temp loc to avoid _webout truncation ';
   put '      - https://support.sas.com/kb/49/325.html */ ';
   put '    filename _sjs temp lrecl=131068 encoding=''utf-8''; ';
   put '    data _null_; file _sjs lrecl=131068 encoding=''utf-8'' mod ; ';
+  put '      if _n_=1 then put "["; ';
   put '      set &tempds; ';
   put '      if _n_>1 then put "," @; put ';
   put '      %if &action=ARR %then "[" ; %else "{" ; ';
-  put '      %do i=1 %to &cols; ';
+  put '      %do i=1 %to &numcols; ';
   put '        %if &i>1 %then  "," ; ';
   put '        %if &action=OBJ %then """&&name&i"":" ; ';
   put '        &&name&i ';
   put '      %end; ';
   put '      %if &action=ARR %then "]" ; %else "}" ; ; ';
-  put '    proc sql; ';
-  put '    drop view &tempds; ';
   put '    /* now write the long strings to _webout 1 byte at a time */ ';
   put '    data _null_; ';
   put '      length filein 8 fileid 8; ';
-  put '      filein = fopen("_sjs",''I'',1,''B''); ';
-  put '      fileid = fopen("&jref",''A'',1,''B''); ';
-  put '      rec = ''20''x; ';
+  put '      filein=fopen("_sjs",''I'',1,''B''); ';
+  put '      fileid=fopen("&jref",''A'',1,''B''); ';
+  put '      rec=''20''x; ';
   put '      do while(fread(filein)=0); ';
-  put '        rc = fget(filein,rec,1); ';
-  put '        rc = fput(fileid, rec); ';
-  put '        rc =fwrite(fileid); ';
+  put '        rc=fget(filein,rec,1); ';
+  put '        rc=fput(fileid, rec); ';
+  put '        rc=fwrite(fileid); ';
   put '      end; ';
-  put '      rc = fclose(filein); ';
-  put '      rc = fclose(fileid); ';
+  put '      /* close out the table */ ';
+  put '      rc=fput(fileid, "]"); ';
+  put '      rc=fwrite(fileid); ';
+  put '      rc=fclose(filein); ';
+  put '      rc=fclose(fileid); ';
   put '    run; ';
   put '    filename _sjs clear; ';
-  put '    data _null_; file &jref mod encoding=''utf-8'' ; ';
-  put '      put "]"; ';
+  put '  %end; ';
+  put ' ';
+  put '  proc sql; ';
+  put '  drop view &tempds; ';
+  put '  drop table &colinfo; ';
+  put ' ';
+  put '  %if &showmeta=YES %then %do; ';
+  put '    data _null_; file &jref encoding=''utf-8'' mod; ';
+  put '      put ", ""$%lowcase(%sysfunc(coalescec(&dslabel,&ds)))"":{""vars"":{"; ';
+  put '      do i=1 to &numcols; ';
+  put '        name=quote(trim(symget(cats(''name'',i)))); ';
+  put '        format=quote(trim(symget(cats(''fmt'',i)))); ';
+  put '        label=quote(trim(symget(cats(''label'',i)))); ';
+  put '        type=quote(trim(symget(cats(''typelong'',i)))); ';
+  put '        if i>1 then put "," @@; ';
+  put '        put name '':{"format":'' format '',"label":'' label '',"type":'' type ''}''; ';
+  put '      end; ';
+  put '      put ''}}''; ';
   put '    run; ';
   put '  %end; ';
   put '%end; ';
   put ' ';
   put '%else %if &action=CLOSE %then %do; ';
-  put '  data _null_;file &jref encoding=''utf-8'' mod ; ';
+  put '  data _null_; file &jref encoding=''utf-8'' mod ; ';
   put '    put "}"; ';
   put '  run; ';
   put '%end; ';
   put '%mend mp_jsonout; ';
-  put '%macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y,missing=NULL); ';
+  put '%macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y,missing=NULL ';
+  put '  ,showmeta=NO ';
+  put '); ';
   put '%global _webin_file_count _webin_fileref1 _webin_name1 _program _debug ';
   put '  sasjs_tables; ';
   put '%local i tempds jsonengine; ';
@@ -338,14 +353,15 @@ data _null_;
   put '  %if %str(&_debug) ge 131 %then %do; ';
   put '    put ''>>weboutBEGIN<<''; ';
   put '  %end; ';
-  put '    put ''{"START_DTTM" : "'' "%sysfunc(datetime(),datetime20.3)" ''"''; ';
+  put '    put ''{"SYSDATE" : "'' "&SYSDATE" ''"''; ';
+  put '    put '',"SYSTIME" : "'' "&SYSTIME" ''"''; ';
   put '  run; ';
   put ' ';
   put '%end; ';
   put ' ';
   put '%else %if &action=ARR or &action=OBJ %then %do; ';
   put '  %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt,jref=&fref ';
-  put '    ,engine=&jsonengine,missing=&missing ';
+  put '    ,engine=&jsonengine,missing=&missing,showmeta=&showmeta ';
   put '  ) ';
   put '%end; ';
   put '%else %if &action=CLOSE %then %do; ';
@@ -366,9 +382,6 @@ data _null_;
   put '      put ",""WORK"":{"; ';
   put '    %do i=1 %to &wtcnt; ';
   put '      %let wt=&&wt&i; ';
-  put '      proc contents noprint data=&wt ';
-  put '        out=_data_ (keep=name type length format:); ';
-  put '      run;%let tempds=%scan(&syslast,2,.); ';
   put '      data _null_; file &fref mod encoding=''utf-8''; ';
   put '        dsid=open("WORK.&wt",''is''); ';
   put '        nlobs=attrn(dsid,''NLOBS''); ';
@@ -378,8 +391,7 @@ data _null_;
   put '        put " ""&wt"" : {"; ';
   put '        put ''"nlobs":'' nlobs; ';
   put '        put '',"nvars":'' nvars; ';
-  put '      %mp_jsonout(OBJ,&tempds,jref=&fref,dslabel=colattrs,engine=&jsonengine) ';
-  put '      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,engine=&jsonengine) ';
+  put '      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=YES) ';
   put '      data _null_; file &fref mod encoding=''utf-8''; ';
   put '        put "}"; ';
   put '    %end; ';
@@ -408,6 +420,9 @@ data _null_;
   put '    put '',"SYSVLONG" : '' sysvlong; ';
   put '    put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" "; ';
   put '    put '',"END_DTTM" : "'' "%sysfunc(datetime(),datetime20.3)" ''" ''; ';
+  put '    memsize="%sysfunc(INPUTN(%sysfunc(getoption(memsize)), best.),sizekmg.)"; ';
+  put '    memsize=quote(cats(memsize)); ';
+  put '    put '',"MEMSIZE" : '' memsize; ';
   put '    put "}" @; ';
   put '  %if %str(&_debug) ge 131 %then %do; ';
   put '    put ''>>weboutEND<<''; ';

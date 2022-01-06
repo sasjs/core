@@ -30,12 +30,18 @@
   @param [out] fref= (_webout) The fileref to which to write the JSON
   @param [in] missing= (NULL) Special numeric missing values can be sent as NULL
     (eg `null`) or as STRING values (eg `".a"` or `".b"`)
+  @param [in] showmeta= (NO) Set to YES to output metadata alongside each table,
+    such as the column formats and types.  The metadata is contained inside an
+    object with the same name as the table but prefixed with a dollar sign - ie,
+    `,"$tablename":{"formats":{"col1":"$CHAR1"},"types":{"COL1":"C"}}`
 
   @version 9.3
   @author Allan Bowe
 
 **/
-%macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y,missing=NULL);
+%macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y,missing=NULL
+  ,showmeta=NO
+);
 %global _webin_file_count _webin_fileref1 _webin_name1 _program _debug
   sasjs_tables;
 %local i tempds jsonengine;
@@ -93,14 +99,15 @@
   %if %str(&_debug) ge 131 %then %do;
     put '>>weboutBEGIN<<';
   %end;
-    put '{"START_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '"';
+    put '{"SYSDATE" : "' "&SYSDATE" '"';
+    put ',"SYSTIME" : "' "&SYSTIME" '"';
   run;
 
 %end;
 
 %else %if &action=ARR or &action=OBJ %then %do;
   %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt,jref=&fref
-    ,engine=&jsonengine,missing=&missing
+    ,engine=&jsonengine,missing=&missing,showmeta=&showmeta
   )
 %end;
 %else %if &action=CLOSE %then %do;
@@ -121,9 +128,6 @@
       put ",""WORK"":{";
     %do i=1 %to &wtcnt;
       %let wt=&&wt&i;
-      proc contents noprint data=&wt
-        out=_data_ (keep=name type length format:);
-      run;%let tempds=%scan(&syslast,2,.);
       data _null_; file &fref mod encoding='utf-8';
         dsid=open("WORK.&wt",'is');
         nlobs=attrn(dsid,'NLOBS');
@@ -133,8 +137,7 @@
         put " ""&wt"" : {";
         put '"nlobs":' nlobs;
         put ',"nvars":' nvars;
-      %mp_jsonout(OBJ,&tempds,jref=&fref,dslabel=colattrs,engine=&jsonengine)
-      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,engine=&jsonengine)
+      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=YES)
       data _null_; file &fref mod encoding='utf-8';
         put "}";
     %end;
@@ -163,6 +166,9 @@
     put ',"SYSVLONG" : ' sysvlong;
     put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" ";
     put ',"END_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '" ';
+    memsize="%sysfunc(INPUTN(%sysfunc(getoption(memsize)), best.),sizekmg.)";
+    memsize=quote(cats(memsize));
+    put ',"MEMSIZE" : ' memsize;
     put "}" @;
   %if %str(&_debug) ge 131 %then %do;
     put '>>weboutEND<<';

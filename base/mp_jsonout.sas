@@ -45,6 +45,10 @@
     @li DATASTEP (more reliable when data has non standard characters)
   @param [in] missing= (NULL) Special numeric missing values can be sent as NULL
     (eg `null`) or as STRING values (eg `".a"` or `".b"`)
+  @param [in] showmeta= (NO) Set to YES to output metadata alongside each table,
+    such as the column formats and types.  The metadata is contained inside an
+    object with the same name as the table but prefixed with a dollar sign - ie,
+    `,"$tablename":{"formats":{"col1":"$CHAR1"},"types":{"COL1":"C"}}`
 
   <h4> Related Macros <h4>
   @li mp_ds2fmtds.sas
@@ -55,11 +59,16 @@
 
 **/
 
-%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y,engine=DATASTEP
+%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y
+  ,engine=DATASTEP
   ,dbg=0 /* DEPRECATED */
   ,missing=NULL
+  ,showmeta=NO
 )/*/STORE SOURCE*/;
-%put &sysmacroname: output location=&jref;
+%local tempds colinfo fmtds i numcols;
+%let numcols=0;
+%let fmtds=_null_;
+
 %if &action=OPEN %then %do;
   options nobomfile;
   data _null_;file &jref encoding='utf-8' ;
@@ -68,17 +77,60 @@
 %end;
 %else %if (&action=ARR or &action=OBJ) %then %do;
   options validvarname=upcase;
-  data _null_;file &jref mod encoding='utf-8' ;
+  data _null_; file &jref encoding='utf-8' mod;
     put ", ""%lowcase(%sysfunc(coalescec(&dslabel,&ds)))"":";
+
+  /* grab col defs */
+  proc contents noprint data=&ds
+    out=_data_(keep=name type length format formatl formatd varnum label);
+  run;
+  %let colinfo=%scan(&syslast,2,.);
+  proc sort data=&colinfo;
+    by varnum;
+  run;
+  /* move meta to mac vars */
+  data _null_;
+    if _n_=1 then call symputx('numcols',nobs,'l');
+    set &colinfo end=last nobs=nobs;
+    name=upcase(name);
+    /* fix formats */
+    if type=2 or type=6 then do;
+      typelong='char';
+      length fmt $49.;
+      if format='' then fmt=cats('$',length,'.');
+      else if formatl=0 then fmt=cats(format,'.');
+      else fmt=cats(format,formatl,'.');
+      newlen=max(formatl,length);
+    end;
+    else do;
+      typelong='num';
+      if format='' then fmt='best.';
+      else if formatl=0 then fmt=cats(format,'.');
+      else if formatd=0 then fmt=cats(format,formatl,'.');
+      else fmt=cats(format,formatl,'.',formatd);
+      /* needs to be wide, for datetimes etc */
+      newlen=max(length,formatl,24);
+    end;
+    /* 32 char unique name */
+    newname='sasjs'!!substr(cats(put(md5(name),$hex32.)),1,27);
+
+    call symputx(cats('name',_n_),name,'l');
+    call symputx(cats('newname',_n_),newname,'l');
+    call symputx(cats('len',_n_),newlen,'l');
+    call symputx(cats('fmt',_n_),fmt,'l');
+    call symputx(cats('type',_n_),type,'l');
+    call symputx(cats('typelong',_n_),typelong,'l');
+    call symputx(cats('label',_n_),coalescec(label,name),'l');
+  run;
+
+  %let tempds=%substr(_%sysfunc(compress(%sysfunc(uuidgen()),-)),1,32);
 
   %if &engine=PROCJSON %then %do;
     %if &missing=STRING %then %do;
-      %put &sysmacroname: Special Missings are not supported in proc json.;
+      %put &sysmacroname: Special Missings not supported in proc json.;
       %put &sysmacroname: Switching to DATASTEP engine;
       %goto datastep;
     %end;
-    data;run;%let tempds=&syslast;
-    proc sql;drop table &tempds;
     data &tempds /view=&tempds;set &ds;
     %if &fmt=N %then format _numeric_ best32.;;
     /* PRETTY is necessary to avoid line truncation in large files */
@@ -86,91 +138,35 @@
         %if &action=ARR %then nokeys ;
         ;export &tempds / nosastags fmtnumeric;
     run;
-    proc sql;drop view &tempds;
   %end;
   %else %if &engine=DATASTEP %then %do;
     %datastep:
-    %local cols i tempds;
-    %let cols=0;
-    %if %sysfunc(exist(&ds)) ne 1 & %sysfunc(exist(&ds,VIEW)) ne 1 %then %do;
+    %if %sysfunc(exist(&ds)) ne 1 & %sysfunc(exist(&ds,VIEW)) ne 1
+    %then %do;
       %put &sysmacroname:  &ds NOT FOUND!!!;
       %return;
     %end;
-    %if &fmt=Y %then %do;
-      %put converting every variable to a formatted variable;
-      /* see mp_ds2fmtds.sas for source */
-      proc contents noprint data=&ds
-        out=_data_(keep=name type length format formatl formatd varnum);
-      run;
-      proc sort;
-        by varnum;
-      run;
-      %local fmtds;
-      %let fmtds=%scan(&syslast,2,.);
-      /* prepare formats and varnames */
-      data _null_;
-        if _n_=1 then call symputx('nobs',nobs,'l');
-        set &fmtds end=last nobs=nobs;
-        name=upcase(name);
-        /* fix formats */
-        if type=2 or type=6 then do;
-          length fmt $49.;
-          if format='' then fmt=cats('$',length,'.');
-          else if formatl=0 then fmt=cats(format,'.');
-          else fmt=cats(format,formatl,'.');
-          newlen=max(formatl,length);
-        end;
-        else do;
-          if format='' then fmt='best.';
-          else if formatl=0 then fmt=cats(format,'.');
-          else if formatd=0 then fmt=cats(format,formatl,'.');
-          else fmt=cats(format,formatl,'.',formatd);
-          /* needs to be wide, for datetimes etc */
-          newlen=max(length,formatl,24);
-        end;
-        /* 32 char unique name */
-        newname='sasjs'!!substr(cats(put(md5(name),$hex32.)),1,27);
 
-        call symputx(cats('name',_n_),name,'l');
-        call symputx(cats('newname',_n_),newname,'l');
-        call symputx(cats('len',_n_),newlen,'l');
-        call symputx(cats('fmt',_n_),fmt,'l');
-        call symputx(cats('type',_n_),type,'l');
-      run;
-      data &fmtds;
+    %if &fmt=Y %then %do;
+      data _data_;
         /* rename on entry */
         set &ds(rename=(
-      %local i;
-      %do i=1 %to &nobs;
+      %do i=1 %to &numcols;
         &&name&i=&&newname&i
       %end;
         ));
-      %do i=1 %to &nobs;
+      %do i=1 %to &numcols;
         length &&name&i $&&len&i;
         &&name&i=left(put(&&newname&i,&&fmt&i));
         drop &&newname&i;
       %end;
         if _error_ then call symputx('syscc',1012);
       run;
-      %let ds=&fmtds;
-    %end; /* &fmt=Y */
-    data _null_;file &jref mod encoding='utf-8' ;
-      put "["; call symputx('cols',0,'l');
-    proc sort
-      data=sashelp.vcolumn(where=(libname='WORK' & memname="%upcase(&ds)"))
-      out=_data_;
-      by varnum;
-
-    data _null_;
-      set _last_ end=last;
-      call symputx(cats('name',_n_),name,'l');
-      call symputx(cats('type',_n_),type,'l');
-      call symputx(cats('len',_n_),length,'l');
-      if last then call symputx('cols',_n_,'l');
-    run;
+      %let fmtds=&syslast;
+    %end;
 
     proc format; /* credit yabwon for special null removal */
-    value bart
+    value bart (default=40)
     %if &missing=NULL %then %do;
       ._ - .z = null
     %end;
@@ -181,20 +177,18 @@
     %end;
       other = [best.];
 
-    data;run; %let tempds=&syslast; /* temp table for spesh char management */
-    proc sql; drop table &tempds;
     data &tempds/view=&tempds;
       attrib _all_ label='';
-      %do i=1 %to &cols;
-        %if &&type&i=char %then %do;
+      %do i=1 %to &numcols;
+        %if &&typelong&i=char %then %do;
           length &&name&i $32767;
           format &&name&i $32767.;
         %end;
       %end;
-      set &ds;
+      set &fmtds &ds;
       format _numeric_ bart.;
-    %do i=1 %to &cols;
-      %if &&type&i=char %then %do;
+    %do i=1 %to &numcols;
+      %if &&typelong&i=char %then %do;
         &&name&i='"'!!trim(prxchange('s/"/\"/',-1,
                     prxchange('s/'!!'0A'x!!'/\n/',-1,
                     prxchange('s/'!!'0D'x!!'/\r/',-1,
@@ -204,44 +198,63 @@
       %end;
     %end;
     run;
+
     /* write to temp loc to avoid _webout truncation
       - https://support.sas.com/kb/49/325.html */
     filename _sjs temp lrecl=131068 encoding='utf-8';
     data _null_; file _sjs lrecl=131068 encoding='utf-8' mod ;
+      if _n_=1 then put "[";
       set &tempds;
       if _n_>1 then put "," @; put
       %if &action=ARR %then "[" ; %else "{" ;
-      %do i=1 %to &cols;
+      %do i=1 %to &numcols;
         %if &i>1 %then  "," ;
         %if &action=OBJ %then """&&name&i"":" ;
         &&name&i
       %end;
       %if &action=ARR %then "]" ; %else "}" ; ;
-    proc sql;
-    drop view &tempds;
     /* now write the long strings to _webout 1 byte at a time */
     data _null_;
       length filein 8 fileid 8;
-      filein = fopen("_sjs",'I',1,'B');
-      fileid = fopen("&jref",'A',1,'B');
-      rec = '20'x;
+      filein=fopen("_sjs",'I',1,'B');
+      fileid=fopen("&jref",'A',1,'B');
+      rec='20'x;
       do while(fread(filein)=0);
-        rc = fget(filein,rec,1);
-        rc = fput(fileid, rec);
-        rc =fwrite(fileid);
+        rc=fget(filein,rec,1);
+        rc=fput(fileid, rec);
+        rc=fwrite(fileid);
       end;
-      rc = fclose(filein);
-      rc = fclose(fileid);
+      /* close out the table */
+      rc=fput(fileid, "]");
+      rc=fwrite(fileid);
+      rc=fclose(filein);
+      rc=fclose(fileid);
     run;
     filename _sjs clear;
-    data _null_; file &jref mod encoding='utf-8' ;
-      put "]";
+  %end;
+
+  proc sql;
+  drop view &tempds;
+  drop table &colinfo;
+
+  %if &showmeta=YES %then %do;
+    data _null_; file &jref encoding='utf-8' mod;
+      put ", ""$%lowcase(%sysfunc(coalescec(&dslabel,&ds)))"":{""vars"":{";
+      do i=1 to &numcols;
+        name=quote(trim(symget(cats('name',i))));
+        format=quote(trim(symget(cats('fmt',i))));
+        label=quote(trim(symget(cats('label',i))));
+        type=quote(trim(symget(cats('typelong',i))));
+        if i>1 then put "," @@;
+        put name ':{"format":' format ',"label":' label ',"type":' type '}';
+      end;
+      put '}}';
     run;
   %end;
 %end;
 
 %else %if &action=CLOSE %then %do;
-  data _null_;file &jref encoding='utf-8' mod ;
+  data _null_; file &jref encoding='utf-8' mod ;
     put "}";
   run;
 %end;

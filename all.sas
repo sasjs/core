@@ -7528,11 +7528,12 @@ filename &tempref clear;
 
         %mp_jsonout(OPEN,jref=tmp)
         %mp_jsonout(OBJ,class,jref=tmp)
+        %mp_jsonout(OBJ,class,dslabel=class2,jref=tmp,showmeta=YES)
         %mp_jsonout(CLOSE,jref=tmp)
 
         data _null_;
         infile tmp;
-        input;list;
+        input;putlog _infile_;
         run;
 
   If you are building web apps with SAS then you are strongly encouraged to use
@@ -7576,7 +7577,6 @@ filename &tempref clear;
 )/*/STORE SOURCE*/;
 %local tempds colinfo fmtds i numcols;
 %let numcols=0;
-%let fmtds=_null_;
 
 %if &action=OPEN %then %do;
   options nobomfile;
@@ -7694,7 +7694,12 @@ filename &tempref clear;
           format &&name&i $32767.;
         %end;
       %end;
-      set &fmtds &ds;
+      %if &fmt=Y %then %do;
+        set &fmtds;
+      %end;
+      %else %do;
+        set &ds;
+      %end;
       format _numeric_ bart.;
     %do i=1 %to &numcols;
       %if &&typelong&i=char %then %do;
@@ -12699,7 +12704,6 @@ data _null_;
   put ')/*/STORE SOURCE*/; ';
   put '%local tempds colinfo fmtds i numcols; ';
   put '%let numcols=0; ';
-  put '%let fmtds=_null_; ';
   put ' ';
   put '%if &action=OPEN %then %do; ';
   put '  options nobomfile; ';
@@ -12817,7 +12821,12 @@ data _null_;
   put '          format &&name&i $32767.; ';
   put '        %end; ';
   put '      %end; ';
-  put '      set &fmtds &ds; ';
+  put '      %if &fmt=Y %then %do; ';
+  put '        set &fmtds; ';
+  put '      %end; ';
+  put '      %else %do; ';
+  put '        set &ds; ';
+  put '      %end; ';
   put '      format _numeric_ bart.; ';
   put '    %do i=1 %to &numcols; ';
   put '      %if &&typelong&i=char %then %do; ';
@@ -17823,7 +17832,6 @@ data _null_;
   put ')/*/STORE SOURCE*/; ';
   put '%local tempds colinfo fmtds i numcols; ';
   put '%let numcols=0; ';
-  put '%let fmtds=_null_; ';
   put ' ';
   put '%if &action=OPEN %then %do; ';
   put '  options nobomfile; ';
@@ -17941,7 +17949,12 @@ data _null_;
   put '          format &&name&i $32767.; ';
   put '        %end; ';
   put '      %end; ';
-  put '      set &fmtds &ds; ';
+  put '      %if &fmt=Y %then %do; ';
+  put '        set &fmtds; ';
+  put '      %end; ';
+  put '      %else %do; ';
+  put '        set &ds; ';
+  put '      %end; ';
   put '      format _numeric_ bart.; ';
   put '    %do i=1 %to &numcols; ';
   put '      %if &&typelong&i=char %then %do; ';

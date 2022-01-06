@@ -19,11 +19,12 @@
 
         %mp_jsonout(OPEN,jref=tmp)
         %mp_jsonout(OBJ,class,jref=tmp)
+        %mp_jsonout(OBJ,class,dslabel=class2,jref=tmp,showmeta=YES)
         %mp_jsonout(CLOSE,jref=tmp)
 
         data _null_;
         infile tmp;
-        input;list;
+        input;putlog _infile_;
         run;
 
   If you are building web apps with SAS then you are strongly encouraged to use
@@ -67,7 +68,6 @@
 )/*/STORE SOURCE*/;
 %local tempds colinfo fmtds i numcols;
 %let numcols=0;
-%let fmtds=_null_;
 
 %if &action=OPEN %then %do;
   options nobomfile;
@@ -185,7 +185,12 @@
           format &&name&i $32767.;
         %end;
       %end;
-      set &fmtds &ds;
+      %if &fmt=Y %then %do;
+        set &fmtds;
+      %end;
+      %else %do;
+        set &ds;
+      %end;
       format _numeric_ bart.;
     %do i=1 %to &numcols;
       %if &&typelong&i=char %then %do;

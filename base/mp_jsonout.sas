@@ -117,6 +117,7 @@
     call symputx(cats('name',_n_),name,'l');
     call symputx(cats('newname',_n_),newname,'l');
     call symputx(cats('len',_n_),newlen,'l');
+    call symputx(cats('length',_n_),length,'l');
     call symputx(cats('fmt',_n_),fmt,'l');
     call symputx(cats('type',_n_),type,'l');
     call symputx(cats('typelong',_n_),typelong,'l');
@@ -249,9 +250,11 @@
         name=quote(trim(symget(cats('name',i))));
         format=quote(trim(symget(cats('fmt',i))));
         label=quote(trim(symget(cats('label',i))));
+        length=quote(trim(symget(cats('length',i))));
         type=quote(trim(symget(cats('typelong',i))));
         if i>1 then put "," @@;
-        put name ':{"format":' format ',"label":' label ',"type":' type '}';
+        put name ':{"format":' format ',"label":' label
+          ',"length":' length ',"type":' type '}';
       end;
       put '}}';
     run;

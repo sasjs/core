@@ -181,7 +181,7 @@
     data &tempds/view=&tempds;
       attrib _all_ label='';
       %do i=1 %to &numcols;
-        %if &&typelong&i=char %then %do;
+        %if &&typelong&i=char or &fmt=Y %then %do;
           length &&name&i $32767;
           format &&name&i $32767.;
         %end;
@@ -194,7 +194,7 @@
       %end;
       format _numeric_ bart.;
     %do i=1 %to &numcols;
-      %if &&typelong&i=char %then %do;
+      %if &&typelong&i=char or &fmt=Y %then %do;
         &&name&i='"'!!trim(prxchange('s/"/\"/',-1,
                     prxchange('s/'!!'0A'x!!'/\n/',-1,
                     prxchange('s/'!!'0D'x!!'/\r/',-1,

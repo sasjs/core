@@ -39,14 +39,6 @@
         ,Server=SASApp
         ,stptype=2)
 
-  <h4> SAS Macros </h4>
-  @li mf_nobs.sas
-  @li mf_verifymacvars.sas
-  @li mm_getdirectories.sas
-  @li mm_updatestpsourcecode.sas
-  @li mp_dropmembers.sas
-  @li mm_getservercontexts.sas
-
   @param stpname= Stored Process name.  Avoid spaces - testing has shown that
     the check to avoid creating multiple STPs in the same folder with the same
     name does not work when the name contains spaces.
@@ -76,6 +68,17 @@
     - prompturi
     - fileuri
     - texturi
+
+  <h4> SAS Macros </h4>
+  @li mf_nobs.sas
+  @li mf_verifymacvars.sas
+  @li mm_getdirectories.sas
+  @li mm_updatestpsourcecode.sas
+  @li mp_dropmembers.sas
+  @li mm_getservercontexts.sas
+
+  <h4> Related Macros </h4>
+  @li mm_createwebservice.sas
 
   @version 9.2
   @author Allan Bowe

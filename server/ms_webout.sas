@@ -27,6 +27,10 @@
   @param [out] fref= (_webout) The fileref to which to write the JSON
   @param [in] missing= (NULL) Special numeric missing values can be sent as NULL
     (eg `null`) or as STRING values (eg `".a"` or `".b"`)
+  @param [in] showmeta= (NO) Set to YES to output metadata alongside each table,
+    such as the column formats and types.  The metadata is contained inside an
+    object with the same name as the table but prefixed with a dollar sign - ie,
+    `,"$tablename":{"formats":{"col1":"$CHAR1"},"types":{"COL1":"C"}}`
 
   <h4> SAS Macros </h4>
   @li mp_jsonout.sas
@@ -41,7 +45,9 @@
 
 **/
 
-%macro ms_webout(action,ds,dslabel=,fref=_webout,fmt=Y,missing=NULL);
+%macro ms_webout(action,ds,dslabel=,fref=_webout,fmt=Y,missing=NULL
+  ,showmeta=NO
+);
 %global _webin_file_count _webin_fileref1 _webin_name1 _program _debug
   sasjs_tables;
 
@@ -93,7 +99,7 @@
 
 %else %if &action=ARR or &action=OBJ %then %do;
   %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt,jref=&fref
-    ,engine=DATASTEP,missing=&missing
+    ,engine=DATASTEP,missing=&missing,showmeta=&showmeta
   )
 %end;
 %else %if &action=CLOSE %then %do;
@@ -114,9 +120,6 @@
       put ",""WORK"":{";
     %do i=1 %to &wtcnt;
       %let wt=&&wt&i;
-      proc contents noprint data=&wt
-        out=_data_ (keep=name type length format:);
-      run;%let tempds=%scan(&syslast,2,.);
       data _null_; file &fref mod encoding='utf-8' termstr=lf;
         dsid=open("WORK.&wt",'is');
         nlobs=attrn(dsid,'NLOBS');
@@ -126,8 +129,7 @@
         put " ""&wt"" : {";
         put '"nlobs":' nlobs;
         put ',"nvars":' nvars;
-      %mp_jsonout(OBJ,&tempds,jref=&fref,dslabel=colattrs,engine=DATASTEP)
-      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,engine=DATASTEP)
+      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=YES)
       data _null_; file &fref mod encoding='utf-8' termstr=lf;
         put "}";
     %end;

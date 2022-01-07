@@ -15,7 +15,7 @@
     length is 200 characters.
   @param [out] ctl_ds= (0) The control table which controls the actual locking.
     Should already be assigned and available.  The definition is available by
-    running mp_coretable.sas as follows:  `mp_coretable(LOCKTABLE)`.
+    running mp_coretable.sas as follows:  `%mp_coretable(LOCKTABLE)`.
 
   @param [in] loops= (25) Number of times to check for a lock.
   @param [in] loop_secs= (1) Seconds to wait between each lock attempt

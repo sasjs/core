@@ -664,8 +664,10 @@ data _null_;
   put '%global __program _program;';
   put '%let _program=%sysfunc(coalescec(&__program,&_program));';
   put ' ';
-  put '%macro webout(action,ds,dslabel=,fmt=,missing=NULL);';
-  put '  %mv_webout(&action,ds=&ds,dslabel=&dslabel,fmt=&fmt,missing=&missing)';
+  put '%macro webout(action,ds,dslabel=,fmt=,missing=NULL,showmeta=NO);';
+  put '  %mv_webout(&action,ds=&ds,dslabel=&dslabel,fmt=&fmt,missing=&missing';
+  put '    ,showmeta=&showmeta';
+  put '  )';
   put '%mend;';
 run;
 

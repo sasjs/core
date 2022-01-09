@@ -457,8 +457,10 @@ data _null_;
   put ' ';
   put '%mend mf_getuser; ';
 /* WEBOUT END */
-  put '%macro webout(action,ds,dslabel=,fmt=,missing=NULL);';
-  put '  %mm_webout(&action,ds=&ds,dslabel=&dslabel,fmt=&fmt,missing=&missing)';
+  put '%macro webout(action,ds,dslabel=,fmt=,missing=NULL,showmeta=NO);';
+  put '  %mm_webout(&action,ds=&ds,dslabel=&dslabel,fmt=&fmt,missing=&missing';
+  put '    ,showmeta=&showmeta';
+  put '  )';
   put '%mend;';
 run;
 

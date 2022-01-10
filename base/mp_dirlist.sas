@@ -50,6 +50,9 @@
 
   <h4> SAS Macros </h4>
   @li mp_dropmembers.sas
+  @li mf_existds.sas
+  @li mf_getvarlist.sas
+  @li mf_wordsInStr1ButNotStr2.sas
 
   <h4> Related Macros </h4>
   @li mp_dirlist.test.sas
@@ -194,8 +197,46 @@ data &out_ds;
 run;
 
 /* update main table */
-proc append base=&outds data=&out_ds;
-run;
+
+/* The latest update may not match the base table as the addition of file
+attributes is conditional, so cannot always use proc append as warnings may be
+generated */
+
+%if %mf_existds(&outds) %then %do;
+
+  %if %length(%mf_getvarlist(&outds)) > %length(%mf_getvarlist(&out_ds)) %then
+    %do;
+    %let varstr1 = %mf_getvarlist(&outds);
+    %let varstr2 = %mf_getvarlist(&out_ds);
+  %end;
+
+  %else %do;
+    %let varstr1 = %mf_getvarlist(&out_ds);
+    %let varstr2 = %mf_getvarlist(&outds);
+  %end;
+
+  %if "%mf_wordsInStr1ButNotStr2(
+    Str1=&varstr1
+    ,Str2=&varstr2
+    )" ne "" %then %do;
+
+    data &outds;
+      set &outds &out_ds;
+    run;
+
+  %end;
+
+  %else %do;
+    proc append base=&outds data=&out_ds;
+    run;
+  %end;
+
+%end;
+
+%else %do;
+  proc append base=&outds data=&out_ds;
+  run;
+%end;
 
 /* recursive call */
 %if &maxdepth>&level or &maxdepth=MAX %then %do;

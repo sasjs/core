@@ -3863,8 +3863,7 @@ run;
   Credit for the rename approach:
   https://communities.sas.com/t5/SAS-Programming/SAS-Function-to-convert-string-to-Legal-SAS-Name/m-p/27375/highlight/true#M5003
 
-
-  usage:
+  Usage:
 
       %mp_dirlist(path=/some/location, outds=myTable, maxdepth=MAX)
 
@@ -3880,12 +3879,12 @@ run;
   X CMD) do please raise an issue!
 
 
-  @param [in] path= for which to return contents
-  @param [in] fref= Provide a DISK engine fileref as an alternative to PATH
+  @param [in] path= (%sysfunc(pathname(work))) Path for which to return contents
+  @param [in] fref= (0) Provide a DISK engine fileref as an alternative to PATH
   @param [in] maxdepth= (0) Set to a positive integer to indicate the level of
     subdirectory scan recursion - eg 3, to go `./3/levels/deep`.  For unlimited
     recursion, set to MAX.
-  @param [out] outds= the output dataset to create
+  @param [out] outds= (work.mp_dirlist) The output dataset to create
   @param [out] getattrs= (NO)  If getattrs=YES then the doptname / foptname
     functions are used to scan all properties - any characters that are not
     valid in a SAS name (v7) are simply stripped, and the table is transposed
@@ -3906,13 +3905,15 @@ run;
     - OS SPECIFIC variables, if <code>getattrs=</code> is used.
 
   <h4> SAS Macros </h4>
+  @li mf_existds.sas
+  @li mf_getvarlist.sas
+  @li mf_wordsinstr1butnotstr2.sas
   @li mp_dropmembers.sas
 
   <h4> Related Macros </h4>
   @li mp_dirlist.test.sas
 
   @version 9.2
-  @author Allan Bowe
 **/
 
 %macro mp_dirlist(path=%sysfunc(pathname(work))
@@ -4050,9 +4051,24 @@ data &out_ds;
   set &out_ds(where=(filepath ne ''));
 run;
 
-/* update main table */
-proc append base=&outds data=&out_ds;
-run;
+/**
+  * The above transpose can mean that some updates create additional columns.
+  * This necessitates the occasional use of datastep over proc append.
+  */
+%local basevars appvars usedatastep;
+%let basevars=%mf_getvarlist(&outds);
+%let appvars=%mf_getvarlist(&out_ds);
+%let newvars=%length(%mf_wordsinstr1butnotstr2(Str1=&appvars,Str2=&basevars));
+
+%if %mf_existds(&outds) and &newvars>0 %then %do;
+  data &outds;
+    set &outds &out_ds;
+  run;
+%end;
+%else %do;
+  proc append base=&outds data=&out_ds force nowarn;
+  run;
+%end;
 
 /* recursive call */
 %if &maxdepth>&level or &maxdepth=MAX %then %do;

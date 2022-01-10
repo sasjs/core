@@ -52,7 +52,7 @@
   @li mp_dropmembers.sas
   @li mf_existds.sas
   @li mf_getvarlist.sas
-  @li mf_wordsInStr1ButNotStr2.sas
+  @li mf_wordsinstr1butnotstr2.sas
 
   <h4> Related Macros </h4>
   @li mp_dirlist.test.sas
@@ -215,7 +215,7 @@ generated */
     %let varstr2 = %mf_getvarlist(&outds);
   %end;
 
-  %if "%mf_wordsInStr1ButNotStr2(
+  %if "%mf_wordsinstr1butnotstr2(
     Str1=&varstr1
     ,Str2=&varstr2
     )" ne "" %then %do;

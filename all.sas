@@ -4055,18 +4055,23 @@ run;
   * The above transpose can mean that some updates create additional columns.
   * This necessitates the occasional use of datastep over proc append.
   */
-%local basevars appvars usedatastep;
-%let basevars=%mf_getvarlist(&outds);
-%let appvars=%mf_getvarlist(&out_ds);
-%let newvars=%length(%mf_wordsinstr1butnotstr2(Str1=&appvars,Str2=&basevars));
-
-%if %mf_existds(&outds) and &newvars>0 %then %do;
-  data &outds;
-    set &outds &out_ds;
-  run;
+%if %mf_existds(&outds) %then %do;
+  %local basevars appvars newvars;
+  %let basevars=%mf_getvarlist(&outds);
+  %let appvars=%mf_getvarlist(&out_ds);
+  %let newvars=%length(%mf_wordsinstr1butnotstr2(Str1=&appvars,Str2=&basevars));
+  %if &newvars>0 %then %do;
+    data &outds;
+      set &outds &out_ds;
+    run;
+  %end;
+  %else %do;
+    proc append base=&outds data=&out_ds force nowarn;
+    run;
+  %end;
 %end;
 %else %do;
-  proc append base=&outds data=&out_ds force nowarn;
+  proc append base=&outds data=&out_ds;
   run;
 %end;
 

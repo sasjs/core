@@ -272,7 +272,7 @@ data;run;%let jdswaitfor=&syslast;
       data _null_;
         infile &jfref lrecl=32767;
         input;
-        jparams='jparams'!!left(symget('jid'));
+        jparams=cats('jparams',symget('jid'));
         call symputx(jparams,substr(_infile_,3,length(_infile_)-4));
       run;
       %local jobuid&jid;

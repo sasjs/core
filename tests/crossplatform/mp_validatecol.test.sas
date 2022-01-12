@@ -112,6 +112,9 @@ datalines4;
 0
 above are good
 the rest are bad
+0.1
+1.1
+-0.001
 %abort
 1&somethingverybad.
 &

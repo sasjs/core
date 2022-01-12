@@ -139,8 +139,9 @@ create table datalines1 as
 /**
   Due to long decimals cannot use best. format
   So - use bestd. format and then use character functions to strip trailing
-    zeros, if NOT an integer!!
-  resolved code = ifc(int(VARIABLE)=VARIABLE
+    zeros, if NOT an integer or missing!!  Cannot use int() as it upsets
+    note2err when there are missings.
+  resolved code = ifc( mod(coalesce(VARIABLE,0),1)=0
     ,put(VARIABLE,best32.)
     ,substrn(put(VARIABLE,bestd32.),1
     ,findc(put(VARIABLE,bestd32.),'0','TBK')));
@@ -151,7 +152,7 @@ data datalines_2;
   set datalines1 (where=(upcase(name) not in
     ('PROCESSED_DTTM','VALID_FROM_DTTM','VALID_TO_DTTM')));
   if type='num' then dataline=
-    cats('ifc(int(',name,')=',name,'
+    cats('ifc(mod(coalesce(',name,',0),1)=0
       ,put(',name,',best32.-l)
       ,substrn(put(',name,',bestd32.-l),1
       ,findc(put(',name,',bestd32.-l),"0","TBK")))');

@@ -158,7 +158,7 @@ run;
         lab=" label="!!cats("'",tranwrd(label,"'","''"),"'");
       if notnull='yes' then notnul=' not null';
       if type='char' then typ=cats('char(',length,')');
-      else if length ne 8 then typ='num length='!!left(length);
+      else if length ne 8 then typ='num length='!!cats(length);
       else typ='num';
       put name typ fmt notnul lab;
     run;

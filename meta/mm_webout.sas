@@ -122,7 +122,7 @@
       set &tempds;
       if not (upcase(name) =:"DATA"); /* ignore temp datasets */
       i+1;
-      call symputx('wt'!!left(i),name,'l');
+      call symputx(cats('wt',i),name,'l');
       call symputx('wtcnt',i,'l');
     data _null_; file &fref mod encoding='utf-8';
       put ",""WORK"":{";
@@ -166,6 +166,7 @@
     put ',"SYSVLONG" : ' sysvlong;
     put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" ";
     put ',"END_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '" ';
+    length memsize $32;
     memsize="%sysfunc(INPUTN(%sysfunc(getoption(memsize)), best.),sizekmg.)";
     memsize=quote(cats(memsize));
     put ',"MEMSIZE" : ' memsize;

@@ -76,7 +76,7 @@
     else do;
       x+1;
       call symputx(name,quote(cats(value)),'l');
-      call symputx('pval'!!left(x),name,'l');
+      call symputx(cats('pval',x),name,'l');
       call symputx('pcnt',x,'l');
     end;
   run;

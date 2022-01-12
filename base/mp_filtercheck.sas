@@ -109,7 +109,7 @@ data &outds;
     output;
   end;
   if mod(SUBGROUP_ID,1) ne 0 then do;
-    REASON_CD='SUBGROUP_ID should be integer, not '!!left(subgroup_id);
+    REASON_CD='SUBGROUP_ID should be integer, not '!!cats(subgroup_id);
     putlog REASON_CD= SUBGROUP_ID=;
     call symputx('reason_cd',reason_cd,'l');
     call symputx('nobs',_n_,'l');
@@ -127,7 +127,7 @@ data &outds;
   if OPERATOR_NM not in
   ('=','>','<','<=','>=','BETWEEN','IN','NOT IN','NE','CONTAINS')
   then do;
-    REASON_CD='Invalid OPERATOR_NM: '!!left(OPERATOR_NM);
+    REASON_CD='Invalid OPERATOR_NM: '!!cats(OPERATOR_NM);
     putlog REASON_CD= OPERATOR_NM=;
     call symputx('reason_cd',reason_cd,'l');
     call symputx('nobs',_n_,'l');

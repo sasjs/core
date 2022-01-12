@@ -4327,8 +4327,9 @@ create table datalines1 as
 /**
   Due to long decimals cannot use best. format
   So - use bestd. format and then use character functions to strip trailing
-    zeros, if NOT an integer!!
-  resolved code = ifc(int(VARIABLE)=VARIABLE
+    zeros, if NOT an integer or missing!!  Cannot use int() as it upsets
+    note2err when there are missings.
+  resolved code = ifc( mod(coalesce(VARIABLE,0),1)=0
     ,put(VARIABLE,best32.)
     ,substrn(put(VARIABLE,bestd32.),1
     ,findc(put(VARIABLE,bestd32.),'0','TBK')));
@@ -4339,7 +4340,7 @@ data datalines_2;
   set datalines1 (where=(upcase(name) not in
     ('PROCESSED_DTTM','VALID_FROM_DTTM','VALID_TO_DTTM')));
   if type='num' then dataline=
-    cats('ifc(int(',name,')=',name,'
+    cats('ifc(mod(coalesce(',name,',0),1)=0
       ,put(',name,',best32.-l)
       ,substrn(put(',name,',bestd32.-l),1
       ,findc(put(',name,',bestd32.-l),"0","TBK")))');
@@ -4513,7 +4514,7 @@ data _null_;
   dsid=open("&ds.","i");
   num=attrn(dsid,"nvars");
   do i=1 to num;
-    header = trim(left(coalescec(varlabel(dsid,i),varname(dsid,i))));
+    header = cats(coalescec(varlabel(dsid,i),varname(dsid,i)));
     put header @;
   end;
   rc=close(dsid);
@@ -5018,7 +5019,7 @@ data &outds;
     output;
   end;
   if mod(SUBGROUP_ID,1) ne 0 then do;
-    REASON_CD='SUBGROUP_ID should be integer, not '!!left(subgroup_id);
+    REASON_CD='SUBGROUP_ID should be integer, not '!!cats(subgroup_id);
     putlog REASON_CD= SUBGROUP_ID=;
     call symputx('reason_cd',reason_cd,'l');
     call symputx('nobs',_n_,'l');
@@ -5036,7 +5037,7 @@ data &outds;
   if OPERATOR_NM not in
   ('=','>','<','<=','>=','BETWEEN','IN','NOT IN','NE','CONTAINS')
   then do;
-    REASON_CD='Invalid OPERATOR_NM: '!!left(OPERATOR_NM);
+    REASON_CD='Invalid OPERATOR_NM: '!!cats(OPERATOR_NM);
     putlog REASON_CD= OPERATOR_NM=;
     call symputx('reason_cd',reason_cd,'l');
     call symputx('nobs',_n_,'l');
@@ -6202,7 +6203,7 @@ run;
         lab=" label="!!cats("'",tranwrd(label,"'","''"),"'");
       if notnull='yes' then notnul=' not null';
       if type='char' then typ=cats('char(',length,')');
-      else if length ne 8 then typ='num length='!!left(length);
+      else if length ne 8 then typ='num length='!!cats(length);
       else typ='num';
       put name typ fmt notnul lab;
     run;
@@ -7514,6 +7515,7 @@ filename &tempref clear;
     noautocorrect           /* disallow misspelled procedure names            */
     compress=CHAR           /* default is none so ensure we have something!   */
     datastmtchk=ALLKEYWORDS /* protection from overwriting input datasets     */
+    dsoptions=note2err      /* undocumented - convert bad NOTEs to ERRs       */
     %str(err)orcheck=STRICT /* catch errs in libname/filename statements      */
     fmterr                  /* ensure err when a format cannot be found       */
     mergenoby=%str(ERR)OR   /* throw err when a merge has no BY variables     */
@@ -9375,6 +9377,240 @@ run;
 
 %mend mp_sortinplace;/**
   @file
+  @brief Prepares an audit table to stack (re-apply) the changes
+  @details When a Base Table is refreshed, it can be helpful to have any
+    subsequent changes re-applied.  This is straightforward for rows that were
+    added or deleted, however rows that were modified should be populated
+    such that only the previously modified CELLS are applied (unmodified cells
+    should contain Base Table values)
+
+    The audit table is assumed to be structured as per the mp_storediffs.sas
+    macro.
+
+    Usage:
+
+        data work.orig work.deleted work.changed work.appended;
+          set sashelp.class;
+          if _n_=1 then do;
+            output work.orig work.deleted;
+          end;
+          else if _n_=2 then do;
+            output work.orig;
+            age=99;
+            output work.changed;
+          end;
+          else do;
+            name='Newbie';
+            output work.appended;
+            stop;
+          end;
+        run;
+
+        %let loadref=%sysfunc(ranuni(0));
+
+        %mp_storediffs(sashelp.class,work.orig,NAME
+          ,delds=work.deleted
+          ,modds=work.changed
+          ,appds=work.appended
+          ,outds=work.final
+          ,mdebug=1
+        )
+
+  @param [in] libds Target table against which the changes were applied
+  @param [in] origds Dataset with original (unchanged) records.  Can be empty if
+    only appending.
+  @param [in] key Space seperated list of key variables
+  @param [in] delds= (0) Dataset with deleted records
+  @param [in] appds= (0) Dataset with appended records
+  @param [in] modds= (0) Dataset with modified records
+  @param [out] outds= (work.mp_storediffs) Output table containing stored data.
+    Has the following format:
+
+        proc sql;
+        create table &outds(
+          load_ref char(36) label='unique load reference',
+          processed_dttm num format=E8601DT26.6 label='Processed at timestamp',
+          libref char(8) label='Library Reference (8 chars)',
+          dsn char(32) label='Dataset Name (32 chars)',
+          key_hash char(32) label=
+            'MD5 Hash of primary key values (pipe seperated)',
+          move_type char(1) label='Either (A)ppended, (D)eleted or (M)odified',
+          is_pk num label='Is Primary Key Field? (1/0)',
+          is_diff num label=
+            'Did value change? (1/0/-1).  Always -1 for appends and deletes.',
+          tgtvar_type char(1) label='Either (C)haracter or (N)umeric',
+          tgtvar_nm char(32) label='Target variable name (32 chars)',
+          oldval_num num format=best32. label='Old (numeric) value',
+          newval_num num format=best32. label='New (numeric) value',
+          oldval_char char(32765) label='Old (character) value',
+          newval_char char(32765) label='New (character) value',
+          constraint pk_mpe_audit
+            primary key(load_ref,libref,dsn,key_hash,tgtvar_nm)
+        );
+
+    @param [in] processed_dttm= (0) Provide a datetime constant in relation to
+      the actual load time.  If not provided, current timestamp is used.
+    @param [in] mdebug= set to 1 to enable DEBUG messages and preserve outputs
+    @param [out] loadref= (0) Provide a unique key to reference the load,
+      otherwise a UUID will be generated.
+
+  <h4> SAS Macros </h4>
+  @li mf_getquotedstr.sas
+  @li mf_getuniquename.sas
+  @li mf_getvarlist.sas
+
+  @version 9.2
+  @author Allan Bowe
+**/
+/** @cond */
+
+%macro mp_storediffs(libds
+  ,origds
+  ,key
+  ,delds=0
+  ,appds=0
+  ,modds=0
+  ,outds=work.mp_storediffs
+  ,loadref=0
+  ,processed_dttm=0
+  ,mdebug=0
+)/*/STORE SOURCE*/;
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
+/* set up unique and temporary vars */
+%local ds1 ds2 ds3 ds4 hashkey inds_auto inds_keep dslist;
+%let ds1=%upcase(work.%mf_getuniquename(prefix=mpsd_ds1));
+%let ds2=%upcase(work.%mf_getuniquename(prefix=mpsd_ds2));
+%let ds3=%upcase(work.%mf_getuniquename(prefix=mpsd_ds3));
+%let ds4=%upcase(work.%mf_getuniquename(prefix=mpsd_ds4));
+%let hashkey=%upcase(%mf_getuniquename(prefix=mpsd_hashkey));
+%let inds_auto=%upcase(%mf_getuniquename(prefix=mpsd_inds_auto));
+%let inds_keep=%upcase(%mf_getuniquename(prefix=mpsd_inds_keep));
+
+%let dslist=&origds;
+%if &delds ne 0 %then %do;
+  %let delds=%upcase(&delds);
+  %if %scan(&delds,-1,.)=&delds %then %let delds=WORK.&delds;
+  %let dslist=&dslist &delds;
+%end;
+%if &appds ne 0 %then %do;
+  %let appds=%upcase(&appds);
+  %if %scan(&appds,-1,.)=&appds %then %let appds=WORK.&appds;
+  %let dslist=&dslist &appds;
+%end;
+%if &modds ne 0 %then %do;
+  %let modds=%upcase(&modds);
+  %if %scan(&modds,-1,.)=&modds %then %let modds=WORK.&modds;
+  %let dslist=&dslist &modds;
+%end;
+
+%let origds=%upcase(&origds);
+%if %scan(&origds,-1,.)=&origds %then %let origds=WORK.&origds;
+
+%let key=%upcase(&key);
+
+/* hash the key and append all the tables (marking the source) */
+data &ds1;
+  set &dslist indsname=&inds_auto;
+  &hashkey=put(md5(catx('|',%mf_getquotedstr(&key,quote=N))),$hex32.);
+  &inds_keep=&inds_auto;
+proc sort;
+  by &inds_keep &hashkey;
+run;
+
+/* transpose numeric & char vars */
+proc transpose data=&ds1
+    out=&ds2(rename=(&hashkey=key_hash _name_=tgtvar_nm col1=newval_num));
+  by &inds_keep &hashkey;
+  var _numeric_;
+run;
+proc transpose data=&ds1
+    out=&ds3(
+      rename=(&hashkey=key_hash _name_=tgtvar_nm col1=newval_char)
+      where=(tgtvar_nm not in ("&hashkey","&inds_keep"))
+    );
+  by &inds_keep &hashkey;
+  var _character_;
+run;
+data &ds4;
+  length &inds_keep $41 tgtvar_nm $32;
+  set &ds2 &ds3 indsname=&inds_auto;
+
+  tgtvar_nm=upcase(tgtvar_nm);
+  if tgtvar_nm in (%upcase(%mf_getvarlist(&libds,dlm=%str(,),quote=DOUBLE)));
+
+  if &inds_auto="&ds2" then tgtvar_type='N';
+  else if &inds_auto="&ds3" then tgtvar_type='C';
+  else do;
+    putlog "%str(ERR)OR: unidentified vartype input!" &inds_auto;
+    call symputx('syscc',98);
+  end;
+
+  if &inds_keep="&appds" then move_type='A';
+  else if &inds_keep="&delds" then move_type='D';
+  else if &inds_keep="&modds" then move_type='M';
+  else if &inds_keep="&origds" then move_type='O';
+  else do;
+    putlog "%str(ERR)OR: unidentified movetype input!" &inds_keep;
+    call symputx('syscc',99);
+  end;
+  tgtvar_nm=upcase(tgtvar_nm);
+  if tgtvar_nm in (%mf_getquotedstr(&key)) then is_pk=1;
+  else is_pk=0;
+  drop &inds_keep;
+run;
+
+%if "&loadref"="0" %then %let loadref=%sysfunc(uuidgen());
+%if &processed_dttm=0 %then %let processed_dttm=%sysfunc(datetime());
+%let libds=%upcase(&libds);
+
+/* join orig vals for modified & deleted */
+proc sql;
+create table &outds as
+  select "&loadref" as load_ref length=36
+    ,&processed_dttm as processed_dttm format=E8601DT26.6
+    ,"%scan(&libds,1,.)" as libref length=8
+    ,"%scan(&libds,2,.)" as dsn length=32
+    ,b.key_hash length=32
+    ,b.move_type length=1
+    ,b.tgtvar_nm length=32
+    ,b.is_pk
+    ,case when b.move_type ne 'M' then -1
+      when a.newval_num=b.newval_num and a.newval_char=b.newval_char then 0
+      else 1
+      end as is_diff
+    ,b.tgtvar_type length=1
+    ,case when b.move_type='D' then b.newval_num
+      else a.newval_num
+      end as oldval_num format=best32.
+    ,case when b.move_type='D' then .
+      else b.newval_num
+      end as newval_num format=best32.
+    ,case when b.move_type='D' then b.newval_char
+      else a.newval_char
+      end as oldval_char length=32765
+    ,case when b.move_type='D' then ''
+      else b.newval_char
+      end as newval_char length=32765
+  from &ds4(where=(move_type='O')) as a
+  right join &ds4(where=(move_type ne 'O')) as b
+  on a.tgtvar_nm=b.tgtvar_nm
+  and a.key_hash=b.key_hash
+  order by move_type, key_hash,is_pk desc, tgtvar_nm;
+
+%if &mdebug=0 %then %do;
+  proc sql;
+  drop table &ds1, &ds2, &ds3, &ds4;
+%end;
+
+%mend mp_storediffs;
+/** @endcond *//**
+  @file
   @brief Converts deletes/changes/appends into a single audit table.
   @details When tracking changes to data over time, it can be helpful to have
     a single base table to track ALL modifications - enabling audit trail,
@@ -9988,7 +10224,7 @@ libname &lib clear;
     else do;
       x+1;
       call symputx(name,quote(cats(value)),'l');
-      call symputx('pval'!!left(x),name,'l');
+      call symputx(cats('pval',x),name,'l');
       call symputx('pcnt',x,'l');
     end;
   run;
@@ -10534,9 +10770,11 @@ alter table &libds modify &var char(&len);
 %let tempcol=%mf_getuniquename();
 
 %if &rule=ISINT %then %do;
-  &tempcol=input(&incol,?? best32.);
   &outcol=0;
-  if not missing(&tempcol) then if mod(&incol,1)=0 then &outcol=1;
+  if not missing(&incol) then do;
+    &tempcol=input(&incol,?? best32.);
+    if not missing(&tempcol) then if mod(&tempcol,1)=0 then &outcol=1;
+  end;
   drop &tempcol;
 %end;
 %else %if &rule=ISNUM %then %do;
@@ -13010,7 +13248,7 @@ data _null_;
   put '      set &tempds; ';
   put '      if not (upcase(name) =:"DATA"); /* ignore temp datasets */ ';
   put '      i+1; ';
-  put '      call symputx(''wt''!!left(i),name,''l''); ';
+  put '      call symputx(cats(''wt'',i),name,''l''); ';
   put '      call symputx(''wtcnt'',i,''l''); ';
   put '    data _null_; file &fref mod encoding=''utf-8''; ';
   put '      put ",""WORK"":{"; ';
@@ -13054,6 +13292,7 @@ data _null_;
   put '    put '',"SYSVLONG" : '' sysvlong; ';
   put '    put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" "; ';
   put '    put '',"END_DTTM" : "'' "%sysfunc(datetime(),datetime20.3)" ''" ''; ';
+  put '    length memsize $32; ';
   put '    memsize="%sysfunc(INPUTN(%sysfunc(getoption(memsize)), best.),sizekmg.)"; ';
   put '    memsize=quote(cats(memsize)); ';
   put '    put '',"MEMSIZE" : '' memsize; ';
@@ -14785,7 +15024,7 @@ data _null_;
   set repos;
   where repositorytype in('CUSTOM','FOUNDATION');
   keep id name ;
-  call symputx('repo'!!left(_n_),name,'l');
+  call symputx(cats('repo',_n_),name,'l');
   call symputx('repocnt',_n_,'l');
 run;
 
@@ -16515,7 +16754,7 @@ run;
       set &tempds;
       if not (upcase(name) =:"DATA"); /* ignore temp datasets */
       i+1;
-      call symputx('wt'!!left(i),name,'l');
+      call symputx(cats('wt',i),name,'l');
       call symputx('wtcnt',i,'l');
     data _null_; file &fref mod encoding='utf-8';
       put ",""WORK"":{";
@@ -16559,6 +16798,7 @@ run;
     put ',"SYSVLONG" : ' sysvlong;
     put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" ";
     put ',"END_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '" ';
+    length memsize $32;
     memsize="%sysfunc(INPUTN(%sysfunc(getoption(memsize)), best.),sizekmg.)";
     memsize=quote(cats(memsize));
     put ',"MEMSIZE" : ' memsize;
@@ -16817,7 +17057,7 @@ run;
       set &tempds;
       if not (upcase(name) =:"DATA"); /* ignore temp datasets */
       i+1;
-      call symputx('wt'!!left(i),name,'l');
+      call symputx(cats('wt',i),name,'l');
       call symputx('wtcnt',i,'l');
     data _null_; file &fref mod encoding='utf-8' termstr=lf;
       put ",""WORK"":{";
@@ -16868,6 +17108,7 @@ run;
     length autoexec $512;
     autoexec=quote(urlencode(trim(getoption('autoexec'))));
     put ',"AUTOEXEC" : ' autoexec;
+    length memsize $32;
     memsize="%sysfunc(INPUTN(%sysfunc(getoption(memsize)), best.),sizekmg.)";
     memsize=quote(cats(memsize));
     put ',"MEMSIZE" : ' memsize;
@@ -18205,8 +18446,8 @@ data _null_;
   put '      set &tempds; ';
   put '      if not (upcase(name) =:"DATA"); /* ignore temp datasets */ ';
   put '      i+1; ';
-  put '      call symputx(''wt''!!left(i),name); ';
-  put '      call symputx(''wtcnt'',i); ';
+  put '      call symputx(cats(''wt'',i),name,''l''); ';
+  put '      call symputx(''wtcnt'',i,''l''); ';
   put '    data _null_; file &fref mod; put ",""WORK"":{"; ';
   put '    %do i=1 %to &wtcnt; ';
   put '      %let wt=&&wt&i; ';
@@ -18244,6 +18485,7 @@ data _null_;
   put '    put '',"SYSVLONG" : '' sysvlong; ';
   put '    put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" "; ';
   put '    put '',"END_DTTM" : "'' "%sysfunc(datetime(),datetime20.3)" ''" ''; ';
+  put '    length memsize $32; ';
   put '    memsize="%sysfunc(INPUTN(%sysfunc(getoption(memsize)), best.),sizekmg.)"; ';
   put '    memsize=quote(cats(memsize)); ';
   put '    put '',"MEMSIZE" : '' memsize; ';
@@ -20943,7 +21185,7 @@ data;run;%let jdswaitfor=&syslast;
       data _null_;
         infile &jfref lrecl=32767;
         input;
-        jparams='jparams'!!left(symget('jid'));
+        jparams=cats('jparams',symget('jid'));
         call symputx(jparams,substr(_infile_,3,length(_infile_)-4));
       run;
       %local jobuid&jid;
@@ -22063,8 +22305,8 @@ filename &fref1 clear;
       set &tempds;
       if not (upcase(name) =:"DATA"); /* ignore temp datasets */
       i+1;
-      call symputx('wt'!!left(i),name);
-      call symputx('wtcnt',i);
+      call symputx(cats('wt',i),name,'l');
+      call symputx('wtcnt',i,'l');
     data _null_; file &fref mod; put ",""WORK"":{";
     %do i=1 %to &wtcnt;
       %let wt=&&wt&i;
@@ -22102,6 +22344,7 @@ filename &fref1 clear;
     put ',"SYSVLONG" : ' sysvlong;
     put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" ";
     put ',"END_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '" ';
+    length memsize $32;
     memsize="%sysfunc(INPUTN(%sysfunc(getoption(memsize)), best.),sizekmg.)";
     memsize=quote(cats(memsize));
     put ',"MEMSIZE" : ' memsize;

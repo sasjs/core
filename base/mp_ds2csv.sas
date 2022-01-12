@@ -41,7 +41,7 @@ data _null_;
   dsid=open("&ds.","i");
   num=attrn(dsid,"nvars");
   do i=1 to num;
-    header = trim(left(coalescec(varlabel(dsid,i),varname(dsid,i))));
+    header = cats(coalescec(varlabel(dsid,i),varname(dsid,i)));
     put header @;
   end;
   rc=close(dsid);

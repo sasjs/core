@@ -51,6 +51,7 @@
     noautocorrect           /* disallow misspelled procedure names            */
     compress=CHAR           /* default is none so ensure we have something!   */
     datastmtchk=ALLKEYWORDS /* protection from overwriting input datasets     */
+    dsoptions=note2err      /* undocumented - convert bad NOTEs to ERRs       */
     %str(err)orcheck=STRICT /* catch errs in libname/filename statements      */
     fmterr                  /* ensure err when a format cannot be found       */
     mergenoby=%str(ERR)OR   /* throw err when a merge has no BY variables     */

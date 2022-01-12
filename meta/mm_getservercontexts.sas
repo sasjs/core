@@ -35,7 +35,7 @@ data _null_;
   set repos;
   where repositorytype in('CUSTOM','FOUNDATION');
   keep id name ;
-  call symputx('repo'!!left(_n_),name,'l');
+  call symputx(cats('repo',_n_),name,'l');
   call symputx('repocnt',_n_,'l');
 run;
 

@@ -48,9 +48,11 @@
 %let tempcol=%mf_getuniquename();
 
 %if &rule=ISINT %then %do;
-  &tempcol=input(&incol,?? best32.);
   &outcol=0;
-  if not missing(&tempcol) then if mod(&incol,1)=0 then &outcol=1;
+  if not missing(&incol) then do;
+    &tempcol=input(&incol,?? best32.);
+    if not missing(&tempcol) then if mod(&tempcol,1)=0 then &outcol=1;
+  end;
   drop &tempcol;
 %end;
 %else %if &rule=ISNUM %then %do;

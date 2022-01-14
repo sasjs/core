@@ -49,10 +49,6 @@
   ,mac=&sysmacroname
   ,msg=%str(the BASEDS variable must be provided)
 )
-%mp_abort(iftrue=( &baseds=0 )
-  ,mac=&sysmacroname
-  ,msg=%str(the BASEDS variable must be provided)
-)
 %mp_abort(iftrue=( %mf_existds(&baseds)=0 )
   ,mac=&sysmacroname
   ,msg=%str(the BASEDS dataset (&baseds) needs to be assigned, and to exist)

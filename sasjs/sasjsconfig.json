@@ -14,7 +14,7 @@
     "displayMacroCore": false,
     "enableLineage": false,
     "doxyContent": {
-      "favIcon": "runningman.jpg",
+      "favIcon": "favicon.ico",
       "logo": "Macro_core_website_1.png",
       "readMe": "../../README.md"
     }

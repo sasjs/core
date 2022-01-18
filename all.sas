@@ -3006,6 +3006,124 @@ run;
 
 %mend mp_assertdsobs;/**
   @file
+  @brief Used to capture scope leakage of macro variables
+  @details A common 'difficult to detect' bug in macros is where a nested
+    macro over-writes variables in a higher level macro.
+
+    This assertion takes a snapshot of the macro variables before and after
+    a macro invocation.  This makes it easy to detect whether any macro
+    variables were modified or changed.
+
+    Currently, the macro only checks for global scope variables.  In the future
+    it may be extended to work at multiple levels of nesting.
+
+    If you would like this feature, feel free to contribute / raise an issue /
+    engage the SASjs team directly.
+
+  Example usage:
+
+      %mp_assertscope(SNAPSHOT)
+
+      %let oops=I did it again;
+
+      %mp_assertscope(COMPARE,
+        desc=Checking macro variables against previous snapshot
+      )
+
+  @param [in] action (SNAPSHOT) The action to take.  Valid values:
+    @li SNAPSHOT - take a copy of the current macro variables
+    @li COMPARE - compare the current macro variables against previous values
+  @param [in] scope= (GLOBAL) The scope of the variables to be checked.  This
+    corresponds to the values in the SCOPE column in `sashelp.vmacro`.
+  @param [in] desc= (Testing variable scope) The user provided test description
+  @param [in,out] scopeds= (work.mp_assertscope) The dataset to contain the
+    scope snapshot
+  @param [out] outds= (work.test_results) The output dataset to contain the
+  results.  If it does not exist, it will be created, with the following format:
+  |TEST_DESCRIPTION:$256|TEST_RESULT:$4|TEST_COMMENTS:$256|
+  |---|---|---|
+  |User Provided description|PASS|No out of scope variables created or modified|
+
+  <h4> Related Macros </h4>
+  @li mp_assert.sas
+  @li mp_assertcols.sas
+  @li mp_assertcolvals.sas
+  @li mp_assertdsobs.sas
+  @li mp_assertscope.test.sas
+
+  @version 9.2
+  @author Allan Bowe
+
+**/
+
+%macro mp_assertscope(action,
+  desc=0,
+  scope=GLOBAL,
+  scopeds=work.mp_assertscope,
+  outds=work.test_results
+)/*/STORE SOURCE*/;
+%local ds test_result test_comments del add mod;
+
+/* get current variables */
+%if &action=SNAPSHOT %then %do;
+  proc sql;
+  create table &scopeds as
+    select name,offset,value
+    from dictionary.macros
+    where scope="&scope"
+    order by name,offset;
+%end;
+%else %if &action=COMPARE %then %do;
+
+  proc sql;
+  create table _data_ as
+    select name,offset,value
+    from dictionary.macros
+    where scope="&scope"
+    order by name,offset;
+
+  %let ds=&syslast;
+
+  proc compare base=&scopeds compare=&ds;
+  run;
+
+  %if &sysinfo=0 %then %do;
+    %let test_result=PASS;
+    %let test_comments=&scope Variables Unmodified;
+  %end;
+  %else %do;
+    proc sql noprint undo_policy=none;
+    select distinct name into: del separated by ' '  from &scopeds
+      where name not in (select name from &ds);
+    select distinct name into: add separated by ' '  from &ds
+      where name not in (select name from &scopeds);
+    select distinct a.name into: mod separated by ' '
+      from &scopeds a
+      inner join &ds b
+      on a.name=b.name
+        and a.offset=b.offset
+      where a.value ne b.value;
+    %let test_result=FAIL;
+    %let test_comments=%str(Mod:(&mod) Add:(&add) Del:(&del));
+  %end;
+
+
+  data ;
+    length test_description $256 test_result $4 test_comments $256;
+    test_description=symget('desc');
+    test_comments=symget('test_comments');
+    test_result=symget('test_result');
+  run;
+
+  %let ds=&syslast;
+  proc append base=&outds data=&ds;
+  run;
+  proc sql;
+  drop table &ds;
+%end;
+
+%mend mp_assertscope;/**
+  @file
   @brief Convert a file to/from base64 format
   @details Creates a new version of a file either encoded or decoded using
   Base64.  Inspired by this post by Michael Dixon:
@@ -9376,240 +9494,6 @@ run;
 
 
 %mend mp_sortinplace;/**
-  @file
-  @brief Prepares an audit table to stack (re-apply) the changes
-  @details When a Base Table is refreshed, it can be helpful to have any
-    subsequent changes re-applied.  This is straightforward for rows that were
-    added or deleted, however rows that were modified should be populated
-    such that only the previously modified CELLS are applied (unmodified cells
-    should contain Base Table values)
-
-    The audit table is assumed to be structured as per the mp_storediffs.sas
-    macro.
-
-    Usage:
-
-        data work.orig work.deleted work.changed work.appended;
-          set sashelp.class;
-          if _n_=1 then do;
-            output work.orig work.deleted;
-          end;
-          else if _n_=2 then do;
-            output work.orig;
-            age=99;
-            output work.changed;
-          end;
-          else do;
-            name='Newbie';
-            output work.appended;
-            stop;
-          end;
-        run;
-
-        %let loadref=%sysfunc(ranuni(0));
-
-        %mp_storediffs(sashelp.class,work.orig,NAME
-          ,delds=work.deleted
-          ,modds=work.changed
-          ,appds=work.appended
-          ,outds=work.final
-          ,mdebug=1
-        )
-
-  @param [in] libds Target table against which the changes were applied
-  @param [in] origds Dataset with original (unchanged) records.  Can be empty if
-    only appending.
-  @param [in] key Space seperated list of key variables
-  @param [in] delds= (0) Dataset with deleted records
-  @param [in] appds= (0) Dataset with appended records
-  @param [in] modds= (0) Dataset with modified records
-  @param [out] outds= (work.mp_storediffs) Output table containing stored data.
-    Has the following format:
-
-        proc sql;
-        create table &outds(
-          load_ref char(36) label='unique load reference',
-          processed_dttm num format=E8601DT26.6 label='Processed at timestamp',
-          libref char(8) label='Library Reference (8 chars)',
-          dsn char(32) label='Dataset Name (32 chars)',
-          key_hash char(32) label=
-            'MD5 Hash of primary key values (pipe seperated)',
-          move_type char(1) label='Either (A)ppended, (D)eleted or (M)odified',
-          is_pk num label='Is Primary Key Field? (1/0)',
-          is_diff num label=
-            'Did value change? (1/0/-1).  Always -1 for appends and deletes.',
-          tgtvar_type char(1) label='Either (C)haracter or (N)umeric',
-          tgtvar_nm char(32) label='Target variable name (32 chars)',
-          oldval_num num format=best32. label='Old (numeric) value',
-          newval_num num format=best32. label='New (numeric) value',
-          oldval_char char(32765) label='Old (character) value',
-          newval_char char(32765) label='New (character) value',
-          constraint pk_mpe_audit
-            primary key(load_ref,libref,dsn,key_hash,tgtvar_nm)
-        );
-
-    @param [in] processed_dttm= (0) Provide a datetime constant in relation to
-      the actual load time.  If not provided, current timestamp is used.
-    @param [in] mdebug= set to 1 to enable DEBUG messages and preserve outputs
-    @param [out] loadref= (0) Provide a unique key to reference the load,
-      otherwise a UUID will be generated.
-
-  <h4> SAS Macros </h4>
-  @li mf_getquotedstr.sas
-  @li mf_getuniquename.sas
-  @li mf_getvarlist.sas
-
-  @version 9.2
-  @author Allan Bowe
-**/
-/** @cond */
-
-%macro mp_storediffs(libds
-  ,origds
-  ,key
-  ,delds=0
-  ,appds=0
-  ,modds=0
-  ,outds=work.mp_storediffs
-  ,loadref=0
-  ,processed_dttm=0
-  ,mdebug=0
-)/*/STORE SOURCE*/;
-%local dbg;
-%if &mdebug=1 %then %do;
-  %put &sysmacroname entry vars:;
-  %put _local_;
-%end;
-%else %let dbg=*;
-
-/* set up unique and temporary vars */
-%local ds1 ds2 ds3 ds4 hashkey inds_auto inds_keep dslist;
-%let ds1=%upcase(work.%mf_getuniquename(prefix=mpsd_ds1));
-%let ds2=%upcase(work.%mf_getuniquename(prefix=mpsd_ds2));
-%let ds3=%upcase(work.%mf_getuniquename(prefix=mpsd_ds3));
-%let ds4=%upcase(work.%mf_getuniquename(prefix=mpsd_ds4));
-%let hashkey=%upcase(%mf_getuniquename(prefix=mpsd_hashkey));
-%let inds_auto=%upcase(%mf_getuniquename(prefix=mpsd_inds_auto));
-%let inds_keep=%upcase(%mf_getuniquename(prefix=mpsd_inds_keep));
-
-%let dslist=&origds;
-%if &delds ne 0 %then %do;
-  %let delds=%upcase(&delds);
-  %if %scan(&delds,-1,.)=&delds %then %let delds=WORK.&delds;
-  %let dslist=&dslist &delds;
-%end;
-%if &appds ne 0 %then %do;
-  %let appds=%upcase(&appds);
-  %if %scan(&appds,-1,.)=&appds %then %let appds=WORK.&appds;
-  %let dslist=&dslist &appds;
-%end;
-%if &modds ne 0 %then %do;
-  %let modds=%upcase(&modds);
-  %if %scan(&modds,-1,.)=&modds %then %let modds=WORK.&modds;
-  %let dslist=&dslist &modds;
-%end;
-
-%let origds=%upcase(&origds);
-%if %scan(&origds,-1,.)=&origds %then %let origds=WORK.&origds;
-
-%let key=%upcase(&key);
-
-/* hash the key and append all the tables (marking the source) */
-data &ds1;
-  set &dslist indsname=&inds_auto;
-  &hashkey=put(md5(catx('|',%mf_getquotedstr(&key,quote=N))),$hex32.);
-  &inds_keep=&inds_auto;
-proc sort;
-  by &inds_keep &hashkey;
-run;
-
-/* transpose numeric & char vars */
-proc transpose data=&ds1
-    out=&ds2(rename=(&hashkey=key_hash _name_=tgtvar_nm col1=newval_num));
-  by &inds_keep &hashkey;
-  var _numeric_;
-run;
-proc transpose data=&ds1
-    out=&ds3(
-      rename=(&hashkey=key_hash _name_=tgtvar_nm col1=newval_char)
-      where=(tgtvar_nm not in ("&hashkey","&inds_keep"))
-    );
-  by &inds_keep &hashkey;
-  var _character_;
-run;
-data &ds4;
-  length &inds_keep $41 tgtvar_nm $32;
-  set &ds2 &ds3 indsname=&inds_auto;
-
-  tgtvar_nm=upcase(tgtvar_nm);
-  if tgtvar_nm in (%upcase(%mf_getvarlist(&libds,dlm=%str(,),quote=DOUBLE)));
-
-  if &inds_auto="&ds2" then tgtvar_type='N';
-  else if &inds_auto="&ds3" then tgtvar_type='C';
-  else do;
-    putlog "%str(ERR)OR: unidentified vartype input!" &inds_auto;
-    call symputx('syscc',98);
-  end;
-
-  if &inds_keep="&appds" then move_type='A';
-  else if &inds_keep="&delds" then move_type='D';
-  else if &inds_keep="&modds" then move_type='M';
-  else if &inds_keep="&origds" then move_type='O';
-  else do;
-    putlog "%str(ERR)OR: unidentified movetype input!" &inds_keep;
-    call symputx('syscc',99);
-  end;
-  tgtvar_nm=upcase(tgtvar_nm);
-  if tgtvar_nm in (%mf_getquotedstr(&key)) then is_pk=1;
-  else is_pk=0;
-  drop &inds_keep;
-run;
-
-%if "&loadref"="0" %then %let loadref=%sysfunc(uuidgen());
-%if &processed_dttm=0 %then %let processed_dttm=%sysfunc(datetime());
-%let libds=%upcase(&libds);
-
-/* join orig vals for modified & deleted */
-proc sql;
-create table &outds as
-  select "&loadref" as load_ref length=36
-    ,&processed_dttm as processed_dttm format=E8601DT26.6
-    ,"%scan(&libds,1,.)" as libref length=8
-    ,"%scan(&libds,2,.)" as dsn length=32
-    ,b.key_hash length=32
-    ,b.move_type length=1
-    ,b.tgtvar_nm length=32
-    ,b.is_pk
-    ,case when b.move_type ne 'M' then -1
-      when a.newval_num=b.newval_num and a.newval_char=b.newval_char then 0
-      else 1
-      end as is_diff
-    ,b.tgtvar_type length=1
-    ,case when b.move_type='D' then b.newval_num
-      else a.newval_num
-      end as oldval_num format=best32.
-    ,case when b.move_type='D' then .
-      else b.newval_num
-      end as newval_num format=best32.
-    ,case when b.move_type='D' then b.newval_char
-      else a.newval_char
-      end as oldval_char length=32765
-    ,case when b.move_type='D' then ''
-      else b.newval_char
-      end as newval_char length=32765
-  from &ds4(where=(move_type='O')) as a
-  right join &ds4(where=(move_type ne 'O')) as b
-  on a.tgtvar_nm=b.tgtvar_nm
-  and a.key_hash=b.key_hash
-  order by move_type, key_hash,is_pk desc, tgtvar_nm;
-
-%if &mdebug=0 %then %do;
-  proc sql;
-  drop table &ds1, &ds2, &ds3, &ds4;
-%end;
-
-%mend mp_storediffs;
-/** @endcond *//**
   @file
   @brief Converts deletes/changes/appends into a single audit table.
   @details When tracking changes to data over time, it can be helpful to have

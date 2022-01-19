@@ -1,18 +1,18 @@
 /**
   @file
   @brief Used to capture scope leakage of macro variables
-  @details A common 'difficult to detect' bug in macros is where a nested
-    macro over-writes variables in a higher level macro.
+  @details
 
-    This assertion takes a snapshot of the macro variables before and after
-    a macro invocation.  This makes it easy to detect whether any macro
-    variables were modified or changed.
+  A common 'difficult to detect' bug in macros is where a nested macro
+  over-writes variables in a higher level macro.
 
-    Currently, the macro only checks for global scope variables.  In the future
-    it may be extended to work at multiple levels of nesting.
+  This assertion takes a snapshot of the macro variables before and after
+  a macro invocation.  Differences are captured in the `&outds` table. This
+  makes it easy to detect whether any macro variables were modified or
+  changed.
 
-    If you would like this feature, feel free to contribute / raise an issue /
-    engage the SASjs team directly.
+  If you would like this feature, feel free to contribute / raise an issue /
+  engage the SASjs team directly.
 
   Example usage:
 
@@ -23,6 +23,9 @@
       %mp_assertscope(COMPARE,
         desc=Checking macro variables against previous snapshot
       )
+
+  This macro is designed to work alongside `sasjs test` - for more information
+  about this facility, visit [cli.sasjs.io/test](https://cli.sasjs.io/test).
 
   @param [in] action (SNAPSHOT) The action to take.  Valid values:
     @li SNAPSHOT - take a copy of the current macro variables

@@ -6,6 +6,7 @@
   @li mp_assert.sas
   @li mp_assertcolvals.sas
   @li mp_assertdsobs.sas
+  @li mp_assertscope.sas
   @li mp_stackdiffs.sas
   @li mp_storediffs.sas
 
@@ -16,7 +17,7 @@
 data work.orig work.deleted work.changed work.appended;
   set sashelp.electric;
   if _n_ le 10 then do;
-    output work.orig work.deleted;
+    output work.deleted;
   end;
   else if _n_ le 20 then do;
     output work.orig;
@@ -38,4 +39,52 @@ run;
   ,mdebug=1
 )
 
-/* now, stack it back */
+%mp_assertscope(SNAPSHOT)
+
+/**
+  * Deletions test - where record does not exist
+  */
+%mp_stackdiffs(work.orig
+  ,work.final
+  ,CUSTOMER YEAR
+  ,mdebug=1
+  ,errds=work.errds1
+  ,outmod=work.mod1
+  ,outadd=work.add1
+  ,outdel=work.del1
+)
+%mp_assertdsobs(work.errds1,
+  desc=Delete1 - no errors,
+  test=EQUALS 0
+)
+%mp_assertdsobs(work.del1,
+  desc=Delete1 - records populated,
+  test=EQUALS 10
+)
+/**
+  * Deletions test - where record DOES exist
+  */
+data work.orig2;
+  set sashelp.electric;
+  if _n_ le 10;
+run;
+%mp_stackdiffs(work.orig2
+  ,work.final
+  ,CUSTOMER YEAR
+  ,mdebug=1
+  ,errds=work.errds2
+  ,outmod=work.mod2
+  ,outadd=work.add2
+  ,outdel=work.del2
+)
+%mp_assertdsobs(work.errds2,
+  desc=Delete1 - has errors,
+  test=EQUALS 10
+)
+%mp_assertdsobs(work.del1,
+  desc=Delete1 - records not populated,
+  test=EQUALS 0
+)
+
+
+%mp_assertscope(COMPARE,Desc=MacVar Scope Check)

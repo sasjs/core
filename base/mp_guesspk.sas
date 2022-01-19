@@ -59,9 +59,7 @@
 /* declare local vars */
 %local var vars vcnt i j k l tmpvar tmpds rows posspks ppkcnt;
 %let vars=%upcase(%mf_getvarlist(&baseds));
-%put &=vars;
 %let vars=%mf_wordsInStr1ButNotStr2(str1=&vars,str2=%upcase(&ignore_cols));
-%put &=vars;
 %let vcnt=%sysfunc(countw(&vars));
 
 %if &vcnt=0 %then %do;

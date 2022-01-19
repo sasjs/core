@@ -40,6 +40,7 @@
         "tests/viyaonly"
       ],
       "programFolders": [],
+      "binaryFolders": [],
       "deployConfig": {
         "deployServicePack": true,
         "deployScripts": []

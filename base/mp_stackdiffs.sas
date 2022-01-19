@@ -23,23 +23,23 @@
 
     Essentially then, what this macro does, is turn a table like this:
 
-  |LIBREF:$8.|DSN:$32.|MOVE_TYPE:$1.|TGTVAR_NM:$32.|IS_PK:best.|IS_DIFF:best.|TGTVAR_TYPE:$1.|OLDVAL_NUM:best32.|NEWVAL_NUM:best32.|OLDVAL_CHAR:$32765.|NEWVAL_CHAR:$32765.|
-  |---|---|---|---|---|---|---|---|---|---|---|
-  |`SASHELP `|`CLASS `|`A `|`NAME `|`1 `|`-1 `|`C `|`. `|`. `|` `|`Newbie `|
-  |`SASHELP `|`CLASS `|`A `|`AGE `|`0 `|`-1 `|`N `|`. `|`13 `|` `|` `|
-  |`SASHELP `|`CLASS `|`A `|`HEIGHT `|`0 `|`-1 `|`N `|`. `|`65.3 `|` `|` `|
-  |`SASHELP `|`CLASS `|`A `|`SEX `|`0 `|`-1 `|`C `|`. `|`. `|` `|`F `|
-  |`SASHELP `|`CLASS `|`A `|`WEIGHT `|`0 `|`-1 `|`N `|`. `|`98 `|` `|` `|
-  |`SASHELP `|`CLASS `|`D `|`NAME `|`1 `|`-1 `|`C `|`. `|`. `|`Alfred `|` `|
-  |`SASHELP `|`CLASS `|`D `|`AGE `|`0 `|`-1 `|`N `|`14 `|`. `|` `|` `|
-  |`SASHELP `|`CLASS `|`D `|`HEIGHT `|`0 `|`-1 `|`N `|`69 `|`. `|` `|` `|
-  |`SASHELP `|`CLASS `|`D `|`SEX `|`0 `|`-1 `|`C `|`. `|`. `|`M `|` `|
-  |`SASHELP `|`CLASS `|`D `|`WEIGHT `|`0 `|`-1 `|`N `|`112.5 `|`. `|` `|` `|
-  |`SASHELP `|`CLASS `|`M `|`NAME `|`1 `|`0 `|`C `|`. `|`. `|`Alice `|`Alice `|
-  |`SASHELP `|`CLASS `|`M `|`AGE `|`0 `|`1 `|`N `|`13 `|`99 `|` `|` `|
-  |`SASHELP `|`CLASS `|`M `|`HEIGHT `|`0 `|`0 `|`N `|`56.5 `|`56.5 `|` `|` `|
-  |`SASHELP `|`CLASS `|`M `|`SEX `|`0 `|`0 `|`C `|`. `|`. `|`F `|`F `|
-  |`SASHELP `|`CLASS `|`M `|`WEIGHT `|`0 `|`0 `|`N `|`84 `|`84 `|` `|` `|
+  |MOVE_TYPE:$1.|TGTVAR_NM:$32.|IS_PK:best.|IS_DIFF:best.|TGTVAR_TYPE:$1.|OLDVAL_NUM:best32.|NEWVAL_NUM:best32.|OLDVAL_CHAR:$32765.|NEWVAL_CHAR:$32765.|
+  |---|---|---|---|---|---|---|---|---|
+  |`A `|`NAME `|`1 `|`-1 `|`C `|`. `|`. `|` `|`Newbie `|
+  |`A `|`AGE `|`0 `|`-1 `|`N `|`. `|`13 `|` `|` `|
+  |`A `|`HEIGHT `|`0 `|`-1 `|`N `|`. `|`65.3 `|` `|` `|
+  |`A `|`SEX `|`0 `|`-1 `|`C `|`. `|`. `|` `|`F `|
+  |`A `|`WEIGHT `|`0 `|`-1 `|`N `|`. `|`98 `|` `|` `|
+  |`D `|`NAME `|`1 `|`-1 `|`C `|`. `|`. `|`Alfred `|` `|
+  |`D `|`AGE `|`0 `|`-1 `|`N `|`14 `|`. `|` `|` `|
+  |`D `|`HEIGHT `|`0 `|`-1 `|`N `|`69 `|`. `|` `|` `|
+  |`D `|`SEX `|`0 `|`-1 `|`C `|`. `|`. `|`M `|` `|
+  |`D `|`WEIGHT `|`0 `|`-1 `|`N `|`112.5 `|`. `|` `|` `|
+  |`M `|`NAME `|`1 `|`0 `|`C `|`. `|`. `|`Alice `|`Alice `|
+  |`M `|`AGE `|`0 `|`1 `|`N `|`13 `|`99 `|` `|` `|
+  |`M `|`HEIGHT `|`0 `|`0 `|`N `|`56.5 `|`56.5 `|` `|` `|
+  |`M `|`SEX `|`0 `|`0 `|`C `|`. `|`. `|`F `|`F `|
+  |`M `|`WEIGHT `|`0 `|`0 `|`N `|`84 `|`84 `|` `|` `|
 
     Into three tables like this:
 
@@ -64,23 +64,34 @@
     base table contains a PROCESSED_DTTM column (or similar), this can be
     ignored by declaring it in the `processed_dttm_var` parameter.
 
-    If the structure of the Base Table has changed, the following rules apply:
+    The macro is also flexible where columns have been added or removed from
+    the base table UNLESS there is a change to the primary key.
 
-    @li New Columns - Irrelevant for deletes.  For inserts, the new column
-      values are set to missing. For updates, the base table values are used.
-    @li Deleted Columns - These will also be absent in the output tables.
-    @li Change in Primary Key - This is not (well, cannot be) supported!!
+    Changes to the primary key are NOT supported, and are likely to cause
+    unexpected results.
+
+    The following pre-flight checks are made:
+
+    @li All primary key columns exist on the base table
+    @li There is no change in variable TYPE for any of the columns
+    @li There is no reduction in variable LENGTH below the max-length of the
+      supplied values
 
     Rules for stacking changes are as follows:
 
     <table>
-    <tr><th>Transaction Type</th><th>Behaviour</th></tr>
+    <tr>
+      <th>Transaction Type</th><th>Key Behaviour</th><th>Column Behaviour</th>
+    </tr>
     <tr>
       <td>Deletes</td>
       <td>
-        For previously deleted rows, the PK is added to the `outDEL` table<br>
-        If the row no longer exists in the base table, the row is added to the
-        `errDS` table instead.
+        The row is added to `&outDEL.` UNLESS it no longer exists
+        in the base table, in which case it is added to `&errDS.` instead.
+      </td>
+      <td>
+        Deletes are unaffected by the addition or removal of non Primary-Key
+        columns.
       </td>
     </tr>
     <tr>
@@ -88,7 +99,13 @@
       <td>
         Previously newly added rows are added to the `outADD` table UNLESS they
         are present in the Base table.<br>In this case they are added to the
-        `errDS` table instead.
+        `&errDS.` table instead.
+      </td>
+      <td>
+        Inserts are unaffected by the addition of columns in the Base Table
+        (they are padded with blanks).  Deleted columns are only a problem if
+        they appear on the previous insert - in which case the record is added
+        to `&errDS.`.
       </td>
     </tr>
     <tr>
@@ -102,36 +119,47 @@
         If the row no longer exists on the base table, then the row is added to
         the `errDS` table instead.
       </td>
+      <td>
+        Updates are unaffected by the addition of columns in the Base Table -
+        the new cells are simply populated with Base Table values.  Deleted
+        columns are only a problem if they relate to a modified cell
+        (`is_diff=1`) - in which case the record is added to `&errDS.`.
+      </td>
     </tr>
     </table>
 
     To illustrate the above with a diagram:
 
-    @dot
-      digraph {
-        rankdir="TB"
+  @dot
+    digraph {
+      rankdir="TB"
+      start[label="Transaction Type?" shape=Mdiamond]
+      del[label="Does Base Row exist?" shape=rectangle]
+      add [label="Does Base Row exist?" shape=rectangle]
+      mod [label="Does Base Row exist?" shape=rectangle]
+      chkmod [label="Do all modified\n(is_diff=1) cells exist?" shape=rectangle]
+      chkadd [label="Do all inserted cells exist?" shape=rectangle]
+      outmod [label="outMOD\nTable" shape=Msquare style=filled]
+      outadd [label="outADD\nTable" shape=Msquare style=filled]
+      outdel [label="outDEL\nTable" shape=Msquare style=filled]
+      outerr [label="ErrDS Table" shape=Msquare fillcolor=Orange style=filled]
+      start -> del [label="Delete"]
+      start -> add [label="Insert"]
+      start -> mod [label="Update"]
 
-        start[label="Transaction Type?" shape=Mdiamond]
-        del[label="Base Row Exists?" shape=rectangle]
-        add [label="Base Row Exists?" shape=rectangle]
-        mod [label="Base Row Exists?" shape=rectangle]
-        outmod [label="outMOD Table" shape=box3d]
-        outadd [label="outADD Table" shape=box3d]
-        outdel [label="outDEL Table" shape=box3d]
-        outerr [label="ErrDS Table" shape=box3d]
-        start -> del [label="Delete"]
-        start -> add [label="Insert"]
-        start -> mod [label="Update"]
+      del -> outdel [label="Yes"]
+      del -> outerr [label="No" color="Red" fontcolor="Red"]
+      add -> chkadd [label="No"]
+      add -> outerr [label="Yes" color="Red" fontcolor="Red"]
+      mod -> outerr [label="No" color="Red" fontcolor="Red"]
+      mod -> chkmod [label="Yes"]
+      chkmod -> outerr [label="No" color="Red" fontcolor="Red"]
+      chkmod -> outmod [label="Yes"]
+      chkadd -> outerr [label="No" color="Red" fontcolor="Red"]
+      chkadd -> outadd [label="Yes"]
 
-        del -> outdel [label="Yes"]
-        del -> outerr [label="No" color="Red" fontcolor="Red"]
-        add -> outadd [label="Yes"]
-        add -> outerr [label="No" color="Red" fontcolor="Red"]
-        mod -> outerr [label="Yes" color="Red" fontcolor="Red"]
-        mod -> outmod [label="No"]
-
-      }
-    @enddot
+    }
+  @enddot
 
     For examples of usage, check out the mp_stackdiffs.test.sas program.
 
@@ -158,13 +186,17 @@
 
 
   <h4> SAS Macros </h4>
+  @li mf_existvarlist.sas
+  @li mf_getquotedstr.sas
   @li mf_getuniquename.sas
   @li mf_islibds.sas
+  @li mf_nobs.sas
   @li mp_abort.sas
 
 
   <h4> Related Macros </h4>
   @li mp_coretable.sas
+  @li mp_stackdiffs.test.sas
   @li mp_storediffs.sas
 
   @version 9.2
@@ -202,22 +234,189 @@
   ,mac=&sysmacroname
   ,msg=%str(Missing key variables!)
 )
+%mp_abort(iftrue= (
+    %mf_existVarList(&auditlibds,LIBREF DSN MOVE_TYPE KEY_HASH TGTVAR_NM IS_PK
+      IS_DIFF TGTVAR_TYPE OLDVAL_NUM NEWVAL_NUM OLDVAL_CHAR NEWVAL_CHAR)=0
+  )
+  ,mac=&sysmacroname
+  ,msg=%str(Input &auditlibds is missing required columns!)
+)
+
 
 /* set up unique and temporary vars */
-%local ds1 ds2 ds3 ds4 hashkey inds_auto inds_keep dslist;
-%let ds1=%upcase(work.%mf_getuniquename(prefix=mpsd_ds1));
-%let ds2=%upcase(work.%mf_getuniquename(prefix=mpsd_ds2));
-%let ds3=%upcase(work.%mf_getuniquename(prefix=mpsd_ds3));
-%let ds4=%upcase(work.%mf_getuniquename(prefix=mpsd_ds4));
-%let hashkey=%upcase(%mf_getuniquename(prefix=mpsd_hashkey));
-%let inds_auto=%upcase(%mf_getuniquename(prefix=mpsd_inds_auto));
-%let inds_keep=%upcase(%mf_getuniquename(prefix=mpsd_inds_keep));
+%local prefix dslist x var keyjoin commakey keepvars;
+%let prefix=%substr(%mf_getuniquename(),1,25);
+%let dslist=ds1d ds2d ds3d ds1a ds2a ds3a ds1m ds2m ds3m pks dups base
+  delrec delerr;
+%do x=1 %to %sysfunc(countw(&dslist));
+  %let var=%scan(&dslist,&x);
+  %local &var;
+  %let &var=%upcase(&prefix._&var);
+%end;
+
+%let keyjoin=1=1;
+%do x=1 %to %sysfunc(countw(&key));
+  %let var=%scan(&key,&x);
+  %let keyjoin=&keyjoin and a.&var=b.&var;
+%end;
+
+%let commakey=%mf_getquotedstr(&key,quote=N);
+
+data &errds;
+  length pk_vars $256 pk_vals $4098 err_msg $512;
+  call missing (of _all_);
+  stop;
+run;
+
+/**
+  * Prepare DELETE table
+  * Records are in the OLDVAL_xxx columns
+  */
+%let keepvars=MOVE_TYPE KEY_HASH TGTVAR_NM TGTVAR_TYPE IS_PK
+              OLDVAL_NUM OLDVAL_CHAR
+              NEWVAL_NUM NEWVAL_CHAR;
+proc sort data=&auditlibds(where=(move_type='D') keep=&keepvars)
+  out=&ds1d(drop=move_type);
+by KEY_HASH TGTVAR_NM;
+run;
+proc transpose data=&ds1d(where=(tgtvar_type='N'))
+    out=&ds2d(drop=_name_);
+  by KEY_HASH;
+  id TGTVAR_NM;
+  var OLDVAL_NUM;
+run;
+proc transpose data=&ds1d(where=(tgtvar_type='C'))
+    out=&ds3d(drop=_name_);
+  by KEY_HASH;
+  id TGTVAR_NM;
+  var OLDVAL_CHAR;
+run;
+data &outdel;
+  set &ds2d;
+  set &ds3d;
+run;
+proc sort;
+  by &key;
+run;
+
+/**
+  * Prepare APPEND table
+  * Records are in the NEWVAL_xxx columns
+  */
+proc sort data=&auditlibds(where=(move_type='A') keep=&keepvars)
+    out=&ds1a(drop=move_type);
+  by KEY_HASH TGTVAR_NM;
+run;
+proc transpose data=&ds1a(where=(tgtvar_type='N'))
+    out=&ds2a(drop=_name_);
+  by KEY_HASH;
+  id TGTVAR_NM;
+  var NEWVAL_NUM;
+run;
+proc transpose data=&ds1a(where=(tgtvar_type='C'))
+    out=&ds3a(drop=_name_);
+  by KEY_HASH;
+  id TGTVAR_NM;
+  var NEWVAL_CHAR;
+run;
+data &outadd;
+  set &ds2a;
+  set &ds3a;
+run;
+
+/**
+  * Prepare MODIFY table
+  * Keep only primary key - will add modified values later
+  */
+proc sort data=&auditlibds(
+      where=(move_type='M' and is_pk=1) keep=&keepvars
+    ) out=&ds1m(drop=move_type);
+  by KEY_HASH TGTVAR_NM;
+run;
+proc transpose data=&ds1m(where=(tgtvar_type='N'))
+    out=&ds2m(drop=_name_);
+  by KEY_HASH ;
+  id TGTVAR_NM;
+  var NEWVAL_NUM;
+run;
+proc transpose data=&ds1m(where=(tgtvar_type='C'))
+    out=&ds3m(drop=_name_);
+  by KEY_HASH;
+  id TGTVAR_NM;
+  var NEWVAL_CHAR;
+run;
+data &outmod;
+  set &ds2m;
+  set &ds3m;
+run;
+
+/**
+  * Extract matching records from the base table
+  * Do this in one join for efficiency.
+  * At a later date, this should be optimised for large database tables by using
+  * passthrough and a temporary table.
+  */
+data &pks;
+  set &outadd &outmod &outdel;
+  keep &key;
+run;
+
+proc sort noduprec dupout=&dups;
+by &key;
+run;
+%mp_abort(iftrue= (%mf_nobs(&dups) ne 0)
+  ,mac=&sysmacroname
+  ,msg=%str(duplicates (%mf_nobs(&dups)) found on &auditlibds!)
+)
+
+proc sql;
+create table &base as
+  select a.*
+  from &baselibds a, &pks b
+  where &keyjoin;
+
+/**
+  * delete check
+  * This is straightforward as it relates to records only
+  */
+proc sql;
+create table &delrec as
+  select a.*
+  from &outdel a
+  left join &base b
+  on &keyjoin
+  where a.%scan(&key,1) is null
+  order by &commakey;
+
+data &delerr;
+  if 0 then set &errds;
+  set &delrec;
+  PK_VARS="&key";
+  PK_VALS=catx('/',&commakey);
+  ERR_MSG="Rows cannot be deleted as they do not exist on the Base dataset";
+  keep PK_VARS PK_VALS ERR_MSG;
+run;
+
+proc append base=&errds data=&delerr;
+run;
+
+data &outdel;
+  merge &outdel (in=a) &delrec (in=b);
+  by &key;
+  if not b;
+run;
+
+/*
+LIBREF DSN MOVE_TYPE TGTVAR_NM IS_PK IS_DIFF
+      TGTVAR_TYPE OLDVAL_NUM NEWVAL_NUM OLDVAL_CHAR NEWVAL_CHAR
+*/
 
 %let key=%upcase(&key);
 
 %if &mdebug=0 %then %do;
-  proc sql;
-  drop table &ds1, &ds2, &ds3, &ds4;
+  proc datasets lib=work;
+    delete &prefix:;
+  run;
 %end;
 
 %mend mp_stackdiffs;

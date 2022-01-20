@@ -49,7 +49,7 @@
 )/*/STORE SOURCE*/;
 
 %if &wrap=YES  %then %do;
-  proc fcmp outcat=&lib..&cat..&pkg;
+  proc fcmp outlib=&lib..&cat..&pkg;
 %end;
 
 function mcf_string2file(filepath $, string $, mode $);

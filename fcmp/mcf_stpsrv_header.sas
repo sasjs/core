@@ -69,7 +69,7 @@
 %if %mf_existfunction(stpsrv_header)=1 %then %return;
 
 %if &wrap=YES  %then %do;
-  proc fcmp outcat=&lib..&cat..&pkg;
+  proc fcmp outlib=&lib..&cat..&pkg;
 %end;
 
 function stpsrv_header(name $, value $);

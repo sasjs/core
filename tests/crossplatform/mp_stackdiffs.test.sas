@@ -136,5 +136,55 @@ run;
   test=EQUALS 5
 )
 
+/**
+  * Additions test - where base table has missing vars
+  */
+data work.orig5;
+  set work.orig;
+  drop Coal;
+run;
+%mp_stackdiffs(work.orig5
+  ,work.final
+  ,CUSTOMER YEAR
+  ,mdebug=1
+  ,errds=work.errds5
+  ,outmod=work.mod5
+  ,outadd=work.add5
+  ,outdel=work.del5
+)
+%mp_assertdsobs(work.errds5,
+  desc=Add5 - 10 errors,
+  test=EQUALS 10
+)
+%mp_assertdsobs(work.add5,
+  desc=Add5 - 0 records populated due to structure change,
+  test=EQUALS 0
+)
+
+/**
+  * Additions test - where append table has missing vars
+  */
+data work.final6;
+  set work.final;
+  drop Coal;
+run;
+%mp_stackdiffs(work.orig
+  ,work.final6
+  ,CUSTOMER YEAR
+  ,mdebug=1
+  ,errds=work.errds6
+  ,outmod=work.mod6
+  ,outadd=work.add6
+  ,outdel=work.del6
+)
+%mp_assertdsobs(work.errds6,
+  desc=Add6 - 0 errors,
+  test=EQUALS 0
+)
+%mp_assertdsobs(work.add6,
+  desc=Add6 - 10 records populated (structure change irrelevant),
+  test=EQUALS 10
+)
+
 
 %mp_assertscope(COMPARE,Desc=MacVar Scope Check)

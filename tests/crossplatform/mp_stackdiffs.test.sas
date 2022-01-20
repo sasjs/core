@@ -86,5 +86,55 @@ run;
   test=EQUALS 0
 )
 
+/**
+  * Additions test - where record does not exist
+  */
+data work.orig3;
+  set work.orig;
+  stop;
+run;
+%mp_stackdiffs(work.orig3
+  ,work.final
+  ,CUSTOMER YEAR
+  ,mdebug=1
+  ,errds=work.errds3
+  ,outmod=work.mod3
+  ,outadd=work.add3
+  ,outdel=work.del3
+)
+%mp_assertdsobs(work.errds3,
+  desc=Add3 - no errors,
+  test=EQUALS 0
+)
+%mp_assertdsobs(work.add3,
+  desc=Add3 - records populated,
+  test=EQUALS 10
+)
+
+/**
+  * Additions test - where record does exist
+  */
+data work.orig4;
+  set work.orig;
+  if _n_>35 then stop;
+run;
+%mp_stackdiffs(work.orig4
+  ,work.final
+  ,CUSTOMER YEAR
+  ,mdebug=1
+  ,errds=work.errds4
+  ,outmod=work.mod4
+  ,outadd=work.add4
+  ,outdel=work.del4
+)
+%mp_assertdsobs(work.errds4,
+  desc=Add4 - 5 errors,
+  test=EQUALS 5
+)
+%mp_assertdsobs(work.add4,
+  desc=Add4 - records populated,
+  test=EQUALS 5
+)
+
 
 %mp_assertscope(COMPARE,Desc=MacVar Scope Check)

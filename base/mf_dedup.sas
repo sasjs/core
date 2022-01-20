@@ -23,7 +23,6 @@
 
   <h4> Related Macros </h4>
   @li mf_trimstr.sas
-  @li mf_wordsinstr1butnotstr2.sas
 
   @version 9.2
   @author Allan Bowe

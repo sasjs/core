@@ -243,24 +243,25 @@
 )
 
 
-/* set up unique and temporary vars */
-%local prefix dslist x var keyjoin commakey keepvars;
+/* set up macro vars */
+%local prefix dslist x var keyjoin commakey keepvars missvars;
 %let prefix=%substr(%mf_getuniquename(),1,25);
 %let dslist=ds1d ds2d ds3d ds1a ds2a ds3a ds1m ds2m ds3m pks dups base
-  delrec delerr;
+  delrec delerr addrec adderr;
 %do x=1 %to %sysfunc(countw(&dslist));
   %let var=%scan(&dslist,&x);
   %local &var;
   %let &var=%upcase(&prefix._&var);
 %end;
 
+%let key=%upcase(&key);
+%let commakey=%mf_getquotedstr(&key,quote=N);
+
 %let keyjoin=1=1;
 %do x=1 %to %sysfunc(countw(&key));
   %let var=%scan(&key,&x);
   %let keyjoin=&keyjoin and a.&var=b.&var;
 %end;
-
-%let commakey=%mf_getquotedstr(&key,quote=N);
 
 data &errds;
   length pk_vars $256 pk_vals $4098 err_msg $512;
@@ -269,7 +270,7 @@ data &errds;
 run;
 
 /**
-  * Prepare DELETE table
+  * Prepare raw DELETE table
   * Records are in the OLDVAL_xxx columns
   */
 %let keepvars=MOVE_TYPE KEY_HASH TGTVAR_NM TGTVAR_TYPE IS_PK
@@ -300,7 +301,7 @@ proc sort;
 run;
 
 /**
-  * Prepare APPEND table
+  * Prepare raw APPEND table
   * Records are in the NEWVAL_xxx columns
   */
 proc sort data=&auditlibds(where=(move_type='A') keep=&keepvars)
@@ -325,7 +326,7 @@ data &outadd;
 run;
 
 /**
-  * Prepare MODIFY table
+  * Prepare raw MODIFY table
   * Keep only primary key - will add modified values later
   */
 proc sort data=&auditlibds(
@@ -396,7 +397,6 @@ data &delerr;
   ERR_MSG="Rows cannot be deleted as they do not exist on the Base dataset";
   keep PK_VARS PK_VALS ERR_MSG;
 run;
-
 proc append base=&errds data=&delerr;
 run;
 
@@ -406,12 +406,60 @@ data &outdel;
   if not b;
 run;
 
-/*
-LIBREF DSN MOVE_TYPE TGTVAR_NM IS_PK IS_DIFF
-      TGTVAR_TYPE OLDVAL_NUM NEWVAL_NUM OLDVAL_CHAR NEWVAL_CHAR
-*/
+/**
+  * add check
+  * Problems - where record already exists, or base table has columns missing
+  */
+%let missvars=%mf_wordsinstr1butnotstr2(
+  Str1=%mf_getvarlist(&outadd),
+  Str2=%mf_getvarlist(&outbase)
+);
+%if %length(&missvars)>0 %then %do;
+    /* add them to the err table */
+  data &adderr;
+    if 0 then set &errds;
+    set &addrec;
+    PK_VARS="&key";
+    PK_VALS=catx('/',&commakey);
+    ERR_MSG="Rows cannot be added due to missing base vars: &missvars";
+    keep PK_VARS PK_VALS ERR_MSG;
+  run;
+  proc append base=&errds data=&adderr;
+  run;
+  proc sql;
+  delete * from &outadd;
+%end;
+%else %do;
+  proc sql;
+  /* find records that already exist on base table */
+  create table &addrec as
+    select a.*
+    from &outadd a
+    inner join &base b
+    on &keyjoin
+    order by &commakey;
 
-%let key=%upcase(&key);
+  /* add them to the err table */
+  data &adderr;
+    if 0 then set &errds;
+    set &addrec;
+    PK_VARS="&key";
+    PK_VALS=catx('/',&commakey);
+    ERR_MSG="Rows cannot be added as they already exist on the Base dataset";
+    keep PK_VARS PK_VALS ERR_MSG;
+  run;
+  proc append base=&errds data=&adderr;
+  run;
+
+  /* remove invalid rows from the outadd table */
+  data &outadd;
+    merge &outadd (in=a) &addrec (in=b);
+    by &key;
+    if not b;
+  run;
+%end;
+
+
 
 %if &mdebug=0 %then %do;
   proc datasets lib=work;

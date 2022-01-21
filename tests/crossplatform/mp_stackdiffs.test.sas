@@ -21,7 +21,8 @@ data work.orig work.deleted work.changed work.appended;
   end;
   else if _n_ le 20 then do;
     output work.orig;
-    coal=ranuni(1)*-1;
+    coal=-1;
+    coaltip='modified';
     output work.changed;
   end;
   else if _n_ le 30 then do;
@@ -250,5 +251,25 @@ run;
   desc=del8 - 0 records populated ,
   test=EQUALS 0
 )
+
+/**
+  * Modifications test - were diffs actually applied?
+  */
+data work.checkds;
+  charchk='modified';
+  numchk=-1;
+  output;
+run;
+%mp_assertcolvals(work.mod8.coal,
+  checkvals=work.checkds.numchk,
+  desc=Modified numeric value matches,
+  test=ALLVALS
+)
+%mp_assertcolvals(work.mod8.coaltip,
+  checkvals=work.checkds.charchk,
+  desc=Modified char value matches,
+  test=ALLVALS
+)
+
 
 %mp_assertscope(COMPARE,Desc=MacVar Scope Check)

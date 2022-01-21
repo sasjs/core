@@ -188,6 +188,7 @@
   <h4> SAS Macros </h4>
   @li mf_existvarlist.sas
   @li mf_getquotedstr.sas
+  @li mf_getuniquefileref.sas
   @li mf_getuniquename.sas
   @li mf_islibds.sas
   @li mf_nobs.sas
@@ -199,6 +200,10 @@
   @li mp_coretable.sas
   @li mp_stackdiffs.test.sas
   @li mp_storediffs.sas
+
+  @todo The current approach assumes that a variable called KEY_HASH is not on
+    the base table.  This part will need to be refactored (eg using
+    mf_getuniquename.sas) when such a use case arises.
 
   @version 9.2
   @author Allan Bowe
@@ -245,10 +250,10 @@
 
 
 /* set up macro vars */
-%local prefix dslist x var keyjoin commakey keepvars missvars;
+%local prefix dslist x var keyjoin commakey keepvars missvars fref;
 %let prefix=%substr(%mf_getuniquename(),1,25);
 %let dslist=ds1d ds2d ds3d ds1a ds2a ds3a ds1m ds2m ds3m pks dups base
-  delrec delerr addrec adderr;
+  delrec delerr addrec adderr modrec moderr;
 %do x=1 %to %sysfunc(countw(&dslist));
   %let var=%scan(&dslist,&x);
   %local &var;
@@ -296,6 +301,7 @@ run;
 data &outdel;
   set &ds2d;
   set &ds3d;
+  drop key_hash;
 run;
 proc sort;
   by &key;
@@ -324,6 +330,10 @@ run;
 data &outadd;
   set &ds2a;
   set &ds3a;
+  drop key_hash;
+run;
+proc sort;
+  by &key;
 run;
 
 /**
@@ -514,6 +524,28 @@ select distinct tgtvar_nm into: missvars separated by ' '
     if not b;
   run;
   /* now - we can prepare the final MOD table (which is currently PK only) */
+  proc sql(undo_policy=none);
+  create table &outmod as
+    select a.* /* includes KEY_HASH from audit ds */
+    from &outmod a
+    inner join &base b
+    on &keyjoin
+    order by &commakey;
+  /* now - to update outmod with modified (is_diff=1) values */
+  %let fref=%mf_getuniquefileref();
+  data _null_;
+    file &fref;
+    set &auditlibds(where=(move_type='D')) end=lastobs;
+    by key_hash;
+    if _n_=1 then put 'proc sql;';
+    if first.key_hash then put "update &outmod set ";
+    comma=ifc(first.key_hash=0,',',' ');
+    if tgtvar_type='C' then put '  ' comma TGTVAR_NM '=trim("' NEWVAL_CHAR '")';
+    if last.key_hash then put '  where key_hash=trim("' key_hash '");';
+    if lastobs then put 'alter &outmod drop key_hash';
+  run;
+  %inc &fref/source2;
+
 %end;
 
 %if &mdebug=0 %then %do;
@@ -523,4 +555,4 @@ select distinct tgtvar_nm into: missvars separated by ' '
 %end;
 
 %mend mp_stackdiffs;
-/** @endcond */
+/** @endcond */`

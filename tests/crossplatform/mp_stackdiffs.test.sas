@@ -54,7 +54,7 @@ run;
   ,outdel=work.del1
 )
 %mp_assertdsobs(work.errds1,
-  desc=Delete1 - no errors,
+  desc=Delete1 - no errs,
   test=EQUALS 0
 )
 %mp_assertdsobs(work.del1,
@@ -78,7 +78,7 @@ run;
   ,outdel=work.del2
 )
 %mp_assertdsobs(work.errds2,
-  desc=Delete1 - has errors,
+  desc=Delete1 - has errs,
   test=EQUALS 10
 )
 %mp_assertdsobs(work.del1,
@@ -103,7 +103,7 @@ run;
   ,outdel=work.del3
 )
 %mp_assertdsobs(work.errds3,
-  desc=Add3 - no errors,
+  desc=Add3 - no errs,
   test=EQUALS 0
 )
 %mp_assertdsobs(work.add3,
@@ -128,7 +128,7 @@ run;
   ,outdel=work.del4
 )
 %mp_assertdsobs(work.errds4,
-  desc=Add4 - 5 errors,
+  desc=Add4 - 5 errs,
   test=EQUALS 5
 )
 %mp_assertdsobs(work.add4,
@@ -153,7 +153,7 @@ run;
   ,outdel=work.del5
 )
 %mp_assertdsobs(work.errds5,
-  desc=Add5 - 10 errors,
+  desc=Add5 - 10 errs,
   test=EQUALS 10
 )
 %mp_assertdsobs(work.add5,
@@ -178,7 +178,7 @@ run;
   ,outdel=work.del6
 )
 %mp_assertdsobs(work.errds6,
-  desc=Add6 - 0 errors,
+  desc=Add6 - 0 errs,
   test=EQUALS 0
 )
 %mp_assertdsobs(work.add6,
@@ -189,12 +189,12 @@ run;
 /**
   * Modifications test - where base table has missing vars
   */
-data work.final7;
-  set work.final;
+data work.orig7;
+  set work.orig;
   drop Coal;
 run;
-%mp_stackdiffs(work.orig
-  ,work.final7
+%mp_stackdiffs(work.orig7
+  ,work.final
   ,CUSTOMER YEAR
   ,mdebug=1
   ,errds=work.errds7
@@ -203,7 +203,7 @@ run;
   ,outdel=work.del7
 )
 %mp_assertdsobs(work.errds7,
-  desc=Mod7 - 10 errors,
+  desc=Mod7 - 10 errs,
   test=EQUALS 10
 )
 %mp_assertdsobs(work.Mod7,
@@ -218,6 +218,37 @@ run;
   desc=del7 - 0 records populated ,
   test=EQUALS 0
 )
-
+/**
+  * Modifications test - where base table has missing rows
+  */
+data work.orig8;
+  set work.orig;
+  if _n_ le 16;
+run;
+%mp_stackdiffs(work.orig8
+  ,work.final7
+  ,CUSTOMER YEAR
+  ,mdebug=1
+  ,errds=work.errds8
+  ,outmod=work.mod8
+  ,outadd=work.add8
+  ,outdel=work.del8
+)
+%mp_assertdsobs(work.errds8,
+  desc=Mod4 - 4 errs,
+  test=EQUALS 4
+)
+%mp_assertdsobs(work.Mod8,
+  desc=Mod8 - 6 records populated (missing rows relevant),
+  test=EQUALS 6
+)
+%mp_assertdsobs(work.add8,
+  desc=add8 - 0 records populated ,
+  test=EQUALS 0
+)
+%mp_assertdsobs(work.del8,
+  desc=del8 - 0 records populated ,
+  test=EQUALS 0
+)
 
 %mp_assertscope(COMPARE,Desc=MacVar Scope Check)

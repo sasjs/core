@@ -413,7 +413,7 @@ run;
   */
 %let missvars=%mf_wordsinstr1butnotstr2(
   Str1=%mf_getvarlist(&outadd),
-  Str2=%mf_getvarlist(&outbase)
+  Str2=%mf_getvarlist(&baselibds)
 );
 %if %length(&missvars)>0 %then %do;
     /* add them to the err table */
@@ -470,7 +470,7 @@ select distinct tgtvar_nm into: missvars separated by ' '
   where move_type='M' and is_diff=1;
 %let missvars=%mf_wordsinstr1butnotstr2(
   Str1=&missvars,
-  Str2=%mf_getvarlist(&outbase)
+  Str2=%mf_getvarlist(&baselibds)
 );
 %if %length(&missvars)>0 %then %do;
     /* add them to the err table */
@@ -488,7 +488,32 @@ select distinct tgtvar_nm into: missvars separated by ' '
   delete * from &outmod;
 %end;
 %else %do;
-
+  /* now check for records that do not exist (therefore cannot be modified) */
+  proc sql;
+  create table &modrec as
+    select a.*
+    from &outmod a
+    left join &base b
+    on &keyjoin
+    where a.%scan(&key,1) is null
+    order by &commakey;
+  data &moderr;
+    if 0 then set &errds;
+    set &modrec;
+    PK_VARS="&key";
+    PK_VALS=catx('/',&commakey);
+    ERR_MSG="Rows cannot be modified as they do not exist on the Base dataset";
+    keep PK_VARS PK_VALS ERR_MSG;
+  run;
+  proc append base=&errds data=&moderr;
+  run;
+  /* delete the above records from the outmod table */
+  data &outmod;
+    merge &outmod (in=a) &modrec (in=b);
+    by &key;
+    if not b;
+  run;
+  /* now - we can prepare the final MOD table (which is currently PK only) */
 %end;
 
 %if &mdebug=0 %then %do;

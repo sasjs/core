@@ -21,7 +21,7 @@ data work.orig work.deleted work.changed work.appended;
   end;
   else if _n_ le 20 then do;
     output work.orig;
-    age=99;
+    coal=ranuni(1)*-1;
     output work.changed;
   end;
   else if _n_ le 30 then do;
@@ -184,6 +184,39 @@ run;
 %mp_assertdsobs(work.add6,
   desc=Add6 - 10 records populated (structure change irrelevant),
   test=EQUALS 10
+)
+
+/**
+  * Modifications test - where base table has missing vars
+  */
+data work.final7;
+  set work.final;
+  drop Coal;
+run;
+%mp_stackdiffs(work.orig
+  ,work.final7
+  ,CUSTOMER YEAR
+  ,mdebug=1
+  ,errds=work.errds7
+  ,outmod=work.mod7
+  ,outadd=work.add7
+  ,outdel=work.del7
+)
+%mp_assertdsobs(work.errds7,
+  desc=Mod7 - 10 errors,
+  test=EQUALS 10
+)
+%mp_assertdsobs(work.Mod7,
+  desc=Mod7 - 0 records populated (structure change relevant),
+  test=EQUALS 0
+)
+%mp_assertdsobs(work.add7,
+  desc=add7 - 0 records populated ,
+  test=EQUALS 0
+)
+%mp_assertdsobs(work.del7,
+  desc=del7 - 0 records populated ,
+  test=EQUALS 0
 )
 
 

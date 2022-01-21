@@ -191,6 +191,7 @@
   @li mf_getuniquename.sas
   @li mf_islibds.sas
   @li mf_nobs.sas
+  @li mf_wordsinstr1butnotstr2.sas
   @li mp_abort.sas
 
 
@@ -418,7 +419,7 @@ run;
     /* add them to the err table */
   data &adderr;
     if 0 then set &errds;
-    set &addrec;
+    set &outadd;
     PK_VARS="&key";
     PK_VALS=catx('/',&commakey);
     ERR_MSG="Rows cannot be added due to missing base vars: &missvars";
@@ -459,7 +460,36 @@ run;
   run;
 %end;
 
+/**
+  * mod check
+  * Problems - where record does not exist or baseds has modified cols missing
+  */
+proc sql noprint;
+select distinct tgtvar_nm into: missvars separated by ' '
+  from &auditlibds
+  where move_type='M' and is_diff=1;
+%let missvars=%mf_wordsinstr1butnotstr2(
+  Str1=&missvars,
+  Str2=%mf_getvarlist(&outbase)
+);
+%if %length(&missvars)>0 %then %do;
+    /* add them to the err table */
+  data &moderr;
+    if 0 then set &errds;
+    set &outmod;
+    PK_VARS="&key";
+    PK_VALS=catx('/',&commakey);
+    ERR_MSG="Rows cannot be modified due to missing base vars: &missvars";
+    keep PK_VARS PK_VALS ERR_MSG;
+  run;
+  proc append base=&errds data=&moderr;
+  run;
+  proc sql;
+  delete * from &outmod;
+%end;
+%else %do;
 
+%end;
 
 %if &mdebug=0 %then %do;
   proc datasets lib=work;

@@ -225,7 +225,7 @@
     sysvlong=quote(trim(symget('sysvlong')));
     put ',"SYSVLONG" : ' sysvlong;
     put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" ";
-    put ',"END_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '" ';
+    put ',"END_DTTM" : "' "%sysfunc(datetime(),E8601DT26.6)" '" ';
     length memsize $32;
     memsize="%sysfunc(INPUTN(%sysfunc(getoption(memsize)), best.),sizekmg.)";
     memsize=quote(cats(memsize));

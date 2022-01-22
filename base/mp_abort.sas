@@ -173,7 +173,8 @@
       if symexist('_debug') then debug=quote(trim(symget('_debug')));
       else debug='""';
       put '>>weboutBEGIN<<';
-      put '{"START_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '"';
+      put '{"SYSDATE" : "' "&SYSDATE" '"';
+      put ',"SYSTIME" : "' "&SYSTIME" '"';
       put ',"sasjsAbort" : [{';
       put ' "MSG":' msg ;
       put ' ,"MAC": "' "&mac" '"}]';
@@ -202,7 +203,7 @@
       put ',"SYSVLONG" : ' sysvlong;
       syswarningtext=quote(trim(symget('syswarningtext')));
       put ",""SYSWARNINGTEXT"" : " syswarningtext;
-      put ',"END_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '" ';
+      put ',"END_DTTM" : "' "%sysfunc(datetime(),E8601DT26.6)" '" ';
       put "}" @;
       put '>>weboutEND<<';
     run;

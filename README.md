@@ -125,6 +125,7 @@ filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
 - macro names must be lowercase
 - one macro per file
 - prefixes:
+  - _mcf_ for macro compiled functions (proc fcmp)
   - _mf_ for macro functions (can be used in open code).
   - _ml_ for macros that are used to compile LUA modules
   - _mm_ for metadata macros (interface with the metadata server).
@@ -183,6 +184,7 @@ When contributing to this library, it is therefore important to ensure that all 
 - All dataset references must be 2 level (eg `work.blah`, not `blah`). This is to avoid contention when options [DATASTMTCHK](https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000279064.htm)=ALLKEYWORDS is in effect.
 - Avoid naming collisions! All macro variables should be local scope. Use system generated work tables where possible - eg `data ; set sashelp.class; run; data &output; set &syslast; run;`
 - The use of `quit;` for `proc sql` is optional unless you are looking to benefit from the timing statistics.
+- Use [sasjs lint](https://github.com/sasjs/lint)!
 
 ## General Notes
 
@@ -193,7 +195,6 @@ When contributing to this library, it is therefore important to ensure that all 
 We are currently on major release v3.  The following changes are planned when the next major (breaking) release becomes necessary:
 
 * Remove `dbg` parameter from mp_jsonout.sas (implement mdebug instead)
-* Remove `END_DTTM` and `START_DTTM` from mx_webout JSON
 
 ## Star Gazing
 

@@ -2198,7 +2198,8 @@ Usage:
       if symexist('_debug') then debug=quote(trim(symget('_debug')));
       else debug='""';
       put '>>weboutBEGIN<<';
-      put '{"START_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '"';
+      put '{"SYSDATE" : "' "&SYSDATE" '"';
+      put ',"SYSTIME" : "' "&SYSTIME" '"';
       put ',"sasjsAbort" : [{';
       put ' "MSG":' msg ;
       put ' ,"MAC": "' "&mac" '"}]';
@@ -2227,7 +2228,7 @@ Usage:
       put ',"SYSVLONG" : ' sysvlong;
       syswarningtext=quote(trim(symget('syswarningtext')));
       put ",""SYSWARNINGTEXT"" : " syswarningtext;
-      put ',"END_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '" ';
+      put ',"END_DTTM" : "' "%sysfunc(datetime(),E8601DT26.6)" '" ';
       put "}" @;
       put '>>weboutEND<<';
     run;
@@ -7712,7 +7713,6 @@ filename &tempref clear;
 
 %macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y
   ,engine=DATASTEP
-  ,dbg=0 /* DEPRECATED */
   ,missing=NULL
   ,showmeta=NO
 )/*/STORE SOURCE*/;
@@ -12844,7 +12844,6 @@ data _null_;
   put ' ';
   put '%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y ';
   put '  ,engine=DATASTEP ';
-  put '  ,dbg=0 /* DEPRECATED */ ';
   put '  ,missing=NULL ';
   put '  ,showmeta=NO ';
   put ')/*/STORE SOURCE*/; ';
@@ -13175,7 +13174,7 @@ data _null_;
   put '    sysvlong=quote(trim(symget(''sysvlong''))); ';
   put '    put '',"SYSVLONG" : '' sysvlong; ';
   put '    put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" "; ';
-  put '    put '',"END_DTTM" : "'' "%sysfunc(datetime(),datetime20.3)" ''" ''; ';
+  put '    put '',"END_DTTM" : "'' "%sysfunc(datetime(),E8601DT26.6)" ''" ''; ';
   put '    length memsize $32; ';
   put '    memsize="%sysfunc(INPUTN(%sysfunc(getoption(memsize)), best.),sizekmg.)"; ';
   put '    memsize=quote(cats(memsize)); ';
@@ -16681,7 +16680,7 @@ run;
     sysvlong=quote(trim(symget('sysvlong')));
     put ',"SYSVLONG" : ' sysvlong;
     put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" ";
-    put ',"END_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '" ';
+    put ',"END_DTTM" : "' "%sysfunc(datetime(),E8601DT26.6)" '" ';
     length memsize $32;
     memsize="%sysfunc(INPUTN(%sysfunc(getoption(memsize)), best.),sizekmg.)";
     memsize=quote(cats(memsize));
@@ -16988,7 +16987,7 @@ run;
     sysvlong=quote(trim(symget('sysvlong')));
     put ',"SYSVLONG" : ' sysvlong;
     put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" ";
-    put ',"END_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '" ';
+    put ',"END_DTTM" : "' "%sysfunc(datetime(),E8601DT26.6)" '" ';
     length autoexec $512;
     autoexec=quote(urlencode(trim(getoption('autoexec'))));
     put ',"AUTOEXEC" : ' autoexec;
@@ -17980,7 +17979,6 @@ data _null_;
   put ' ';
   put '%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y ';
   put '  ,engine=DATASTEP ';
-  put '  ,dbg=0 /* DEPRECATED */ ';
   put '  ,missing=NULL ';
   put '  ,showmeta=NO ';
   put ')/*/STORE SOURCE*/; ';
@@ -18368,7 +18366,7 @@ data _null_;
   put '    sysvlong=quote(trim(symget(''sysvlong''))); ';
   put '    put '',"SYSVLONG" : '' sysvlong; ';
   put '    put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" "; ';
-  put '    put '',"END_DTTM" : "'' "%sysfunc(datetime(),datetime20.3)" ''" ''; ';
+  put '    put '',"END_DTTM" : "'' "%sysfunc(datetime(),E8601DT26.6)" ''" ''; ';
   put '    length memsize $32; ';
   put '    memsize="%sysfunc(INPUTN(%sysfunc(getoption(memsize)), best.),sizekmg.)"; ';
   put '    memsize=quote(cats(memsize)); ';
@@ -22227,7 +22225,7 @@ filename &fref1 clear;
     sysvlong=quote(trim(symget('sysvlong')));
     put ',"SYSVLONG" : ' sysvlong;
     put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" ";
-    put ',"END_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '" ';
+    put ',"END_DTTM" : "' "%sysfunc(datetime(),E8601DT26.6)" '" ';
     length memsize $32;
     memsize="%sysfunc(INPUTN(%sysfunc(getoption(memsize)), best.),sizekmg.)";
     memsize=quote(cats(memsize));

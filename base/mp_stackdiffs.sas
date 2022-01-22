@@ -299,6 +299,7 @@ proc transpose data=&ds1d(where=(tgtvar_type='C'))
   var OLDVAL_CHAR;
 run;
 data &outdel;
+  if 0 then set &baselibds;
   set &ds2d;
   set &ds3d;
   drop key_hash;
@@ -328,6 +329,7 @@ proc transpose data=&ds1a(where=(tgtvar_type='C'))
   var NEWVAL_CHAR;
 run;
 data &outadd;
+  if 0 then set &baselibds;
   set &ds2a;
   set &ds3a;
   drop key_hash;
@@ -358,8 +360,12 @@ proc transpose data=&ds1m(where=(tgtvar_type='C'))
   var NEWVAL_CHAR;
 run;
 data &outmod;
+  if 0 then set &baselibds;
   set &ds2m;
   set &ds3m;
+run;
+proc sort;
+  by &key;
 run;
 
 /**
@@ -422,8 +428,8 @@ run;
   * Problems - where record already exists, or base table has columns missing
   */
 %let missvars=%mf_wordsinstr1butnotstr2(
-  Str1=%mf_getvarlist(&outadd),
-  Str2=%mf_getvarlist(&baselibds)
+  Str1=%upcase(%mf_getvarlist(&outadd)),
+  Str2=%upcase(%mf_getvarlist(&baselibds))
 );
 %if %length(&missvars)>0 %then %do;
     /* add them to the err table */
@@ -480,7 +486,7 @@ select distinct tgtvar_nm into: missvars separated by ' '
   where move_type='M' and is_diff=1;
 %let missvars=%mf_wordsinstr1butnotstr2(
   Str1=&missvars,
-  Str2=%mf_getvarlist(&baselibds)
+  Str2=%upcase(%mf_getvarlist(&baselibds))
 );
 %if %length(&missvars)>0 %then %do;
     /* add them to the err table */
@@ -524,9 +530,10 @@ select distinct tgtvar_nm into: missvars separated by ' '
     if not b;
   run;
   /* now - we can prepare the final MOD table (which is currently PK only) */
-  proc sql(undo_policy=none);
+  proc sql undo_policy=none;
   create table &outmod as
-    select a.* /* includes KEY_HASH from audit ds */
+    select a.key_hash
+      ,b.*
     from &outmod a
     inner join &base b
     on &keyjoin
@@ -552,7 +559,8 @@ select distinct tgtvar_nm into: missvars separated by ' '
   proc datasets lib=work;
     delete &prefix:;
   run;
+  %put &sysmacroname exit vars:;
+  %put _local_;
 %end;
-
 %mend mp_stackdiffs;
-/** @endcond */`
+/** @endcond */

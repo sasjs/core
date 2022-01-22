@@ -45,8 +45,12 @@ run;
 /**
   * Deletions test - where record does not exist
   */
+data work.final1;
+  set work.final;
+  where move_type='D';
+run;
 %mp_stackdiffs(work.orig
-  ,work.final
+  ,work.final1
   ,CUSTOMER YEAR
   ,mdebug=1
   ,errds=work.errds1
@@ -69,8 +73,12 @@ data work.orig2;
   set sashelp.electric;
   if _n_ le 10;
 run;
+data work.final2;
+  set work.final;
+  where move_type='D';
+run;
 %mp_stackdiffs(work.orig2
-  ,work.final
+  ,work.final2
   ,CUSTOMER YEAR
   ,mdebug=1
   ,errds=work.errds2
@@ -94,8 +102,12 @@ data work.orig3;
   set work.orig;
   stop;
 run;
+data work.final3;
+  set work.final;
+  where move_type='A';
+run;
 %mp_stackdiffs(work.orig3
-  ,work.final
+  ,work.final3
   ,CUSTOMER YEAR
   ,mdebug=1
   ,errds=work.errds3
@@ -119,8 +131,12 @@ data work.orig4;
   set work.orig;
   if _n_>35 then stop;
 run;
+data work.final4;
+  set work.final;
+  where move_type='A';
+run;
 %mp_stackdiffs(work.orig4
-  ,work.final
+  ,work.final4
   ,CUSTOMER YEAR
   ,mdebug=1
   ,errds=work.errds4
@@ -144,8 +160,12 @@ data work.orig5;
   set work.orig;
   drop Coal;
 run;
+data work.final5;
+  set work.final;
+  where move_type='A';
+run;
 %mp_stackdiffs(work.orig5
-  ,work.final
+  ,work.final5
   ,CUSTOMER YEAR
   ,mdebug=1
   ,errds=work.errds5
@@ -167,7 +187,7 @@ run;
   */
 data work.final6;
   set work.final;
-  drop Coal;
+  where tgtvar_nm ne 'COAL' and move_type='A';
 run;
 %mp_stackdiffs(work.orig
   ,work.final6
@@ -194,8 +214,12 @@ data work.orig7;
   set work.orig;
   drop Coal;
 run;
+data work.final7;
+  set work.final;
+  where move_type='M';
+run;
 %mp_stackdiffs(work.orig7
-  ,work.final
+  ,work.final7
   ,CUSTOMER YEAR
   ,mdebug=1
   ,errds=work.errds7
@@ -220,14 +244,16 @@ run;
   test=EQUALS 0
 )
 /**
-  * Modifications test - where base table has missing rows
+  * Modifications (big) test - where base table has missing rows
+  * Also used as a full integration test (all move_types)
+  * And a test if the actual values were applied
   */
 data work.orig8;
   set work.orig;
   if _n_ le 16;
 run;
 %mp_stackdiffs(work.orig8
-  ,work.final7
+  ,work.final
   ,CUSTOMER YEAR
   ,mdebug=1
   ,errds=work.errds8
@@ -242,14 +268,6 @@ run;
 %mp_assertdsobs(work.Mod8,
   desc=Mod8 - 6 records populated (missing rows relevant),
   test=EQUALS 6
-)
-%mp_assertdsobs(work.add8,
-  desc=add8 - 0 records populated ,
-  test=EQUALS 0
-)
-%mp_assertdsobs(work.del8,
-  desc=del8 - 0 records populated ,
-  test=EQUALS 0
 )
 
 /**

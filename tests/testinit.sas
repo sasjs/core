@@ -15,7 +15,8 @@
 %mp_init()
 
 %macro loglevel();
-  %if &_debug=2477 %then %do;
+  %if "&_debug"="2477" or "&_debug"="fields,log,trace" %then %do;
+    %put debug mode activated;
     options mprint;
   %end;
 %mend loglevel;

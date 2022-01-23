@@ -33,37 +33,39 @@
 %macro mp_init(prefix=SASJS
 )/*/STORE SOURCE*/;
 
-  %global
-    &prefix._INIT_NUM   /* initialisation time as numeric                   */
-    &prefix._INIT_DTTM  /* initialisation time in E8601DT26.6 format        */
-    &prefix.WORK        /* avoid typing %sysfunc(pathname(work)) every time */
-  ;
-  %if %eval(&&&prefix._INIT_NUM>0) %then %return;  /* only run once */
+%global
+  SASJS_PREFIX       /* the ONLY hard-coded global macro variable in SASjs    */
+  &prefix._INIT_NUM  /* initialisation time as numeric                        */
+  &prefix._INIT_DTTM /* initialisation time in E8601DT26.6 format             */
+  &prefix.WORK       /* avoid typing %sysfunc(pathname(work)) every time      */
+;
+%if %length(&sasjs_prefix>0) %then %return;  /* only run once */
+%let sasjs_prefix=&prefix;
 
-  data _null_;
-    dttm=datetime();
-    call symputx("&prefix._init_num",dttm,'g');
-    call symputx("&prefix._init_dttm",put(dttm,E8601DT26.6),'g');
-    call symputx("&prefix.work",pathname('WORK'),'g');
-  run;
+data _null_;
+  dttm=datetime();
+  call symputx("&sasjs_prefix._init_num",dttm,'g');
+  call symputx("&sasjs_prefix._init_dttm",put(dttm,E8601DT26.6),'g');
+  call symputx("&sasjs_prefix.work",pathname('WORK'),'g');
+run;
 
-  options
-    noautocorrect           /* disallow misspelled procedure names            */
-    compress=CHAR           /* default is none so ensure we have something!   */
-    datastmtchk=ALLKEYWORDS /* protection from overwriting input datasets     */
-    dsoptions=note2err      /* undocumented - convert bad NOTEs to ERRs       */
-    %str(err)orcheck=STRICT /* catch errs in libname/filename statements      */
-    fmterr                  /* ensure err when a format cannot be found       */
-    mergenoby=%str(ERR)OR   /* throw err when a merge has no BY variables     */
-    missing=.               /* changing this can cause hard to detect errs    */
-    noquotelenmax           /* avoid warnings for long strings                */
-    noreplace               /* avoid overwriting permanent datasets           */
-    ps=max                  /* reduce log size slightly                       */
-    ls=max                  /* reduce log even more and avoid word truncation */
-    validmemname=COMPATIBLE /* avoid special characters etc in table names    */
-    validvarname=V7         /* avoid special characters etc in variable names */
-    varinitchk=%str(ERR)OR  /* avoid data mistakes from variable name typos   */
-    varlenchk=%str(ERR)OR   /* fail hard if truncation (data loss) can result */
-  ;
+options
+  noautocorrect           /* disallow misspelled procedure names            */
+  compress=CHAR           /* default is none so ensure we have something!   */
+  datastmtchk=ALLKEYWORDS /* protection from overwriting input datasets     */
+  dsoptions=note2err      /* undocumented - convert bad NOTEs to ERRs       */
+  %str(err)orcheck=STRICT /* catch errs in libname/filename statements      */
+  fmterr                  /* ensure err when a format cannot be found       */
+  mergenoby=%str(ERR)OR   /* throw err when a merge has no BY variables     */
+  missing=.               /* changing this can cause hard to detect errs    */
+  noquotelenmax           /* avoid warnings for long strings                */
+  noreplace               /* avoid overwriting permanent datasets           */
+  ps=max                  /* reduce log size slightly                       */
+  ls=max                  /* reduce log even more and avoid word truncation */
+  validmemname=COMPATIBLE /* avoid special characters etc in table names    */
+  validvarname=V7         /* avoid special characters etc in variable names */
+  varinitchk=%str(ERR)OR  /* avoid data mistakes from variable name typos   */
+  varlenchk=%str(ERR)OR   /* fail hard if truncation (data loss) can result */
+;
 
 %mend mp_init;

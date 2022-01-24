@@ -29,7 +29,7 @@ options noquotelenmax;
   @cond
 **/
 
-%macro mf_abort(mac=mf_abort.sas, type=deprecated, msg=, iftrue=%str(1=1)
+%macro mf_abort(mac=mf_abort.sas, msg=, iftrue=%str(1=1)
 )/*/STORE SOURCE*/;
 
   %if not(%eval(%unquote(&iftrue))) %then %return;
@@ -3036,7 +3036,7 @@ run;
     @li COMPARE - compare the current macro variables against previous values
   @param [in] scope= (GLOBAL) The scope of the variables to be checked.  This
     corresponds to the values in the SCOPE column in `sashelp.vmacro`.
-  @param [in] desc= (Testing variable scope) The user provided test description
+  @param [in] desc= (Testing scope leakage) The user provided test description
   @param [in,out] scopeds= (work.mp_assertscope) The dataset to contain the
     scope snapshot
   @param [out] outds= (work.test_results) The output dataset to contain the
@@ -3058,7 +3058,7 @@ run;
 **/
 
 %macro mp_assertscope(action,
-  desc=0,
+  desc=Testing Scope Leakage,
   scope=GLOBAL,
   scopeds=work.mp_assertscope,
   outds=work.test_results
@@ -5029,6 +5029,123 @@ run;
 
 %mend mp_ds2md;/**
   @file
+  @brief Create a smaller version of a dataset, without data loss
+  @details This macro will scan the input dataset and create a new one, that
+  has the minimum variable lengths needed to store the data without data loss.
+
+  Inspiration was taken from [How to Reduce the Disk Space Required by a
+  SAS® Data Set](https://www.lexjansen.com/nesug/nesug06/io/io18.pdf) by
+  Selvaratnam Sridharma.  The end of the referenced paper presents a macro named
+  "squeeze", hence the nomenclature.
+
+  Usage:
+
+      data big;
+        length my big $32000;
+        do i=1 to 1e4;
+          my=repeat('oh my',100);
+          big='dawg';
+          special=._;
+          output;
+        end;
+      run;
+
+      %mp_ds2squeeze(work.big,outds=work.smaller)
+
+  The following will also be printed to the log (exact values may differ
+  depending on your OS and COMPRESS settings):
+
+  > MP_DS2SQUEEZE: work.big was  625MB
+  > MP_DS2SQUEEZE: work.smaller is    5MB
+
+  @param [in] libds The library.dataset to be squeezed
+  @param [out] outds= (work.mp_ds2squeeze) The squeezed dataset to create
+  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
+
+  <h4> SAS Macros </h4>
+  @li mf_getfilesize.sas
+  @li mf_getuniquefileref.sas
+  @li mf_getuniquename.sas
+  @li mp_getmaxvarlengths.sas
+
+  <h4> Related Programs </h4>
+  @li mp_ds2squeeze.test.sas
+
+  @version 9.3
+  @author Allan Bowe
+**/
+
+%macro mp_ds2squeeze(
+  libds,
+  outds=work.work.mp_ds2squeeze,
+  mdebug=0
+)/*/STORE SOURCE*/;
+%local dbg source;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %do;
+  %let dbg=*;
+  %let source=/source2;
+%end;
+
+%local optval ds fref;
+%let ds=%mf_getuniquename();
+%let fref=%mf_getuniquefileref();
+
+%mp_getmaxvarlengths(&libds,outds=&ds)
+
+data _null_;
+  set &ds end=last;
+  file &fref;
+  /* grab the types */
+  retain dsid;
+  if _n_=1 then dsid=open("&libds",'is');
+  if dsid le 0 then do;
+    msg=sysmsg();
+    put msg=;
+    stop;
+  end;
+  type=vartype(dsid,varnum(dsid, name));
+  if last then rc=close(dsid);
+  /* write out the length statement */
+  if _n_=1 then put 'length ';
+  length len $6;
+  if type='C' then do;
+    if maxlen=0 then len='$1';
+    else len=cats('$',maxlen);
+  end;
+  else do;
+    if maxlen=0 then len='3';
+    else len=cats(maxlen);
+  end;
+  put '  ' name ' ' len;
+  if last then put ';';
+run;
+
+/* configure varlenchk - as we are explicitly shortening the variables */
+%let optval=%sysfunc(getoption(varlenchk));
+options varlenchk=NOWARN;
+
+data &outds;
+  %inc &fref &source;
+  set &libds;
+run;
+
+options varlenchk=&optval;
+
+%if &mdebug=0 %then %do;
+  proc sql;
+  drop table &ds;
+  filename &fref clear;
+%end;
+
+%put &sysmacroname: &libds was %mf_getfilesize(libds=&libds,format=yes);
+%put &sysmacroname: &outds is %mf_getfilesize(libds=&outds,format=yes);
+
+%mend mp_ds2squeeze;/**
+  @file
   @brief Checks an input filter table for validity
   @details Performs checks on the input table to ensure it arrives in the
   correct format.  This is necessary to prevent code injection.  Will update
@@ -6703,30 +6820,48 @@ create table &outsummary as
 %end;
 
 %mend mp_getformats;/**
-  @file mp_getmaxvarlengths.sas
+  @file
   @brief Scans a dataset to find the max length of the variable values
   @details
   This macro will scan a base dataset and produce an output dataset with two
   columns:
 
   - NAME    Name of the base dataset column
-  - MAXLEN Maximum length of the data contained therein.
+  - MAXLEN  Maximum length of the data contained therein.
 
-  Character fields may be allocated very large widths (eg 32000) of which the
-  maximum  value is likely to be much narrower.  This macro was designed to
-  enable a HTML table to be appropriately sized however this could be used as
-  part of a data audit to ensure we aren't over-sizing our tables in relation to
-  the data therein.
+  Character fields are often allocated very large widths (eg 32000) of which the
+  maximum  value is likely to be much narrower.  Identifying such cases can be
+  helpful in the following scenarios:
 
-  Numeric fields are converted using the relevant format to determine the width.
+  @li Enabling a HTML table to be appropriately sized (`num2char=YES`)
+  @li Reducing the size of a dataset to save on storage (mp_ds2squeeze.sas)
+  @li Identifying columns containing nothing but missing values (`MAXLEN=0` in
+    the output table)
+
+  If the entire column is made up of (non-special) missing values then a value
+  of 0 is returned.
+
   Usage:
 
       %mp_getmaxvarlengths(sashelp.class,outds=work.myds)
 
-  @param libds Two part dataset (or view) reference.
-  @param outds= The output dataset to create
+  @param [in] libds Two part dataset (or view) reference.
+  @param [in] num2char= (NO) When set to NO, numeric fields are sized according
+    to the number of bytes used (or set to zero in the case of non-special
+    missings). When YES, the numeric field is converted to character (using the
+    format, if available), and that is sized instead, using `lengthn()`.
+  @param [out] outds= The output dataset to create, eg:
+  |NAME:$8.|MAXLEN:best.|
+  |---|---|
+  |`Name `|`7 `|
+  |`Sex `|`1 `|
+  |`Age `|`3 `|
+  |`Height `|`8 `|
+  |`Weight `|`3 `|
 
   <h4> SAS Macros </h4>
+  @li mcf_length.sas
+  @li mf_getuniquename.sas
   @li mf_getvarlist.sas
   @li mf_getvartype.sas
   @li mf_getvarformat.sas
@@ -6734,20 +6869,32 @@ create table &outsummary as
   @version 9.2
   @author Allan Bowe
 
+  <h4> Related Macros </h4>
+  @li mp_ds2squeeze.sas
+  @li mp_getmaxvarlengths.test.sas
+
 **/
 
 %macro mp_getmaxvarlengths(
-    libds      /* libref.dataset to analyse */
-    ,outds=work.mp_getmaxvarlengths /* name of output dataset to create */
+  libds
+  ,num2char=NO
+  ,outds=work.mp_getmaxvarlengths
 )/*/STORE SOURCE*/;
 
-%local vars x var fmt;
+%local vars prefix x var fmt;
 %let vars=%mf_getvarlist(libds=&libds);
+%let prefix=%substr(%mf_getuniquename(),1,25);
+%let num2char=%upcase(&num2char);
+
+%if &num2char=NO %then %do;
+  /* compile length function for numeric fields */
+  %mcf_length(wrap=YES, insert_cmplib=YES)
+%end;
 
 proc sql;
 create table &outds (rename=(
     %do x=1 %to %sysfunc(countw(&vars,%str( )));
-      ________&x=%scan(&vars,&x)
+      &prefix.&x=%scan(&vars,&x)
     %end;
     ))
   as select
@@ -6755,17 +6902,20 @@ create table &outds (rename=(
       %let var=%scan(&vars,&x);
       %if &x>1 %then ,;
       %if %mf_getvartype(&libds,&var)=C %then %do;
-        max(length(&var)) as ________&x
+        max(lengthn(&var)) as &prefix.&x
       %end;
-      %else %do;
+      %else %if &num2char=YES %then %do;
         %let fmt=%mf_getvarformat(&libds,&var);
         %put fmt=&fmt;
         %if %str(&fmt)=%str() %then %do;
-          max(length(cats(&var))) as ________&x
+          max(lengthn(cats(&var))) as &prefix.&x
         %end;
         %else %do;
-          max(length(put(&var,&fmt))) as ________&x
+          max(lengthn(put(&var,&fmt))) as &prefix.&x
         %end;
+      %end;
+      %else %do;
+        max(mcf_length(&var)) as &prefix.&x
       %end;
     %end;
   from &libds;
@@ -7616,38 +7766,42 @@ filename &tempref clear;
 %macro mp_init(prefix=SASJS
 )/*/STORE SOURCE*/;
 
-  %global
-    &prefix._INIT_NUM   /* initialisation time as numeric                   */
-    &prefix._INIT_DTTM  /* initialisation time in E8601DT26.6 format        */
-    &prefix.WORK        /* avoid typing %sysfunc(pathname(work)) every time */
-  ;
-  %if %eval(&&&prefix._INIT_NUM>0) %then %return;  /* only run once */
+%if %symexist(SASJS_PREFIX) %then %return;  /* only run once */
 
-  data _null_;
-    dttm=datetime();
-    call symputx("&prefix._init_num",dttm,'g');
-    call symputx("&prefix._init_dttm",put(dttm,E8601DT26.6),'g');
-    call symputx("&prefix.work",pathname('WORK'),'g');
-  run;
+%global
+  SASJS_PREFIX       /* the ONLY hard-coded global macro variable in SASjs    */
+  &prefix._INIT_NUM  /* initialisation time as numeric                        */
+  &prefix._INIT_DTTM /* initialisation time in E8601DT26.6 format             */
+  &prefix.WORK       /* avoid typing %sysfunc(pathname(work)) every time      */
+;
 
-  options
-    noautocorrect           /* disallow misspelled procedure names            */
-    compress=CHAR           /* default is none so ensure we have something!   */
-    datastmtchk=ALLKEYWORDS /* protection from overwriting input datasets     */
-    dsoptions=note2err      /* undocumented - convert bad NOTEs to ERRs       */
-    %str(err)orcheck=STRICT /* catch errs in libname/filename statements      */
-    fmterr                  /* ensure err when a format cannot be found       */
-    mergenoby=%str(ERR)OR   /* throw err when a merge has no BY variables     */
-    missing=.               /* changing this can cause hard to detect errs    */
-    noquotelenmax           /* avoid warnings for long strings                */
-    noreplace               /* avoid overwriting permanent datasets           */
-    ps=max                  /* reduce log size slightly                       */
-    ls=max                  /* reduce log even more and avoid word truncation */
-    validmemname=COMPATIBLE /* avoid special characters etc in table names    */
-    validvarname=V7         /* avoid special characters etc in variable names */
-    varinitchk=%str(ERR)OR  /* avoid data mistakes from variable name typos   */
-    varlenchk=%str(ERR)OR   /* fail hard if truncation (data loss) can result */
-  ;
+%let sasjs_prefix=&prefix;
+
+data _null_;
+  dttm=datetime();
+  call symputx("&sasjs_prefix._init_num",dttm,'g');
+  call symputx("&sasjs_prefix._init_dttm",put(dttm,E8601DT26.6),'g');
+  call symputx("&sasjs_prefix.work",pathname('WORK'),'g');
+run;
+
+options
+  noautocorrect           /* disallow misspelled procedure names            */
+  compress=CHAR           /* default is none so ensure we have something!   */
+  datastmtchk=ALLKEYWORDS /* protection from overwriting input datasets     */
+  dsoptions=note2err      /* undocumented - convert bad NOTEs to ERRs       */
+  %str(err)orcheck=STRICT /* catch errs in libname/filename statements      */
+  fmterr                  /* ensure err when a format cannot be found       */
+  mergenoby=%str(ERR)OR   /* throw err when a merge has no BY variables     */
+  missing=.               /* changing this can cause hard to detect errs    */
+  noquotelenmax           /* avoid warnings for long strings                */
+  noreplace               /* avoid overwriting permanent datasets           */
+  ps=max                  /* reduce log size slightly                       */
+  ls=max                  /* reduce log even more and avoid word truncation */
+  validmemname=COMPATIBLE /* avoid special characters etc in table names    */
+  validvarname=V7         /* avoid special characters etc in variable names */
+  varinitchk=%str(ERR)OR  /* avoid data mistakes from variable name typos   */
+  varlenchk=%str(ERR)OR   /* fail hard if truncation (data loss) can result */
+;
 
 %mend mp_init;/**
   @file mp_jsonout.sas
@@ -16389,9 +16543,6 @@ run;
   @param [in] stpcode= the source file (or fileref) containing the SAS code to load
     into the stp.  For multiple files, they should simply be concatenated first.
   @param [in] minify= set to YES in order to strip comments, blank lines, and CRLFs.
-
-  @param frefin= deprecated - a unique fileref is now always used
-  @param frefout= deprecated - a unique fileref is now always used
   @param mDebug= set to 1 to show debug messages in the log
 
   @version 9.3
@@ -16406,15 +16557,7 @@ run;
   ,stpcode=
   ,minify=NO
   ,mdebug=0
-  /* deprecated */
-  ,frefin=inmeta
-  ,frefout=outmeta
 );
-
-%if &frefin ne inmeta or &frefout ne outmeta %then %do;
-  %put %str(WARN)ING: the frefin and frefout parameters will be deprecated in
-    an upcoming release.;
-%end;
 
 /* first, check if STP exists */
 %local tsuri;
@@ -18671,6 +18814,7 @@ libname &libref1a JSON fileref=&fname1a;
 %let found=0;
 %put Getting object uri from &libref1a..items;
 data _null_;
+  length contenttype name $1000;
   set &libref1a..items;
   if contenttype="&contenttype" and upcase(name)="%upcase(&name)" then do;
     call symputx('uri',uri,'l');
@@ -18818,6 +18962,7 @@ libname &libref1a JSON fileref=&fname1a;
 %let found=0;
 %put Getting object uri from &libref1a..items;
 data _null_;
+  length contenttype name $1000;
   set &libref1a..items;
   if contenttype='jobDefinition' and upcase(name)="%upcase(&name)" then do;
     call symputx('uri',cats("&base_uri",uri),'l');
@@ -18990,59 +19135,6 @@ filename &fname2 clear;
 libname &libref1 clear;
 
 %mend mv_deleteviyafolder;/**
-  @file mv_getaccesstoken.sas
-  @brief deprecated - replaced by mv_tokenrefresh.sas
-
-  @version VIYA V.03.04
-  @author Allan Bowe, source: https://github.com/sasjs/core
-
-  <h4> SAS Macros </h4>
-  @li mv_tokenrefresh.sas
-
-**/
-
-%macro mv_getaccesstoken(client_id=someclient
-    ,client_secret=somesecret
-    ,grant_type=authorization_code
-    ,code=
-    ,user=
-    ,pass=
-    ,access_token_var=ACCESS_TOKEN
-    ,refresh_token_var=REFRESH_TOKEN
-  );
-
-%mv_tokenrefresh(client_id=&client_id
-  ,client_secret=&client_secret
-  ,grant_type=&grant_type
-  ,user=&user
-  ,pass=&pass
-  ,access_token_var=&access_token_var
-  ,refresh_token_var=&refresh_token_var
-)
-
-%mend mv_getaccesstoken;/**
-  @file
-  @brief deprecated - replaced by mv_registerclient.sas
-
-  @version VIYA V.03.04
-  @author Allan Bowe, source: https://github.com/sasjs/core
-
-  <h4> SAS Macros </h4>
-  @li mv_registerclient.sas
-
-**/
-
-%macro mv_getapptoken(client_id=someclient
-    ,client_secret=somesecret
-    ,grant_type=authorization_code
-  );
-
-%mv_registerclient(client_id=&client_id
-  ,client_secret=&client_secret
-  ,grant_type=&grant_type
-)
-
-%mend mv_getapptoken;/**
   @file mv_getclients.sas
   @brief Get a list of Viya Clients
   @details First, be sure you have an access token (which requires an app token).
@@ -20369,38 +20461,6 @@ filename &fname0 clear;
 
 %mend mv_getjobstate;
 /**
-  @file mv_getrefreshtoken.sas
-  @brief deprecated - replaced by mv_tokenauth.sas
-
-  @version VIYA V.03.04
-  @author Allan Bowe, source: https://github.com/sasjs/core
-
-  <h4> SAS Macros </h4>
-  @li mv_tokenauth.sas
-
-**/
-
-%macro mv_getrefreshtoken(client_id=someclient
-    ,client_secret=somesecret
-    ,grant_type=authorization_code
-    ,code=
-    ,user=
-    ,pass=
-    ,access_token_var=ACCESS_TOKEN
-    ,refresh_token_var=REFRESH_TOKEN
-  );
-
-%mv_tokenauth(client_id=&client_id
-  ,client_secret=&client_secret
-  ,grant_type=&grant_type
-  ,code=&code
-  ,user=&user
-  ,pass=&pass
-  ,access_token_var=&access_token_var
-  ,refresh_token_var=&refresh_token_var
-)
-
-%mend mv_getrefreshtoken;/**
   @file mv_getusergroups.sas
   @brief Creates a dataset with a list of groups for a particular user
   @details If using outside of Viya SPRE, then an access token is needed.
@@ -22718,6 +22778,9 @@ run;
   @param [out] pkg= (utils) The output package in which to create the function.
     Uses a 3 part format:  libref.catalog.package
 
+  <h4> SAS Macros </h4>
+  @li mf_existfunction.sas
+
   <h4> Related Macros </h4>
   @li mcf_length.test.sas
 
@@ -22730,13 +22793,15 @@ run;
   ,pkg=UTILS
 )/*/STORE SOURCE*/;
 
+%if %mf_existfunction(mcf_length)=1 %then %return;
+
 %if &wrap=YES  %then %do;
   proc fcmp outlib=&lib..&cat..&pkg;
 %end;
 
 function mcf_length(var);
-  if missing(var) then len=0;
-  else if trunc(var,3)=var then len=3;
+  if var=. then len=0;
+  else if missing(var) or trunc(var,3)=var then len=3;
   else if trunc(var,4)=var then len=4;
   else if trunc(var,5)=var then len=5;
   else if trunc(var,6)=var then len=6;
@@ -22892,6 +22957,9 @@ endsub;
   @param [out] pkg= (utils) The output package in which to create the function.
     Uses a 3 part format:  libref.catalog.package
 
+  <h4> SAS Macros </h4>
+  @li mf_existfunction.sas
+
 **/
 
 %macro mcf_string2file(wrap=NO
@@ -22900,6 +22968,8 @@ endsub;
   ,cat=SASJS
   ,pkg=UTILS
 )/*/STORE SOURCE*/;
+
+%if %mf_existfunction(mcf_string2file)=1 %then %return;
 
 %if &wrap=YES  %then %do;
   proc fcmp outlib=&lib..&cat..&pkg;

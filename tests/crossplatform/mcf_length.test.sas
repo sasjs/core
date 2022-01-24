@@ -12,7 +12,7 @@
 
 data test;
   call symputx('null',mcf_length(.));
-  call symputx('special',mcf_length(._))
+  call symputx('special',mcf_length(._));
   call symputx('three',mcf_length(1));
   call symputx('four',mcf_length(10000000));
   call symputx('five',mcf_length(12345678));

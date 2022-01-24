@@ -89,7 +89,7 @@ data _null_;
   end;
   else do;
     if maxlen=0 then len='3';
-    else len=maxlen;
+    else len=cats(maxlen);
   end;
   put '  ' name ' ' len;
   if last then put ';';

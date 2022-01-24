@@ -32,7 +32,9 @@ data work.orig work.deleted work.changed work.appended;
   else stop;
 run;
 
-%mp_storediffs(sashelp.electric,work.orig,CUSTOMER YEAR
+%mp_storediffs(sashelp.electric
+  ,work.orig
+  ,CUSTOMER YEAR
   ,delds=work.deleted
   ,modds=work.changed
   ,appds=work.appended

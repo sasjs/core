@@ -12,10 +12,6 @@
 
       %mp_assertdsobs(sashelp.class,test=ATMOST 20) %* pass if <21 obs present;
 
-  <h4> SAS Macros </h4>
-  @li mf_nobs.sas
-  @li mp_abort.sas
-
 
   @param [in] inds input dataset to test for presence of observations
   @param [in] desc= (Testing observations) The user provided test description
@@ -33,6 +29,11 @@
   |---|---|---|
   |User Provided description|PASS|Dataset &inds has XX obs|
 
+  <h4> SAS Macros </h4>
+  @li mf_getuniquename.sas
+  @li mf_nobs.sas
+  @li mp_abort.sas
+
   <h4> Related Macros </h4>
   @li mp_assertcolvals.sas
   @li mp_assert.sas
@@ -49,9 +50,10 @@
   outds=work.test_results
 )/*/STORE SOURCE*/;
 
-  %local nobs;
+  %local nobs ds;
   %let nobs=%mf_nobs(&inds);
   %let test=%upcase(&test);
+  %let ds=%mf_getuniquename(prefix=mp_assertdsobs);
 
   %if %substr(&test.xxxxx,1,6)=EQUALS %then %do;
     %let val=%scan(&test,2,%str( ));
@@ -84,7 +86,7 @@
     )
   %end;
 
-  data;
+  data &ds;
     length test_description $256 test_result $4 test_comments $256;
     test_description=symget('desc');
     test_result='FAIL';
@@ -109,9 +111,6 @@
     test_comments="&sysmacroname: Unsatisfied test condition - &test";
   %end;
   run;
-
-  %local ds;
-  %let ds=&syslast;
 
   proc append base=&outds data=&ds;
   run;

@@ -68,7 +68,7 @@
     },
     {
       "name": "server",
-      "serverUrl": "https://sas.analytium.co.uk:5001",
+      "serverUrl": "https://sas.analytium.co.uk:5000",
       "serverType": "SASJS",
       "appLoc": "/Shared Data/temp/macrocore",
       "macroFolders": [

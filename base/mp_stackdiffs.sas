@@ -194,6 +194,7 @@
   @li mf_nobs.sas
   @li mf_wordsinstr1butnotstr2.sas
   @li mp_abort.sas
+  @li mp_ds2squeeze.sas
 
 
   <h4> Related Macros </h4>
@@ -298,11 +299,14 @@ proc transpose data=&ds1d(where=(tgtvar_type='C'))
   id TGTVAR_NM;
   var OLDVAL_CHAR;
 run;
+%mp_ds2squeeze(&ds2d,outds=&ds2d)
+%mp_ds2squeeze(&ds3d,outds=&ds3d)
 data &outdel;
   if 0 then set &baselibds;
   set &ds2d;
   set &ds3d;
   drop key_hash;
+  if not missing(%scan(&key,1));
 run;
 proc sort;
   by &key;
@@ -328,11 +332,14 @@ proc transpose data=&ds1a(where=(tgtvar_type='C'))
   id TGTVAR_NM;
   var NEWVAL_CHAR;
 run;
+%mp_ds2squeeze(&ds2a,outds=&ds2a)
+%mp_ds2squeeze(&ds3a,outds=&ds3a)
 data &outadd;
   if 0 then set &baselibds;
   set &ds2a;
   set &ds3a;
   drop key_hash;
+  if not missing(%scan(&key,1));
 run;
 proc sort;
   by &key;
@@ -359,10 +366,13 @@ proc transpose data=&ds1m(where=(tgtvar_type='C'))
   id TGTVAR_NM;
   var NEWVAL_CHAR;
 run;
+%mp_ds2squeeze(&ds2m,outds=&ds2m)
+%mp_ds2squeeze(&ds3m,outds=&ds3m)
 data &outmod;
   if 0 then set &baselibds;
   set &ds2m;
   set &ds3m;
+  if not missing(%scan(&key,1));
 run;
 proc sort;
   by &key;
@@ -375,12 +385,17 @@ run;
   * passthrough and a temporary table.
   */
 data &pks;
+  if 0 then set &baselibds;
   set &outadd &outmod &outdel;
   keep &key;
 run;
 
 proc sort noduprec dupout=&dups;
 by &key;
+run;
+data _null_;
+  set &dups;
+  putlog (_all_)(=);
 run;
 %mp_abort(iftrue= (%mf_nobs(&dups) ne 0)
   ,mac=&sysmacroname
@@ -542,17 +557,16 @@ select distinct tgtvar_nm into: missvars separated by ' '
   %let fref=%mf_getuniquefileref();
   data _null_;
     file &fref;
-    set &auditlibds(where=(move_type='D')) end=lastobs;
+    set &auditlibds(where=(move_type='M')) end=lastobs;
     by key_hash;
     if _n_=1 then put 'proc sql;';
     if first.key_hash then put "update &outmod set ";
     comma=ifc(first.key_hash=0,',',' ');
     if tgtvar_type='C' then put '  ' comma TGTVAR_NM '=trim("' NEWVAL_CHAR '")';
     if last.key_hash then put '  where key_hash=trim("' key_hash '");';
-    if lastobs then put 'alter &outmod drop key_hash';
+    if lastobs then put "alter table &outmod drop key_hash;";
   run;
   %inc &fref/source2;
-
 %end;
 
 %if &mdebug=0 %then %do;

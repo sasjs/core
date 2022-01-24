@@ -49,7 +49,7 @@
 
 %macro mp_ds2squeeze(
   libds,
-  outds=work.work.mp_ds2squeeze,
+  outds=work.mp_ds2squeeze,
   mdebug=0
 )/*/STORE SOURCE*/;
 %local dbg source;
@@ -62,9 +62,10 @@
   %let source=/source2;
 %end;
 
-%local optval ds fref;
+%local optval ds fref startsize;
 %let ds=%mf_getuniquename();
 %let fref=%mf_getuniquefileref();
+%let startsize=%mf_getfilesize(libds=&libds,format=yes);
 
 %mp_getmaxvarlengths(&libds,outds=&ds)
 
@@ -113,7 +114,7 @@ options varlenchk=&optval;
   filename &fref clear;
 %end;
 
-%put &sysmacroname: &libds was %mf_getfilesize(libds=&libds,format=yes);
+%put &sysmacroname: &libds was &startsize;
 %put &sysmacroname: &outds is %mf_getfilesize(libds=&outds,format=yes);
 
 %mend mp_ds2squeeze;

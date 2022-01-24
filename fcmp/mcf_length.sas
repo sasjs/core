@@ -39,6 +39,9 @@
   @param [out] pkg= (utils) The output package in which to create the function.
     Uses a 3 part format:  libref.catalog.package
 
+  <h4> SAS Macros </h4>
+  @li mf_existfunction.sas
+
   <h4> Related Macros </h4>
   @li mcf_length.test.sas
 
@@ -51,13 +54,15 @@
   ,pkg=UTILS
 )/*/STORE SOURCE*/;
 
+%if %mf_existfunction(mcf_length)=1 %then %return;
+
 %if &wrap=YES  %then %do;
   proc fcmp outlib=&lib..&cat..&pkg;
 %end;
 
 function mcf_length(var);
-  if missing(var) then len=0;
-  else if trunc(var,3)=var then len=3;
+  if var=. then len=0;
+  else if missing(var) or trunc(var,3)=var then len=3;
   else if trunc(var,4)=var then len=4;
   else if trunc(var,5)=var then len=5;
   else if trunc(var,6)=var then len=6;

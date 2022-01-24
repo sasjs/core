@@ -62,7 +62,6 @@
 
 %macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y
   ,engine=DATASTEP
-  ,dbg=0 /* DEPRECATED */
   ,missing=NULL
   ,showmeta=NO
 )/*/STORE SOURCE*/;

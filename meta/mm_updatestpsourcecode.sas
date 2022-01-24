@@ -13,9 +13,6 @@
   @param [in] stpcode= the source file (or fileref) containing the SAS code to load
     into the stp.  For multiple files, they should simply be concatenated first.
   @param [in] minify= set to YES in order to strip comments, blank lines, and CRLFs.
-
-  @param frefin= deprecated - a unique fileref is now always used
-  @param frefout= deprecated - a unique fileref is now always used
   @param mDebug= set to 1 to show debug messages in the log
 
   @version 9.3
@@ -30,15 +27,7 @@
   ,stpcode=
   ,minify=NO
   ,mdebug=0
-  /* deprecated */
-  ,frefin=inmeta
-  ,frefout=outmeta
 );
-
-%if &frefin ne inmeta or &frefout ne outmeta %then %do;
-  %put %str(WARN)ING: the frefin and frefout parameters will be deprecated in
-    an upcoming release.;
-%end;
 
 /* first, check if STP exists */
 %local tsuri;

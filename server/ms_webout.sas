@@ -161,7 +161,7 @@
     sysvlong=quote(trim(symget('sysvlong')));
     put ',"SYSVLONG" : ' sysvlong;
     put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" ";
-    put ',"END_DTTM" : "' "%sysfunc(datetime(),datetime20.3)" '" ';
+    put ',"END_DTTM" : "' "%sysfunc(datetime(),E8601DT26.6)" '" ';
     length autoexec $512;
     autoexec=quote(urlencode(trim(getoption('autoexec'))));
     put ',"AUTOEXEC" : ' autoexec;

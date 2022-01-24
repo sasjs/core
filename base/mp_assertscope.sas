@@ -29,7 +29,7 @@
     @li COMPARE - compare the current macro variables against previous values
   @param [in] scope= (GLOBAL) The scope of the variables to be checked.  This
     corresponds to the values in the SCOPE column in `sashelp.vmacro`.
-  @param [in] desc= (Testing variable scope) The user provided test description
+  @param [in] desc= (Testing scope leakage) The user provided test description
   @param [in,out] scopeds= (work.mp_assertscope) The dataset to contain the
     scope snapshot
   @param [out] outds= (work.test_results) The output dataset to contain the
@@ -51,7 +51,7 @@
 **/
 
 %macro mp_assertscope(action,
-  desc=0,
+  desc=Testing Scope Leakage,
   scope=GLOBAL,
   scopeds=work.mp_assertscope,
   outds=work.test_results

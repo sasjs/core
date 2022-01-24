@@ -12,6 +12,7 @@
 
 data test;
   call symputx('null',mcf_length(.));
+  call symputx('special',mcf_length(._));
   call symputx('three',mcf_length(1));
   call symputx('four',mcf_length(10000000));
   call symputx('five',mcf_length(12345678));
@@ -23,6 +24,10 @@ run;
 %mp_assert(
   iftrue=(%str(&null)=%str(0)),
   desc=Check if NULL returns 0
+)
+%mp_assert(
+  iftrue=(%str(&special)=%str(3)),
+  desc=Check if special missing ._ returns 3
 )
 %mp_assert(
   iftrue=(%str(&three)=%str(3)),
@@ -47,4 +52,16 @@ run;
 %mp_assert(
   iftrue=(%str(&eight)=%str(8)),
   desc=Check for length 8
+)
+%mp_assert(
+  iftrue=(&syscc=0),
+  desc=Check syscc=0 before re-initialisation
+)
+
+/* test 2 - compile again test for warnings */
+%mcf_length(wrap=YES, insert_cmplib=YES)
+
+%mp_assert(
+  iftrue=(&syscc=0),
+  desc=Check syscc=0 after re-initialisation
 )

@@ -11,7 +11,7 @@
   @cond
 **/
 
-%macro mf_abort(mac=mf_abort.sas, type=deprecated, msg=, iftrue=%str(1=1)
+%macro mf_abort(mac=mf_abort.sas, msg=, iftrue=%str(1=1)
 )/*/STORE SOURCE*/;
 
   %if not(%eval(%unquote(&iftrue))) %then %return;

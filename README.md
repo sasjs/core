@@ -125,6 +125,7 @@ filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
 - macro names must be lowercase
 - one macro per file
 - prefixes:
+  - _mcf_ for macro compiled functions (proc fcmp)
   - _mf_ for macro functions (can be used in open code).
   - _ml_ for macros that are used to compile LUA modules
   - _mm_ for metadata macros (interface with the metadata server).
@@ -166,7 +167,7 @@ SAS code can contain one of two types of dependency - SAS Macros, and SAS Includ
   @li someprogram.sas FREFTWO
 ```
 
-The CLI can then extract all the dependencies and insert as precode (SAS Macros) or in a temp engine fileref (SAS Includes) when creating SAS Jobs and Services.
+The CLI can then extract all the dependencies and insert as precode (SAS Macros) or in a temp engine fileref (SAS Includes) when creating SAS Jobs and Services (and Tests).
 
 When contributing to this library, it is therefore important to ensure that all dependencies are listed in the header in this format.
 
@@ -182,7 +183,9 @@ When contributing to this library, it is therefore important to ensure that all 
 - Mandatory parameters should be positional, all optional parameters should be keyword (var=) style.
 - All dataset references must be 2 level (eg `work.blah`, not `blah`). This is to avoid contention when options [DATASTMTCHK](https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000279064.htm)=ALLKEYWORDS is in effect.
 - Avoid naming collisions! All macro variables should be local scope. Use system generated work tables where possible - eg `data ; set sashelp.class; run; data &output; set &syslast; run;`
+- Where global macro variables are absolutely necessary, they should make use of `&sasjs_prefix` - see mp_init.sas
 - The use of `quit;` for `proc sql` is optional unless you are looking to benefit from the timing statistics.
+- Use [sasjs lint](https://github.com/sasjs/lint)!
 
 ## General Notes
 
@@ -190,10 +193,9 @@ When contributing to this library, it is therefore important to ensure that all 
 
 ## Breaking Changes
 
-We are currently on major release v3.  The following changes are planned when the next major (breaking) release becomes necessary:
+We are currently on major release v4.  Breaking changes should be marked with the [deprecated](https://www.doxygen.nl/manual/commands.html#cmddeprecated) doxygen tag.  The following changes are planned when the next major (breaking) release becomes necessary:
 
-* Remove `dbg` parameter from mp_jsonout.sas (implement mdebug instead)
-* Remove `END_DTTM` and `START_DTTM` from mx_webout JSON
+* (None as yet)
 
 ## Star Gazing
 

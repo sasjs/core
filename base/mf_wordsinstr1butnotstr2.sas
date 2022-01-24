@@ -3,6 +3,9 @@
   @brief Returns words that are in string 1 but not in string 2
   @details  Compares two space separated strings and returns the words that are
   in the first but not in the second.
+
+  Note - case sensitive!
+
   Usage:
 
       %let x= %mf_wordsInStr1ButNotStr2(
@@ -13,10 +16,8 @@
   returns:
   > sss bram boo
 
-  @param str1= string containing words to extract
-  @param str2= used to compare with the extract string
-
-  @warning CASE SENSITIVE!
+  @param [in] str1= string containing words to extract
+  @param [in] str2= used to compare with the extract string
 
   @version 9.2
   @author Allan Bowe
@@ -30,7 +31,6 @@
 
 %local count_base count_extr i i2 extr_word base_word match outvar;
 %if %length(&str1)=0 or %length(&str2)=0 %then %do;
-  %put %str(WARN)ING: empty string provided!;
   %put base string (str1)= &str1;
   %put compare string (str2) = &str2;
   %return;

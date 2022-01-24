@@ -5056,6 +5056,7 @@ run;
   depending on your OS and COMPRESS settings):
 
   > MP_DS2SQUEEZE: work.big was  625MB
+
   > MP_DS2SQUEEZE: work.smaller is    5MB
 
   @param [in] libds The library.dataset to be squeezed

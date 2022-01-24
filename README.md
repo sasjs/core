@@ -193,7 +193,7 @@ When contributing to this library, it is therefore important to ensure that all 
 
 ## Breaking Changes
 
-We are currently on major release v4.  The following changes are planned when the next major (breaking) release becomes necessary:
+We are currently on major release v4.  Breaking changes should be marked with the [deprecated](https://www.doxygen.nl/manual/commands.html#cmddeprecated) doxygen tag.  The following changes are planned when the next major (breaking) release becomes necessary:
 
 * (None as yet)
 

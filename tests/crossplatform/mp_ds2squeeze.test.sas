@@ -3,6 +3,7 @@
   @brief Testing mp_ds2squeeze.sas macro
 
   <h4> SAS Macros </h4>
+  @li mf_getvarlen.sas
   @li mp_assert.sas
   @li mp_assertscope.sas
   @li mp_ds2squeeze.sas

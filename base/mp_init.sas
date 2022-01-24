@@ -33,13 +33,15 @@
 %macro mp_init(prefix=SASJS
 )/*/STORE SOURCE*/;
 
+%if %symexist(SASJS_PREFIX) %then %return;  /* only run once */
+
 %global
   SASJS_PREFIX       /* the ONLY hard-coded global macro variable in SASjs    */
   &prefix._INIT_NUM  /* initialisation time as numeric                        */
   &prefix._INIT_DTTM /* initialisation time in E8601DT26.6 format             */
   &prefix.WORK       /* avoid typing %sysfunc(pathname(work)) every time      */
 ;
-%if %length(&sasjs_prefix>0) %then %return;  /* only run once */
+
 %let sasjs_prefix=&prefix;
 
 data _null_;

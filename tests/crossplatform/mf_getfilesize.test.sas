@@ -19,13 +19,12 @@ run;
 
 %mp_assert(
   iftrue=(&syscc=0),
-  desc=Checking syscc,
-  outds=work.test_results
+  desc=Checking syscc
 )
 
-%put %mf_getfilesize(libds=test)
+%put %mf_getfilesize(libds=test);
+
 %mp_assert(
   iftrue=(&syscc=0),
-  desc=Checking syscc with one level name,
-  outds=work.test_results
+  desc=Checking syscc with one level name
 )

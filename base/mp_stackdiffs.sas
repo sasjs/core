@@ -561,8 +561,8 @@ select distinct tgtvar_nm into: missvars separated by ' '
     by key_hash;
     if _n_=1 then put 'proc sql;';
     if first.key_hash then put "update &outmod set " / '  '@@;
-    else put '  ,'@@;
     if is_diff=1 then do;
+      if not first.key_hash then put '  ,'@@;
       if tgtvar_type='C' then do;
         length qstr $32767;
         qstr=quote(trim(NEWVAL_CHAR));

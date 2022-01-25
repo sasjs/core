@@ -9754,23 +9754,23 @@ run;
 
     Essentially then, what this macro does, is turn a table like this:
 
-  |MOVE_TYPE:$1.|TGTVAR_NM:$32.|IS_PK:best.|IS_DIFF:best.|TGTVAR_TYPE:$1.|OLDVAL_NUM:best32.|NEWVAL_NUM:best32.|OLDVAL_CHAR:$32765.|NEWVAL_CHAR:$32765.|
-  |---|---|---|---|---|---|---|---|---|
-  |`A `|`NAME `|`1 `|`-1 `|`C `|`. `|`. `|` `|`Newbie `|
-  |`A `|`AGE `|`0 `|`-1 `|`N `|`. `|`13 `|` `|` `|
-  |`A `|`HEIGHT `|`0 `|`-1 `|`N `|`. `|`65.3 `|` `|` `|
-  |`A `|`SEX `|`0 `|`-1 `|`C `|`. `|`. `|` `|`F `|
-  |`A `|`WEIGHT `|`0 `|`-1 `|`N `|`. `|`98 `|` `|` `|
-  |`D `|`NAME `|`1 `|`-1 `|`C `|`. `|`. `|`Alfred `|` `|
-  |`D `|`AGE `|`0 `|`-1 `|`N `|`14 `|`. `|` `|` `|
-  |`D `|`HEIGHT `|`0 `|`-1 `|`N `|`69 `|`. `|` `|` `|
-  |`D `|`SEX `|`0 `|`-1 `|`C `|`. `|`. `|`M `|` `|
-  |`D `|`WEIGHT `|`0 `|`-1 `|`N `|`112.5 `|`. `|` `|` `|
-  |`M `|`NAME `|`1 `|`0 `|`C `|`. `|`. `|`Alice `|`Alice `|
-  |`M `|`AGE `|`0 `|`1 `|`N `|`13 `|`99 `|` `|` `|
-  |`M `|`HEIGHT `|`0 `|`0 `|`N `|`56.5 `|`56.5 `|` `|` `|
-  |`M `|`SEX `|`0 `|`0 `|`C `|`. `|`. `|`F `|`F `|
-  |`M `|`WEIGHT `|`0 `|`0 `|`N `|`84 `|`84 `|` `|` `|
+|KEY_HASH:$32.|MOVE_TYPE:$1.|TGTVAR_NM:$32.|IS_PK:best.|IS_DIFF:best.|TGTVAR_TYPE:$1.|OLDVAL_NUM:best32.|NEWVAL_NUM:best32.|OLDVAL_CHAR:$32765.|NEWVAL_CHAR:$32765.|
+|---|---|---|---|---|---|---|---|---|---|
+|`27AA6F7581052E7FF48E1BCA901313FB `|`A `|`NAME `|`1 `|`-1 `|`C `|`. `|`. `|` `|`Newbie `|
+|`27AA6F7581052E7FF48E1BCA901313FB `|`A `|`AGE `|`0 `|`-1 `|`N `|`. `|`13 `|` `|` `|
+|`27AA6F7581052E7FF48E1BCA901313FB `|`A `|`HEIGHT `|`0 `|`-1 `|`N `|`. `|`65.3 `|` `|` `|
+|`27AA6F7581052E7FF48E1BCA901313FB `|`A `|`SEX `|`0 `|`-1 `|`C `|`. `|`. `|` `|`F `|
+|`27AA6F7581052E7FF48E1BCA901313FB `|`A `|`WEIGHT `|`0 `|`-1 `|`N `|`. `|`98 `|` `|` `|
+|`86703FDE9E87DD5C0F8E1072545D0128 `|`D `|`NAME `|`1 `|`-1 `|`C `|`. `|`. `|`Alfred `|` `|
+|`86703FDE9E87DD5C0F8E1072545D0128 `|`D `|`AGE `|`0 `|`-1 `|`N `|`14 `|`. `|` `|` `|
+|`86703FDE9E87DD5C0F8E1072545D0128 `|`D `|`HEIGHT `|`0 `|`-1 `|`N `|`69 `|`. `|` `|` `|
+|`86703FDE9E87DD5C0F8E1072545D0128 `|`D `|`SEX `|`0 `|`-1 `|`C `|`. `|`. `|`M `|` `|
+|`86703FDE9E87DD5C0F8E1072545D0128 `|`D `|`WEIGHT `|`0 `|`-1 `|`N `|`112.5 `|`. `|` `|` `|
+|`64489C85DC2FE0787B85CD87214B3810 `|`M `|`NAME `|`1 `|`0 `|`C `|`. `|`. `|`Alice `|`Alice `|
+|`64489C85DC2FE0787B85CD87214B3810 `|`M `|`AGE `|`0 `|`1 `|`N `|`13 `|`99 `|` `|` `|
+|`64489C85DC2FE0787B85CD87214B3810 `|`M `|`HEIGHT `|`0 `|`0 `|`N `|`56.5 `|`56.5 `|` `|` `|
+|`64489C85DC2FE0787B85CD87214B3810 `|`M `|`SEX `|`0 `|`0 `|`C `|`. `|`. `|`F `|`F `|
+|`64489C85DC2FE0787B85CD87214B3810 `|`M `|`WEIGHT `|`0 `|`0 `|`N `|`84 `|`84 `|` `|` `|
 
     Into three tables like this:
 
@@ -9798,7 +9798,7 @@ run;
     The macro is also flexible where columns have been added or removed from
     the base table UNLESS there is a change to the primary key.
 
-    Changes to the primary key are NOT supported, and are likely to cause
+    Changes to the primary key fields are NOT supported, and are likely to cause
     unexpected results.
 
     The following pre-flight checks are made:
@@ -9915,7 +9915,6 @@ run;
   @param [out] outadd= (work.outadd) Output table containing additional records
   @param [out] outdel= (work.outdel) Output table containing deleted records
 
-
   <h4> SAS Macros </h4>
   @li mf_existvarlist.sas
   @li mf_getquotedstr.sas
@@ -9926,7 +9925,6 @@ run;
   @li mf_wordsinstr1butnotstr2.sas
   @li mp_abort.sas
   @li mp_ds2squeeze.sas
-
 
   <h4> Related Macros </h4>
   @li mp_coretable.sas

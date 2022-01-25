@@ -74,8 +74,13 @@ create table work.example3(
 );
 %mp_getpk(work,ds=example3,outds=test3)
 
+data _null_;
+  set work.test3;
+  call symputx('test3',pk_fields);
+run;
+
 %mp_assert(
-  iftrue=(%mf_nobs(work.test3)=0),
+  iftrue=("&test3 "=" "),
   desc=mp_getpk does not capture unique constraint without NOT NULL,
   outds=work.test_results
 )

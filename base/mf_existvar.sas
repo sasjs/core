@@ -1,11 +1,11 @@
 /**
   @file
   @brief Checks if a variable exists in a data set.
-  @details Returns 0 if the variable does NOT exist, and return the position of
-    the var if it does.
-    Usage:
+  @details Returns 0 if the variable does NOT exist, and the position of the var
+  if it does.
+  Usage:
 
-        %put %mf_existvar(work.someds, somevar)
+      %put %mf_existvar(work.someds, somevar)
 
   @param [in] libds 2 part dataset or view reference
   @param [in] var variable name

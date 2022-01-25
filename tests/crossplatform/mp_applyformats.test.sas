@@ -34,7 +34,7 @@ run;
 %mp_applyformats(work.cols2)
 
 %mp_assert(
-  iftrue=("&orig_fmt"=""),
+  iftrue=("&origfmt"=""),
   desc=Check that formats were cleared,
   outds=work.test_results
 )

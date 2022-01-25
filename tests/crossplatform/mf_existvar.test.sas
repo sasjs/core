@@ -10,13 +10,11 @@
 
 
 %mp_assert(
-  iftrue=(%mf_existvar(sashelp.class,age)=1),
-  desc=Checking existing var exists,
-  outds=work.test_results
+  iftrue=(%mf_existvar(sashelp.class,age)>0),
+  desc=Checking existing var exists
 )
 
 %mp_assert(
   iftrue=(%mf_existvar(sashelp.class,isjustanumber)=0),
-  desc=Checking non existing var does not exist,
-  outds=work.test_results
+  desc=Checking non existing var does not exist
 )

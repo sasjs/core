@@ -37,8 +37,8 @@
   desc=Check original returns 1
 )
 %mp_assert(
-  iftrue=(%mcf_init(t)=0),
-  desc=Check subset returns 0
+  iftrue=(%mcf_init(t)=1),
+  desc=Check subset returns 1
 )
 %mp_assert(
   iftrue=(&syscc=0),

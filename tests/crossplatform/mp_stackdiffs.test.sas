@@ -96,7 +96,7 @@ run;
   desc=Delete2 - has errs,
   test=EQUALS 10
 )
-%mp_assertdsobs(work.del1,
+%mp_assertdsobs(work.del2,
   desc=Delete2 - records not populated,
   test=EQUALS 0
 )
@@ -135,9 +135,9 @@ run;
   */
 data work.orig4;
   set sashelp.electric;
-  if _n_ ge 30;
+  if _n_ ge 20;
   year=_n_;
-  if _n_>35 then stop;
+  if _n_>25 then stop;
 run;
 data work.final4;
   set work.final;

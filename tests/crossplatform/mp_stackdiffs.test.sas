@@ -45,13 +45,17 @@ run;
 %mp_assertscope(SNAPSHOT)
 
 /**
-  * Deletions test - where record does not exist
+  * Deletions test - where record does exist
   */
+data work.orig1;
+  set sashelp.electric;
+  if _n_ le 10;
+run;
 data work.final1;
   set work.final;
   where move_type='D';
 run;
-%mp_stackdiffs(work.orig
+%mp_stackdiffs(work.orig1
   ,work.final1
   ,CUSTOMER YEAR
   ,mdebug=1
@@ -69,11 +73,11 @@ run;
   test=EQUALS 10
 )
 /**
-  * Deletions test - where record DOES exist
+  * Deletions test - where record does NOT exist
   */
 data work.orig2;
-  set sashelp.electric;
-  if _n_ le 10;
+  set work.orig;
+  stop; /* empty table */
 run;
 data work.final2;
   set work.final;
@@ -89,11 +93,11 @@ run;
   ,outdel=work.del2
 )
 %mp_assertdsobs(work.errds2,
-  desc=Delete1 - has errs,
+  desc=Delete2 - has errs,
   test=EQUALS 10
 )
 %mp_assertdsobs(work.del1,
-  desc=Delete1 - records not populated,
+  desc=Delete2 - records not populated,
   test=EQUALS 0
 )
 
@@ -130,7 +134,9 @@ run;
   * Additions test - where record does exist
   */
 data work.orig4;
-  set work.orig;
+  set sashelp.electric;
+  if _n_ ge 30;
+  year=_n_;
   if _n_>35 then stop;
 run;
 data work.final4;
@@ -251,7 +257,7 @@ run;
   * And a test if the actual values were applied
   */
 data work.orig8;
-  set work.orig;
+  set sashelp.electric;
   if _n_ le 16;
 run;
 %mp_stackdiffs(work.orig8
@@ -292,4 +298,4 @@ run;
 )
 
 
-%mp_assertscope(COMPARE,Desc=MacVar Scope Check)
+%mp_assertscope(COMPARE,ignorelist=SASJS_FUNCTIONS)

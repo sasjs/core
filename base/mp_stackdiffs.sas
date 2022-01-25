@@ -418,7 +418,7 @@ create table &delrec as
   from &outdel a
   left join &base b
   on &keyjoin
-  where a.%scan(&key,1) is null
+  where b.%scan(&key,1) is null
   order by &commakey;
 
 data &delerr;
@@ -526,7 +526,7 @@ select distinct tgtvar_nm into: missvars separated by ' '
     from &outmod a
     left join &base b
     on &keyjoin
-    where a.%scan(&key,1) is null
+    where b.%scan(&key,1) is null
     order by &commakey;
   data &moderr;
     if 0 then set &errds;

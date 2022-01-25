@@ -9734,10 +9734,8 @@ run;
 %mend mp_sortinplace;/**
   @file
   @brief Prepares an audit table for stacking (re-applying) the changes.
-  @details WORK IN PROGRESS!!
-
-    When the underlying data from a Base Table is refreshed, it can be helpful
-    to have any previously-applied changes, re-applied.
+  @details When the underlying data from a Base Table is refreshed, it can be
+    helpful to have any previously-applied changes, re-applied.
 
     Such situation might arise if you are applying those changes using a tool
     like [Data Controller for SAS®](https://datacontroller.io) - which records

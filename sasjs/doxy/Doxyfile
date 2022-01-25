@@ -8,6 +8,7 @@ FILE_PATTERNS          = *.sas \
                          *.dox
 GENERATE_LATEX         = NO
 GENERATE_TREEVIEW      = YES
+HAVE_DOT               = YES
 HIDE_FRIEND_COMPOUNDS  = YES
 HIDE_IN_BODY_DOCS      = YES
 HIDE_SCOPE_NAMES       = YES

@@ -14,7 +14,7 @@
     "displayMacroCore": false,
     "enableLineage": false,
     "doxyContent": {
-      "favIcon": "runningman.jpg",
+      "favIcon": "favicon.ico",
       "logo": "Macro_core_website_1.png",
       "readMe": "../../README.md"
     }
@@ -40,6 +40,7 @@
         "tests/viyaonly"
       ],
       "programFolders": [],
+      "binaryFolders": [],
       "deployConfig": {
         "deployServicePack": true,
         "deployScripts": []
@@ -67,7 +68,7 @@
     },
     {
       "name": "server",
-      "serverUrl": "https://sas.analytium.co.uk:5001",
+      "serverUrl": "https://sas.analytium.co.uk:5000",
       "serverType": "SASJS",
       "appLoc": "/Shared Data/temp/macrocore",
       "macroFolders": [

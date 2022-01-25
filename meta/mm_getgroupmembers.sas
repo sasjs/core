@@ -1,20 +1,27 @@
 /**
   @file
   @brief Creates dataset with all members of a metadata group
-  @details
+  @details This macro will query SAS metadata and return all the members
+    of a particular group.
 
-  usage:
+  Usage:
 
-    %mm_getgroupmembers(someGroupName
-      ,outds=work.mm_getgroupmembers
-      ,emails=YES)
+      %mm_getgroupmembers(someGroupName
+        ,outds=work.mm_getgroupmembers
+        ,emails=YES
+      )
 
   @param group metadata group for which to bring back members
-  @param outds= the dataset to create that contains the list of members
-  @param emails= set to YES to bring back email addresses
-  @param id= set to yes if passing an ID rather than a group name
+  @param outds= (work.mm_getgroupmembers) The dataset to create that contains
+    the list of members
+  @param emails= (NO) Set to YES to bring back email addresses
+  @param id= (NO) Set to yes if passing an ID rather than a group name
 
   @returns outds  dataset containing all members of the metadata group
+
+  <h4> Related Macros </h4>
+  @li mm_getgorups.sas
+  @li mm_adduser2group.sas
 
   @version 9.2
   @author Allan Bowe

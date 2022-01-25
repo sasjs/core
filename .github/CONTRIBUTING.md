@@ -12,7 +12,7 @@ This repository makes use of the [SASjs](https://sasjs.io) framework for code or
 * [VSCode](https://sasjs.io/windows/#vscode) - feature packed IDE for code editing (warning - highly effective!)
 * [GIT](https://sasjs.io/windows/#git) - a safety net you cannot (and should not) do without.
 
-For generating the documentation (`sasjs doc`) it is also necessary to install [doxygen](https://www.doxygen.nl/manual/install.html).
+For generating the documentation (`sasjs doc`) it is also necessary to install [doxygen](https://www.doxygen.nl/manual/install.html) and GraphViz (`sudo port install graphviz` on mac, or `sudo apt-get install graphviz` on Ubuntu).
 
 
 To get configured:

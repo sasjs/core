@@ -41,7 +41,7 @@ run;
   outquery=work.query,
   mdebug=1
 )
-%mp_assert(iftrue=(&syscc>0),
+%mp_assert(iftrue=(&syscc=0),
   desc=Ensure macro runs without errors,
   outds=work.test_results
 )

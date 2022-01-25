@@ -55,7 +55,11 @@
     Uses a 3 part format:  libref.catalog.package
 
   <h4> SAS Macros </h4>
-  @li mf_existfunction.sas
+  @li mcf_init.sas
+
+  <h4> Related Programs </h4>
+  @li mcf_stpsrv_header.test.sas
+  @li mp_init.sas
 
 **/
 
@@ -66,7 +70,7 @@
   ,pkg=UTILS
 )/*/STORE SOURCE*/;
 
-%if %mf_existfunction(stpsrv_header)=1 %then %return;
+%if %mcf_init(stpsrv_header)=1 %then %return;
 
 %if &wrap=YES  %then %do;
   proc fcmp outlib=&lib..&cat..&pkg;

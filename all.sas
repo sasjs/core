@@ -67,7 +67,6 @@ options noquotelenmax;
 
   <h4> Related Macros </h4>
   @li mf_trimstr.sas
-  @li mf_wordsinstr1butnotstr2.sas
 
   @version 9.2
   @author Allan Bowe
@@ -243,11 +242,11 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
 /** @endcond *//**
   @file
   @brief Checks if a variable exists in a data set.
-  @details Returns 0 if the variable does NOT exist, and return the position of
-    the var if it does.
-    Usage:
+  @details Returns 0 if the variable does NOT exist, and the position of the var
+  if it does.
+  Usage:
 
-        %put %mf_existvar(work.someds, somevar)
+      %put %mf_existvar(work.someds, somevar)
 
   @param [in] libds 2 part dataset or view reference
   @param [in] var variable name
@@ -534,18 +533,19 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
 
       %put %mf_getfilesize(fpath=C:\temp\myfile.txt);
 
-      or
+  or, provide a libds value as follows:
 
       data x;do x=1 to 100000;y=x;output;end;run;
       %put %mf_getfilesize(libds=work.x,format=yes);
 
-      gives:
+  Which gives:
 
-      2mb
+  > 2mb
 
-  @param fpath= full path and filename.  Provide this OR the libds value.
-  @param libds= library.dataset value (assumes library is BASE engine)
-  @param format=  set to yes to apply sizekmg. format
+  @param [in] fpath= Full path and filename.  Provide this OR the libds value.
+  @param [in] libds= (0) Library.dataset value (assumes library is BASE engine)
+  @param [in] format= (NO) Set to yes to apply sizekmg. format
+
   @returns bytes
 
   @version 9.2
@@ -555,16 +555,32 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
 %macro mf_getfilesize(fpath=,libds=0,format=NO
 )/*/STORE SOURCE*/;
 
-  %if &libds ne 0 %then %do;
-    %let fpath=%sysfunc(pathname(%scan(&libds,1,.)))/%scan(&libds,2,.).sas7bdat;
-  %end;
+  %local rc fid fref bytes dsid lib vnum;
 
-  %local rc fid fref bytes;
-  %let rc=%sysfunc(filename(fref,&fpath));
-  %let fid=%sysfunc(fopen(&fref));
-  %let bytes=%sysfunc(finfo(&fid,File Size (bytes)));
-  %let rc=%sysfunc(fclose(&fid));
-  %let rc=%sysfunc(filename(fref));
+  %if &libds ne 0 %then %do;
+    %let libds=%upcase(&libds);
+    %if %index(&libds,.)=0 %then %let lib=WORK;
+    %else %let lib=%scan(&libds,1,.);
+    %let dsid=%sysfunc(open(
+      sashelp.vtable(where=(libname="&lib" and memname="%scan(&libds,-1,.)")
+        keep=libname memname filesize
+      )
+    ));
+    %if (&dsid ^= 0) %then %do;
+      %let vnum=%sysfunc(varnum(&dsid,FILESIZE));
+      %let rc=%sysfunc(fetch(&dsid));
+      %let bytes=%sysfunc(getvarn(&dsid,&vnum));
+      %let rc= %sysfunc(close(&dsid));
+    %end;
+    %else %put &sysmacroname: &libds could not be opened! %sysfunc(sysmsg());
+  %end;
+  %else %do;
+    %let rc=%sysfunc(filename(fref,&fpath));
+    %let fid=%sysfunc(fopen(&fref));
+    %let bytes=%sysfunc(finfo(&fid,File Size (bytes)));
+    %let rc=%sysfunc(fclose(&fid));
+    %let rc=%sysfunc(filename(fref));
+  %end;
 
   %if &format=NO %then %do;
     &bytes
@@ -1881,7 +1897,6 @@ Usage:
 
 %local count_base count_extr i i2 extr_word base_word match outvar;
 %if %length(&str1)=0 or %length(&str2)=0 %then %do;
-  %put %str(WARN)ING: empty string provided!;
   %put base string (str1)= &str1;
   %put compare string (str2) = &str2;
   %return;
@@ -1908,6 +1923,9 @@ Usage:
   @brief Returns words that are in string 1 but not in string 2
   @details  Compares two space separated strings and returns the words that are
   in the first but not in the second.
+
+  Note - case sensitive!
+
   Usage:
 
       %let x= %mf_wordsInStr1ButNotStr2(
@@ -1918,10 +1936,8 @@ Usage:
   returns:
   > sss bram boo
 
-  @param str1= string containing words to extract
-  @param str2= used to compare with the extract string
-
-  @warning CASE SENSITIVE!
+  @param [in] str1= string containing words to extract
+  @param [in] str2= used to compare with the extract string
 
   @version 9.2
   @author Allan Bowe
@@ -1935,7 +1951,6 @@ Usage:
 
 %local count_base count_extr i i2 extr_word base_word match outvar;
 %if %length(&str1)=0 or %length(&str2)=0 %then %do;
-  %put %str(WARN)ING: empty string provided!;
   %put base string (str1)= &str1;
   %put compare string (str2) = &str2;
   %return;
@@ -2898,10 +2913,6 @@ run;
 
       %mp_assertdsobs(sashelp.class,test=ATMOST 20) %* pass if <21 obs present;
 
-  <h4> SAS Macros </h4>
-  @li mf_nobs.sas
-  @li mp_abort.sas
-
 
   @param [in] inds input dataset to test for presence of observations
   @param [in] desc= (Testing observations) The user provided test description
@@ -2919,6 +2930,11 @@ run;
   |---|---|---|
   |User Provided description|PASS|Dataset &inds has XX obs|
 
+  <h4> SAS Macros </h4>
+  @li mf_getuniquename.sas
+  @li mf_nobs.sas
+  @li mp_abort.sas
+
   <h4> Related Macros </h4>
   @li mp_assertcolvals.sas
   @li mp_assert.sas
@@ -2935,9 +2951,10 @@ run;
   outds=work.test_results
 )/*/STORE SOURCE*/;
 
-  %local nobs;
+  %local nobs ds;
   %let nobs=%mf_nobs(&inds);
   %let test=%upcase(&test);
+  %let ds=%mf_getuniquename(prefix=mp_assertdsobs);
 
   %if %substr(&test.xxxxx,1,6)=EQUALS %then %do;
     %let val=%scan(&test,2,%str( ));
@@ -2970,7 +2987,7 @@ run;
     )
   %end;
 
-  data;
+  data &ds;
     length test_description $256 test_result $4 test_comments $256;
     test_description=symget('desc');
     test_result='FAIL';
@@ -2996,9 +3013,6 @@ run;
   %end;
   run;
 
-  %local ds;
-  %let ds=&syslast;
-
   proc append base=&outds data=&ds;
   run;
 
@@ -3008,18 +3022,25 @@ run;
 %mend mp_assertdsobs;/**
   @file
   @brief Used to capture scope leakage of macro variables
-  @details A common 'difficult to detect' bug in macros is where a nested
-    macro over-writes variables in a higher level macro.
+  @details
 
-    This assertion takes a snapshot of the macro variables before and after
-    a macro invocation.  This makes it easy to detect whether any macro
-    variables were modified or changed.
+  A common 'difficult to detect' bug in macros is where a nested macro
+  over-writes variables in a higher level macro.
 
-    Currently, the macro only checks for global scope variables.  In the future
-    it may be extended to work at multiple levels of nesting.
+  This assertion takes a snapshot of the macro variables before and after
+  a macro invocation.  Differences are captured in the `&outds` table. This
+  makes it easy to detect whether any macro variables were modified or
+  changed.
 
-    If you would like this feature, feel free to contribute / raise an issue /
-    engage the SASjs team directly.
+  The following variables are NOT tested (as they are known, global variables
+  used in SASjs):
+
+  @li &sasjs_prefix._FUNCTIONS
+
+  Global variables are initialised in mp_init.sas - which will also trigger
+  "strict mode" in your SAS session.  Whilst this is a default in SASjs
+  produced apps, if you prefer not to use this mode, simply instantiate the
+  following variable to prevent the macro from running:  `SASJS_PREFIX`
 
   Example usage:
 
@@ -3031,12 +3052,17 @@ run;
         desc=Checking macro variables against previous snapshot
       )
 
+  This macro is designed to work alongside `sasjs test` - for more information
+  about this facility, visit [cli.sasjs.io/test](https://cli.sasjs.io/test).
+
   @param [in] action (SNAPSHOT) The action to take.  Valid values:
     @li SNAPSHOT - take a copy of the current macro variables
     @li COMPARE - compare the current macro variables against previous values
   @param [in] scope= (GLOBAL) The scope of the variables to be checked.  This
     corresponds to the values in the SCOPE column in `sashelp.vmacro`.
   @param [in] desc= (Testing scope leakage) The user provided test description
+  @param [in] ignorelist= Provide a list of macro variable names to ignore from
+    the comparison
   @param [in,out] scopeds= (work.mp_assertscope) The dataset to contain the
     scope snapshot
   @param [out] outds= (work.test_results) The output dataset to contain the
@@ -3044,6 +3070,10 @@ run;
   |TEST_DESCRIPTION:$256|TEST_RESULT:$4|TEST_COMMENTS:$256|
   |---|---|---|
   |User Provided description|PASS|No out of scope variables created or modified|
+
+  <h4> SAS Macros </h4>
+  @li mf_getquotedstr.sas
+  @li mp_init.sas
 
   <h4> Related Macros </h4>
   @li mp_assert.sas
@@ -3061,9 +3091,18 @@ run;
   desc=Testing Scope Leakage,
   scope=GLOBAL,
   scopeds=work.mp_assertscope,
+  ignorelist=,
   outds=work.test_results
 )/*/STORE SOURCE*/;
-%local ds test_result test_comments del add mod;
+%local ds test_result test_comments del add mod ilist;
+%let ilist=%upcase(&sasjs_prefix._FUNCTIONS &ignorelist);
+
+/**
+  * this sets up the global vars, it will also enter STRICT mode.  If this
+  * behaviour is not desired, simply initiate the following global macro
+  * variable to prevent the macro from running: SASJS_PREFIX
+  */
+%mp_init()
 
 /* get current variables */
 %if &action=SNAPSHOT %then %do;
@@ -3071,7 +3110,7 @@ run;
   create table &scopeds as
     select name,offset,value
     from dictionary.macros
-    where scope="&scope"
+    where scope="&scope" and name not in (%mf_getquotedstr(&ilist))
     order by name,offset;
 %end;
 %else %if &action=COMPARE %then %do;
@@ -3080,7 +3119,7 @@ run;
   create table _data_ as
     select name,offset,value
     from dictionary.macros
-    where scope="&scope"
+    where scope="&scope" and name not in (%mf_getquotedstr(&ilist))
     order by name,offset;
 
   %let ds=&syslast;
@@ -3484,6 +3523,8 @@ run;
       %mp_coretable(LOCKTABLE,libds=work.locktable)
 
   @param [in] table_ref The type of table to create.  Example values:
+    @li DIFFTABLE - Used to store changes to tables.  Used by mp_storediffs.sas
+      and mp_stackdiffs.sas
     @li FILTER_DETAIL - For storing detailed filter values.  Used by
       mp_filterstore.sas.
     @li FILTER_SUMMARY - For storing summary filter values.  Used by
@@ -3499,6 +3540,8 @@ run;
   @li mp_filterstore.sas
   @li mp_lockanytable.sas
   @li mp_retainedkey.sas
+  @li mp_storediffs.sas
+  @li mp_stackdiffs.sas
 
   @version 9.2
   @author Allan Bowe
@@ -3510,7 +3553,29 @@ run;
 %local outds ;
 %let outds=%sysfunc(ifc(&libds=0,_data_,&libds));
 proc sql;
-%if &table_ref=LOCKTABLE %then %do;
+%if &table_ref=DIFFTABLE %then %do;
+  create table &outds(
+      load_ref char(36) label='unique load reference',
+      processed_dttm num format=E8601DT26.6 label='Processed at timestamp',
+      libref char(8) label='Library Reference (8 chars)',
+      dsn char(32) label='Dataset Name (32 chars)',
+      key_hash char(32) label=
+        'MD5 Hash of primary key values (pipe seperated)',
+      move_type char(1) label='Either (A)ppended, (D)eleted or (M)odified',
+      is_pk num label='Is Primary Key Field? (1/0)',
+      is_diff num label=
+        'Did value change? (1/0/-1).  Always -1 for appends and deletes.',
+      tgtvar_type char(1) label='Either (C)haracter or (N)umeric',
+      tgtvar_nm char(32) label='Target variable name (32 chars)',
+      oldval_num num format=best32. label='Old (numeric) value',
+      newval_num num format=best32. label='New (numeric) value',
+      oldval_char char(32765) label='Old (character) value',
+      newval_char char(32765) label='New (character) value',
+    constraint pk_mpe_audit
+      primary key(load_ref,libref,dsn,key_hash,tgtvar_nm)
+  );
+%end;
+%else %if &table_ref=LOCKTABLE %then %do;
   create table &outds(
       lock_lib char(8),
       lock_ds char(32),
@@ -3758,10 +3823,6 @@ Usage:
 %mp_abort(iftrue=( %superq(outds)=0 )
   ,mac=&sysmacroname
   ,msg=%str(the OUTDS variable must be provided)
-)
-%mp_abort(iftrue=( &baseds=0 )
-  ,mac=&sysmacroname
-  ,msg=%str(the BASEDS variable must be provided)
 )
 %mp_abort(iftrue=( &baseds=0 )
   ,mac=&sysmacroname
@@ -5078,7 +5139,7 @@ run;
 
 %macro mp_ds2squeeze(
   libds,
-  outds=work.work.mp_ds2squeeze,
+  outds=work.mp_ds2squeeze,
   mdebug=0
 )/*/STORE SOURCE*/;
 %local dbg source;
@@ -5091,9 +5152,10 @@ run;
   %let source=/source2;
 %end;
 
-%local optval ds fref;
+%local optval ds fref startsize;
 %let ds=%mf_getuniquename();
 %let fref=%mf_getuniquefileref();
+%let startsize=%mf_getfilesize(libds=&libds,format=yes);
 
 %mp_getmaxvarlengths(&libds,outds=&ds)
 
@@ -5142,7 +5204,7 @@ options varlenchk=&optval;
   filename &fref clear;
 %end;
 
-%put &sysmacroname: &libds was %mf_getfilesize(libds=&libds,format=yes);
+%put &sysmacroname: &libds was &startsize;
 %put &sysmacroname: &outds is %mf_getfilesize(libds=&outds,format=yes);
 
 %mend mp_ds2squeeze;/**
@@ -7255,16 +7317,21 @@ create table &outds as
       %inc mc;
       %mp_guesspk(sashelp.class,outds=classpks)
 
-  @param baseds The dataset to analyse
-  @param outds= The output dataset to contain the possible PKs
-  @param max_guesses= (3) The total number of possible primary keys to generate.
-    A table may have multiple unlikely PKs, so no need to list them all.
-  @param min_rows= (5) The minimum number of rows a table should have in order
-    to try and guess the PK.
+  @param [in] baseds The dataset to analyse
+  @param [out] outds= The output dataset to contain the possible PKs
+  @param [in] max_guesses= (3) The total number of possible primary keys to
+    generate. A table may have multiple (unlikely) PKs, so no need to list them
+    all.
+  @param [in] min_rows= (5) The minimum number of rows a table should have in
+    order to try and guess the PK.
+  @param [in] ignore_cols (0) Space seperated list of columns which you are
+    sure are not part of the primary key (helps to avoid false positives)
+  @param [in] mdebug= Set to 1 to enable DEBUG messages and preserve outputs
 
   <h4> SAS Macros </h4>
   @li mf_getvarlist.sas
   @li mf_getuniquename.sas
+  @li mf_wordsInstr1butnotstr2.sas
   @li mf_nobs.sas
 
   <h4> Related Macros </h4>
@@ -7276,179 +7343,226 @@ create table &outds as
 **/
 
 %macro mp_guesspk(baseds
-      ,outds=mp_guesspk
-      ,max_guesses=3
-      ,min_rows=5
+  ,outds=mp_guesspk
+  ,max_guesses=3
+  ,min_rows=5
+  ,ignore_cols=0
+  ,mdebug=0
 )/*/STORE SOURCE*/;
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
 
-  /* declare local vars */
-  %local var vars vcnt i j k l tmpvar tmpds rows posspks ppkcnt;
-  %let vars=%mf_getvarlist(&baseds);
-  %let vcnt=%sysfunc(countw(&vars));
+/* declare local vars */
+%local var vars vcnt i j k l tmpvar tmpds rows posspks ppkcnt;
+%let vars=%upcase(%mf_getvarlist(&baseds));
+%let vars=%mf_wordsInStr1ButNotStr2(str1=&vars,str2=%upcase(&ignore_cols));
+%let vcnt=%sysfunc(countw(&vars));
 
-  %if &vcnt=0 %then %do;
-    %put &sysmacroname: &baseds has no variables!  Exiting.;
-    %return;
+%if &vcnt=0 %then %do;
+  %put &sysmacroname: &baseds has no variables!  Exiting.;
+  %return;
+%end;
+
+/* get null count and row count */
+%let tmpvar=%mf_getuniquename();
+proc sql noprint;
+create table _data_ as select
+  count(*) as &tmpvar
+%do i=1 %to &vcnt;
+  %let var=%scan(&vars,&i);
+  ,sum(case when &var is missing then 1 else 0 end) as &var
+%end;
+  from &baseds;
+
+/* transpose table and scan for not null cols */
+proc transpose;
+data _null_;
+  set &syslast end=last;
+  length vars $32767;
+  retain vars ;
+  if _name_="&tmpvar" then call symputx('rows',col1,'l');
+  else if col1=0 then vars=catx(' ',vars,_name_);
+  if last then call symputx('posspks',vars,'l');
+run;
+
+%let ppkcnt=%sysfunc(countw(&posspks));
+%if &ppkcnt=0 %then %do;
+  %put &sysmacroname: &baseds has no non-missing variables!  Exiting.;
+  %return;
+%end;
+
+proc sort data=&baseds(keep=&posspks) out=_data_ noduprec;
+  by _all_;
+run;
+%local pkds; %let pkds=&syslast;
+
+%if &rows > %mf_nobs(&pkds) %then %do;
+  %put &sysmacroname: &baseds has no combination of unique records! Exiting.;
+  %return;
+%end;
+
+/* now check cardinality */
+proc sql noprint;
+create table _data_ as select
+%do i=1 %to &ppkcnt;
+  %let var=%scan(&posspks,&i);
+  count(distinct &var) as &var
+  %if &i<&ppkcnt %then ,;
+%end;
+  from &pkds;
+
+/* transpose and sort by cardinality */
+proc transpose;
+proc sort; by descending col1;
+run;
+
+/* create initial PK list and re-order posspks list */
+data &outds(keep=pkguesses);
+  length pkguesses $5000 vars $5000;
+  set &syslast end=last;
+  retain vars ;
+  vars=catx(' ',vars,_name_);
+  if col1=&rows then do;
+    pkguesses=_name_;
+    output;
+  end;
+  if last then call symputx('posspks',vars,'l');
+run;
+
+%if %mf_nobs(&outds) ge &max_guesses %then %do;
+  %put &sysmacroname: %mf_nobs(&outds) possible primary key values found;
+  %return;
+%end;
+
+%if &ppkcnt=1 %then %do;
+  %put &sysmacroname: No more PK guess possible;
+  %return;
+%end;
+
+/* begin scanning for uniques on pairs of PKs */
+%let tmpds=%mf_getuniquename();
+%local lev1 lev2;
+%do i=1 %to &ppkcnt;
+  %let lev1=%scan(&posspks,&i);
+  %do j=2 %to &ppkcnt;
+    %let lev2=%scan(&posspks,&j);
+    %if &lev1 ne &lev2 %then %do;
+      /* check for two level uniqueness */
+      proc sort data=&pkds(keep=&lev1 &lev2) out=&tmpds noduprec;
+        by _all_;
+      run;
+      %if %mf_nobs(&tmpds)=&rows %then %do;
+        proc sql;
+        insert into &outds values("&lev1 &lev2");
+        %if %mf_nobs(&outds) ge &max_guesses %then %do;
+          %put &sysmacroname: Max PKs reached at Level 2 for &baseds;
+          %goto exit;
+        %end;
+      %end;
+    %end;
   %end;
+%end;
 
-  /* get null count and row count */
-  %let tmpvar=%mf_getuniquename();
-  proc sql noprint;
-  create table _data_ as select
-    count(*) as &tmpvar
-  %do i=1 %to &vcnt;
-    %let var=%scan(&vars,&i);
-    ,sum(case when &var is missing then 1 else 0 end) as &var
-  %end;
-    from &baseds;
+%if &ppkcnt=2 %then %do;
+  %put &sysmacroname: No more PK guess possible;
+  %goto exit;
+%end;
 
-  /* transpose table and scan for not null cols */
-  proc transpose;
-  data _null_;
-    set &syslast end=last;
-    length vars $32767;
-    retain vars ;
-    if _name_="&tmpvar" then call symputx('rows',col1,'l');
-    else if col1=0 then vars=catx(' ',vars,_name_);
-    if last then call symputx('posspks',vars,'l');
-  run;
-
-  %let ppkcnt=%sysfunc(countw(&posspks));
-  %if &ppkcnt=0 %then %do;
-    %put &sysmacroname: &baseds has no non-missing variables!  Exiting.;
-    %return;
-  %end;
-
-  proc sort data=&baseds(keep=&posspks) out=_data_ noduprec;
-    by _all_;
-  run;
-  %local pkds; %let pkds=&syslast;
-
-  %if &rows > %mf_nobs(&pkds) %then %do;
-    %put &sysmacroname: &baseds has no combination of unique records! Exiting.;
-    %return;
-  %end;
-
-  /* now check cardinality */
-  proc sql noprint;
-  create table _data_ as select
-  %do i=1 %to &ppkcnt;
-    %let var=%scan(&posspks,&i);
-    count(distinct &var) as &var
-    %if &i<&ppkcnt %then ,;
-  %end;
-    from &pkds;
-
-  /* transpose and sort by cardinality */
-  proc transpose;
-  proc sort; by descending col1;
-  run;
-
-  /* create initial PK list and re-order posspks list */
-  data &outds(keep=pkguesses);
-    length pkguesses $5000 vars $5000;
-    set &syslast end=last;
-    retain vars ;
-    vars=catx(' ',vars,_name_);
-    if col1=&rows then do;
-      pkguesses=_name_;
-      output;
-    end;
-    if last then call symputx('posspks',vars,'l');
-  run;
-
-  %if %mf_nobs(&outds) ge &max_guesses %then %do;
-    %put &sysmacroname: %mf_nobs(&outds) possible primary key values found;
-    %return;
-  %end;
-
-  %if &ppkcnt=1 %then %do;
-    %put &sysmacroname: No more PK guess possible;
-    %return;
-  %end;
-
-  /* begin scanning for uniques on pairs of PKs */
-  %let tmpds=%mf_getuniquename();
-  %local lev1 lev2;
-  %do i=1 %to &ppkcnt;
-    %let lev1=%scan(&posspks,&i);
-    %do j=2 %to &ppkcnt;
-      %let lev2=%scan(&posspks,&j);
-      %if &lev1 ne &lev2 %then %do;
-        /* check for two level uniqueness */
-        proc sort data=&pkds(keep=&lev1 &lev2) out=&tmpds noduprec;
+/* begin scanning for uniques on PK triplets */
+%local lev3;
+%do i=1 %to &ppkcnt;
+  %let lev1=%scan(&posspks,&i);
+  %do j=2 %to &ppkcnt;
+    %let lev2=%scan(&posspks,&j);
+    %if &lev1 ne &lev2 %then %do k=3 %to &ppkcnt;
+      %let lev3=%scan(&posspks,&k);
+      %if &lev1 ne &lev3 and &lev2 ne &lev3 %then %do;
+        /* check for three level uniqueness */
+        proc sort data=&pkds(keep=&lev1 &lev2 &lev3) out=&tmpds noduprec;
           by _all_;
         run;
         %if %mf_nobs(&tmpds)=&rows %then %do;
           proc sql;
-          insert into &outds values("&lev1 &lev2");
+          insert into &outds values("&lev1 &lev2 &lev3");
           %if %mf_nobs(&outds) ge &max_guesses %then %do;
-            %put &sysmacroname: Max PKs reached at Level 2 for &baseds;
-            %return;
+            %put &sysmacroname: Max PKs reached at Level 3 for &baseds;
+            %goto exit;
           %end;
         %end;
       %end;
     %end;
   %end;
+%end;
 
-  %if &ppkcnt=2 %then %do;
-    %put &sysmacroname: No more PK guess possible;
-    %return;
-  %end;
+%if &ppkcnt=3 %then %do;
+  %put &sysmacroname: No more PK guess possible;
+  %goto exit;
+%end;
 
-  /* begin scanning for uniques on PK triplets */
-  %local lev3;
-  %do i=1 %to &ppkcnt;
-    %let lev1=%scan(&posspks,&i);
-    %do j=2 %to &ppkcnt;
-      %let lev2=%scan(&posspks,&j);
-      %if &lev1 ne &lev2 %then %do k=3 %to &ppkcnt;
-        %let lev3=%scan(&posspks,&k);
-        %if &lev1 ne &lev3 and &lev2 ne &lev3 %then %do;
-          /* check for three level uniqueness */
-          proc sort data=&pkds(keep=&lev1 &lev2 &lev3) out=&tmpds noduprec;
+/* scan for uniques on up to 4 PK fields */
+%local lev4;
+%do i=1 %to &ppkcnt;
+  %let lev1=%scan(&posspks,&i);
+  %do j=2 %to &ppkcnt;
+    %let lev2=%scan(&posspks,&j);
+    %if &lev1 ne &lev2 %then %do k=3 %to &ppkcnt;
+      %let lev3=%scan(&posspks,&k);
+      %if &lev1 ne &lev3 and &lev2 ne &lev3 %then %do l=4 %to &ppkcnt;
+        %let lev4=%scan(&posspks,&l);
+        %if &lev1 ne &lev4 and &lev2 ne &lev4 and &lev3 ne &lev4 %then %do;
+          /* check for four level uniqueness */
+          proc sort data=&pkds(keep=&lev1 &lev2 &lev3 &lev4)
+              out=&tmpds noduprec;
             by _all_;
           run;
           %if %mf_nobs(&tmpds)=&rows %then %do;
             proc sql;
-            insert into &outds values("&lev1 &lev2 &lev3");
+            insert into &outds values("&lev1 &lev2 &lev3 &lev4");
             %if %mf_nobs(&outds) ge &max_guesses %then %do;
-              %put &sysmacroname: Max PKs reached at Level 3 for &baseds;
-              %return;
+              %put &sysmacroname: Max PKs reached at Level 4 for &baseds;
+              %goto exit;
             %end;
           %end;
         %end;
       %end;
     %end;
   %end;
+%end;
 
-  %if &ppkcnt=3 %then %do;
-    %put &sysmacroname: No more PK guess possible;
-    %return;
-  %end;
+%if &ppkcnt=4 %then %do;
+  %put &sysmacroname: No more PK guess possible;
+  %goto exit;
+%end;
 
-  /* scan for uniques on up to 4 PK fields */
-  %local lev4;
-  %do i=1 %to &ppkcnt;
-    %let lev1=%scan(&posspks,&i);
-    %do j=2 %to &ppkcnt;
-      %let lev2=%scan(&posspks,&j);
-      %if &lev1 ne &lev2 %then %do k=3 %to &ppkcnt;
-        %let lev3=%scan(&posspks,&k);
-        %if &lev1 ne &lev3 and &lev2 ne &lev3 %then %do l=4 %to &ppkcnt;
-          %let lev4=%scan(&posspks,&l);
-          %if &lev1 ne &lev4 and &lev2 ne &lev4 and &lev3 ne &lev4 %then %do;
+/* scan for uniques on up to 4 PK fields */
+%local lev5 m;
+%do i=1 %to &ppkcnt;
+  %let lev1=%scan(&posspks,&i);
+  %do j=2 %to &ppkcnt;
+    %let lev2=%scan(&posspks,&j);
+    %if &lev1 ne &lev2 %then %do k=3 %to &ppkcnt;
+      %let lev3=%scan(&posspks,&k);
+      %if &lev1 ne &lev3 and &lev2 ne &lev3 %then %do l=4 %to &ppkcnt;
+        %let lev4=%scan(&posspks,&l);
+        %if &lev1 ne &lev4 and &lev2 ne &lev4 and &lev3 ne &lev4 %then
+        %do m=5 %to &ppkcnt;
+          %let lev5=%scan(&posspks,&m);
+          %if &lev1 ne &lev5 & &lev2 ne &lev5 & &lev3 ne &lev5 & &lev4 ne &lev5 %then %do;
             /* check for four level uniqueness */
-            proc sort data=&pkds(keep=&lev1 &lev2 &lev3 &lev4)
+            proc sort data=&pkds(keep=&lev1 &lev2 &lev3 &lev4 &lev5)
                 out=&tmpds noduprec;
               by _all_;
             run;
             %if %mf_nobs(&tmpds)=&rows %then %do;
               proc sql;
-              insert into &outds values("&lev1 &lev2 &lev3 &lev4");
+              insert into &outds values("&lev1 &lev2 &lev3 &lev4 &lev5");
               %if %mf_nobs(&outds) ge &max_guesses %then %do;
-                %put &sysmacroname: Max PKs reached at Level 4 for &baseds;
-                %return;
+                %put &sysmacroname: Max PKs reached at Level 5 for &baseds;
+                %goto exit;
               %end;
             %end;
           %end;
@@ -7456,37 +7570,44 @@ create table &outds as
       %end;
     %end;
   %end;
+%end;
 
-  %if &ppkcnt=4 %then %do;
-    %put &sysmacroname: No more PK guess possible;
-    %return;
-  %end;
+%if &ppkcnt=5 %then %do;
+  %put &sysmacroname: No more PK guess possible;
+  %goto exit;
+%end;
 
-  /* scan for uniques on up to 4 PK fields */
-  %local lev5 m;
-  %do i=1 %to &ppkcnt;
-    %let lev1=%scan(&posspks,&i);
-    %do j=2 %to &ppkcnt;
-      %let lev2=%scan(&posspks,&j);
-      %if &lev1 ne &lev2 %then %do k=3 %to &ppkcnt;
-        %let lev3=%scan(&posspks,&k);
-        %if &lev1 ne &lev3 and &lev2 ne &lev3 %then %do l=4 %to &ppkcnt;
-          %let lev4=%scan(&posspks,&l);
-          %if &lev1 ne &lev4 and &lev2 ne &lev4 and &lev3 ne &lev4 %then
-          %do m=5 %to &ppkcnt;
-            %let lev5=%scan(&posspks,&m);
-            %if &lev1 ne &lev5 & &lev2 ne &lev5 & &lev3 ne &lev5 & &lev4 ne &lev5 %then %do;
+/* scan for uniques on up to 4 PK fields */
+%local lev6 n;
+%do i=1 %to &ppkcnt;
+  %let lev1=%scan(&posspks,&i);
+  %do j=2 %to &ppkcnt;
+    %let lev2=%scan(&posspks,&j);
+    %if &lev1 ne &lev2 %then %do k=3 %to &ppkcnt;
+      %let lev3=%scan(&posspks,&k);
+      %if &lev1 ne &lev3 and &lev2 ne &lev3 %then %do l=4 %to &ppkcnt;
+        %let lev4=%scan(&posspks,&l);
+        %if &lev1 ne &lev4 and &lev2 ne &lev4 and &lev3 ne &lev4 %then
+        %do m=5 %to &ppkcnt;
+          %let lev5=%scan(&posspks,&m);
+          %if &lev1 ne &lev5 & &lev2 ne &lev5 & &lev3 ne &lev5 & &lev4 ne &lev5
+          %then %do n=6 %to &ppkcnt;
+            %let lev6=%scan(&posspks,&n);
+            %if &lev1 ne &lev6 & &lev2 ne &lev6 & &lev3 ne &lev6
+            & &lev4 ne &lev6 & &lev5 ne &lev6 %then
+            %do;
               /* check for four level uniqueness */
-              proc sort data=&pkds(keep=&lev1 &lev2 &lev3 &lev4 &lev5)
-                  out=&tmpds noduprec;
+              proc sort data=&pkds(keep=&lev1 &lev2 &lev3 &lev4 &lev5 &lev6)
+                out=&tmpds noduprec;
                 by _all_;
               run;
               %if %mf_nobs(&tmpds)=&rows %then %do;
                 proc sql;
-                insert into &outds values("&lev1 &lev2 &lev3 &lev4 &lev5");
+                insert into &outds
+                  values("&lev1 &lev2 &lev3 &lev4 &lev5 &lev6");
                 %if %mf_nobs(&outds) ge &max_guesses %then %do;
-                  %put &sysmacroname: Max PKs reached at Level 5 for &baseds;
-                  %return;
+                  %put &sysmacroname: Max PKs reached at Level 6 for &baseds;
+                  %goto exit;
                 %end;
               %end;
             %end;
@@ -7495,57 +7616,18 @@ create table &outds as
       %end;
     %end;
   %end;
+%end;
 
-  %if &ppkcnt=5 %then %do;
-    %put &sysmacroname: No more PK guess possible;
-    %return;
-  %end;
+%if &ppkcnt=6 %then %do;
+  %put &sysmacroname: No more PK guess possible;
+  %goto exit;
+%end;
 
-  /* scan for uniques on up to 4 PK fields */
-  %local lev6 n;
-  %do i=1 %to &ppkcnt;
-    %let lev1=%scan(&posspks,&i);
-    %do j=2 %to &ppkcnt;
-      %let lev2=%scan(&posspks,&j);
-      %if &lev1 ne &lev2 %then %do k=3 %to &ppkcnt;
-        %let lev3=%scan(&posspks,&k);
-        %if &lev1 ne &lev3 and &lev2 ne &lev3 %then %do l=4 %to &ppkcnt;
-          %let lev4=%scan(&posspks,&l);
-          %if &lev1 ne &lev4 and &lev2 ne &lev4 and &lev3 ne &lev4 %then
-          %do m=5 %to &ppkcnt;
-            %let lev5=%scan(&posspks,&m);
-            %if &lev1 ne &lev5 & &lev2 ne &lev5 & &lev3 ne &lev5 & &lev4 ne &lev5 %then
-            %do n=6 %to &ppkcnt;
-              %let lev6=%scan(&posspks,&n);
-              %if &lev1 ne &lev6 & &lev2 ne &lev6 & &lev3 ne &lev6
-              & &lev4 ne &lev6 & &lev5 ne &lev6 %then
-              %do;
-                /* check for four level uniqueness */
-                proc sort data=&pkds(keep=&lev1 &lev2 &lev3 &lev4 &lev5 &lev6)
-                  out=&tmpds noduprec;
-                  by _all_;
-                run;
-                %if %mf_nobs(&tmpds)=&rows %then %do;
-                  proc sql;
-                  insert into &outds
-                    values("&lev1 &lev2 &lev3 &lev4 &lev5 &lev6");
-                  %if %mf_nobs(&outds) ge &max_guesses %then %do;
-                    %put &sysmacroname: Max PKs reached at Level 6 for &baseds;
-                    %return;
-                  %end;
-                %end;
-              %end;
-            %end;
-          %end;
-        %end;
-      %end;
-    %end;
-  %end;
-
-  %if &ppkcnt=6 %then %do;
-    %put &sysmacroname: No more PK guess possible;
-    %return;
-  %end;
+%exit:
+%if &mdebug=0 %then %do;
+  proc sql;
+  drop table &tmpds;
+%end;
 
 %mend mp_guesspk;/**
   @file
@@ -7771,6 +7853,7 @@ filename &tempref clear;
 
 %global
   SASJS_PREFIX       /* the ONLY hard-coded global macro variable in SASjs    */
+  &prefix._FUNCTIONS /* used in mcf_init() to track core function compilation */
   &prefix._INIT_NUM  /* initialisation time as numeric                        */
   &prefix._INIT_DTTM /* initialisation time in E8601DT26.6 format             */
   &prefix.WORK       /* avoid typing %sysfunc(pathname(work)) every time      */
@@ -9650,6 +9733,601 @@ run;
 
 %mend mp_sortinplace;/**
   @file
+  @brief Prepares an audit table for stacking (re-applying) the changes.
+  @details WORK IN PROGRESS!!
+
+    When the underlying data from a Base Table is refreshed, it can be helpful
+    to have any previously-applied changes, re-applied.
+
+    Such situation might arise if you are applying those changes using a tool
+    like [Data Controller for SAS®](https://datacontroller.io) - which records
+    all such changes in an audit table.
+    It may also apply if you are preparing a series of specific cell-level
+    transactions, that you would like to apply to multiple sets of (similarly
+    structured) Base Tables.
+
+    In both cases, it is necessary that the transactions are stored using
+    the mp_storediffs.sas macro, or at least that the underlying table is
+    structured as per the definition in mp_coretable.sas (DIFFTABLE entry)
+
+    <b>This</b> macro is used to convert the stored changes (tall format) into
+    staged changes (wide format), with base table values incorporated (in the
+    case of modified rows), ready for the subsequent load process.
+
+    Essentially then, what this macro does, is turn a table like this:
+
+  |MOVE_TYPE:$1.|TGTVAR_NM:$32.|IS_PK:best.|IS_DIFF:best.|TGTVAR_TYPE:$1.|OLDVAL_NUM:best32.|NEWVAL_NUM:best32.|OLDVAL_CHAR:$32765.|NEWVAL_CHAR:$32765.|
+  |---|---|---|---|---|---|---|---|---|
+  |`A `|`NAME `|`1 `|`-1 `|`C `|`. `|`. `|` `|`Newbie `|
+  |`A `|`AGE `|`0 `|`-1 `|`N `|`. `|`13 `|` `|` `|
+  |`A `|`HEIGHT `|`0 `|`-1 `|`N `|`. `|`65.3 `|` `|` `|
+  |`A `|`SEX `|`0 `|`-1 `|`C `|`. `|`. `|` `|`F `|
+  |`A `|`WEIGHT `|`0 `|`-1 `|`N `|`. `|`98 `|` `|` `|
+  |`D `|`NAME `|`1 `|`-1 `|`C `|`. `|`. `|`Alfred `|` `|
+  |`D `|`AGE `|`0 `|`-1 `|`N `|`14 `|`. `|` `|` `|
+  |`D `|`HEIGHT `|`0 `|`-1 `|`N `|`69 `|`. `|` `|` `|
+  |`D `|`SEX `|`0 `|`-1 `|`C `|`. `|`. `|`M `|` `|
+  |`D `|`WEIGHT `|`0 `|`-1 `|`N `|`112.5 `|`. `|` `|` `|
+  |`M `|`NAME `|`1 `|`0 `|`C `|`. `|`. `|`Alice `|`Alice `|
+  |`M `|`AGE `|`0 `|`1 `|`N `|`13 `|`99 `|` `|` `|
+  |`M `|`HEIGHT `|`0 `|`0 `|`N `|`56.5 `|`56.5 `|` `|` `|
+  |`M `|`SEX `|`0 `|`0 `|`C `|`. `|`. `|`F `|`F `|
+  |`M `|`WEIGHT `|`0 `|`0 `|`N `|`84 `|`84 `|` `|` `|
+
+    Into three tables like this:
+
+  <b> `work.outmod`: </b>
+  |NAME:$8.|SEX:$1.|AGE:best.|HEIGHT:best.|WEIGHT:best.|
+  |---|---|---|---|---|
+  |`Alice `|`F `|`99 `|`56.5 `|`84 `|
+
+  <b> `work.outadd`: </b>
+  |NAME:$8.|SEX:$1.|AGE:best.|HEIGHT:best.|WEIGHT:best.|
+  |---|---|---|---|---|
+  |`Newbie `|`F `|`13 `|`65.3 `|`98 `|
+
+  <b> `work.outdel`: </b>
+  |NAME:$8.|SEX:$1.|AGE:best.|HEIGHT:best.|WEIGHT:best.|
+  |---|---|---|---|---|
+  |`Alfred `|`M `|`14 `|`69 `|`112.5 `|
+
+    As you might expect, there are a bunch of extra features and checks.
+
+    The macro supports both SCD2 (TXTEMPORAL) and UPDATE loadtypes. If the
+    base table contains a PROCESSED_DTTM column (or similar), this can be
+    ignored by declaring it in the `processed_dttm_var` parameter.
+
+    The macro is also flexible where columns have been added or removed from
+    the base table UNLESS there is a change to the primary key.
+
+    Changes to the primary key are NOT supported, and are likely to cause
+    unexpected results.
+
+    The following pre-flight checks are made:
+
+    @li All primary key columns exist on the base table
+    @li There is no change in variable TYPE for any of the columns
+    @li There is no reduction in variable LENGTH below the max-length of the
+      supplied values
+
+    Rules for stacking changes are as follows:
+
+    <table>
+    <tr>
+      <th>Transaction Type</th><th>Key Behaviour</th><th>Column Behaviour</th>
+    </tr>
+    <tr>
+      <td>Deletes</td>
+      <td>
+        The row is added to `&outDEL.` UNLESS it no longer exists
+        in the base table, in which case it is added to `&errDS.` instead.
+      </td>
+      <td>
+        Deletes are unaffected by the addition or removal of non Primary-Key
+        columns.
+      </td>
+    </tr>
+    <tr>
+      <td>Inserts</td>
+      <td>
+        Previously newly added rows are added to the `outADD` table UNLESS they
+        are present in the Base table.<br>In this case they are added to the
+        `&errDS.` table instead.
+      </td>
+      <td>
+        Inserts are unaffected by the addition of columns in the Base Table
+        (they are padded with blanks).  Deleted columns are only a problem if
+        they appear on the previous insert - in which case the record is added
+        to `&errDS.`.
+      </td>
+    </tr>
+    <tr>
+      <td>Updates</td>
+      <td>
+        Previously modified rows are merged with base table values such that
+        only the individual cells that were _previously_ changed are re-applied.
+        Where the row contains cells that were not marked as having changed in
+        the prior transaction, the 'blanks' are filled with base table values in
+        the `outMOD` table.<br>
+        If the row no longer exists on the base table, then the row is added to
+        the `errDS` table instead.
+      </td>
+      <td>
+        Updates are unaffected by the addition of columns in the Base Table -
+        the new cells are simply populated with Base Table values.  Deleted
+        columns are only a problem if they relate to a modified cell
+        (`is_diff=1`) - in which case the record is added to `&errDS.`.
+      </td>
+    </tr>
+    </table>
+
+    To illustrate the above with a diagram:
+
+  @dot
+    digraph {
+      rankdir="TB"
+      start[label="Transaction Type?" shape=Mdiamond]
+      del[label="Does Base Row exist?" shape=rectangle]
+      add [label="Does Base Row exist?" shape=rectangle]
+      mod [label="Does Base Row exist?" shape=rectangle]
+      chkmod [label="Do all modified\n(is_diff=1) cells exist?" shape=rectangle]
+      chkadd [label="Do all inserted cells exist?" shape=rectangle]
+      outmod [label="outMOD\nTable" shape=Msquare style=filled]
+      outadd [label="outADD\nTable" shape=Msquare style=filled]
+      outdel [label="outDEL\nTable" shape=Msquare style=filled]
+      outerr [label="ErrDS Table" shape=Msquare fillcolor=Orange style=filled]
+      start -> del [label="Delete"]
+      start -> add [label="Insert"]
+      start -> mod [label="Update"]
+
+      del -> outdel [label="Yes"]
+      del -> outerr [label="No" color="Red" fontcolor="Red"]
+      add -> chkadd [label="No"]
+      add -> outerr [label="Yes" color="Red" fontcolor="Red"]
+      mod -> outerr [label="No" color="Red" fontcolor="Red"]
+      mod -> chkmod [label="Yes"]
+      chkmod -> outerr [label="No" color="Red" fontcolor="Red"]
+      chkmod -> outmod [label="Yes"]
+      chkadd -> outerr [label="No" color="Red" fontcolor="Red"]
+      chkadd -> outadd [label="Yes"]
+
+    }
+  @enddot
+
+    For examples of usage, check out the mp_stackdiffs.test.sas program.
+
+
+  @param [in] baselibds Base Table against which the changes will be applied,
+    in libref.dataset format.
+  @param [in] auditlibds Dataset with previously applied transactions, to be
+    re-applied. Use libref.dataset format.
+    DDL as follows:  %mp_coretable(DIFFTABLE)
+  @param [in] key Space seperated list of key variables
+  @param [in] mdebug= Set to 1 to enable DEBUG messages and preserve outputs
+  @param [in] processed_dttm_var= (0) If a variable is being used to mark
+    the processed datetime, put the name of the variable here.  It will NOT
+    be included in the staged dataset (the load process is expected to
+    provide this)
+  @param [out] errds= (work.errds) Output table containing problematic records.
+    The columns of this table are:
+    @li PK_VARS - Space separated list of primary key variable names
+    @li PK_VALS - Slash separted list of PK variable values
+    @li ERR_MSG - Explanation of why this record is problematic
+  @param [out] outmod= (work.outmod) Output table containing modified records
+  @param [out] outadd= (work.outadd) Output table containing additional records
+  @param [out] outdel= (work.outdel) Output table containing deleted records
+
+
+  <h4> SAS Macros </h4>
+  @li mf_existvarlist.sas
+  @li mf_getquotedstr.sas
+  @li mf_getuniquefileref.sas
+  @li mf_getuniquename.sas
+  @li mf_islibds.sas
+  @li mf_nobs.sas
+  @li mf_wordsinstr1butnotstr2.sas
+  @li mp_abort.sas
+  @li mp_ds2squeeze.sas
+
+
+  <h4> Related Macros </h4>
+  @li mp_coretable.sas
+  @li mp_stackdiffs.test.sas
+  @li mp_storediffs.sas
+
+  @todo The current approach assumes that a variable called KEY_HASH is not on
+    the base table.  This part will need to be refactored (eg using
+    mf_getuniquename.sas) when such a use case arises.
+
+  @version 9.2
+  @author Allan Bowe
+**/
+/** @cond */
+
+%macro mp_stackdiffs(baselibds
+  ,auditlibds
+  ,key
+  ,mdebug=0
+  ,processed_dttm_var=0
+  ,errds=work.errds
+  ,outmod=work.outmod
+  ,outadd=work.outadd
+  ,outdel=work.outdel
+)/*/STORE SOURCE*/;
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
+/* input parameter validations */
+%mp_abort(iftrue= (%mf_islibds(&baselibds) ne 1)
+  ,mac=&sysmacroname
+  ,msg=%str(Invalid baselibds: &baselibds)
+)
+%mp_abort(iftrue= (%mf_islibds(&auditlibds) ne 1)
+  ,mac=&sysmacroname
+  ,msg=%str(Invalid auditlibds: &auditlibds)
+)
+%mp_abort(iftrue= (%length(&key)=0)
+  ,mac=&sysmacroname
+  ,msg=%str(Missing key variables!)
+)
+%mp_abort(iftrue= (
+    %mf_existVarList(&auditlibds,LIBREF DSN MOVE_TYPE KEY_HASH TGTVAR_NM IS_PK
+      IS_DIFF TGTVAR_TYPE OLDVAL_NUM NEWVAL_NUM OLDVAL_CHAR NEWVAL_CHAR)=0
+  )
+  ,mac=&sysmacroname
+  ,msg=%str(Input &auditlibds is missing required columns!)
+)
+
+
+/* set up macro vars */
+%local prefix dslist x var keyjoin commakey keepvars missvars fref;
+%let prefix=%substr(%mf_getuniquename(),1,25);
+%let dslist=ds1d ds2d ds3d ds1a ds2a ds3a ds1m ds2m ds3m pks dups base
+  delrec delerr addrec adderr modrec moderr;
+%do x=1 %to %sysfunc(countw(&dslist));
+  %let var=%scan(&dslist,&x);
+  %local &var;
+  %let &var=%upcase(&prefix._&var);
+%end;
+
+%let key=%upcase(&key);
+%let commakey=%mf_getquotedstr(&key,quote=N);
+
+%let keyjoin=1=1;
+%do x=1 %to %sysfunc(countw(&key));
+  %let var=%scan(&key,&x);
+  %let keyjoin=&keyjoin and a.&var=b.&var;
+%end;
+
+data &errds;
+  length pk_vars $256 pk_vals $4098 err_msg $512;
+  call missing (of _all_);
+  stop;
+run;
+
+/**
+  * Prepare raw DELETE table
+  * Records are in the OLDVAL_xxx columns
+  */
+%let keepvars=MOVE_TYPE KEY_HASH TGTVAR_NM TGTVAR_TYPE IS_PK
+              OLDVAL_NUM OLDVAL_CHAR
+              NEWVAL_NUM NEWVAL_CHAR;
+proc sort data=&auditlibds(where=(move_type='D') keep=&keepvars)
+  out=&ds1d(drop=move_type);
+by KEY_HASH TGTVAR_NM;
+run;
+proc transpose data=&ds1d(where=(tgtvar_type='N'))
+    out=&ds2d(drop=_name_);
+  by KEY_HASH;
+  id TGTVAR_NM;
+  var OLDVAL_NUM;
+run;
+proc transpose data=&ds1d(where=(tgtvar_type='C'))
+    out=&ds3d(drop=_name_);
+  by KEY_HASH;
+  id TGTVAR_NM;
+  var OLDVAL_CHAR;
+run;
+%mp_ds2squeeze(&ds2d,outds=&ds2d)
+%mp_ds2squeeze(&ds3d,outds=&ds3d)
+data &outdel;
+  if 0 then set &baselibds;
+  set &ds2d;
+  set &ds3d;
+  drop key_hash;
+  if not missing(%scan(&key,1));
+run;
+proc sort;
+  by &key;
+run;
+
+/**
+  * Prepare raw APPEND table
+  * Records are in the NEWVAL_xxx columns
+  */
+proc sort data=&auditlibds(where=(move_type='A') keep=&keepvars)
+    out=&ds1a(drop=move_type);
+  by KEY_HASH TGTVAR_NM;
+run;
+proc transpose data=&ds1a(where=(tgtvar_type='N'))
+    out=&ds2a(drop=_name_);
+  by KEY_HASH;
+  id TGTVAR_NM;
+  var NEWVAL_NUM;
+run;
+proc transpose data=&ds1a(where=(tgtvar_type='C'))
+    out=&ds3a(drop=_name_);
+  by KEY_HASH;
+  id TGTVAR_NM;
+  var NEWVAL_CHAR;
+run;
+%mp_ds2squeeze(&ds2a,outds=&ds2a)
+%mp_ds2squeeze(&ds3a,outds=&ds3a)
+data &outadd;
+  if 0 then set &baselibds;
+  set &ds2a;
+  set &ds3a;
+  drop key_hash;
+  if not missing(%scan(&key,1));
+run;
+proc sort;
+  by &key;
+run;
+
+/**
+  * Prepare raw MODIFY table
+  * Keep only primary key - will add modified values later
+  */
+proc sort data=&auditlibds(
+      where=(move_type='M' and is_pk=1) keep=&keepvars
+    ) out=&ds1m(drop=move_type);
+  by KEY_HASH TGTVAR_NM;
+run;
+proc transpose data=&ds1m(where=(tgtvar_type='N'))
+    out=&ds2m(drop=_name_);
+  by KEY_HASH ;
+  id TGTVAR_NM;
+  var NEWVAL_NUM;
+run;
+proc transpose data=&ds1m(where=(tgtvar_type='C'))
+    out=&ds3m(drop=_name_);
+  by KEY_HASH;
+  id TGTVAR_NM;
+  var NEWVAL_CHAR;
+run;
+%mp_ds2squeeze(&ds2m,outds=&ds2m)
+%mp_ds2squeeze(&ds3m,outds=&ds3m)
+data &outmod;
+  if 0 then set &baselibds;
+  set &ds2m;
+  set &ds3m;
+  if not missing(%scan(&key,1));
+run;
+proc sort;
+  by &key;
+run;
+
+/**
+  * Extract matching records from the base table
+  * Do this in one join for efficiency.
+  * At a later date, this should be optimised for large database tables by using
+  * passthrough and a temporary table.
+  */
+data &pks;
+  if 0 then set &baselibds;
+  set &outadd &outmod &outdel;
+  keep &key;
+run;
+
+proc sort noduprec dupout=&dups;
+by &key;
+run;
+data _null_;
+  set &dups;
+  putlog (_all_)(=);
+run;
+%mp_abort(iftrue= (%mf_nobs(&dups) ne 0)
+  ,mac=&sysmacroname
+  ,msg=%str(duplicates (%mf_nobs(&dups)) found on &auditlibds!)
+)
+
+proc sql;
+create table &base as
+  select a.*
+  from &baselibds a, &pks b
+  where &keyjoin;
+
+/**
+  * delete check
+  * This is straightforward as it relates to records only
+  */
+proc sql;
+create table &delrec as
+  select a.*
+  from &outdel a
+  left join &base b
+  on &keyjoin
+  where b.%scan(&key,1) is null
+  order by &commakey;
+
+data &delerr;
+  if 0 then set &errds;
+  set &delrec;
+  PK_VARS="&key";
+  PK_VALS=catx('/',&commakey);
+  ERR_MSG="Rows cannot be deleted as they do not exist on the Base dataset";
+  keep PK_VARS PK_VALS ERR_MSG;
+run;
+proc append base=&errds data=&delerr;
+run;
+
+data &outdel;
+  merge &outdel (in=a) &delrec (in=b);
+  by &key;
+  if not b;
+run;
+
+/**
+  * add check
+  * Problems - where record already exists, or base table has columns missing
+  */
+%let missvars=%mf_wordsinstr1butnotstr2(
+  Str1=%upcase(%mf_getvarlist(&outadd)),
+  Str2=%upcase(%mf_getvarlist(&baselibds))
+);
+%if %length(&missvars)>0 %then %do;
+    /* add them to the err table */
+  data &adderr;
+    if 0 then set &errds;
+    set &outadd;
+    PK_VARS="&key";
+    PK_VALS=catx('/',&commakey);
+    ERR_MSG="Rows cannot be added due to missing base vars: &missvars";
+    keep PK_VARS PK_VALS ERR_MSG;
+  run;
+  proc append base=&errds data=&adderr;
+  run;
+  proc sql;
+  delete * from &outadd;
+%end;
+%else %do;
+  proc sql;
+  /* find records that already exist on base table */
+  create table &addrec as
+    select a.*
+    from &outadd a
+    inner join &base b
+    on &keyjoin
+    order by &commakey;
+
+  /* add them to the err table */
+  data &adderr;
+    if 0 then set &errds;
+    set &addrec;
+    PK_VARS="&key";
+    PK_VALS=catx('/',&commakey);
+    ERR_MSG="Rows cannot be added as they already exist on the Base dataset";
+    keep PK_VARS PK_VALS ERR_MSG;
+  run;
+  proc append base=&errds data=&adderr;
+  run;
+
+  /* remove invalid rows from the outadd table */
+  data &outadd;
+    merge &outadd (in=a) &addrec (in=b);
+    by &key;
+    if not b;
+  run;
+%end;
+
+/**
+  * mod check
+  * Problems - where record does not exist or baseds has modified cols missing
+  */
+proc sql noprint;
+select distinct tgtvar_nm into: missvars separated by ' '
+  from &auditlibds
+  where move_type='M' and is_diff=1;
+%let missvars=%mf_wordsinstr1butnotstr2(
+  Str1=&missvars,
+  Str2=%upcase(%mf_getvarlist(&baselibds))
+);
+%if %length(&missvars)>0 %then %do;
+    /* add them to the err table */
+  data &moderr;
+    if 0 then set &errds;
+    set &outmod;
+    PK_VARS="&key";
+    PK_VALS=catx('/',&commakey);
+    ERR_MSG="Rows cannot be modified due to missing base vars: &missvars";
+    keep PK_VARS PK_VALS ERR_MSG;
+  run;
+  proc append base=&errds data=&moderr;
+  run;
+  proc sql;
+  delete * from &outmod;
+%end;
+%else %do;
+  /* now check for records that do not exist (therefore cannot be modified) */
+  proc sql;
+  create table &modrec as
+    select a.*
+    from &outmod a
+    left join &base b
+    on &keyjoin
+    where b.%scan(&key,1) is null
+    order by &commakey;
+  data &moderr;
+    if 0 then set &errds;
+    set &modrec;
+    PK_VARS="&key";
+    PK_VALS=catx('/',&commakey);
+    ERR_MSG="Rows cannot be modified as they do not exist on the Base dataset";
+    keep PK_VARS PK_VALS ERR_MSG;
+  run;
+  proc append base=&errds data=&moderr;
+  run;
+  /* delete the above records from the outmod table */
+  data &outmod;
+    merge &outmod (in=a) &modrec (in=b);
+    by &key;
+    if not b;
+  run;
+  /* now - we can prepare the final MOD table (which is currently PK only) */
+  proc sql undo_policy=none;
+  create table &outmod as
+    select a.key_hash
+      ,b.*
+    from &outmod a
+    inner join &base b
+    on &keyjoin
+    order by &commakey;
+  /* now - to update outmod with modified (is_diff=1) values */
+  %let fref=%mf_getuniquefileref();
+  data _null_;
+    file &fref;
+    set &auditlibds(where=(move_type='M')) end=lastobs;
+    by key_hash;
+    retain comma 'N';
+    if _n_=1 then put 'proc sql;';
+    if first.key_hash then do;
+      comma='N';
+      put "update &outmod set " @@;
+    end;
+    if is_diff=1 then do;
+      if comma='N' then do;
+        put '  '@@;
+        comma='Y';
+      end;
+      else put '  ,'@@;
+      if tgtvar_type='C' then do;
+        length qstr $32767;
+        qstr=quote(trim(NEWVAL_CHAR));
+        put tgtvar_nm '=' qstr;
+      end;
+      else put tgtvar_nm '=' newval_num;
+      if comma='  ' then comma='  ,';
+    end;
+    if last.key_hash then put '  where key_hash=trim("' key_hash '");';
+    if lastobs then put "alter table &outmod drop key_hash;";
+  run;
+  %inc &fref/source2;
+%end;
+
+%if &mdebug=0 %then %do;
+  proc datasets lib=work;
+    delete &prefix:;
+  run;
+  %put &sysmacroname exit vars:;
+  %put _local_;
+%end;
+%mend mp_stackdiffs;
+/** @endcond *//**
+  @file
   @brief Converts deletes/changes/appends into a single audit table.
   @details When tracking changes to data over time, it can be helpful to have
     a single base table to track ALL modifications - enabling audit trail,
@@ -9699,40 +10377,22 @@ run;
   @param [in] appds= (0) Dataset with appended records
   @param [in] modds= (0) Dataset with modified records
   @param [out] outds= (work.mp_storediffs) Output table containing stored data.
-    Has the following format:
+    DDL as follows:  %mp_coretable(DIFFTABLE)
 
-        proc sql;
-        create table &outds(
-          load_ref char(36) label='unique load reference',
-          processed_dttm num format=E8601DT26.6 label='Processed at timestamp',
-          libref char(8) label='Library Reference (8 chars)',
-          dsn char(32) label='Dataset Name (32 chars)',
-          key_hash char(32) label=
-            'MD5 Hash of primary key values (pipe seperated)',
-          move_type char(1) label='Either (A)ppended, (D)eleted or (M)odified',
-          is_pk num label='Is Primary Key Field? (1/0)',
-          is_diff num label=
-            'Did value change? (1/0/-1).  Always -1 for appends and deletes.',
-          tgtvar_type char(1) label='Either (C)haracter or (N)umeric',
-          tgtvar_nm char(32) label='Target variable name (32 chars)',
-          oldval_num num format=best32. label='Old (numeric) value',
-          newval_num num format=best32. label='New (numeric) value',
-          oldval_char char(32765) label='Old (character) value',
-          newval_char char(32765) label='New (character) value',
-          constraint pk_mpe_audit
-            primary key(load_ref,libref,dsn,key_hash,tgtvar_nm)
-        );
-
-    @param [in] processed_dttm= (0) Provide a datetime constant in relation to
-      the actual load time.  If not provided, current timestamp is used.
-    @param [in] mdebug= set to 1 to enable DEBUG messages and preserve outputs
-    @param [out] loadref= (0) Provide a unique key to reference the load,
-      otherwise a UUID will be generated.
+  @param [in] processed_dttm= (0) Provide a datetime constant in relation to
+    the actual load time.  If not provided, current timestamp is used.
+  @param [in] mdebug= set to 1 to enable DEBUG messages and preserve outputs
+  @param [out] loadref= (0) Provide a unique key to reference the load,
+    otherwise a UUID will be generated.
 
   <h4> SAS Macros </h4>
   @li mf_getquotedstr.sas
   @li mf_getuniquename.sas
   @li mf_getvarlist.sas
+
+  <h4> Related Macros </h4>
+  @li mp_stackdiffs.sas
+  @li mp_storediffs.test.sas
 
   @version 9.2
   @author Allan Bowe
@@ -14280,20 +14940,27 @@ run;
 /**
   @file
   @brief Creates dataset with all members of a metadata group
-  @details
+  @details This macro will query SAS metadata and return all the members
+    of a particular group.
 
-  usage:
+  Usage:
 
-    %mm_getgroupmembers(someGroupName
-      ,outds=work.mm_getgroupmembers
-      ,emails=YES)
+      %mm_getgroupmembers(someGroupName
+        ,outds=work.mm_getgroupmembers
+        ,emails=YES
+      )
 
   @param group metadata group for which to bring back members
-  @param outds= the dataset to create that contains the list of members
-  @param emails= set to YES to bring back email addresses
-  @param id= set to yes if passing an ID rather than a group name
+  @param outds= (work.mm_getgroupmembers) The dataset to create that contains
+    the list of members
+  @param emails= (NO) Set to YES to bring back email addresses
+  @param id= (NO) Set to yes if passing an ID rather than a group name
 
   @returns outds  dataset containing all members of the metadata group
+
+  <h4> Related Macros </h4>
+  @li mm_getgorups.sas
+  @li mm_adduser2group.sas
 
   @version 9.2
   @author Allan Bowe
@@ -22740,6 +23407,50 @@ run;
 %mend ml_json;
 /**
   @file
+  @brief Sets up the mcf_xx functions
+  @details
+  There is no (efficient) way to determine if an mcf_xx macro has already been
+  invoked.  So, we make use of a global macro variable list to keep track.
+
+  Usage:
+
+      %mcf_init(MCF_LENGTH)
+
+  Returns:
+
+  > 1 (if already initialised) else 0
+
+  @param [in] func The function to be initialised
+
+  <h4> Related Macros </h4>
+  @li mcf_init.test.sas
+
+**/
+
+%macro mcf_init(func
+)/*/STORE SOURCE*/;
+
+%if not (%symexist(SASJS_PREFIX)) %then %do;
+  %global SASJS_PREFIX;
+  %let SASJS_PREFIX=SASJS;
+%end;
+
+%let func=%upcase(&func);
+
+/* the / character is just a seperator */
+%global &sasjs_prefix._FUNCTIONS;
+%if %index(&&&sasjs_prefix._FUNCTIONS,&func/)>0 %then %do;
+  1
+  %return;
+%end;
+%else %do;
+  %let &sasjs_prefix._FUNCTIONS=&&&sasjs_prefix._FUNCTIONS &func/;
+  0
+%end;
+
+%mend mcf_init;
+/**
+  @file
   @brief Returns the length of a numeric value
   @details
   Returns the length, in bytes, of a numeric value.  If the value is
@@ -22780,10 +23491,11 @@ run;
     Uses a 3 part format:  libref.catalog.package
 
   <h4> SAS Macros </h4>
-  @li mf_existfunction.sas
+  @li mcf_init.sas
 
-  <h4> Related Macros </h4>
+  <h4> Related Programs </h4>
   @li mcf_length.test.sas
+  @li mp_init.sas
 
 **/
 
@@ -22794,7 +23506,7 @@ run;
   ,pkg=UTILS
 )/*/STORE SOURCE*/;
 
-%if %mf_existfunction(mcf_length)=1 %then %return;
+%if %mcf_init(mcf_length)=1 %then %return;
 
 %if &wrap=YES  %then %do;
   proc fcmp outlib=&lib..&cat..&pkg;
@@ -22876,7 +23588,11 @@ endsub;
     Uses a 3 part format:  libref.catalog.package
 
   <h4> SAS Macros </h4>
-  @li mf_existfunction.sas
+  @li mcf_init.sas
+
+  <h4> Related Programs </h4>
+  @li mcf_stpsrv_header.test.sas
+  @li mp_init.sas
 
 **/
 
@@ -22887,7 +23603,7 @@ endsub;
   ,pkg=UTILS
 )/*/STORE SOURCE*/;
 
-%if %mf_existfunction(stpsrv_header)=1 %then %return;
+%if %mcf_init(stpsrv_header)=1 %then %return;
 
 %if &wrap=YES  %then %do;
   proc fcmp outlib=&lib..&cat..&pkg;
@@ -22959,7 +23675,11 @@ endsub;
     Uses a 3 part format:  libref.catalog.package
 
   <h4> SAS Macros </h4>
-  @li mf_existfunction.sas
+  @li mcf_init.sas
+
+  <h4> Related Programs </h4>
+  @li mcf_stpsrv_header.test.sas
+  @li mp_init.sas
 
 **/
 
@@ -22970,7 +23690,7 @@ endsub;
   ,pkg=UTILS
 )/*/STORE SOURCE*/;
 
-%if %mf_existfunction(mcf_string2file)=1 %then %return;
+%if %mcf_init(mcf_string2file)=1 %then %return;
 
 %if &wrap=YES  %then %do;
   proc fcmp outlib=&lib..&cat..&pkg;

@@ -177,6 +177,7 @@ run;
 
   data &outds (keep=stpuri prompturi fileuri texturi);
     length stpuri prompturi fileuri texturi serveruri $256 ;
+    if _n_=1 then call missing (of _all_);
     set &outds;
 
     /* final checks on uris */

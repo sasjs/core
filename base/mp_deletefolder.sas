@@ -51,6 +51,7 @@
     data _null_;
       set work.&tempds end=last;
       length fref $8;
+      fref='';
       rc=filename(fref,filepath);
       rc=fdelete(fref);
       if rc then do;

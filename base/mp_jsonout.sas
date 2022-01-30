@@ -157,7 +157,12 @@
         ));
       %do i=1 %to &numcols;
         length &&name&i $&&len&i;
-        &&name&i=left(put(&&newname&i,&&fmt&i));
+        %if &&typelong&i=num %then %do;
+          &&name&i=left(put(&&newname&i,&&fmt&i));
+        %end;
+        %else %do;
+          &&name&i=put(&&newname&i,&&fmt&i);
+        %end;
         drop &&newname&i;
       %end;
         if _error_ then call symputx('syscc',1012);

@@ -1,12 +1,10 @@
 /**
-  @file mp_testservice.sas
-  @brief Will execute a test against a SASjs web service on SAS 9 or Viya
+  @file
+  @brief Will execute a SASjs web service on SAS 9 or Viya
   @details Prepares the input files and retrieves the resulting datasets from
   the response JSON.
 
-      %mp_testjob(
-        duration=60*5
-      )
+
 
   Note - the _webout fileref should NOT be assigned prior to running this macro.
 
@@ -14,6 +12,10 @@
   @param [in] inputfiles=(0) A list of space seperated fileref:filename pairs as
     follows:
         inputfiles=inref:filename inref2:filename2
+  @param [in] inputdatasets= (0) All datasets in this space seperated list are
+    converted into SASJS-formatted CSVs (see mp_ds2csv.sas) files and added to
+    the list of `inputfiles` for ingestion.  The dataset will be sent with the
+    same name (no need for a colon modifier).
   @param [in] inputparams=(0) A dataset containing name/value pairs in the
     following format:
     |name:$32|value:$1000|
@@ -38,8 +40,12 @@
   @li mf_getuniquename.sas
   @li mp_abort.sas
   @li mp_binarycopy.sas
+  @li mp_ds2csv.sas
   @li mv_getjobresult.sas
   @li mv_jobflow.sas
+
+  <h4> Related Programs </h4>
+  @li mp_testservice.test.sas
 
   @version 9.4
   @author Allan Bowe
@@ -48,6 +54,7 @@
 
 %macro mp_testservice(program,
   inputfiles=0,
+  inputdatasets=0,
   inputparams=0,
   debug=log,
   mdebug=0,
@@ -56,7 +63,7 @@
   viyaresult=WEBOUT_JSON,
   viyacontext=SAS Job Execution compute context
 )/*/STORE SOURCE*/;
-%local dbg;
+%local dbg pcnt fref1 webref i webcount var platform;
 %if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;
@@ -64,7 +71,6 @@
 %else %let dbg=*;
 
 /* sanitise inputparams */
-%local pcnt;
 %let pcnt=0;
 %if &inputparams ne 0 %then %do;
   data _null_;
@@ -86,17 +92,25 @@
   )
 %end;
 
+/* convert inputdatasets to filerefs */
+%if "&inputdatasets" ne "0" %then %do;
+  %if %quote(&inputfiles)=0 %then %let inputfiles=;
+  %do i=1 %to %sysfunc(countw(&inputdatasets,%str( )));
+    %let var=%scan(&inputdatasets,&i,%str( ));
+    %local dsref&i;
+    %let dsref&i=%mf_getuniquefileref();
+    %mp_ds2csv(&var,outref=&&dsref&i,headerformat=SASJS)
+    %let inputfiles=&inputfiles &&dsref&i:%scan(&var,-1,.);
+  %end;
+%end;
 
-%local fref1 webref;
+
 %let fref1=%mf_getuniquefileref();
 %let webref=%mf_getuniquefileref();
-
-%local platform;
 %let platform=%mf_getplatform();
 %if &platform=SASMETA %then %do;
 
   /* parse the input files */
-  %local webcount i var;
   %if %quote(&inputfiles) ne 0 %then %do;
     %let webcount=%sysfunc(countw(&inputfiles));
     %put &=webcount;

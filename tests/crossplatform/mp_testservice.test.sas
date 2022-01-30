@@ -12,15 +12,20 @@
 
 **/
 
-
 filename ft15f001 temp;
 parmcards4;
+  %put Initialising sendObj: ;
+  %put _all_;
   %webout(FETCH)
   %webout(OPEN)
   %macro x();
-    %do i=1 %to &_webin_file_count;
-      %webout(OBJ,&&_webin_name&i,missing=STRING)
-    %end;
+  %if %symexist(sasjs_tables) %then %do i=1 %to %sysfunc(countw(&sasjs_tables));
+    %let table=%scan(&sasjs_tables,&i);
+    %webout(OBJ,&table,missing=STRING)
+  %end;
+  %else %do i=1 %to &_webin_file_count;
+    %webout(OBJ,&&_webin_name&i,missing=STRING)
+  %end;
   %mend x; %x()
   %webout(CLOSE)
 ;;;;
@@ -55,24 +60,13 @@ run;
 data _null_;
   infile test1;
   input;
-  if _n_=3 then do;
-    if _infile_=', "somedata1":' then call symputx('test1a','PASS');
-    else putlog _n_= _infile_=;
-  end;
-  else if _n_=5 then do;
-    if _infile_='{"X":1 ,"Y":"  t\"w\"o" ,"Z":"Z" }' then
-      call symputx('test1b','PASS');
-    else putlog _n_= _infile_=;
-  end;
-  else if _n_=6 then do;
-    if _infile_='], "somedata2":' then call symputx('test1c','PASS');
-    else putlog _n_= _infile_=;
-  end;
-  else if _n_=8 then do;
-    if _infile_='{"X":1 ,"Y":"  t\"w\"o" ,"Z":"Z" }' then
+  putlog _n_ _infile_;
+  if _infile_=', "somedata1":' then call symputx('test1a','PASS');
+  if _infile_='{"X":1 ,"Y":"  t\"w\"o" ,"Z":"Z" }' then
+    call symputx('test1b','PASS');
+  if _infile_='], "somedata2":' then call symputx('test1c','PASS');
+  if _infile_='{"X":1 ,"Y":"  t\"w\"o" ,"Z":"Z" }' then
       call symputx('test1d','PASS');
-    else putlog _n_= _infile_=;
-  end;
 run;
 
 %mp_assert(

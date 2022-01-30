@@ -24,3 +24,6 @@
 %mend loglevel;
 
 %loglevel()
+
+%put Initialised &_program;
+%put _all_;

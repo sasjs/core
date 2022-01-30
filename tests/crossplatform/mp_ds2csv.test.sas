@@ -29,11 +29,11 @@ data _null_;
   input;
   list;
   if _n_=1 then call symputx('test1a',_infile_);
-  else if _infile_='1,"t""w""o",Z' then call symputx('test1b','PASS');
+  else if _infile_=:'1,"  t""w""o",.Z' then call symputx('test1b','PASS');
 run;
 
 %mp_assert(
-  iftrue=("&test1a"="x factor,Y,Z"),
+  iftrue=("&test1a"="x factor, Y, Z"),
   desc=Checking header row Test 1,
   outds=work.test_results
 )
@@ -55,11 +55,11 @@ data _null_;
   input;
   list;
   if _n_=1 then call symputx('test2a',_infile_);
-  else if _infile_='1;"t""w""o";Z' then call symputx('test2b','PASS');
+  else if _infile_=:'1;"  t""w""o";.Z' then call symputx('test2b','PASS');
 run;
 
 %mp_assert(
-  iftrue=("&test2a"="X;Y;Z"),
+  iftrue=("&test2a"="X; Y; Z"),
   desc=Checking header row Test 2,
   outds=work.test_results
 )
@@ -81,7 +81,7 @@ data _null_;
   input;
   list;
   if _n_=1 then call symputx('test3a',_infile_);
-  else if _infile_='1;"t""w""o";Z' then call symputx('test3b','PASS');
+  else if _infile_=:'1,"  t""w""o",.Z' then call symputx('test3b','PASS');
 run;
 
 %mp_assert(

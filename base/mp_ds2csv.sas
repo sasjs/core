@@ -33,6 +33,7 @@
     @li LF
 
   <h4> SAS Macros </h4>
+  @li mf_getuniquename.sas
   @li mf_getvarlist.sas
   @li mf_getvartype.sas
 
@@ -49,7 +50,7 @@
   ,termstr=CRLF
 )/*/STORE SOURCE*/;
 
-%local outloc delim i varlist var vcnt vat dsv;
+%local outloc delim i varlist var vcnt vat dsv vcom vmiss;
 
 %if not %sysfunc(exist(&ds)) %then %do;
   %put %str(WARN)ING:  &ds does not exist;
@@ -76,16 +77,18 @@
 /* first get headers */
 data _null_;
   file &outloc &outencoding lrecl=32767 termstr=&termstr;
-  length header $ 2000 varnm $32;
+  length header $ 2000 varnm $32 dlm $1;
   dsid=open("&ds.","i");
   num=attrn(dsid,"nvars");
+  dlm=&delim;
   do i=1 to num;
     varnm=upcase(varname(dsid,i));
+    if i=num then dlm='';
   %if &headerformat=NAME %then %do;
-    header=cats(varnm,&delim);
+    header=cats(varnm,dlm);
   %end;
   %else %if &headerformat=LABEL %then %do;
-    header = cats(coalescec(varlabel(dsid,i),varnm),&delim);
+    header = cats(coalescec(varlabel(dsid,i),varnm),dlm);
   %end;
   %else %if &headerformat=SASJS %then %do;
     if vartype(dsid,i)='C' then header=cats(varnm,':$char',varlen(dsid,i),'.');
@@ -130,18 +133,29 @@ data _null_;
 %end;
 
 %let vat=@;
+%let vcom=&delim;
+%let vmiss=%mf_getuniquename(prefix=csvcol3_);
 /* next, export data */
 data _null_;
   set &ds.;
   file &outloc mod dlm=&delim dsd &outencoding lrecl=32767 termstr=&termstr;
+  if _n_=1 then &vmiss='  ';
   %do i=1 %to &vcnt;
     %let var=%scan(&varlist,&i);
-    %if &i=&vcnt %then %let vat=;
+    %if &i=&vcnt %then %do;
+      %let vat=;
+      %let vcom=;
+    %end;
     %if %mf_getvartype(&ds,&var)=N %then %do;
-      put &var &vat;
+      /* must use period - in order to work in both 9.4 and Viya 3.5 */
+      if missing(&var) and &var ne %sysfunc(getoption(MISSING)) then do;
+        &vmiss=cats('.',&var);
+        put &vmiss &vat;
+      end;
+      else put &var &vat;
     %end;
     %else %do;
-      put &var &&vlen&i "," &vat;
+      put &var &&vlen&i &vcom &vat;
     %end;
   %end;
 run;

@@ -53,11 +53,9 @@ data _null_;
 run;
 
 options
-  noautocorrect           /* disallow misspelled procedure names            */
   compress=CHAR           /* default is none so ensure we have something!   */
   datastmtchk=ALLKEYWORDS /* protection from overwriting input datasets     */
-  dsoptions=note2err      /* undocumented - convert bad NOTEs to ERRs       */
-  %str(err)orcheck=STRICT /* catch errs in libname/filename statements      */
+  errorcheck=STRICT       /* catch errs in libname/filename statements      */
   fmterr                  /* ensure err when a format cannot be found       */
   mergenoby=%str(ERR)OR   /* throw err when a merge has no BY variables     */
   missing=.               /* changing this can cause hard to detect errs    */
@@ -69,6 +67,10 @@ options
   validvarname=V7         /* avoid special characters etc in variable names */
   varinitchk=%str(ERR)OR  /* avoid data mistakes from variable name typos   */
   varlenchk=%str(ERR)OR   /* fail hard if truncation (data loss) can result */
+%if %substr(&sysver,1,1) ne 4 %then %do;
+  noautocorrect           /* disallow misspelled procedure names            */
+  dsoptions=note2err      /* undocumented - convert bad NOTEs to ERRs       */
+%end;
 ;
 
 %mend mp_init;

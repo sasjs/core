@@ -3720,20 +3720,22 @@ Usage:
         %webout(OBJ,example2) * Object format, easier to work with ;
         %webout(CLOSE)
     ;;;;
-    %mp_createwebservice(path=/Public/app/common,name=appInit,code=ft15f001,replace=YES)
+    %mp_createwebservice(path=/Public/app/common,name=appInit,replace=YES)
 
   <h4> SAS Macros </h4>
   @li mf_getplatform.sas
   @li mm_createwebservice.sas
   @li mv_createwebservice.sas
 
-  @param path= The full folder path where the service will be created
-  @param name= Service name.  Avoid spaces.
-  @param desc= The description of the service (optional)
-  @param precode= Space separated list of filerefs, pointing to the code that
-    needs to be attached to the beginning of the service (optional)
-  @param code= Space seperated fileref(s) of the actual code to be added
-  @param replace= select YES to replace any existing service in that location
+  @param [in,out] path= The full folder path where the service will be created
+  @param [in,out] name= Service name.  Avoid spaces.
+  @param [in] desc= The description of the service (optional)
+  @param [in] precode= Space separated list of filerefs, pointing to the code
+    that needs to be attached to the beginning of the service (optional)
+  @param [in] code= (ft15f001) Space seperated fileref(s) of the actual code to
+    be added
+  @param [in] replace= (YES) Select YES to replace any existing service in that
+    location
 
 
   @version 9.2
@@ -4020,6 +4022,7 @@ run;
     data _null_;
       set work.&tempds end=last;
       length fref $8;
+      fref='';
       rc=filename(fref,filepath);
       rc=fdelete(fref);
       if rc then do;
@@ -4119,7 +4122,8 @@ data &out_ds(compress=no
     keep=file_or_folder filepath filename ext msg directory level
   );
   length directory filepath $500 fref fref2 $8 file_or_folder $6 filename $80
-    ext $20 msg $200;
+    ext $20 msg $200 foption $16;
+  if _n_=1 then call missing(of _all_);
   retain level &level;
   %if &fref=0 %then %do;
     rc = filename(fref, "&path");
@@ -4130,7 +4134,13 @@ data &out_ds(compress=no
   %end;
   if rc = 0 then do;
     did = dopen(fref);
-    directory=dinfo(did,'Directory');
+    /* attribute is OS-dependent - could be "Directory" or "Directory Name" */
+    numopts=doptnum(did);
+    do i=1 to numopts;
+      foption=doptname(did,i);
+      if foption=:'Directory' then i=numopts;
+    end;
+    directory=dinfo(did,foption);
     if did=0 then do;
       putlog "NOTE: This directory is empty - " directory;
       msg=sysmsg();
@@ -4653,23 +4663,56 @@ quit;
 %put NOTE-;%put NOTE-;
 %mend mp_ds2cards;/**
   @file
-  @brief Export a dataset to a CSV file
-  @details Export to a file or a fileref
+  @brief Export a dataset to a CSV file WITH leading blanks
+  @details Export a dataset to a file or fileref, retaining leading blanks.
+
   Usage:
 
       %mp_ds2csv(sashelp.class,outref="%sysfunc(pathname(work))/file.csv")
 
-  @param ds The dataset to be exported
-  @param outfile= The output filename - should be quoted.
-  @param outref= The output fileref (takes precedence if provided)
-  @param outencoding= The output encoding to use (unquoted)
+  Why use mp_ds2csv over, say, proc export?
+
+  1. Ability to retain leading blanks (this is a major one)
+  2. Control the header format
+  3. Simple one-liner
+
+  @param [in] ds The dataset to be exported
+  @param [in] dlm= (COMMA) The delimeter to apply.  For SASJS, will always be
+    COMMA. Supported values:
+    @li COMMA
+    @li SEMICOLON
+  @param [in] headerformat= (LABEL) The format to use for the header section.
+    Valid values:
+    @li LABEL - Use the variable label (or name, if blank)
+    @li NAME - Use the variable name
+    @li SASJS - Used to create sasjs-formatted input CSVs, eg for use in
+      mp_testservice.sas
+  @param [out] outfile= The output filename - should be quoted.
+  @param [out] outref= (0) The output fileref (takes precedence if provided)
+  @param [in] outencoding= (0) The output encoding to use (unquoted)
+  @param [in] termstr= (CRLF) The line seperator to use.  For SASJS, will
+    always be CRLF.  Valid values:
+    @li CRLF
+    @li LF
+
+  <h4> SAS Macros </h4>
+  @li mf_getvarlist.sas
+  @li mf_getvartype.sas
 
   @version 9.2
   @author Allan Bowe (credit mjsq)
 **/
 
-%macro mp_ds2csv(ds, outref=0, outfile=, outencoding=0
+%macro mp_ds2csv(ds
+  ,dlm=COMMA
+  ,outref=0
+  ,outfile=
+  ,outencoding=0
+  ,headerformat=LABEL
+  ,termstr=CRLF
 )/*/STORE SOURCE*/;
+
+%local outloc delim i varlist var vcnt vat dsv;
 
 %if not %sysfunc(exist(&ds)) %then %do;
   %put %str(WARN)ING:  &ds does not exist;
@@ -4681,32 +4724,90 @@ quit;
 %if &outencoding=0 %then %let outencoding=;
 %else %let outencoding=encoding="&outencoding";
 
-%local outloc;
 %if &outref=0 %then %let outloc=&outfile;
 %else %let outloc=&outref;
+
+%if &headerformat=SASJS %then %do;
+  %let delim=",";
+  %let termstr=CRLF;
+%end;
+%else %if &dlm=COMMA %then %let delim=",";
+%else %let delim=";";
 
 /* credit to mjsq - https://stackoverflow.com/a/55642267 */
 
 /* first get headers */
 data _null_;
-  file &outloc dlm=',' dsd &outencoding lrecl=32767;
-  length header $ 2000;
+  file &outloc &outencoding lrecl=32767 termstr=&termstr;
+  length header $ 2000 varnm $32;
   dsid=open("&ds.","i");
   num=attrn(dsid,"nvars");
   do i=1 to num;
-    header = cats(coalescec(varlabel(dsid,i),varname(dsid,i)));
+    varnm=upcase(varname(dsid,i));
+  %if &headerformat=NAME %then %do;
+    header=cats(varnm,&delim);
+  %end;
+  %else %if &headerformat=LABEL %then %do;
+    header = cats(coalescec(varlabel(dsid,i),varnm),&delim);
+  %end;
+  %else %if &headerformat=SASJS %then %do;
+    if vartype(dsid,i)='C' then header=cats(varnm,':$char',varlen(dsid,i),'.');
+    else header=cats(varnm,':best.');
+  %end;
+  %else %do;
+    %put &sysmacroname: Invalid headerformat value (&headerformat);
+    %return;
+  %end;
     put header @;
   end;
   rc=close(dsid);
 run;
 
+%let varlist=%mf_getvarlist(&ds);
+%let vcnt=%sysfunc(countw(&varlist));
+
+/**
+  * The $quote modifier (without a width) will take the length from the variable
+  * and increase by two.  However this will lead to truncation where the value
+  * contains double quotes (which are doubled up).  To get around this, scan the
+  * data to see the max number of double quotes, so that the appropriate width
+  * can be applied in the subsequent step.
+  */
+data _null_;
+  set &ds end=last;
+%do i=1 %to &vcnt;
+  %let var=%scan(&varlist,&i);
+  %if %mf_getvartype(&ds,&var)=C %then %do;
+    %let dsv1=%mf_getuniquename(prefix=csvcol1_);
+    %let dsv2=%mf_getuniquename(prefix=csvcol2_);
+    retain &dsv1 0;
+    &dsv2=length(&var)+countc(&var,'"');
+    if &dsv2>&dsv1 then &dsv1=&dsv2;
+    if last then call symputx(
+      "vlen&i"
+      /* should be no shorter than varlen, and no longer than 32767 */
+      ,cats('$quote',min(&dsv1+2,32767),'.')
+      ,'l'
+    );
+  %end;
+%end;
+
+%let vat=@;
 /* next, export data */
 data _null_;
   set &ds.;
-  file &outloc mod dlm=',' dsd &outencoding lrecl=32767;
-  put (_all_) (+0);
+  file &outloc mod dlm=&delim dsd &outencoding lrecl=32767 termstr=&termstr;
+  %do i=1 %to &vcnt;
+    %let var=%scan(&varlist,&i);
+    %if &i=&vcnt %then %let vat=;
+    %if %mf_getvartype(&ds,&var)=N %then %do;
+      put &var &vat;
+    %end;
+    %else %do;
+      put &var &&vlen&i "," &vat;
+    %end;
+  %end;
 run;
-
 
 %mend mp_ds2csv;/**
   @file
@@ -7869,11 +7970,9 @@ data _null_;
 run;
 
 options
-  noautocorrect           /* disallow misspelled procedure names            */
   compress=CHAR           /* default is none so ensure we have something!   */
   datastmtchk=ALLKEYWORDS /* protection from overwriting input datasets     */
-  dsoptions=note2err      /* undocumented - convert bad NOTEs to ERRs       */
-  %str(err)orcheck=STRICT /* catch errs in libname/filename statements      */
+  errorcheck=STRICT       /* catch errs in libname/filename statements      */
   fmterr                  /* ensure err when a format cannot be found       */
   mergenoby=%str(ERR)OR   /* throw err when a merge has no BY variables     */
   missing=.               /* changing this can cause hard to detect errs    */
@@ -7885,6 +7984,10 @@ options
   validvarname=V7         /* avoid special characters etc in variable names */
   varinitchk=%str(ERR)OR  /* avoid data mistakes from variable name typos   */
   varlenchk=%str(ERR)OR   /* fail hard if truncation (data loss) can result */
+%if %substr(&sysver,1,1) ne 4 %then %do;
+  noautocorrect           /* disallow misspelled procedure names            */
+  dsoptions=note2err      /* undocumented - convert bad NOTEs to ERRs       */
+%end;
 ;
 
 %mend mp_init;/**
@@ -8046,7 +8149,12 @@ options
         ));
       %do i=1 %to &numcols;
         length &&name&i $&&len&i;
-        &&name&i=left(put(&&newname&i,&&fmt&i));
+        %if &&typelong&i=num %then %do;
+          &&name&i=left(put(&&newname&i,&&fmt&i));
+        %end;
+        %else %do;
+          &&name&i=put(&&newname&i,&&fmt&i);
+        %end;
         drop &&newname&i;
       %end;
         if _error_ then call symputx('syscc',1012);
@@ -10842,14 +10950,12 @@ libname &lib clear;
 
 
 %mend mp_testjob;/**
-  @file mp_testservice.sas
-  @brief Will execute a test against a SASjs web service on SAS 9 or Viya
+  @file
+  @brief Will execute a SASjs web service on SAS 9 or Viya
   @details Prepares the input files and retrieves the resulting datasets from
   the response JSON.
 
-      %mp_testjob(
-        duration=60*5
-      )
+
 
   Note - the _webout fileref should NOT be assigned prior to running this macro.
 
@@ -10857,6 +10963,10 @@ libname &lib clear;
   @param [in] inputfiles=(0) A list of space seperated fileref:filename pairs as
     follows:
         inputfiles=inref:filename inref2:filename2
+  @param [in] inputdatasets= (0) All datasets in this space seperated list are
+    converted into SASJS-formatted CSVs (see mp_ds2csv.sas) files and added to
+    the list of `inputfiles` for ingestion.  The dataset will be sent with the
+    same name (no need for a colon modifier).
   @param [in] inputparams=(0) A dataset containing name/value pairs in the
     following format:
     |name:$32|value:$1000|
@@ -10881,8 +10991,12 @@ libname &lib clear;
   @li mf_getuniquename.sas
   @li mp_abort.sas
   @li mp_binarycopy.sas
+  @li mp_ds2csv.sas
   @li mv_getjobresult.sas
   @li mv_jobflow.sas
+
+  <h4> Related Programs </h4>
+  @li mp_testservice.test.sas
 
   @version 9.4
   @author Allan Bowe
@@ -10891,6 +11005,7 @@ libname &lib clear;
 
 %macro mp_testservice(program,
   inputfiles=0,
+  inputdatasets=0,
   inputparams=0,
   debug=log,
   mdebug=0,
@@ -10899,7 +11014,7 @@ libname &lib clear;
   viyaresult=WEBOUT_JSON,
   viyacontext=SAS Job Execution compute context
 )/*/STORE SOURCE*/;
-%local dbg;
+%local dbg pcnt fref1 webref i webcount var platform;
 %if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;
@@ -10907,7 +11022,6 @@ libname &lib clear;
 %else %let dbg=*;
 
 /* sanitise inputparams */
-%local pcnt;
 %let pcnt=0;
 %if &inputparams ne 0 %then %do;
   data _null_;
@@ -10929,17 +11043,25 @@ libname &lib clear;
   )
 %end;
 
+/* convert inputdatasets to filerefs */
+%if "&inputdatasets" ne "0" %then %do;
+  %if %quote(&inputfiles)=0 %then %let inputfiles=;
+  %do i=1 %to %sysfunc(countw(&inputdatasets,%str( )));
+    %let var=%scan(&inputdatasets,&i,%str( ));
+    %local dsref&i;
+    %let dsref&i=%mf_getuniquefileref();
+    %mp_ds2csv(&var,outref=&&dsref&i,headerformat=SASJS)
+    %let inputfiles=&inputfiles &&dsref&i:%scan(&var,-1,.);
+  %end;
+%end;
 
-%local fref1 webref;
+
 %let fref1=%mf_getuniquefileref();
 %let webref=%mf_getuniquefileref();
-
-%local platform;
 %let platform=%mf_getplatform();
 %if &platform=SASMETA %then %do;
 
   /* parse the input files */
-  %local webcount i var;
   %if %quote(&inputfiles) ne 0 %then %do;
     %let webcount=%sysfunc(countw(&inputfiles));
     %put &=webcount;
@@ -13347,6 +13469,7 @@ run;
 
   data &outds (keep=stpuri prompturi fileuri texturi);
     length stpuri prompturi fileuri texturi serveruri $256 ;
+    if _n_=1 then call missing (of _all_);
     set &outds;
 
     /* final checks on uris */
@@ -13750,7 +13873,12 @@ data _null_;
   put '        )); ';
   put '      %do i=1 %to &numcols; ';
   put '        length &&name&i $&&len&i; ';
-  put '        &&name&i=left(put(&&newname&i,&&fmt&i)); ';
+  put '        %if &&typelong&i=num %then %do; ';
+  put '          &&name&i=left(put(&&newname&i,&&fmt&i)); ';
+  put '        %end; ';
+  put '        %else %do; ';
+  put '          &&name&i=put(&&newname&i,&&fmt&i); ';
+  put '        %end; ';
   put '        drop &&newname&i; ';
   put '      %end; ';
   put '        if _error_ then call symputx(''syscc'',1012); ';
@@ -15731,7 +15859,11 @@ run;
 
 filename __mc1 temp;
 filename __mc2 temp;
-data &outds; length serveruri servername $200; stop;run;
+data &outds;
+  length serveruri servername $200;
+  call missing (of _all_);
+  stop;
+run;
 %do x=1 %to &repocnt;
   options metarepository=&&repo&x;
   proc metadata in=
@@ -15750,13 +15882,16 @@ data &outds; length serveruri servername $200; stop;run;
   data _null_;
     file __mc2;
     put '<SXLEMAP version="1.2" name="SASContexts"><TABLE name="SASContexts">';
-    put "<TABLE-PATH syntax='XPath'>/GetMetadataObjects/Objects/ServerContext</TABLE-PATH>";
+    put "<TABLE-PATH syntax='XPath'>/GetMetadataObjects/Objects/ServerContext";
+    put "</TABLE-PATH>";
     put '<COLUMN name="serveruri">';
-    put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/ServerContext/@Id</PATH>";
+    put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/ServerContext/@Id";
+    put "</PATH>";
     put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>200</LENGTH>";
     put '</COLUMN>';
     put '<COLUMN name="servername">';
-    put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/ServerContext/@Name</PATH>";
+    put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/ServerContext/@Name";
+    put "</PATH>";
     put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>200</LENGTH>";
     put '</COLUMN>';
     put '</TABLE></SXLEMAP>';
@@ -18881,7 +19016,12 @@ data _null_;
   put '        )); ';
   put '      %do i=1 %to &numcols; ';
   put '        length &&name&i $&&len&i; ';
-  put '        &&name&i=left(put(&&newname&i,&&fmt&i)); ';
+  put '        %if &&typelong&i=num %then %do; ';
+  put '          &&name&i=left(put(&&newname&i,&&fmt&i)); ';
+  put '        %end; ';
+  put '        %else %do; ';
+  put '          &&name&i=put(&&newname&i,&&fmt&i); ';
+  put '        %end; ';
   put '        drop &&newname&i; ';
   put '      %end; ';
   put '        if _error_ then call symputx(''syscc'',1012); ';

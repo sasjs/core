@@ -24,20 +24,22 @@ Usage:
         %webout(OBJ,example2) * Object format, easier to work with ;
         %webout(CLOSE)
     ;;;;
-    %mp_createwebservice(path=/Public/app/common,name=appInit,code=ft15f001,replace=YES)
+    %mp_createwebservice(path=/Public/app/common,name=appInit,replace=YES)
 
   <h4> SAS Macros </h4>
   @li mf_getplatform.sas
   @li mm_createwebservice.sas
   @li mv_createwebservice.sas
 
-  @param path= The full folder path where the service will be created
-  @param name= Service name.  Avoid spaces.
-  @param desc= The description of the service (optional)
-  @param precode= Space separated list of filerefs, pointing to the code that
-    needs to be attached to the beginning of the service (optional)
-  @param code= Space seperated fileref(s) of the actual code to be added
-  @param replace= select YES to replace any existing service in that location
+  @param [in,out] path= The full folder path where the service will be created
+  @param [in,out] name= Service name.  Avoid spaces.
+  @param [in] desc= The description of the service (optional)
+  @param [in] precode= Space separated list of filerefs, pointing to the code
+    that needs to be attached to the beginning of the service (optional)
+  @param [in] code= (ft15f001) Space seperated fileref(s) of the actual code to
+    be added
+  @param [in] replace= (YES) Select YES to replace any existing service in that
+    location
 
 
   @version 9.2

@@ -82,7 +82,8 @@ data &out_ds(compress=no
     keep=file_or_folder filepath filename ext msg directory level
   );
   length directory filepath $500 fref fref2 $8 file_or_folder $6 filename $80
-    ext $20 msg $200;
+    ext $20 msg $200 foption $16;
+  if _n_=1 then call missing(of _all_);
   retain level &level;
   %if &fref=0 %then %do;
     rc = filename(fref, "&path");
@@ -93,7 +94,13 @@ data &out_ds(compress=no
   %end;
   if rc = 0 then do;
     did = dopen(fref);
-    directory=dinfo(did,'Directory');
+    /* attribute is OS-dependent - could be "Directory" or "Directory Name" */
+    numopts=doptnum(did);
+    do i=1 to numopts;
+      foption=doptname(did,i);
+      if foption=:'Directory' then i=numopts;
+    end;
+    directory=dinfo(did,foption);
     if did=0 then do;
       putlog "NOTE: This directory is empty - " directory;
       msg=sysmsg();

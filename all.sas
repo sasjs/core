@@ -23569,7 +23569,7 @@ run;
 
   | PARAMETER | DESCRIPTION |
   |---|---|
-  | fmt | Format name to be tested.  Can be with or without the w.d extension.|
+  |fmtnm| Format name to be tested.  Can be with or without the w.d extension.|
 
   Usage:
 
@@ -23620,12 +23620,12 @@ run;
   proc fcmp outlib=&lib..&cat..&pkg;
 %end;
 
-function mcf_getfmttype(var $) $8;
-  if substr(var,1,1)='$' then return('CHAR');
+function mcf_getfmttype(fmtnm $) $8;
+  if substr(fmtnm,1,1)='$' then return('CHAR');
   else do;
     /* extract NAME */
     length fmt $32;
-    fmt=scan(var,1,'.');
+    fmt=scan(fmtnm,1,'.');
     do while (
       substr(fmt,length(fmt),1) in ('1','2','3','4','5','6','7','8','9','0')
       );

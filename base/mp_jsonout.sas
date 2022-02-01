@@ -131,7 +131,7 @@
       %put &sysmacroname: Switching to DATASTEP engine;
       %goto datastep;
     %end;
-    data &tempds /view=&tempds;set &ds;
+    data &tempds;set &ds;
     %if &fmt=N %then format _numeric_ best32.;;
     /* PRETTY is necessary to avoid line truncation in large files */
     proc json out=&jref pretty
@@ -182,7 +182,7 @@
     %end;
       other = [best.];
 
-    data &tempds/view=&tempds;
+    data &tempds;
       attrib _all_ label='';
       %do i=1 %to &numcols;
         %if &&typelong&i=char or &fmt=Y %then %do;
@@ -244,8 +244,7 @@
   %end;
 
   proc sql;
-  drop view &tempds;
-  drop table &colinfo;
+  drop table &colinfo, &tempds;
 
   %if &showmeta=YES %then %do;
     data _null_; file &jref encoding='utf-8' mod;

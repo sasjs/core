@@ -8137,7 +8137,7 @@ options
       %put &sysmacroname: Switching to DATASTEP engine;
       %goto datastep;
     %end;
-    data &tempds /view=&tempds;set &ds;
+    data &tempds;set &ds;
     %if &fmt=N %then format _numeric_ best32.;;
     /* PRETTY is necessary to avoid line truncation in large files */
     proc json out=&jref pretty
@@ -8188,7 +8188,7 @@ options
     %end;
       other = [best.];
 
-    data &tempds/view=&tempds;
+    data &tempds;
       attrib _all_ label='';
       %do i=1 %to &numcols;
         %if &&typelong&i=char or &fmt=Y %then %do;
@@ -8250,8 +8250,7 @@ options
   %end;
 
   proc sql;
-  drop view &tempds;
-  drop table &colinfo;
+  drop table &colinfo, &tempds;
 
   %if &showmeta=YES %then %do;
     data _null_; file &jref encoding='utf-8' mod;
@@ -13861,7 +13860,7 @@ data _null_;
   put '      %put &sysmacroname: Switching to DATASTEP engine; ';
   put '      %goto datastep; ';
   put '    %end; ';
-  put '    data &tempds /view=&tempds;set &ds; ';
+  put '    data &tempds;set &ds; ';
   put '    %if &fmt=N %then format _numeric_ best32.;; ';
   put '    /* PRETTY is necessary to avoid line truncation in large files */ ';
   put '    proc json out=&jref pretty ';
@@ -13912,7 +13911,7 @@ data _null_;
   put '    %end; ';
   put '      other = [best.]; ';
   put ' ';
-  put '    data &tempds/view=&tempds; ';
+  put '    data &tempds; ';
   put '      attrib _all_ label=''''; ';
   put '      %do i=1 %to &numcols; ';
   put '        %if &&typelong&i=char or &fmt=Y %then %do; ';
@@ -13974,8 +13973,7 @@ data _null_;
   put '  %end; ';
   put ' ';
   put '  proc sql; ';
-  put '  drop view &tempds; ';
-  put '  drop table &colinfo; ';
+  put '  drop table &colinfo, &tempds; ';
   put ' ';
   put '  %if &showmeta=YES %then %do; ';
   put '    data _null_; file &jref encoding=''utf-8'' mod; ';
@@ -19004,7 +19002,7 @@ data _null_;
   put '      %put &sysmacroname: Switching to DATASTEP engine; ';
   put '      %goto datastep; ';
   put '    %end; ';
-  put '    data &tempds /view=&tempds;set &ds; ';
+  put '    data &tempds;set &ds; ';
   put '    %if &fmt=N %then format _numeric_ best32.;; ';
   put '    /* PRETTY is necessary to avoid line truncation in large files */ ';
   put '    proc json out=&jref pretty ';
@@ -19055,7 +19053,7 @@ data _null_;
   put '    %end; ';
   put '      other = [best.]; ';
   put ' ';
-  put '    data &tempds/view=&tempds; ';
+  put '    data &tempds; ';
   put '      attrib _all_ label=''''; ';
   put '      %do i=1 %to &numcols; ';
   put '        %if &&typelong&i=char or &fmt=Y %then %do; ';
@@ -19117,8 +19115,7 @@ data _null_;
   put '  %end; ';
   put ' ';
   put '  proc sql; ';
-  put '  drop view &tempds; ';
-  put '  drop table &colinfo; ';
+  put '  drop table &colinfo, &tempds; ';
   put ' ';
   put '  %if &showmeta=YES %then %do; ';
   put '    data _null_; file &jref encoding=''utf-8'' mod; ';

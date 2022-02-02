@@ -3,9 +3,27 @@
   @brief Export a dataset to a CSV file WITH leading blanks
   @details Export a dataset to a file or fileref, retaining leading blanks.
 
+  When using SASJS headerformat, the input statement is provided in the first
+  row of the CSV.
+
   Usage:
 
       %mp_ds2csv(sashelp.class,outref="%sysfunc(pathname(work))/file.csv")
+
+      filename example temp;
+      %mp_ds2csv(sashelp.air,outref=example,headerformat=SASJS)
+      data; infile example; input;put _infile_; if _n_>5 then stop;run;
+
+      data _null_;
+        infile example;
+        input;
+        call symputx('stmnt',_infile_);
+        stop;
+      run;
+      data work.want;
+        infile example dsd firstobs=2;
+        input &stmnt;
+      run;
 
   Why use mp_ds2csv over, say, proc export?
 
@@ -23,7 +41,12 @@
     @li LABEL - Use the variable label (or name, if blank)
     @li NAME - Use the variable name
     @li SASJS - Used to create sasjs-formatted input CSVs, eg for use in
-      mp_testservice.sas
+      mp_testservice.sas.  This format will supply an input statement in the
+      first row, making ingestion by datastep a breeze.  Special misisng values
+      will be prefixed with a period (eg `.A`) to enable ingestion on both SAS 9
+      and Viya.  Dates / Datetimes etc are identified by the format type (lookup
+      with mcf_getfmttype.sas) and converted to human readable formats (not
+      numbers).
   @param [out] outfile= The output filename - should be quoted.
   @param [out] outref= (0) The output fileref (takes precedence if provided)
   @param [in] outencoding= (0) The output encoding to use (unquoted)
@@ -33,7 +56,9 @@
     @li LF
 
   <h4> SAS Macros </h4>
+  @li mcf_getfmttype.sas
   @li mf_getuniquename.sas
+  @li mf_getvarformat.sas
   @li mf_getvarlist.sas
   @li mf_getvartype.sas
 
@@ -50,7 +75,7 @@
   ,termstr=CRLF
 )/*/STORE SOURCE*/;
 
-%local outloc delim i varlist var vcnt vat dsv vcom vmiss;
+%local outloc delim i varlist var vcnt vat dsv vcom vmiss fmttype vfmt;
 
 %if not %sysfunc(exist(&ds)) %then %do;
   %put %str(WARN)ING:  &ds does not exist;
@@ -68,6 +93,7 @@
 %if &headerformat=SASJS %then %do;
   %let delim=",";
   %let termstr=CRLF;
+  %mcf_getfmttype(wrap=YES)
 %end;
 %else %if &dlm=COMMA %then %let delim=",";
 %else %let delim=";";
@@ -77,7 +103,8 @@
 /* first get headers */
 data _null_;
   file &outloc &outencoding lrecl=32767 termstr=&termstr;
-  length header $ 2000 varnm $32 dlm $1;
+  length header $ 2000 varnm vfmt $32 dlm $1 fmttype $8;
+  call missing(of _all_);
   dsid=open("&ds.","i");
   num=attrn(dsid,"nvars");
   dlm=&delim;
@@ -92,7 +119,14 @@ data _null_;
   %end;
   %else %if &headerformat=SASJS %then %do;
     if vartype(dsid,i)='C' then header=cats(varnm,':$char',varlen(dsid,i),'.');
-    else header=cats(varnm,':best.');
+    else do;
+      vfmt=coalescec(varfmt(dsid,i),'0');
+      fmttype=mcf_getfmttype(vfmt);
+      if fmttype='DATE' then header=cats(varnm,':date9.');
+      else if fmttype='DATETIME' then header=cats(varnm,':E8601DT26.6');
+      else if fmttype='TIME' then header=cats(varnm,':TIME12.');
+      else header=cats(varnm,':best.');
+    end;
   %end;
   %else %do;
     %put &sysmacroname: Invalid headerformat value (&headerformat);
@@ -147,14 +181,29 @@ data _null_;
       %let vcom=;
     %end;
     %if %mf_getvartype(&ds,&var)=N %then %do;
+      %if &headerformat = SASJS %then %do;
+        %let vcom=&delim;
+        %let fmttype=%sysfunc(mcf_getfmttype(%mf_getvarformat(&ds,&var)0));
+        %if &fmttype=DATE %then %let vfmt=DATE9.;
+        %else %if &fmttype=DATETIME %then %let vfmt=E8601DT26.6;
+        %else %if &fmttype=TIME %then %let vfmt=TIME12.;
+        %else %do;
+          %let vfmt=;
+          %let vcom=;
+        %end;
+      %end;
+      %else %let vcom=;
+
       /* must use period - in order to work in both 9.4 and Viya 3.5 */
       if missing(&var) and &var ne %sysfunc(getoption(MISSING)) then do;
         &vmiss=cats('.',&var);
         put &vmiss &vat;
       end;
-      else put &var &vat;
+      else put &var &vfmt &vcom &vat;
+
     %end;
     %else %do;
+      %if &i ne &vcnt %then %let vcom=&delim;
       put &var &&vlen&i &vcom &vat;
     %end;
   %end;

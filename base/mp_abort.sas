@@ -66,7 +66,10 @@
   %if %length(&mac)>0 %then %put NOTE- called by &mac;
   %put NOTE - &msg;
 
-  %if %symexist(_SYSINCLUDEFILEDEVICE) %then %do;
+  %if %symexist(_SYSINCLUDEFILEDEVICE)
+  /* abort cancel FILE does not restart outside the INCLUDE on Viya 3.5 */
+  and "&SYSPROCESSNAME " ne "Compute Server "
+  %then %do;
     %if "*&_SYSINCLUDEFILEDEVICE*" ne "**" %then %do;
       data &errds;
         iftrue='1=1';

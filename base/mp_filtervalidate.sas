@@ -96,8 +96,7 @@ filename &fref1 clear;
     run;
     %mp_abort(
       mac=&sysmacroname,
-      msg=%str(Filter validation issues. ERR=%superq(SYSERRORTEXT)
-        , WARN=%superq(SYSWARNINGTEXT) )
+      msg=%str(Filter validation issues.)
     )
   %end;
   %let syscc=1008;

@@ -85,7 +85,7 @@ run;
 /* do not proceed if no observations can be processed */
 %mp_abort(iftrue= (%sysfunc(getoption(OBS))=0)
   ,mac=&sysmacroname
-  ,msg=%str(options obs = 0. syserrortext=&syserrortext)
+  ,msg=%str(cannot continue when options obs = 0)
 )
 
 %if &ACTION=LOCK %then %do;

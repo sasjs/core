@@ -31,12 +31,12 @@
   > fmt3=TIME
 
   @param [out] wrap= (NO) Choose YES to add the proc fcmp wrapper.
-  @param [out] insert_cmplib= (NO) Choose YES to insert the package into the
-    CMPLIB reference.
   @param [out] lib= (work) The output library in which to create the catalog.
   @param [out] cat= (sasjs) The output catalog in which to create the package.
   @param [out] pkg= (utils) The output package in which to create the function.
     Uses a 3 part format:  libref.catalog.package
+  @param [out] insert_cmplib= DEPRECATED - The CMPLIB option is checked and
+    values inserted only if needed.
 
   <h4> SAS Macros </h4>
   @li mcf_init.sas
@@ -51,11 +51,12 @@
 **/
 
 %macro mcf_getfmttype(wrap=NO
-  ,insert_cmplib=NO
+  ,insert_cmplib=DEPRECATED
   ,lib=WORK
   ,cat=SASJS
   ,pkg=UTILS
 )/*/STORE SOURCE*/;
+%local i var cmpval found;
 
 %if %mcf_init(mcf_getfmttype)=1 %then %return;
 
@@ -103,7 +104,14 @@ endsub;
   quit;
 %end;
 
-%if &insert_cmplib=YES %then %do;
+/* insert the CMPLIB if not already there */
+%let cmpval=%sysfunc(getoption(cmplib));
+%let found=0;
+%do i=1 %to %sysfunc(countw(&cmpval,%str( %(%))));
+  %let var=%scan(&cmpval,&i,%str( %(%)));
+  %if &var=&lib..&cat %then %let found=1;
+%end;
+%if &found=0 %then %do;
   options insert=(CMPLIB=(&lib..&cat));
 %end;
 

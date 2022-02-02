@@ -94,3 +94,73 @@ run;
   desc=Checking data row Test 3,
   outds=work.test_results
 )
+
+/* test 4 - sasjs with compare */
+filename example temp;
+%mp_ds2csv(sashelp.air,outref=example,headerformat=SASJS)
+data _null_; infile example; input;put _infile_; if _n_>5 then stop;run;
+
+data _null_;
+  infile example;
+  input;
+  call symputx('stmnt',_infile_);
+  stop;
+run;
+data work.want;
+  infile example dsd firstobs=2;
+  input &stmnt;
+run;
+
+%mp_assert(
+  iftrue=(&syscc =0),
+  desc=Checking syscc prior to compare of sashelp.air,
+  outds=work.test_results
+)
+
+proc compare base=want compare=sashelp.air;
+run;
+%mp_assert(
+  iftrue=(&sysinfo le 41),
+  desc=Checking compare of sashelp.air,
+  outds=work.test_results
+)
+
+/* test 5 - sasjs with time/datetime/date */
+filename f2 temp;
+data work.test5;
+  do x=1 to 5;
+    y=x;
+    z=x;
+  end;
+  format x date9. y datetime19. z time.;
+run;
+%mp_ds2csv(work.test5,outref=f2,headerformat=SASJS)
+data _null_; infile example; input;put _infile_; if _n_>5 then stop;run;
+
+data _null_;
+  infile f2;
+  input;
+  putlog _infile_;
+  call symputx('stmnt2',_infile_);
+  stop;
+run;
+data work.want5;
+  infile f2 dsd firstobs=2;
+  input &stmnt2;
+  putlog _infile_;
+run;
+
+%mp_assert(
+  iftrue=(&syscc=0),
+  desc=Checking syscc prior to compare of test5,
+  outds=work.test_results
+)
+
+proc compare base=want5 compare=work.test5;
+run;
+%mp_assert(
+  iftrue=(&sysinfo le 41),
+  desc=Checking compare of work.test5,
+  outds=work.test_results
+)
+

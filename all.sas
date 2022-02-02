@@ -2106,7 +2106,10 @@ Usage:
   %if %length(&mac)>0 %then %put NOTE- called by &mac;
   %put NOTE - &msg;
 
-  %if %symexist(_SYSINCLUDEFILEDEVICE) %then %do;
+  %if %symexist(_SYSINCLUDEFILEDEVICE)
+  /* abort cancel FILE does not restart outside the INCLUDE on Viya 3.5 */
+  and "&SYSPROCESSNAME " ne "Compute Server "
+  %then %do;
     %if "*&_SYSINCLUDEFILEDEVICE*" ne "**" %then %do;
       data &errds;
         iftrue='1=1';
@@ -4666,9 +4669,27 @@ quit;
   @brief Export a dataset to a CSV file WITH leading blanks
   @details Export a dataset to a file or fileref, retaining leading blanks.
 
+  When using SASJS headerformat, the input statement is provided in the first
+  row of the CSV.
+
   Usage:
 
       %mp_ds2csv(sashelp.class,outref="%sysfunc(pathname(work))/file.csv")
+
+      filename example temp;
+      %mp_ds2csv(sashelp.air,outref=example,headerformat=SASJS)
+      data; infile example; input;put _infile_; if _n_>5 then stop;run;
+
+      data _null_;
+        infile example;
+        input;
+        call symputx('stmnt',_infile_);
+        stop;
+      run;
+      data work.want;
+        infile example dsd firstobs=2;
+        input &stmnt;
+      run;
 
   Why use mp_ds2csv over, say, proc export?
 
@@ -4686,7 +4707,12 @@ quit;
     @li LABEL - Use the variable label (or name, if blank)
     @li NAME - Use the variable name
     @li SASJS - Used to create sasjs-formatted input CSVs, eg for use in
-      mp_testservice.sas
+      mp_testservice.sas.  This format will supply an input statement in the
+      first row, making ingestion by datastep a breeze.  Special misisng values
+      will be prefixed with a period (eg `.A`) to enable ingestion on both SAS 9
+      and Viya.  Dates / Datetimes etc are identified by the format type (lookup
+      with mcf_getfmttype.sas) and converted to human readable formats (not
+      numbers).
   @param [out] outfile= The output filename - should be quoted.
   @param [out] outref= (0) The output fileref (takes precedence if provided)
   @param [in] outencoding= (0) The output encoding to use (unquoted)
@@ -4696,7 +4722,9 @@ quit;
     @li LF
 
   <h4> SAS Macros </h4>
+  @li mcf_getfmttype.sas
   @li mf_getuniquename.sas
+  @li mf_getvarformat.sas
   @li mf_getvarlist.sas
   @li mf_getvartype.sas
 
@@ -4713,7 +4741,7 @@ quit;
   ,termstr=CRLF
 )/*/STORE SOURCE*/;
 
-%local outloc delim i varlist var vcnt vat dsv vcom vmiss;
+%local outloc delim i varlist var vcnt vat dsv vcom vmiss fmttype vfmt;
 
 %if not %sysfunc(exist(&ds)) %then %do;
   %put %str(WARN)ING:  &ds does not exist;
@@ -4731,6 +4759,7 @@ quit;
 %if &headerformat=SASJS %then %do;
   %let delim=",";
   %let termstr=CRLF;
+  %mcf_getfmttype(wrap=YES)
 %end;
 %else %if &dlm=COMMA %then %let delim=",";
 %else %let delim=";";
@@ -4740,7 +4769,8 @@ quit;
 /* first get headers */
 data _null_;
   file &outloc &outencoding lrecl=32767 termstr=&termstr;
-  length header $ 2000 varnm $32 dlm $1;
+  length header $ 2000 varnm vfmt $32 dlm $1 fmttype $8;
+  call missing(of _all_);
   dsid=open("&ds.","i");
   num=attrn(dsid,"nvars");
   dlm=&delim;
@@ -4755,7 +4785,14 @@ data _null_;
   %end;
   %else %if &headerformat=SASJS %then %do;
     if vartype(dsid,i)='C' then header=cats(varnm,':$char',varlen(dsid,i),'.');
-    else header=cats(varnm,':best.');
+    else do;
+      vfmt=coalescec(varfmt(dsid,i),'0');
+      fmttype=mcf_getfmttype(vfmt);
+      if fmttype='DATE' then header=cats(varnm,':date9.');
+      else if fmttype='DATETIME' then header=cats(varnm,':E8601DT26.6');
+      else if fmttype='TIME' then header=cats(varnm,':TIME12.');
+      else header=cats(varnm,':best.');
+    end;
   %end;
   %else %do;
     %put &sysmacroname: Invalid headerformat value (&headerformat);
@@ -4810,14 +4847,29 @@ data _null_;
       %let vcom=;
     %end;
     %if %mf_getvartype(&ds,&var)=N %then %do;
+      %if &headerformat = SASJS %then %do;
+        %let vcom=&delim;
+        %let fmttype=%sysfunc(mcf_getfmttype(%mf_getvarformat(&ds,&var)0));
+        %if &fmttype=DATE %then %let vfmt=DATE9.;
+        %else %if &fmttype=DATETIME %then %let vfmt=E8601DT26.6;
+        %else %if &fmttype=TIME %then %let vfmt=TIME12.;
+        %else %do;
+          %let vfmt=;
+          %let vcom=;
+        %end;
+      %end;
+      %else %let vcom=;
+
       /* must use period - in order to work in both 9.4 and Viya 3.5 */
       if missing(&var) and &var ne %sysfunc(getoption(MISSING)) then do;
         &vmiss=cats('.',&var);
         put &vmiss &vat;
       end;
-      else put &var &vat;
+      else put &var &vfmt &vcom &vat;
+
     %end;
     %else %do;
+      %if &i ne &vcnt %then %let vcom=&delim;
       put &var &&vlen&i &vcom &vat;
     %end;
   %end;
@@ -7878,9 +7930,10 @@ https://documentation.sas.com/doc/en/pgmsascdc/9.4_3.5/mcrolref/n1j5tcc0n2xczyn1
     this dataset.
     It will then run an abort cancel FILE to stop the include running, and pass
     the dataset back.
-    NOTE - it is NOT possible to read this dataset as part of _this_ macro -
-    when running abort cancel FILE, ALL macros are closed, so instead it is
-    necessary to invoke "%mp_abort(mode=INCLUDE)" OUTSIDE of any macro wrappers.
+
+    IMPORTANT NOTE - it is NOT possible to read this dataset as part of _this_
+    macro! When running abort cancel FILE, ALL macros are closed, so instead it
+    is necessary to invoke "%mp_abort(mode=INCLUDE)" OUTSIDE of macro wrappers.
 
 
   @version 9.4
@@ -23585,12 +23638,12 @@ run;
   > fmt3=TIME
 
   @param [out] wrap= (NO) Choose YES to add the proc fcmp wrapper.
-  @param [out] insert_cmplib= (NO) Choose YES to insert the package into the
-    CMPLIB reference.
   @param [out] lib= (work) The output library in which to create the catalog.
   @param [out] cat= (sasjs) The output catalog in which to create the package.
   @param [out] pkg= (utils) The output package in which to create the function.
     Uses a 3 part format:  libref.catalog.package
+  @param [out] insert_cmplib= DEPRECATED - The CMPLIB option is checked and
+    values inserted only if needed.
 
   <h4> SAS Macros </h4>
   @li mcf_init.sas
@@ -23605,11 +23658,12 @@ run;
 **/
 
 %macro mcf_getfmttype(wrap=NO
-  ,insert_cmplib=NO
+  ,insert_cmplib=DEPRECATED
   ,lib=WORK
   ,cat=SASJS
   ,pkg=UTILS
 )/*/STORE SOURCE*/;
+%local i var cmpval found;
 
 %if %mcf_init(mcf_getfmttype)=1 %then %return;
 
@@ -23657,7 +23711,14 @@ endsub;
   quit;
 %end;
 
-%if &insert_cmplib=YES %then %do;
+/* insert the CMPLIB if not already there */
+%let cmpval=%sysfunc(getoption(cmplib));
+%let found=0;
+%do i=1 %to %sysfunc(countw(&cmpval,%str( %(%))));
+  %let var=%scan(&cmpval,&i,%str( %(%)));
+  %if &var=&lib..&cat %then %let found=1;
+%end;
+%if &found=0 %then %do;
   options insert=(CMPLIB=(&lib..&cat));
 %end;
 
@@ -23739,12 +23800,12 @@ endsub;
   > outa=3 outb=4 outc=5 outd=0
 
   @param [out] wrap= (NO) Choose YES to add the proc fcmp wrapper.
-  @param [out] insert_cmplib= (NO) Choose YES to insert the package into the
-    CMPLIB reference.
   @param [out] lib= (work) The output library in which to create the catalog.
   @param [out] cat= (sasjs) The output catalog in which to create the package.
   @param [out] pkg= (utils) The output package in which to create the function.
     Uses a 3 part format:  libref.catalog.package
+  @param [out] insert_cmplib= DEPRECATED - The CMPLIB option is checked and
+    values inserted only if needed.
 
   <h4> SAS Macros </h4>
   @li mcf_init.sas
@@ -23756,12 +23817,12 @@ endsub;
 **/
 
 %macro mcf_length(wrap=NO
-  ,insert_cmplib=NO
+  ,insert_cmplib=DEPRECATED
   ,lib=WORK
   ,cat=SASJS
   ,pkg=UTILS
 )/*/STORE SOURCE*/;
-
+%local i var cmpval found;
 %if %mcf_init(mcf_length)=1 %then %return;
 
 %if &wrap=YES  %then %do;
@@ -23783,7 +23844,14 @@ endsub;
   quit;
 %end;
 
-%if &insert_cmplib=YES %then %do;
+/* insert the CMPLIB if not already there */
+%let cmpval=%sysfunc(getoption(cmplib));
+%let found=0;
+%do i=1 %to %sysfunc(countw(&cmpval,%str( %(%))));
+  %let var=%scan(&cmpval,&i,%str( %(%)));
+  %if &var=&lib..&cat %then %let found=1;
+%end;
+%if &found=0 %then %do;
   options insert=(CMPLIB=(&lib..&cat));
 %end;
 
@@ -23836,12 +23904,12 @@ endsub;
 
 
   @param [out] wrap= (NO) Choose YES to add the proc fcmp wrapper.
-  @param [out] insert_cmplib= (NO) Choose YES to insert the package into the
-    CMPLIB reference.
   @param [out] lib= (work) The output library in which to create the catalog.
   @param [out] cat= (sasjs) The output catalog in which to create the package.
   @param [out] pkg= (utils) The output package in which to create the function.
     Uses a 3 part format:  libref.catalog.package
+  @param [out] insert_cmplib= DEPRECATED - The CMPLIB option is checked and
+    values inserted only if needed.
 
   <h4> SAS Macros </h4>
   @li mcf_init.sas
@@ -23853,12 +23921,12 @@ endsub;
 **/
 
 %macro mcf_stpsrv_header(wrap=NO
-  ,insert_cmplib=NO
+  ,insert_cmplib=DEPRECATED
   ,lib=WORK
   ,cat=SASJS
   ,pkg=UTILS
 )/*/STORE SOURCE*/;
-
+%local i var cmpval found;
 %if %mcf_init(stpsrv_header)=1 %then %return;
 
 %if &wrap=YES  %then %do;
@@ -23885,7 +23953,14 @@ endsub;
   quit;
 %end;
 
-%if &insert_cmplib=YES %then %do;
+/* insert the CMPLIB if not already there */
+%let cmpval=%sysfunc(getoption(cmplib));
+%let found=0;
+%do i=1 %to %sysfunc(countw(&cmpval,%str( %(%))));
+  %let var=%scan(&cmpval,&i,%str( %(%)));
+  %if &var=&lib..&cat %then %let found=1;
+%end;
+%if &found=0 %then %do;
   options insert=(CMPLIB=(&lib..&cat));
 %end;
 
@@ -23923,12 +23998,12 @@ endsub;
       run;
 
   @param [out] wrap= (NO) Choose YES to add the proc fcmp wrapper.
-  @param [out] insert_cmplib= (NO) Choose YES to insert the package into the
-    CMPLIB reference.
   @param [out] lib= (work) The output library in which to create the catalog.
   @param [out] cat= (sasjs) The output catalog in which to create the package.
   @param [out] pkg= (utils) The output package in which to create the function.
     Uses a 3 part format:  libref.catalog.package
+  @param [out] insert_cmplib= DEPRECATED - The CMPLIB option is checked and
+    values inserted only if needed.
 
   <h4> SAS Macros </h4>
   @li mcf_init.sas
@@ -23940,12 +24015,12 @@ endsub;
 **/
 
 %macro mcf_string2file(wrap=NO
-  ,insert_cmplib=NO
+  ,insert_cmplib=DEPRECATED
   ,lib=WORK
   ,cat=SASJS
   ,pkg=UTILS
 )/*/STORE SOURCE*/;
-
+%local i var cmpval found;
 %if %mcf_init(mcf_string2file)=1 %then %return;
 
 %if &wrap=YES  %then %do;
@@ -23972,7 +24047,14 @@ endsub;
   quit;
 %end;
 
-%if &insert_cmplib=YES %then %do;
+/* insert the CMPLIB if not already there */
+%let cmpval=%sysfunc(getoption(cmplib));
+%let found=0;
+%do i=1 %to %sysfunc(countw(&cmpval,%str( %(%))));
+  %let var=%scan(&cmpval,&i,%str( %(%)));
+  %if &var=&lib..&cat %then %let found=1;
+%end;
+%if &found=0 %then %do;
   options insert=(CMPLIB=(&lib..&cat));
 %end;
 

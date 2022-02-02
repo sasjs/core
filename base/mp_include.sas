@@ -51,9 +51,10 @@ https://documentation.sas.com/doc/en/pgmsascdc/9.4_3.5/mcrolref/n1j5tcc0n2xczyn1
     this dataset.
     It will then run an abort cancel FILE to stop the include running, and pass
     the dataset back.
-    NOTE - it is NOT possible to read this dataset as part of _this_ macro -
-    when running abort cancel FILE, ALL macros are closed, so instead it is
-    necessary to invoke "%mp_abort(mode=INCLUDE)" OUTSIDE of any macro wrappers.
+
+    IMPORTANT NOTE - it is NOT possible to read this dataset as part of _this_
+    macro! When running abort cancel FILE, ALL macros are closed, so instead it
+    is necessary to invoke "%mp_abort(mode=INCLUDE)" OUTSIDE of macro wrappers.
 
 
   @version 9.4

@@ -5954,8 +5954,7 @@ filename &fref1 clear;
     run;
     %mp_abort(
       mac=&sysmacroname,
-      msg=%str(Filter validation issues. ERR=%superq(SYSERRORTEXT)
-        , WARN=%superq(SYSWARNINGTEXT) )
+      msg=%str(Filter validation issues.)
     )
   %end;
   %let syscc=1008;
@@ -8516,7 +8515,7 @@ run;
 /* do not proceed if no observations can be processed */
 %mp_abort(iftrue= (%sysfunc(getoption(OBS))=0)
   ,mac=&sysmacroname
-  ,msg=%str(options obs = 0. syserrortext=&syserrortext)
+  ,msg=%str(cannot continue when options obs = 0)
 )
 
 %if &ACTION=LOCK %then %do;

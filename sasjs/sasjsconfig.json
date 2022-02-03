@@ -59,6 +59,7 @@
         "tests/sas9only"
       ],
       "programFolders": [],
+      "binaryFolders": [],
       "deployConfig": {
         "deployServicePack": true,
         "deployScripts": []

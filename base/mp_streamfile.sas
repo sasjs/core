@@ -97,15 +97,15 @@ run;
   %put %str(ERR)OR: Content Type &contenttype NOT SUPPORTED by &sysmacroname!;
   %return;
 %end;
-%else %if &contentype=WOFF %then %do;
+%else %if &contentype=WOFF or &contentype=WOFF2 or &contentype=TTF %then %do;
   %if &platform=SASMETA and &streamweb=1 %then %do;
     data _null_;
-      rc=stpsrv_header('Content-type','font/woff');
+      rc=stpsrv_header('Content-type',"font/%lowcase(&contenttype)");
     run;
   %end;
   %else %if &platform=SASVIYA %then %do;
     filename _webout filesrvc parenturi="&SYS_JES_JOB_URI"
-      contenttype='font/woff';
+      contenttype="font/%lowcase(&contenttype)";
   %end;
 %end;
 %else %if &contentype=XLSX %then %do;

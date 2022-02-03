@@ -81,6 +81,17 @@ run;
       contentdisp="attachment; filename=&outname";
   %end;
 %end;
+%else %if &contentype=GIF or &contentype=JPEG or &contentype=PNG %then %do;
+  %if &platform=SASMETA and &streamweb=1 %then %do;
+    data _null_;
+      rc=stpsrv_header('Content-type',"image/%lowcase(&contenttype)");
+    run;
+  %end;
+  %else %if &platform=SASVIYA %then %do;
+    filename &outref filesrvc parenturi="&SYS_JES_JOB_URI"
+      contenttype="image/%lowcase(&contenttype)";
+  %end;
+%end;
 %else %if &contentype=HTML %then %do;
   %if &platform=SASVIYA %then %do;
     filename &outref filesrvc parenturi="&SYS_JES_JOB_URI" name="_webout.json"

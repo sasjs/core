@@ -10803,7 +10803,10 @@ create table &outds as
   @param [in] contenttype= (TEXTS) Either TEXT, ZIP, CSV, EXCEL
   @param [in] inloc= /path/to/file.ext to be sent
   @param [in] inref= fileref of file to be sent (if provided, overrides `inloc`)
+  @param [in] iftrue= (1=1) Provide a condition under which to execute.
   @param [out] outname= the name of the file, as downloaded by the browser
+  @param [out] outref= (_webout) The destination where the file should be
+    streamed.
 
   <h4> SAS Macros </h4>
   @li mf_getplatform.sas
@@ -10817,12 +10820,16 @@ create table &outds as
   contenttype=TEXT
   ,inloc=
   ,inref=0
+  ,iftrue=%str(1=1)
   ,outname=
+  ,outref=_webout
 )/*/STORE SOURCE*/;
 
-%let contentype=%upcase(&contenttype);
-%local platform; %let platform=%mf_getplatform();
+%if not(%eval(%unquote(&iftrue))) %then %return;
 
+%let contentype=%upcase(&contenttype);
+%let outref=%upcase(&outref);
+%local platform; %let platform=%mf_getplatform();
 
 /**
   * check engine type to avoid the below err message:
@@ -10831,7 +10838,7 @@ create table &outds as
 %local streamweb;
 %let streamweb=0;
 data _null_;
-  set sashelp.vextfl(where=(upcase(fileref)="_WEBOUT"));
+  set sashelp.vextfl(where=(upcase(fileref)="&outref"));
   if xengine='STREAM' then call symputx('streamweb',1,'l');
 run;
 
@@ -10843,7 +10850,7 @@ run;
     run;
   %end;
   %else %if &platform=SASVIYA %then %do;
-    filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.txt'
+    filename &outref filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.txt'
       contenttype='application/csv'
       contentdisp="attachment; filename=&outname";
   %end;
@@ -10857,14 +10864,14 @@ run;
     run;
   %end;
   %else %if &platform=SASVIYA %then %do;
-    filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.xls'
+    filename &outref filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.xls'
       contenttype='application/vnd.ms-excel'
       contentdisp="attachment; filename=&outname";
   %end;
 %end;
 %else %if &contentype=HTML %then %do;
   %if &platform=SASVIYA %then %do;
-    filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name="_webout.json"
+    filename &outref filesrvc parenturi="&SYS_JES_JOB_URI" name="_webout.json"
       contenttype="text/html";
   %end;
 %end;
@@ -10876,14 +10883,10 @@ run;
     run;
   %end;
   %else %if &platform=SASVIYA %then %do;
-    filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.txt'
+    filename &outref filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.txt'
       contenttype='application/text'
       contentdisp="attachment; filename=&outname";
   %end;
-%end;
-%else %do;
-  %put %str(ERR)OR: Content Type &contenttype NOT SUPPORTED by &sysmacroname!;
-  %return;
 %end;
 %else %if &contentype=WOFF or &contentype=WOFF2 or &contentype=TTF %then %do;
   %if &platform=SASMETA and &streamweb=1 %then %do;
@@ -10892,7 +10895,7 @@ run;
     run;
   %end;
   %else %if &platform=SASVIYA %then %do;
-    filename _webout filesrvc parenturi="&SYS_JES_JOB_URI"
+    filename &outref filesrvc parenturi="&SYS_JES_JOB_URI"
       contenttype="font/%lowcase(&contenttype)";
   %end;
 %end;
@@ -10905,7 +10908,7 @@ run;
     run;
   %end;
   %else %if &platform=SASVIYA %then %do;
-    filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.xls'
+    filename &outref filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.xls'
       contenttype=
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       contentdisp="attachment; filename=&outname";
@@ -10919,17 +10922,21 @@ run;
     run;
   %end;
   %else %if &platform=SASVIYA %then %do;
-    filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.zip'
+    filename &outref filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.zip'
       contenttype='application/zip'
       contentdisp="attachment; filename=&outname";
   %end;
 %end;
+%else %do;
+  %put %str(ERR)OR: Content Type &contenttype NOT SUPPORTED by &sysmacroname!;
+  %return;
+%end;
 
 %if &inref ne 0 %then %do;
-  %mp_binarycopy(inref=&inref,outref=_webout)
+  %mp_binarycopy(inref=&inref,outref=&outref)
 %end;
 %else %do;
-  %mp_binarycopy(inloc="&inloc",outref=_webout)
+  %mp_binarycopy(inloc="&inloc",outref=&outref)
 %end;
 
 %mend mp_streamfile;

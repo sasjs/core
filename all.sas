@@ -4715,7 +4715,7 @@ quit;
       numbers).
   @param [out] outfile= The output filename - should be quoted.
   @param [out] outref= (0) The output fileref (takes precedence if provided)
-  @param [in] outencoding= (0) The output encoding to use (unquoted)
+  @param [in] outencoding= (0) The (quoted) output encoding to use, eg `"UTF-8"`
   @param [in] termstr= (CRLF) The line seperator to use.  For SASJS, will
     always be CRLF.  Valid values:
     @li CRLF
@@ -4751,7 +4751,7 @@ quit;
 %if %index(&ds,.)=0 %then %let ds=WORK.&ds;
 
 %if &outencoding=0 %then %let outencoding=;
-%else %let outencoding=encoding="&outencoding";
+%else %let outencoding=encoding=&outencoding;
 
 %if &outref=0 %then %let outloc=&outfile;
 %else %let outloc=&outref;
@@ -10800,17 +10800,16 @@ create table &outds as
 
       %mp_streamfile(contenttype=csv,inloc=/some/where.txt,outname=myfile.txt)
 
+  @param [in] contenttype= (TEXTS) Either TEXT, ZIP, CSV, EXCEL
+  @param [in] inloc= /path/to/file.ext to be sent
+  @param [in] inref= fileref of file to be sent (if provided, overrides `inloc`)
+  @param [out] outname= the name of the file, as downloaded by the browser
+
   <h4> SAS Macros </h4>
   @li mf_getplatform.sas
   @li mp_binarycopy.sas
 
-  @param contenttype= Either TEXT, ZIP, CSV, EXCEL (default TEXT)
-  @param inloc= /path/to/file.ext to be sent
-  @param inref= fileref of file to be sent (if provided, overrides `inloc`)
-  @param outname= the name of the file, as downloaded by the browser
-
   @author Allan Bowe
-  @source https://github.com/sasjs/core
 
 **/
 
@@ -10836,16 +10835,16 @@ data _null_;
   if xengine='STREAM' then call symputx('streamweb',1,'l');
 run;
 
-%if &contentype=ZIP %then %do;
+%if &contentype=CSV %then %do;
   %if &platform=SASMETA and &streamweb=1 %then %do;
     data _null_;
-      rc=stpsrv_header('Content-type','application/zip');
+      rc=stpsrv_header('Content-type','application/csv');
       rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
     run;
   %end;
   %else %if &platform=SASVIYA %then %do;
-    filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.zip'
-      contenttype='application/zip'
+    filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.txt'
+      contenttype='application/csv'
       contentdisp="attachment; filename=&outname";
   %end;
 %end;
@@ -10863,19 +10862,10 @@ run;
       contentdisp="attachment; filename=&outname";
   %end;
 %end;
-%else %if &contentype=XLSX %then %do;
-  %if &platform=SASMETA and &streamweb=1 %then %do;
-    data _null_;
-      rc=stpsrv_header('Content-type',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
-    run;
-  %end;
-  %else %if &platform=SASVIYA %then %do;
-    filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.xls'
-      contenttype=
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      contentdisp="attachment; filename=&outname";
+%else %if &contentype=HTML %then %do;
+  %if &platform=SASVIYA %then %do;
+    filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name="_webout.json"
+      contenttype="text/html";
   %end;
 %end;
 %else %if &contentype=TEXT %then %do;
@@ -10891,28 +10881,48 @@ run;
       contentdisp="attachment; filename=&outname";
   %end;
 %end;
-%else %if &contentype=CSV %then %do;
+%else %do;
+  %put %str(ERR)OR: Content Type &contenttype NOT SUPPORTED by &sysmacroname!;
+  %return;
+%end;
+%else %if &contentype=WOFF %then %do;
   %if &platform=SASMETA and &streamweb=1 %then %do;
     data _null_;
-      rc=stpsrv_header('Content-type','application/csv');
+      rc=stpsrv_header('Content-type','font/woff');
+    run;
+  %end;
+  %else %if &platform=SASVIYA %then %do;
+    filename _webout filesrvc parenturi="&SYS_JES_JOB_URI"
+      contenttype='font/woff';
+  %end;
+%end;
+%else %if &contentype=XLSX %then %do;
+  %if &platform=SASMETA and &streamweb=1 %then %do;
+    data _null_;
+      rc=stpsrv_header('Content-type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
     run;
   %end;
   %else %if &platform=SASVIYA %then %do;
-    filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.txt'
-      contenttype='application/csv'
+    filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.xls'
+      contenttype=
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       contentdisp="attachment; filename=&outname";
   %end;
 %end;
-%else %if &contentype=HTML %then %do;
-  %if &platform=SASVIYA %then %do;
-    filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name="_webout.json"
-      contenttype="text/html";
+%else %if &contentype=ZIP %then %do;
+  %if &platform=SASMETA and &streamweb=1 %then %do;
+    data _null_;
+      rc=stpsrv_header('Content-type','application/zip');
+      rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
+    run;
   %end;
-%end;
-%else %do;
-  %put %str(ERR)OR: Content Type &contenttype NOT SUPPORTED by &sysmacroname!;
-  %return;
+  %else %if &platform=SASVIYA %then %do;
+    filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.zip'
+      contenttype='application/zip'
+      contentdisp="attachment; filename=&outname";
+  %end;
 %end;
 
 %if &inref ne 0 %then %do;

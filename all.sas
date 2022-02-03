@@ -10929,7 +10929,6 @@ run;
 %end;
 %else %do;
   %put %str(ERR)OR: Content Type &contenttype NOT SUPPORTED by &sysmacroname!;
-  %return;
 %end;
 
 %if &inref ne 0 %then %do;

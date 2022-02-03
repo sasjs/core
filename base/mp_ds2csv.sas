@@ -49,7 +49,7 @@
       numbers).
   @param [out] outfile= The output filename - should be quoted.
   @param [out] outref= (0) The output fileref (takes precedence if provided)
-  @param [in] outencoding= (0) The output encoding to use (unquoted)
+  @param [in] outencoding= (0) The (quoted) output encoding to use, eg `"UTF-8"`
   @param [in] termstr= (CRLF) The line seperator to use.  For SASJS, will
     always be CRLF.  Valid values:
     @li CRLF
@@ -85,7 +85,7 @@
 %if %index(&ds,.)=0 %then %let ds=WORK.&ds;
 
 %if &outencoding=0 %then %let outencoding=;
-%else %let outencoding=encoding="&outencoding";
+%else %let outencoding=encoding=&outencoding;
 
 %if &outref=0 %then %let outloc=&outfile;
 %else %let outloc=&outref;

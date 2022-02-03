@@ -12,17 +12,16 @@
 
       %mp_streamfile(contenttype=csv,inloc=/some/where.txt,outname=myfile.txt)
 
+  @param [in] contenttype= (TEXTS) Either TEXT, ZIP, CSV, EXCEL
+  @param [in] inloc= /path/to/file.ext to be sent
+  @param [in] inref= fileref of file to be sent (if provided, overrides `inloc`)
+  @param [out] outname= the name of the file, as downloaded by the browser
+
   <h4> SAS Macros </h4>
   @li mf_getplatform.sas
   @li mp_binarycopy.sas
 
-  @param contenttype= Either TEXT, ZIP, CSV, EXCEL (default TEXT)
-  @param inloc= /path/to/file.ext to be sent
-  @param inref= fileref of file to be sent (if provided, overrides `inloc`)
-  @param outname= the name of the file, as downloaded by the browser
-
   @author Allan Bowe
-  @source https://github.com/sasjs/core
 
 **/
 

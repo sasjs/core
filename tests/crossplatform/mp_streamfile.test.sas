@@ -13,7 +13,7 @@
 
 %mp_assertscope(SNAPSHOT)
 
-%mp_streamfile(iftrue(1=0)
+%mp_streamfile(iftrue=(1=0)
   ,contenttype=csv,inloc=/some/where.txt
   ,outname=myfile.txt
 )

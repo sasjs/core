@@ -81,7 +81,7 @@ Macros used for interfacing with SAS Viya.
 
 Wait - this is a macro library - what is LUA doing here?  Well, it is a little known fact that you CAN run LUA within a SAS Macro.  It has to be written to a text file with a `.lua` extension, from where you can `%include` it.  So, without using the `proc lua` wrapper.
 
-To contribute, simply write your freeform LUA in the LUA folder.  Then run the `build.py`, which will convert your LUA into a data step with put statements, and create the macro wrapper with a `ml_` prefix.  You can then use your module in any program by running:
+To contribute, simply write your freeform LUA in the LUA folder.  Then run the `build.py`, which will convert all files with a ".lua" extension into a macro wrapper with an `ml_` prefix (embedding the necessary data step put statements).  You can then use your module in any program by running:
 
 ```sas
 /* compile the lua module */
@@ -95,8 +95,7 @@ endsubmit;
 run;
 ```
 
-- X command enabled
-- Prefixes: _mmw_,_mmu_,_mmx_
+- Prefixes: _ml_
 
 ## Installation
 
@@ -129,11 +128,11 @@ filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
   - _mf_ for macro functions (can be used in open code).
   - _ml_ for macros that are used to compile LUA modules
   - _mm_ for metadata macros (interface with the metadata server).
-  - _mmx_ for macros that use metadata and are XCMD enabled
+  - _mmx_ for macros that use metadata and are XCMD enabled (working on both windows and unix)
   - _mp_ for macro procedures (which generate sas code)
   - _ms_ for macro procedures that will only work with [@sasjs/server](https://github.com/sasjs/server)
   - _mv_ for macro procedures that will only work in Viya
-  - _mx_ for macros that are XCMD enabled
+  - _mx_ for macros that are XCMD enabled (working on both windows and unix)
 - follow verb-noun convention
 - unix style line endings (lf)
 - individual lines should be no more than 80 characters long

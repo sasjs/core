@@ -352,6 +352,7 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
   @li /data
   @li /jobs
   @li /services
+  @li /tests
   @li /tests/jobs
   @li /tests/services
   @li /tests/macros
@@ -383,9 +384,13 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
 
 /**
   * First check we are not in the tests/macros folder (which has no subfolders)
+  * or specifically in the testsetup or testteardown services
   */
-%if %index(&pgm,/tests/macros/) %then %do;
-  %let root=%substr(&pgm,1,%index(&pgm,/tests/macros)-1);
+%if %index(&pgm,/tests/macros/)
+or %index(&pgm,/tests/testsetup)
+or %index(&pgm,/tests/testteardown)
+%then %do;
+  %let root=%substr(&pgm,1,%index(&pgm,/tests)-1);
   &root
   %return;
 %end;

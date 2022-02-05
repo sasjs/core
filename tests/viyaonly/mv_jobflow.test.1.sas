@@ -76,3 +76,6 @@ run;
   iftrue=(&syscc ne 0),
   desc=Check that non zero return code is returned if called job fails
 )
+
+/* set syscc to zero for final check in testterm */
+%let syscc=0;

@@ -47,3 +47,19 @@
   desc=Checking tests/macros appLoc matches (which has no subfolder),
   outds=work.test_results
 )
+
+%mp_assert(
+  iftrue=(
+    "%mf_getapploc(/some/area/tests/testsetup)"="/some/area"
+  ),
+  desc=Checking tests/testsetup operation,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=(
+    "%mf_getapploc(/some/area/tests/testteardown)"="/some/area"
+  ),
+  desc=Checking tests/teardown operation,
+  outds=work.test_results
+)

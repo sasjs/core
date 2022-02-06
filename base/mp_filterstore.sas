@@ -8,8 +8,13 @@
   https://sasapps.io)).  This macro is also used in [Data Controller for SAS](
   https://datacontroller.io).
 
+  A more recent feature of this macro is the ability to support filter queries
+  on Format Catalogs.  This is achieved by adding a `-FC` suffix to the `libds`
+  parameter - where the "ds" in this case is the catalog name.
 
-  @param [in] libds= The target dataset to be filtered (lib should be assigned)
+
+  @param [in] libds= The target dataset to be filtered (lib should be assigned).
+    If filtering a format catalog, add the following suffix:  `-FC`.
   @param [in] queryds= (WORK.FILTERQUERY) The temporary input query dataset to
     be validated.  Has the following format:
 |GROUP_LOGIC:$3|SUBGROUP_LOGIC:$3|SUBGROUP_ID:8.|VARIABLE_NM:$32|OPERATOR_NM:$10|RAW_VALUE:$32767|
@@ -78,7 +83,10 @@
 %put &sysmacroname entry vars:;
 %put _local_;
 
-%local ds1 ds2 ds3 ds4 filter_hash;
+%local ds0 ds1 ds2 ds3 ds4 filter_hash orig_libds;
+%let libds=%upcase(&libds);
+%let orig_libds=&libds;
+
 %mp_abort(iftrue= (&syscc ne 0)
   ,mac=mp_filterstore
   ,msg=%str(syscc=&syscc on macro entry)
@@ -96,12 +104,49 @@
   ,msg=%str(Invalid lock_table value: &lock_table)
 )
 
-/* validate query */
+/**
+  * validate query
+  * use format catalog export, if a format
+  */
+%if "%substr(&libds,%length(&libds)-2,3)"="-FC" %then %do;
+  %let libds=%scan(&libds,1,-); /* chop off -FC extension */
+  %let ds0=%mf_getuniquename(prefix=fmtds_);
+  /*
+    There is no need to export the entire format catalog here - the validations
+    are done against the data model, not the data values.  So we can simply
+    hardcode the structure based on the cntlout dataset.
+  */
+  proc sql;
+  create table &ds0(
+    FMTNAME char(32)
+    ,START char(16)
+    ,END char(16)
+    ,LABEL char(23)
+    ,MIN num length=3
+    ,MAX num length=3
+    ,DEFAULT num length=3
+    ,LENGTH num length=3
+    ,FUZZ num
+    ,PREFIX char(2)
+    ,MULT num
+    ,FILL char(1)
+    ,NOEDIT num length=3
+    ,TYPE char(1)
+    ,SEXCL char(1)
+    ,EEXCL char(1)
+    ,HLO char(13)
+    ,DECSEP char(1)
+    ,DIG3SEP char(1)
+    ,DATATYPE char(8)
+    ,LANGUAGE char(8)
+  );
+  %let libds=&ds0;
+%end;
 %mp_filtercheck(&queryds,targetds=&libds,abort=YES)
 
 /* hash the result */
 %let ds1=%mf_getuniquename(prefix=hashds);
-%mp_hashdataset(&queryds,outds=&ds1,salt=&libds)
+%mp_hashdataset(&queryds,outds=&ds1,salt=&orig_libds)
 %let filter_hash=%upcase(%mf_getvalue(&ds1,hashkey));
 %if &mdebug=1 %then %do;
   data _null_;
@@ -132,7 +177,7 @@ run;
   %let ds3=%mf_getuniquename(prefix=filtersum);
   data work.&ds3;
     if 0 then set &filter_summary;
-    filter_table=symget('libds');
+    filter_table="&orig_libds";
     filter_hash="&filter_hash";
     PROCESSED_DTTM=%sysfunc(datetime());
     output;

@@ -3538,6 +3538,8 @@ run;
       %mp_coretable(LOCKTABLE,libds=work.locktable)
 
   @param [in] table_ref The type of table to create.  Example values:
+    @li CNTLOUT_DS - Mimics the structure of the table produced by `proc format`
+      with the `cntlout=` option.
     @li DIFFTABLE - Used to store changes to tables.  Used by mp_storediffs.sas
       and mp_stackdiffs.sas
     @li FILTER_DETAIL - For storing detailed filter values.  Used by
@@ -3568,6 +3570,31 @@ run;
 %local outds ;
 %let outds=%sysfunc(ifc(&libds=0,_data_,&libds));
 proc sql;
+%if &table_ref=CNTLOUT_DS %then %do;
+  create table &outds(
+    FMTNAME char(32)     label='Format name'
+    ,START char(16)     label='Starting value for format'
+    ,END char(16)     label='Ending value for format'
+    ,LABEL char(23)     label='Format value label'
+    ,MIN num length=3     label='Minimum length'
+    ,MAX num length=3     label='Maximum length'
+    ,DEFAULT num length=3     label='Default length'
+    ,LENGTH num length=3     label='Format length'
+    ,FUZZ num     label='Fuzz value'
+    ,PREFIX char(2)     label='Prefix characters'
+    ,MULT num     label='Multiplier'
+    ,FILL char(1)     label='Fill character'
+    ,NOEDIT num length=3     label='Is picture string noedit?'
+    ,TYPE char(1)     label='Type of format'
+    ,SEXCL char(1)     label='Start exclusion'
+    ,EEXCL char(1)     label='End exclusion'
+    ,HLO char(13)     label='Additional information'
+    ,DECSEP char(1)     label='Decimal separator'
+    ,DIG3SEP char(1)     label='Three-digit separator'
+    ,DATATYPE char(8)     label='Date/time/datetime?'
+    ,LANGUAGE char(8)     label='Language for date strings'
+  );
+%end;
 %if &table_ref=DIFFTABLE %then %do;
   create table &outds(
       load_ref char(36) label='unique load reference',
@@ -4889,6 +4916,35 @@ run;
 
 %mend mp_ds2csv;/**
   @file
+  @brief A wrapper for mp_getddl.sas
+  @details In the next release, this will be the main version.
+
+
+  <h4> SAS Macros </h4>
+  @li mp_getddl.sas
+
+**/
+
+%macro mp_ds2ddl(libds,fref=getddl,flavour=SAS,showlog=YES,schema=
+  ,applydttm=NO
+)/*/STORE SOURCE*/;
+
+%local libref;
+%let libds=%upcase(&libds);
+%let libref=%scan(&libds,1,.);
+%if &libref=&libds %then %let libds=WORK.&libds;
+
+%mp_getddl(%scan(&libds,1,.)
+  ,%scan(&libds,2,.)
+  ,fref=&fref
+  ,flavour=SAS
+  ,showlog=&showlog
+  ,schema=&schema
+  ,applydttm=&applydttm
+)
+
+%mend mp_ds2ddl;/**
+  @file
   @brief Converts every value in a dataset to formatted value
   @details Converts every value to it's formatted value.  All variables will
   become character, and will be in the same order as the original dataset.
@@ -5394,7 +5450,8 @@ options varlenchk=&optval;
   SYSCC to 1008 if bad records are found, and call mp_abort.sas for a
   graceful service exit (configurable).
 
-  Used for dynamic filtering in [Data Controller for SAS&reg;](https://datacontroller.io).
+  Used for dynamic filtering in [Data Controller for SAS&reg;](
+  https://datacontroller.io).
 
   Usage:
 
@@ -5513,7 +5570,7 @@ data &outds;
     output;
   end;
   if OPERATOR_NM not in
-  ('=','>','<','<=','>=','BETWEEN','IN','NOT IN','NE','CONTAINS')
+  ('=','>','<','<=','>=','BETWEEN','IN','NOT IN','NE','CONTAINS','GE','LE')
   then do;
     REASON_CD='Invalid OPERATOR_NM: '!!cats(OPERATOR_NM);
     putlog REASON_CD= OPERATOR_NM=;
@@ -5701,8 +5758,13 @@ filename &outref temp;
   https://sasapps.io)).  This macro is also used in [Data Controller for SAS](
   https://datacontroller.io).
 
+  A more recent feature of this macro is the ability to support filter queries
+  on Format Catalogs.  This is achieved by adding a `-FC` suffix to the `libds`
+  parameter - where the "ds" in this case is the catalog name.
 
-  @param [in] libds= The target dataset to be filtered (lib should be assigned)
+
+  @param [in] libds= The target dataset to be filtered (lib should be assigned).
+    If filtering a format catalog, add the following suffix:  `-FC`.
   @param [in] queryds= (WORK.FILTERQUERY) The temporary input query dataset to
     be validated.  Has the following format:
 |GROUP_LOGIC:$3|SUBGROUP_LOGIC:$3|SUBGROUP_ID:8.|VARIABLE_NM:$32|OPERATOR_NM:$10|RAW_VALUE:$32767|
@@ -5771,7 +5833,10 @@ filename &outref temp;
 %put &sysmacroname entry vars:;
 %put _local_;
 
-%local ds1 ds2 ds3 ds4 filter_hash;
+%local ds0 ds1 ds2 ds3 ds4 filter_hash orig_libds;
+%let libds=%upcase(&libds);
+%let orig_libds=&libds;
+
 %mp_abort(iftrue= (&syscc ne 0)
   ,mac=mp_filterstore
   ,msg=%str(syscc=&syscc on macro entry)
@@ -5789,12 +5854,49 @@ filename &outref temp;
   ,msg=%str(Invalid lock_table value: &lock_table)
 )
 
-/* validate query */
+/**
+  * validate query
+  * use format catalog export, if a format
+  */
+%if "%substr(&libds,%length(&libds)-2,3)"="-FC" %then %do;
+  %let libds=%scan(&libds,1,-); /* chop off -FC extension */
+  %let ds0=%mf_getuniquename(prefix=fmtds_);
+  /*
+    There is no need to export the entire format catalog here - the validations
+    are done against the data model, not the data values.  So we can simply
+    hardcode the structure based on the cntlout dataset.
+  */
+  proc sql;
+  create table &ds0(
+    FMTNAME char(32)
+    ,START char(16)
+    ,END char(16)
+    ,LABEL char(23)
+    ,MIN num length=3
+    ,MAX num length=3
+    ,DEFAULT num length=3
+    ,LENGTH num length=3
+    ,FUZZ num
+    ,PREFIX char(2)
+    ,MULT num
+    ,FILL char(1)
+    ,NOEDIT num length=3
+    ,TYPE char(1)
+    ,SEXCL char(1)
+    ,EEXCL char(1)
+    ,HLO char(13)
+    ,DECSEP char(1)
+    ,DIG3SEP char(1)
+    ,DATATYPE char(8)
+    ,LANGUAGE char(8)
+  );
+  %let libds=&ds0;
+%end;
 %mp_filtercheck(&queryds,targetds=&libds,abort=YES)
 
 /* hash the result */
 %let ds1=%mf_getuniquename(prefix=hashds);
-%mp_hashdataset(&queryds,outds=&ds1,salt=&libds)
+%mp_hashdataset(&queryds,outds=&ds1,salt=&orig_libds)
 %let filter_hash=%upcase(%mf_getvalue(&ds1,hashkey));
 %if &mdebug=1 %then %do;
   data _null_;
@@ -5825,7 +5927,7 @@ run;
   %let ds3=%mf_getuniquename(prefix=filtersum);
   data work.&ds3;
     if 0 then set &filter_summary;
-    filter_table=symget('libds');
+    filter_table="&orig_libds";
     filter_hash="&filter_hash";
     PROCESSED_DTTM=%sysfunc(datetime());
     output;

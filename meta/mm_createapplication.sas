@@ -59,7 +59,10 @@
 %&mD.put Executing &sysmacroname..sas;
 %&mD.put _local_;
 
-%mf_verifymacvars(tree name)
+%mp_abort(iftrue= (%mf_verifymacvars(tree name)=0)
+  ,mac=&sysmacroname
+  ,msg=%str(Empty inputs: tree name)
+)
 
 /**
   * check tree exists

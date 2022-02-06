@@ -5,13 +5,17 @@
     make use of permanent tables.  To avoid duplication in definitions, this
     macro provides a central location for managing the corresponding DDL.
 
+  Note - this macro is likely to be deprecated in future in favour of a
+  dedicated "datamodel" folder (prefix mddl)
+
+  Any corresponding data would go in a seperate repo, to avoid this one
+  ballooning in size!
+
   Example usage:
 
       %mp_coretable(LOCKTABLE,libds=work.locktable)
 
   @param [in] table_ref The type of table to create.  Example values:
-    @li CNTLOUT_DS - Mimics the structure of the table produced by `proc format`
-      with the `cntlout=` option.
     @li DIFFTABLE - Used to store changes to tables.  Used by mp_storediffs.sas
       and mp_stackdiffs.sas
     @li FILTER_DETAIL - For storing detailed filter values.  Used by
@@ -42,31 +46,6 @@
 %local outds ;
 %let outds=%sysfunc(ifc(&libds=0,_data_,&libds));
 proc sql;
-%if &table_ref=CNTLOUT_DS %then %do;
-  create table &outds(
-    FMTNAME char(32)     label='Format name'
-    ,START char(16)     label='Starting value for format'
-    ,END char(16)     label='Ending value for format'
-    ,LABEL char(23)     label='Format value label'
-    ,MIN num length=3     label='Minimum length'
-    ,MAX num length=3     label='Maximum length'
-    ,DEFAULT num length=3     label='Default length'
-    ,LENGTH num length=3     label='Format length'
-    ,FUZZ num     label='Fuzz value'
-    ,PREFIX char(2)     label='Prefix characters'
-    ,MULT num     label='Multiplier'
-    ,FILL char(1)     label='Fill character'
-    ,NOEDIT num length=3     label='Is picture string noedit?'
-    ,TYPE char(1)     label='Type of format'
-    ,SEXCL char(1)     label='Start exclusion'
-    ,EEXCL char(1)     label='End exclusion'
-    ,HLO char(13)     label='Additional information'
-    ,DECSEP char(1)     label='Decimal separator'
-    ,DIG3SEP char(1)     label='Three-digit separator'
-    ,DATATYPE char(8)     label='Date/time/datetime?'
-    ,LANGUAGE char(8)     label='Language for date strings'
-  );
-%end;
 %if &table_ref=DIFFTABLE %then %do;
   create table &outds(
       load_ref char(36) label='unique load reference',

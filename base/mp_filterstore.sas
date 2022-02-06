@@ -121,7 +121,7 @@
     FMTNAME char(32)
     ,START char(16)
     ,END char(16)
-    ,LABEL char(23)
+    ,LABEL char(256)
     ,MIN num length=3
     ,MAX num length=3
     ,DEFAULT num length=3

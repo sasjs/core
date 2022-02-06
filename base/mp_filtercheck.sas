@@ -6,7 +6,8 @@
   SYSCC to 1008 if bad records are found, and call mp_abort.sas for a
   graceful service exit (configurable).
 
-  Used for dynamic filtering in [Data Controller for SAS&reg;](https://datacontroller.io).
+  Used for dynamic filtering in [Data Controller for SAS&reg;](
+  https://datacontroller.io).
 
   Usage:
 
@@ -125,7 +126,7 @@ data &outds;
     output;
   end;
   if OPERATOR_NM not in
-  ('=','>','<','<=','>=','BETWEEN','IN','NOT IN','NE','CONTAINS')
+  ('=','>','<','<=','>=','BETWEEN','IN','NOT IN','NE','CONTAINS','GE','LE')
   then do;
     REASON_CD='Invalid OPERATOR_NM: '!!cats(OPERATOR_NM);
     putlog REASON_CD= OPERATOR_NM=;

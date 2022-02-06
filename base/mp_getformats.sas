@@ -134,6 +134,10 @@ create table &outsummary as
     proc format library=&&fmtloc&i CNTLOUT=&tempds;
       select &&fmtname&i;
     run;
+    data &tempds;
+      length label $256;
+      set &tempds;
+    run;
     proc append base=&outdetail data=&tempds;
     run;
   %end;

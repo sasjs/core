@@ -5,6 +5,12 @@
     make use of permanent tables.  To avoid duplication in definitions, this
     macro provides a central location for managing the corresponding DDL.
 
+  Note - this macro is likely to be deprecated in future in favour of a
+  dedicated "datamodel" folder (prefix mddl)
+
+  Any corresponding data would go in a seperate repo, to avoid this one
+  ballooning in size!
+
   Example usage:
 
       %mp_coretable(LOCKTABLE,libds=work.locktable)

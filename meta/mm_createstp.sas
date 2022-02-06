@@ -108,7 +108,12 @@
 %&mD.put Executing mm_CreateSTP.sas;
 %&mD.put _local_;
 
-%mf_verifymacvars(stpname filename directory tree)
+%mp_abort(
+  iftrue=(%mf_verifymacvars(stpname filename directory tree)=0)
+  ,mac=&sysmacroname
+  ,msg=%str(Empty inputs: stpname filename directory tree)
+)
+
 %mp_dropmembers(%scan(&outds,2,.))
 
 /**

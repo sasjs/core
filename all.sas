@@ -12615,7 +12615,10 @@ run;
 %&mD.put Executing &sysmacroname..sas;
 %&mD.put _local_;
 
-%mf_verifymacvars(tree name)
+%mp_abort(iftrue= (%mf_verifymacvars(tree name)=0)
+  ,mac=&sysmacroname
+  ,msg=%str(Empty inputs: tree name)
+)
 
 /**
   * check tree exists
@@ -12839,7 +12842,10 @@ run;
 %&mD.put Executing &sysmacroname..sas;
 %&mD.put _local_;
 
-%mf_verifymacvars(tree name)
+%mp_abort(iftrue= (%mf_verifymacvars(tree name)=0)
+  ,mac=&sysmacroname
+  ,msg=%str(Empty inputs: tree name)
+)
 
 /**
   * check tree exists
@@ -13208,12 +13214,14 @@ run;
 filename &frefin temp;
 filename &frefout temp;
 
+%mp_abort(iftrue= (
+    &engine=BASE & %mf_verifymacvars(libname libref engine servercontext tree)=0
+  )
+  ,mac=&sysmacroname
+  ,msg=%str(Empty inputs: libname libref engine servercontext tree)
+)
+
 %if &engine=BASE %then %do;
-
-  %mf_verifymacvars(libname libref engine servercontext tree)
-
-
-
   /**
     * Check that the ServerContext exists
     */
@@ -13504,7 +13512,12 @@ filename &frefout temp;
 %&mD.put Executing mm_CreateSTP.sas;
 %&mD.put _local_;
 
-%mf_verifymacvars(stpname filename directory tree)
+%mp_abort(
+  iftrue=(%mf_verifymacvars(stpname filename directory tree)=0)
+  ,mac=&sysmacroname
+  ,msg=%str(Empty inputs: stpname filename directory tree)
+)
+
 %mp_dropmembers(%scan(&outds,2,.))
 
 /**

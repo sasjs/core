@@ -133,12 +133,14 @@ run;
 filename &frefin temp;
 filename &frefout temp;
 
+%mp_abort(iftrue= (
+    &engine=BASE & %mf_verifymacvars(libname libref engine servercontext tree)=0
+  )
+  ,mac=&sysmacroname
+  ,msg=%str(Empty inputs: libname libref engine servercontext tree)
+)
+
 %if &engine=BASE %then %do;
-
-  %mf_verifymacvars(libname libref engine servercontext tree)
-
-
-
   /**
     * Check that the ServerContext exists
     */

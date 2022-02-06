@@ -1,6 +1,6 @@
 /**
   @file
-  @brief Checks if a set of macro variables exist / contain values.
+  @brief Checks if a set of macro variables exist AND contain values.
   @details Writes ERROR to log if abortType is SOFT, else will call %mf_abort.
   Usage:
 
@@ -14,10 +14,11 @@
   <h4> SAS Macros </h4>
   @li mf_abort.sas
 
-  @param verifyvars space separated list of macro variable names
-  @param makeupcase= set to YES to convert all variable VALUES to
+  @param [in] verifyvars Space separated list of macro variable names
+  @param [in] makeupcase= (NO) Set to YES to convert all variable VALUES to
     uppercase.
-  @param mAbort= Abort Type.  Default is SOFT (writes err to log).
+  @param [in] mAbort= (SOFT) Abort Type.  When SOFT, simply writes an err
+    message to the log.
     Set to any other value to call mf_abort (which can be configured to abort in
     various fashions according to context).
 
@@ -58,8 +59,14 @@
 
   %goto exit_success;
   %exit_err:
-    %if &mAbort=SOFT %then %put %str(ERR)OR: &abortmsg;
-    %else %mf_abort(mac=mf_verifymacvars,type=&mabort,msg=&abortmsg);
+    %put %str(ERR)OR: &abortmsg;
+    %mf_abort(iftrue=(&mabort ne SOFT),
+      mac=mf_verifymacvars,
+      msg=%str(&abortmsg)
+    )
+    0
+    %return;
   %exit_success:
+  1
 
 %mend mf_verifymacvars;

@@ -31,19 +31,28 @@ Documentation: https://core.sasjs.io
 
 ## Components
 
-### BASE library (SAS9/Viya)
+### BASE library (All Platforms)
 
 - OS independent
-- Not metadata aware
+- Works on all SAS Platforms
 - No X command
 - Prefixes: _mf_, _mp_
 
-#### FCMP library (SAS9/Viya)
+### DDL library (All Platforms)
+
+- OS independent
+- Works on all SAS Platforms
+- No X command
+- Prefixes: _mddl_(lib)_ -> where lib can be "SAS" (in relation to a SAS component) or "DC" (in relation to a Data Controller component)
+
+This library will not be used for storing data entries (such as formats or datalines).  Where this becomes necessary in the future, a new repo will be created, in order to keep the NPM bundle size down (for the benefit of those looking to embed purely macros in their applications).
+
+#### FCMP library (All Platforms)
+
 - Function and macro names are identical, except for special cases
 - Prefixes: _mcf_
 
-The fcmp macros are used to generate fcmp functions, and can be used with or
-without the `proc fcmp` wrapper.
+The fcmp macros are used to generate fcmp functions, and can be used with or without the `proc fcmp` wrapper.
 
 ### META library (SAS9 only)
 
@@ -125,6 +134,7 @@ filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
 - one macro per file
 - prefixes:
   - _mcf_ for macro compiled functions (proc fcmp)
+  - _mddl_ for macros containing DDL (Data Definition Language)
   - _mf_ for macro functions (can be used in open code).
   - _ml_ for macros that are used to compile LUA modules
   - _mm_ for metadata macros (interface with the metadata server).
@@ -198,6 +208,7 @@ We are currently on major release v4.  Breaking changes should be marked with th
 * `insert_cmplib` option of mcf_xxx macros will be deprecated (the option is now checked automatically with value inserted only if needed)
 * mcf_xxx macros to have `wrap=` option defaulted to YES for convenience.  Set this option explicitly to avoid issues.
 * mp_getddl.sas to be renamed to mp_ds2ddl.sas (consistent with other ds2xxx macros).  A wrapper macro is already in place, and you are able to use this immediately.  The default for SHOWLOG will also be YES instead of NO.
+* mp_coretable.sas will be replaced by the standalone macros in the `ddl` folder (which are already available)
 
 ## Star Gazing
 

@@ -40,6 +40,7 @@ https://support.sas.com/documentation/cdl/en/proc/61895/HTML/default/viewer.htm#
   |`WHICHPATH `|`**OTHER** `|`**OTHER** `|`big fat problem if not path1 `|`1 `|`40 `|`28 `|`28 `|`1E-12 `|` `|`0 `|` `|`0 `|`N `|`N `|`N `|`O `|` `|` `|` `|` `|
 
   <h4> SAS Macros </h4>
+  @li mddl_sas_cntlout.sas
   @li mf_dedup.sas
   @li mf_getfmtlist.sas
   @li mf_getfmtname.sas
@@ -48,7 +49,6 @@ https://support.sas.com/documentation/cdl/en/proc/61895/HTML/default/viewer.htm#
 
 
   <h4> Related Macros </h4>
-  @li mddl_sas_cntlout.sas
   @li mp_applyformats.sas
   @li mp_getformats.test.sas
 

@@ -50,6 +50,7 @@
 
 
   <h4> SAS Macros </h4>
+  @li mddl_sas_cntlout.sas
   @li mf_getuniquename.sas
   @li mf_getvalue.sas
   @li mf_islibds.sas
@@ -111,36 +112,14 @@
 %if "%substr(&libds,%length(&libds)-2,3)"="-FC" %then %do;
   %let libds=%scan(&libds,1,-); /* chop off -FC extension */
   %let ds0=%mf_getuniquename(prefix=fmtds_);
+  %let libds=&ds0;
   /*
     There is no need to export the entire format catalog here - the validations
     are done against the data model, not the data values.  So we can simply
     hardcode the structure based on the cntlout dataset.
   */
-  proc sql;
-  create table &ds0(
-    FMTNAME char(32)
-    ,START char(16)
-    ,END char(16)
-    ,LABEL char(256)
-    ,MIN num length=3
-    ,MAX num length=3
-    ,DEFAULT num length=3
-    ,LENGTH num length=3
-    ,FUZZ num
-    ,PREFIX char(2)
-    ,MULT num
-    ,FILL char(1)
-    ,NOEDIT num length=3
-    ,TYPE char(1)
-    ,SEXCL char(1)
-    ,EEXCL char(1)
-    ,HLO char(13)
-    ,DECSEP char(1)
-    ,DIG3SEP char(1)
-    ,DATATYPE char(8)
-    ,LANGUAGE char(8)
-  );
-  %let libds=&ds0;
+  %mddl_sas_cntlout(libds=&ds0)
+
 %end;
 %mp_filtercheck(&queryds,targetds=&libds,abort=YES)
 

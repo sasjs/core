@@ -3544,18 +3544,20 @@ run;
       %mp_coretable(LOCKTABLE,libds=work.locktable)
 
   @param [in] table_ref The type of table to create.  Example values:
-    @li DIFFTABLE - Used to store changes to tables.  Used by mp_storediffs.sas
-      and mp_stackdiffs.sas
-    @li FILTER_DETAIL - For storing detailed filter values.  Used by
-      mp_filterstore.sas.
-    @li FILTER_SUMMARY - For storing summary filter values.  Used by
-      mp_filterstore.sas.
-    @li LOCKANYTABLE - For "locking" tables prior to multipass loads. Used by
-      mp_lockanytable.sas
-    @li MAXKEYTABLE - For storing the maximum retained key information.  Used
-      by mp_retainedkey.sas
+    @li DIFFTABLE
+    @li FILTER_DETAIL
+    @li FILTER_SUMMARY
+    @li LOCKANYTABLE
+    @li MAXKEYTABLE
   @param [in] libds= (0) The library.dataset reference used to create the table.
     If not provided, then the DDL is simply printed to the log.
+
+  <h4> SAS Macros </h4>
+  @li mddl_dc_difftable.sas
+  @li mddl_dc_filterdetail.sas
+  @li mddl_dc_filtersummary.sas
+  @li mddl_dc_locktable.sas
+  @li mddl_dc_maxkeytable.sas
 
   <h4> Related Macros </h4>
   @li mp_filterstore.sas
@@ -3575,75 +3577,20 @@ run;
 %let outds=%sysfunc(ifc(&libds=0,_data_,&libds));
 proc sql;
 %if &table_ref=DIFFTABLE %then %do;
-  create table &outds(
-      load_ref char(36) label='unique load reference',
-      processed_dttm num format=E8601DT26.6 label='Processed at timestamp',
-      libref char(8) label='Library Reference (8 chars)',
-      dsn char(32) label='Dataset Name (32 chars)',
-      key_hash char(32) label=
-        'MD5 Hash of primary key values (pipe seperated)',
-      move_type char(1) label='Either (A)ppended, (D)eleted or (M)odified',
-      is_pk num label='Is Primary Key Field? (1/0)',
-      is_diff num label=
-        'Did value change? (1/0/-1).  Always -1 for appends and deletes.',
-      tgtvar_type char(1) label='Either (C)haracter or (N)umeric',
-      tgtvar_nm char(32) label='Target variable name (32 chars)',
-      oldval_num num format=best32. label='Old (numeric) value',
-      newval_num num format=best32. label='New (numeric) value',
-      oldval_char char(32765) label='Old (character) value',
-      newval_char char(32765) label='New (character) value',
-    constraint pk_mpe_audit
-      primary key(load_ref,libref,dsn,key_hash,tgtvar_nm)
-  );
+  %mddl_dc_difftable(libds=&outds)
 %end;
 %else %if &table_ref=LOCKTABLE %then %do;
-  create table &outds(
-      lock_lib char(8),
-      lock_ds char(32),
-      lock_status_cd char(10) not null,
-      lock_user_nm char(100) not null ,
-      lock_ref char(200),
-      lock_pid char(10),
-      lock_start_dttm num format=E8601DT26.6,
-      lock_end_dttm num format=E8601DT26.6,
-    constraint pk_mp_lockanytable primary key(lock_lib,lock_ds));
+  %mddl_dc_locktable(libds=&outds)
 %end;
 %else %if &table_ref=FILTER_SUMMARY %then %do;
-  create table &outds(
-      filter_rk num not null,
-      filter_hash char(32) not null,
-      filter_table char(41) not null,
-      processed_dttm num not null format=E8601DT26.6,
-    constraint pk_mpe_filteranytable
-      primary key(filter_rk));
+  %mddl_dc_filtersummary(libds=&outds)
 %end;
 %else %if &table_ref=FILTER_DETAIL %then %do;
-  create table &outds(
-      filter_hash char(32) not null,
-      filter_line num not null,
-      group_logic char(3) not null,
-      subgroup_logic char(3) not null,
-      subgroup_id num not null,
-      variable_nm varchar(32) not null,
-      operator_nm varchar(12) not null,
-      raw_value varchar(4000) not null,
-      processed_dttm num not null format=E8601DT26.6,
-    constraint pk_mpe_filteranytable
-      primary key(filter_hash,filter_line));
+  %mddl_dc_filterdetail(libds=&outds)
 %end;
 %else %if &table_ref=MAXKEYTABLE %then %do;
-  create table &outds(
-      keytable varchar(41) label='Base table in libref.dataset format',
-      keycolumn char(32) format=$32.
-        label='The Retained key field containing the key values.',
-      max_key num label=
-        'Integer representing current max RK or SK value in the KEYTABLE',
-      processed_dttm num format=E8601DT26.6
-        label='Datetime this value was last updated',
-    constraint pk_mpe_maxkeyvalues
-        primary key(keytable));
+  %mddl_dc_maxkeytable(libds=&outds)
 %end;
-
 
 %if &libds=0 %then %do;
   describe table &syslast;
@@ -5779,6 +5726,7 @@ filename &outref temp;
 
 
   <h4> SAS Macros </h4>
+  @li mddl_sas_cntlout.sas
   @li mf_getuniquename.sas
   @li mf_getvalue.sas
   @li mf_islibds.sas
@@ -5840,36 +5788,14 @@ filename &outref temp;
 %if "%substr(&libds,%length(&libds)-2,3)"="-FC" %then %do;
   %let libds=%scan(&libds,1,-); /* chop off -FC extension */
   %let ds0=%mf_getuniquename(prefix=fmtds_);
+  %let libds=&ds0;
   /*
     There is no need to export the entire format catalog here - the validations
     are done against the data model, not the data values.  So we can simply
     hardcode the structure based on the cntlout dataset.
   */
-  proc sql;
-  create table &ds0(
-    FMTNAME char(32)
-    ,START char(16)
-    ,END char(16)
-    ,LABEL char(256)
-    ,MIN num length=3
-    ,MAX num length=3
-    ,DEFAULT num length=3
-    ,LENGTH num length=3
-    ,FUZZ num
-    ,PREFIX char(2)
-    ,MULT num
-    ,FILL char(1)
-    ,NOEDIT num length=3
-    ,TYPE char(1)
-    ,SEXCL char(1)
-    ,EEXCL char(1)
-    ,HLO char(13)
-    ,DECSEP char(1)
-    ,DIG3SEP char(1)
-    ,DATATYPE char(8)
-    ,LANGUAGE char(8)
-  );
-  %let libds=&ds0;
+  %mddl_sas_cntlout(libds=&ds0)
+
 %end;
 %mp_filtercheck(&queryds,targetds=&libds,abort=YES)
 
@@ -7050,6 +6976,7 @@ https://support.sas.com/documentation/cdl/en/proc/61895/HTML/default/viewer.htm#
 
 
   <h4> Related Macros </h4>
+  @li mddl_sas_cntlout.sas
   @li mp_applyformats.sas
   @li mp_getformats.test.sas
 
@@ -7096,30 +7023,7 @@ create table &outsummary as
 
 %if "&outdetail" ne "0" %then %do;
   /* ensure base table always exists */
-  proc sql;
-  create table &outdetail(
-      FMTNAME char(32)     label='Format name'
-      ,START char(16)     label='Starting value for format'
-      ,END char(16)     label='Ending value for format'
-      ,LABEL char(256)     label='Format value label'
-      ,MIN num length=3     label='Minimum length'
-      ,MAX num length=3     label='Maximum length'
-      ,DEFAULT num length=3     label='Default length'
-      ,LENGTH num length=3     label='Format length'
-      ,FUZZ num     label='Fuzz value'
-      ,PREFIX char(2)     label='Prefix characters'
-      ,MULT num     label='Multiplier'
-      ,FILL char(1)     label='Fill character'
-      ,NOEDIT num length=3     label='Is picture string noedit?'
-      ,TYPE char(1)     label='Type of format'
-      ,SEXCL char(1)     label='Start exclusion'
-      ,EEXCL char(1)     label='End exclusion'
-      ,HLO char(13)     label='Additional information'
-      ,DECSEP char(1)     label='Decimal separator'
-      ,DIG3SEP char(1)     label='Three-digit separator'
-      ,DATATYPE char(8)     label='Date/time/datetime?'
-      ,LANGUAGE char(8)     label='Language for date strings'
-  );
+  %mddl_sas_cntlout(libds=&outdetail)
   /* grab the location of each format */
   %let fmtcnt=0;
   data _null_;
@@ -12002,6 +11906,170 @@ ods package publish archive properties
 ods package close;
 
 %mend mp_zip;/**
+  @file
+  @brief Difftable DDL
+  @details Used to store changes to tables.  Used by mp_storediffs.sas
+      and mp_stackdiffs.sas
+
+**/
+
+
+%macro mddl_dc_difftable(libds=WORK.DIFFTABLE);
+
+  proc sql;
+  create table &libds(
+      load_ref char(36) label='unique load reference',
+      processed_dttm num format=E8601DT26.6 label='Processed at timestamp',
+      libref char(8) label='Library Reference (8 chars)',
+      dsn char(32) label='Dataset Name (32 chars)',
+      key_hash char(32) label=
+        'MD5 Hash of primary key values (pipe seperated)',
+      move_type char(1) label='Either (A)ppended, (D)eleted or (M)odified',
+      is_pk num label='Is Primary Key Field? (1/0)',
+      is_diff num label=
+        'Did value change? (1/0/-1).  Always -1 for appends and deletes.',
+      tgtvar_type char(1) label='Either (C)haracter or (N)umeric',
+      tgtvar_nm char(32) label='Target variable name (32 chars)',
+      oldval_num num format=best32. label='Old (numeric) value',
+      newval_num num format=best32. label='New (numeric) value',
+      oldval_char char(32765) label='Old (character) value',
+      newval_char char(32765) label='New (character) value',
+    constraint pk_mpe_audit
+      primary key(load_ref,libref,dsn,key_hash,tgtvar_nm)
+  );
+
+%mend mddl_dc_difftable;/**
+  @file
+  @brief Filtertable DDL
+  @details For storing detailed filter values.  Used by
+      mp_filterstore.sas.
+
+**/
+
+
+%macro mddl_dc_filterdetail(libds=WORK.FILTER_DETAIL);
+
+  proc sql;
+  create table &libds(
+      filter_hash char(32) not null,
+      filter_line num not null,
+      group_logic char(3) not null,
+      subgroup_logic char(3) not null,
+      subgroup_id num not null,
+      variable_nm varchar(32) not null,
+      operator_nm varchar(12) not null,
+      raw_value varchar(4000) not null,
+      processed_dttm num not null format=E8601DT26.6,
+    constraint pk_mpe_filteranytable
+      primary key(filter_hash,filter_line)
+  );
+
+%mend mddl_dc_filterdetail;/**
+  @file
+  @brief Filtersummary DDL
+  @details For storing summary filter values.  Used by
+      mp_filterstore.sas.
+
+**/
+
+
+%macro mddl_dc_filtersummary(libds=WORK.FILTER_SUMMARY);
+
+  proc sql;
+  create table &libds(
+      filter_rk num not null,
+      filter_hash char(32) not null,
+      filter_table char(41) not null,
+      processed_dttm num not null format=E8601DT26.6,
+    constraint pk_mpe_filteranytable
+      primary key(filter_rk)
+  );
+
+%mend mddl_dc_filtersummary;/**
+  @file
+  @brief Locktable DDL
+  @details For "locking" tables prior to multipass loads. Used by
+      mp_lockanytable.sas
+
+**/
+
+
+%macro mddl_dc_locktable(libds=WORK.LOCKTABLE);
+
+  proc sql;
+  create table &libds(
+      lock_lib char(8),
+      lock_ds char(32),
+      lock_status_cd char(10) not null,
+      lock_user_nm char(100) not null ,
+      lock_ref char(200),
+      lock_pid char(10),
+      lock_start_dttm num format=E8601DT26.6,
+      lock_end_dttm num format=E8601DT26.6,
+    constraint pk_mp_lockanytable primary key(lock_lib,lock_ds)
+  );
+
+%mend mddl_dc_locktable;/**
+  @file
+  @brief Maxkeytable DDL
+  @details For storing the maximum retained key information.  Used
+      by mp_retainedkey.sas
+
+**/
+
+
+%macro mddl_dc_maxkeytable(libds=WORK.MAXKEYTABLE);
+
+  proc sql;
+  create table &libds(
+      keytable varchar(41) label='Base table in libref.dataset format',
+      keycolumn char(32) format=$32.
+        label='The Retained key field containing the key values.',
+      max_key num label=
+        'Integer representing current max RK or SK value in the KEYTABLE',
+      processed_dttm num format=E8601DT26.6
+        label='Datetime this value was last updated',
+    constraint pk_mpe_maxkeyvalues
+        primary key(keytable));
+
+%mend mddl_dc_maxkeytable;/**
+  @file
+  @brief The CNTLOUT table generated by proc format
+  @details This table will actually change format depending on the data values,
+  therefore the max possible lengths are described here to enable consistency
+  when dealing with format data.
+
+**/
+
+
+%macro mddl_sas_cntlout(libds=WORK.CNTLOUT);
+
+proc sql;
+create table &libds(
+    FMTNAME char(32)     label='Format name'
+    ,START char(16)     label='Starting value for format'
+    ,END char(16)     label='Ending value for format'
+    ,LABEL char(256)     label='Format value label'
+    ,MIN num length=3     label='Minimum length'
+    ,MAX num length=3     label='Maximum length'
+    ,DEFAULT num length=3     label='Default length'
+    ,LENGTH num length=3     label='Format length'
+    ,FUZZ num     label='Fuzz value'
+    ,PREFIX char(2)     label='Prefix characters'
+    ,MULT num     label='Multiplier'
+    ,FILL char(1)     label='Fill character'
+    ,NOEDIT num length=3     label='Is picture string noedit?'
+    ,TYPE char(1)     label='Type of format'
+    ,SEXCL char(1)     label='Start exclusion'
+    ,EEXCL char(1)     label='End exclusion'
+    ,HLO char(13)     label='Additional information'
+    ,DECSEP char(1)     label='Decimal separator'
+    ,DIG3SEP char(1)     label='Three-digit separator'
+    ,DATATYPE char(8)     label='Date/time/datetime?'
+    ,LANGUAGE char(8)     label='Language for date strings'
+);
+
+%mend mddl_sas_cntlout;/**
   @file mm_adduser2group.sas
   @brief Adds a user to a group
   @details Adds a user to a metadata group.  The macro first checks whether the

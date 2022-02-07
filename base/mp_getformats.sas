@@ -48,6 +48,7 @@ https://support.sas.com/documentation/cdl/en/proc/61895/HTML/default/viewer.htm#
 
 
   <h4> Related Macros </h4>
+  @li mddl_sas_cntlout.sas
   @li mp_applyformats.sas
   @li mp_getformats.test.sas
 
@@ -94,30 +95,7 @@ create table &outsummary as
 
 %if "&outdetail" ne "0" %then %do;
   /* ensure base table always exists */
-  proc sql;
-  create table &outdetail(
-      FMTNAME char(32)     label='Format name'
-      ,START char(16)     label='Starting value for format'
-      ,END char(16)     label='Ending value for format'
-      ,LABEL char(256)     label='Format value label'
-      ,MIN num length=3     label='Minimum length'
-      ,MAX num length=3     label='Maximum length'
-      ,DEFAULT num length=3     label='Default length'
-      ,LENGTH num length=3     label='Format length'
-      ,FUZZ num     label='Fuzz value'
-      ,PREFIX char(2)     label='Prefix characters'
-      ,MULT num     label='Multiplier'
-      ,FILL char(1)     label='Fill character'
-      ,NOEDIT num length=3     label='Is picture string noedit?'
-      ,TYPE char(1)     label='Type of format'
-      ,SEXCL char(1)     label='Start exclusion'
-      ,EEXCL char(1)     label='End exclusion'
-      ,HLO char(13)     label='Additional information'
-      ,DECSEP char(1)     label='Decimal separator'
-      ,DIG3SEP char(1)     label='Three-digit separator'
-      ,DATATYPE char(8)     label='Date/time/datetime?'
-      ,LANGUAGE char(8)     label='Language for date strings'
-  );
+  %mddl_sas_cntlout(libds=&outdetail)
   /* grab the location of each format */
   %let fmtcnt=0;
   data _null_;

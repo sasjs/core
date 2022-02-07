@@ -2,13 +2,15 @@
   "$schema": "https://raw.githubusercontent.com/sasjs/utils/main/src/types/sasjsconfig-schema.json",
   "macroFolders": [
     "base",
+    "ddl",
     "fcmp",
     "meta",
     "metax",
     "server",
     "viya",
     "lua",
-    "tests/crossplatform"
+    "tests/crossplatform",
+    "tests/ddl"
   ],
   "docConfig": {
     "displayMacroCore": false,

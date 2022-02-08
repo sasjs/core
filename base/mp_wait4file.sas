@@ -4,9 +4,7 @@
   @details Loops with a `sleep()` command until a file arrives or the max wait
   period expires.
 
-  @example
-
-  Wait 3 minutes OR for /tmp/flag.txt to appear
+  Example: Wait 3 minutes OR for /tmp/flag.txt to appear
 
     %mp_wait4file(/tmp/flag.txt , maxwait=60*3)
 

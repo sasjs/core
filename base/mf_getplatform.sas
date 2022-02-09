@@ -22,6 +22,12 @@
 )/*/STORE SOURCE*/;
 %local a b c;
 %if &switch.NONE=NONE %then %do;
+  %if %symexist(sasjsprocessmode) %then %do;
+    %if &sasjsprocessmode=Stored Program %then %do;
+      SASJS
+      %return;
+    %end;
+  %end;
   %if %symexist(sysprocessmode) %then %do;
     %if "&sysprocessmode"="SAS Object Server"
     or "&sysprocessmode"= "SAS Compute Server" %then %do;

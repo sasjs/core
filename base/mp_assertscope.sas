@@ -98,7 +98,7 @@
   create table _data_ as
     select name,offset,value
     from dictionary.macros
-    where scope="&scope" and name not in (%mf_getquotedstr(&ilist))
+    where scope="&scope" and upcase(name) not in (%mf_getquotedstr(&ilist))
     order by name,offset;
 
   %let ds=&syslast;

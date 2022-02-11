@@ -752,6 +752,12 @@ or %index(&pgm,/tests/testteardown)
 )/*/STORE SOURCE*/;
 %local a b c;
 %if &switch.NONE=NONE %then %do;
+  %if %symexist(sasjsprocessmode) %then %do;
+    %if &sasjsprocessmode=Stored Program %then %do;
+      SASJS
+      %return;
+    %end;
+  %end;
   %if %symexist(sysprocessmode) %then %do;
     %if "&sysprocessmode"="SAS Object Server"
     or "&sysprocessmode"= "SAS Compute Server" %then %do;
@@ -3134,7 +3140,7 @@ run;
   create table _data_ as
     select name,offset,value
     from dictionary.macros
-    where scope="&scope" and name not in (%mf_getquotedstr(&ilist))
+    where scope="&scope" and upcase(name) not in (%mf_getquotedstr(&ilist))
     order by name,offset;
 
   %let ds=&syslast;
@@ -3446,6 +3452,90 @@ run;
     end;
   run;
 %mend mp_cleancsv;
+/** @endcond *//**
+  @file mp_cntlout.sas
+  @brief Creates a cntlout dataset in a consistent format
+  @details The dataset produced by proc format in the cntlout option will vary
+  according to its contents.
+
+  When dealing with formats from an ETL perspective (eg in [Data Controller for
+  SAS](https://datacontroller.io)), it is important that the output dataset
+  has a consistent model (and compariable values).
+
+  This macro makes use of mddl_sas_cntlout.sas to provide the consistent model,
+  and will left-align the start and end values when dealing with numeric ranges
+  to enable consistency when checking for differences.
+
+  usage:
+
+      %mp_cntlout(libcat=yourlib.cat,cntlout=work.formatexport)
+
+  @param [in] libcat The library.catalog reference
+  @param [in] fmtlist= (0) provide a space separated list of specific formats to
+    extract
+  @param [in] iftrue= (1=1) A condition under which the macro should be executed
+  @param [out] cntlout= (work.fmtextract) Libds reference for the output dataset
+
+  <h4> SAS Macros </h4>
+  @li mddl_sas_cntlout.sas
+  @li mf_getuniquename.sas
+
+  <h4> Related Macros </h4>
+  @li mf_getvarformat.sas
+  @li mp_getformats.sas
+  @li mp_loadformat.sas
+  @li mp_ds2fmtds.sas
+
+  @version 9.2
+  @author Allan Bowe
+  @cond
+**/
+
+%macro mp_cntlout(
+  iftrue=(1=1)
+  ,libcat=
+  ,cntlout=work.fmtextract
+  ,fmtlist=0
+)/*/STORE SOURCE*/;
+%local ddlds cntlds i;
+
+%if not(%eval(%unquote(&iftrue))) %then %return;
+
+%let ddlds=%mf_getuniquename();
+%let cntlds=%mf_getuniquename();
+
+%mddl_sas_cntlout(libds=&ddlds)
+
+%if %index(&libcat,-)>0 and %scan(&libcat,2,-)=FC %then %do;
+  %let libcat=%scan(&libcat,1,-);
+%end;
+
+proc format lib=&libcat cntlout=&cntlds;
+%if "&fmtlist" ne "0" %then %do;
+  select
+  %do i=1 %to %sysfunc(countw(&fmtlist));
+    %scan(&fmtlist,&i,%str( ))
+  %end;
+  ;
+%end;
+run;
+
+data &cntlout;
+  if 0 then set &ddlds;
+  set &cntlds;
+  if type="N" then do;
+    start=cats(start);
+    end=cats(end);
+  end;
+run;
+proc sort;
+  by fmtname start;
+run;
+
+proc sql;
+drop table &ddlds,&cntlds;
+
+%mend mp_cntlout;
 /** @endcond *//**
   @file
   @brief A macro to recursively copy a directory
@@ -8484,6 +8574,303 @@ select distinct lowcase(memname)
 
 %mend mp_lib2inserts;/**
   @file
+  @brief Loads a format catalog from a staging dataset
+  @details When loading staged data, it is common to receive only the records
+  that have actually changed.  However, when loading a format catalog, if
+  records are missing they are presumed to be no longer required.
+
+  This macro will augment a staging dataset with other records from the same
+  format, to prevent loss of data - UNLESS the input dataset contains a marker
+  column, specifying that a particular row needs to be deleted (`delete_col=`).
+
+  This macro can also be used to identify which records would be (or were)
+  considered new, modified or deleted (`loadtarget=`) by creating the following
+  tables:
+
+  @li work.outds_add
+  @li work.outds_del
+  @li work.outds_mod
+
+  For example usage, see mp_loadformat.test.sas
+
+  @param [in] libcat The format catalog to be loaded
+  @param [in] libds The staging table to load
+  @param [in] loadtarget= (NO) Set to YES to actually load the target catalog
+  @param [in] delete_col= (_____DELETE__THIS__RECORD_____) The column used to
+    mark a record for deletion.  Values should be "Yes" or "No".
+  @param [out] auditlibds= (0) For change tracking, set to the libds of an audit
+    table as defined in mddl_dc_difftable.sas
+  @param [in] locklibds= (0) For multi-user (parallel) situations, set to the
+    libds of the DC lock table as defined in the mddl_dc_locktable.sas macro.
+  @param [out] outds_add= (0) Set a libds here to see the new records added
+  @param [out] outds_del= (0) Set a libds here to see the records deleted
+  @param [out] outds_mod= (0) Set a libds here to see the modified records
+  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages and preserve outputs
+
+  <h4> SAS Macros </h4>
+  @li mddl_sas_cntlout.sas
+  @li mf_getuniquename.sas
+  @li mf_nobs.sas
+  @li mp_abort.sas
+  @li mp_cntlout.sas
+  @li mp_lockanytable.sas
+
+  <h4> Related Macros </h4>
+  @li mddl_dc_difftable.sas
+  @li mddl_dc_locktable.sas
+  @li mp_loadformat.test.sas
+  @li mp_lockanytable.sas
+  @li mp_storediffs.sas
+  @li mp_stackdiffs.sas
+
+
+  @version 9.2
+  @author Allan Bowe
+
+**/
+
+%macro mp_loadformat(libcat,libds
+  ,loadtarget=NO
+  ,auditlibds=0
+  ,locklibds=0
+  ,delete_col=_____DELETE__THIS__RECORD_____
+  ,outds_add=0
+  ,outds_del=0
+  ,outds_mod=0
+  ,mdebug=0
+);
+/* set up local macro variables and temporary tables (with a prefix) */
+%local err msg prefix dslist i var fmtlist ibufsize;
+%let dslist=base_fmts template inlibds ds1 stagedata storediffs;
+%if &outds_add=0 %then %let dslist=&dslist outds_add;
+%if &outds_del=0 %then %let dslist=&dslist outds_del;
+%if &outds_mod=0 %then %let dslist=&dslist outds_mod;
+%let prefix=%substr(%mf_getuniquename(),1,21);
+%do i=1 %to %sysfunc(countw(&dslist));
+  %let var=%scan(&dslist,&i);
+  %local &var;
+  %let &var=%upcase(&prefix._&var);
+%end;
+
+/*
+format values can be up to 32767 wide.  SQL joins on such a wide column can
+cause buffer issues.  Update ibufsize and reset at the end.
+*/
+%let ibufsize=%sysfunc(getoption(ibufsize));
+options ibufsize=32767 ;
+
+/* in DC, format catalogs maybe specified in the libds with a -FC extension */
+%let libcat=%scan(&libcat,1,-);
+
+/* perform input validations */
+%let err=0;
+%let msg=0;
+data _null_;
+  if _n_=1 then putlog "&sysmacroname entry vars:";
+  set sashelp.vmacro;
+  where scope="&sysmacroname";
+  value=upcase(value);
+  if &mdebug=0 then put name '=' value;
+  if name=:'LOAD' and value not in ('YES','NO') then do;
+    call symputx('msg',"invalid value for "!!name!!":"!!value);
+    call symputx('err',1);
+    stop;
+  end;
+  else if name='LIBCAT' then do;
+    if exist(value,'CATALOG') le 0 then do;
+      call symputx('msg',"Unable to open catalog: "!!value);
+      call symputx('err',1);
+      stop;
+    end;
+  end;
+  else if name='LIBDS' then do;
+    if exist(value) le 0 then do;
+      call symputx('msg',"Unable to open staging table: "!!value);
+      call symputx('err',1);
+      stop;
+    end;
+  end;
+  else if (name=:'OUTDS' or name in ('DELETE_COL','LOCKLIBDS','AUDITLIBDS'))
+  and missing(value) then do;
+    call symputx('msg',"missing value in var: "!!name);
+    call symputx('err',1);
+    stop;
+  end;
+run;
+
+%mp_abort(
+  iftrue=(&err ne 0)
+  ,mac=&sysmacroname
+  ,msg=%str(&msg)
+)
+
+/**
+  * First, extract only relevant formats from the catalog
+  */
+proc sql noprint;
+select distinct fmtname into: fmtlist separated by ' ' from &libds;
+
+%mp_cntlout(libcat=&libcat,fmtlist=&fmtlist,cntlout=&base_fmts)
+
+
+/**
+  * Ensure input table and base_formats have consistent lengths and types
+  */
+%mddl_sas_cntlout(libds=&template)
+data &inlibds;
+  if 0 then set &template;
+  set &libds;
+  if missing(type) then do;
+    if substr(fmtname,1,1)='$' then type='C';
+    else type='N';
+  end;
+  if type='N' then do;
+    start=cats(start);
+    end=cats(end);
+  end;
+run;
+
+
+/**
+  * Identify new records
+  */
+proc sql;
+create table &outds_add(drop=&delete_col) as
+  select a.*
+  from &inlibds a
+  left join &base_fmts b
+  on a.fmtname=b.fmtname
+    and a.start=b.start
+  where b.fmtname is null
+    and upcase(a.&delete_col) ne "YES"
+  order by fmtname, start;;
+
+/**
+  * Identify deleted records
+  */
+create table &outds_del(drop=&delete_col) as
+  select a.*
+  from &inlibds a
+  inner join &base_fmts b
+  on a.fmtname=b.fmtname
+    and a.start=b.start
+  where upcase(a.&delete_col)="YES"
+  order by fmtname, start;
+
+/**
+  * Identify modified records
+  */
+create table &outds_mod (drop=&delete_col) as
+  select a.*
+  from &inlibds a
+  inner join &base_fmts b
+  on a.fmtname=b.fmtname
+    and a.start=b.start
+  where upcase(a.&delete_col) ne "YES"
+  order by fmtname, start;
+
+options ibufsize=&ibufsize;
+
+%mp_abort(
+  iftrue=(&syscc ne 0)
+  ,mac=&sysmacroname
+  ,msg=%str(SYSCC=&syscc prior to load prep)
+)
+
+%if &loadtarget=YES %then %do;
+  data &ds1;
+    merge &base_fmts(in=base)
+      &outds_mod(in=mod)
+      &outds_add(in=add)
+      &outds_del(in=del);
+    if not del and not mod;
+    by fmtname start;
+  run;
+  data &stagedata;
+    set &ds1 &outds_mod;
+  run;
+  proc sort;
+    by fmtname start;
+  run;
+%end;
+/* mp abort needs to run outside of conditional blocks */
+%mp_abort(
+  iftrue=(&syscc ne 0)
+  ,mac=&sysmacroname
+  ,msg=%str(SYSCC=&syscc prior to actual load)
+)
+%if &loadtarget=YES %then %do;
+  %if %mf_nobs(&stagedata)=0 %then %do;
+    %put There are no changes to load in &libcat!;
+    %return;
+  %end;
+  %if &locklibds ne 0 %then %do;
+    /* prevent parallel updates */
+    %mp_lockanytable(LOCK
+      ,lib=%scan(&libcat,1,.)
+      ,ds=%scan(&libcat,2,.)-FC
+      ,ref=MP_LOADFORMAT commencing format load
+      ,ctl_ds=&locklibds
+    )
+  %end;
+  /* do the actual load */
+  proc format lib=&libcat cntlin=&stagedata;
+  run;
+  %if &locklibds ne 0 %then %do;
+    /* unlock the table */
+    %mp_lockanytable(UNLOCK
+      ,lib=%scan(&libcat,1,.)
+      ,ds=%scan(&libcat,2,.)-FC
+      ,ref=MP_LOADFORMAT completed format load
+      ,ctl_ds=&locklibds
+    )
+  %end;
+  /* track the changes */
+  %if &auditlibds ne 0 %then %do;
+    %if &locklibds ne 0 %then %do;
+      %mp_lockanytable(LOCK
+        ,lib=%scan(&auditlibds,1,.)
+        ,ds=%scan(&auditlibds,2,.)
+        ,ref=MP_LOADFORMAT commencing audit table load
+        ,ctl_ds=&locklibds
+      )
+    %end;
+
+    %mp_storediffs(&libcat-FC
+      ,&inlibds
+      ,FMTNAME START
+      ,delds=&outds_del
+      ,modds=&outds_mod
+      ,appds=&outds_add
+      ,outds=&storediffs
+      ,mdebug=&mdebug
+    )
+
+    %if &locklibds ne 0 %then %do;
+      %mp_lockanytable(UNLOCK
+        ,lib=%scan(&auditlibds,1,.)
+        ,ds=%scan(&auditlibds,2,.)
+        ,ref=MP_LOADFORMAT commencing audit table load
+        ,ctl_ds=&locklibds
+      )
+    %end;
+  %end;
+%end;
+%mp_abort(
+  iftrue=(&syscc ne 0)
+  ,mac=&sysmacroname
+  ,msg=%str(SYSCC=&syscc after load)
+)
+
+%if &mdebug=0 %then %do;
+  proc datasets lib=work;
+    delete &prefix:;
+  run;
+  %put &sysmacroname exit vars:;
+  %put _local_;
+%end;
+%mend mp_loadformat;/**
+  @file
   @brief Mechanism for locking tables to prevent parallel modifications
   @details Uses a control table to enable ANY table to be locked for updates.
   Only useful if every update uses the macro!   Used heavily within
@@ -8532,7 +8919,7 @@ data _null_;
   put name '=' value;
 run;
 
-%mp_abort(iftrue= (&ds=0 and &action ne MAKETABLE)
+%mp_abort(iftrue= ("&ds"="0" and &action ne MAKETABLE)
   ,mac=&sysmacroname
   ,msg=%str(dataset was not provided)
 )
@@ -8762,7 +9149,7 @@ run;
   ,mac=checklock.sas
   ,msg=Aborting with syscc=&syscc on entry.
 )
-%mp_abort(iftrue= (&libds=0)
+%mp_abort(iftrue= ("&libds"="0")
   ,mac=&sysmacroname
   ,msg=%str(libds not provided)
 )
@@ -8770,6 +9157,12 @@ run;
 %local msg lib ds;
 %let lib=%upcase(%scan(&libds,1,.));
 %let ds=%upcase(%scan(&libds,2,.));
+
+/* in DC, format catalogs are passed with a -FC suffix. No saslock here! */
+%if %scan(&libds,2,-)=FC %then %do;
+  %put &sysmacroname: Format Catalog detected, no lockfile applied to &libds;
+  %return;
+%end;
 
 /* do not proceed if no observations can be processed */
 %let msg=options obs = 0. syserrortext=%superq(syserrortext);
@@ -8926,6 +9319,64 @@ proc sql;
 drop table &ds1, &ds2;
 
 %mend mp_makedata;/**
+  @file
+  @brief Generates an md5 expression for hashing a set of variables
+  @details This is the same algorithm used to hash records in
+  [Data Controller for SAS](https://datacontroller.io) (free for up
+  to 5 users).
+
+  It is not designed to be efficient - it is designed to be effective,
+  given the range of edge cases (large floating points, special missing
+  numerics, thousands of columns, very wide columns).
+
+  It can be used only in data step, eg as follows:
+
+      data _null_;
+        set sashelp.class;
+        hashvar=%mp_md5(cvars=name sex, nvars=age height weight);
+        put hashvar=;
+      run;
+
+  Unfortunately it will not run in SQL - it fails with the following message:
+
+  > The width value for HEX is out of bounds. It should be between 1 and 16
+
+  The macro will also cause errors if the data contains (non-special) missings
+  and the (undocumented) `options dsoptions=nonote2err;` is in effect.
+
+  This can be avoided in two ways:
+
+  @li Global option:  `options dsoptions=nonote2err;`
+  @li Data step option: `data YOURLIB.YOURDATASET /nonote2err;`
+
+  @param cvars= Space seperated list of character variables
+  @param nvars= Space seperated list of numeric variables
+
+  <h4> Related Programs </h4>
+  @li mp_init.sas
+
+  @version 9.2
+  @author Allan Bowe
+**/
+
+%macro mp_md5(cvars=,nvars=);
+%local i var sep;
+put(md5(
+  %do i=1 %to %sysfunc(countw(&cvars));
+    %let var=%scan(&cvars,&i,%str( ));
+    &sep put(md5(trim(&var)),$hex32.)
+    %let sep=!!;
+  %end;
+  %do i=1 %to %sysfunc(countw(&nvars));
+    %let var=%scan(&nvars,&i,%str( ));
+    /* multiply by 1 to strip precision errors (eg 0 != 0) */
+    /* but ONLY if not missing, else will lose any special missing values */
+    &sep put(md5(trim(put(ifn(missing(&var),&var,&var*1),binary64.))),$hex32.)
+    %let sep=!!;
+  %end;
+),hex32.)
+%mend mp_md5;
+/**
   @file
   @brief Logs the time the macro was executed in a control dataset.
   @details If the dataset does not exist, it is created.  Usage:
@@ -10588,7 +11039,7 @@ select distinct tgtvar_nm into: missvars separated by ' '
 %else %let dbg=*;
 
 /* set up unique and temporary vars */
-%local ds1 ds2 ds3 ds4 hashkey inds_auto inds_keep dslist;
+%local ds1 ds2 ds3 ds4 hashkey inds_auto inds_keep dslist vlist;
 %let ds1=%upcase(work.%mf_getuniquename(prefix=mpsd_ds1));
 %let ds2=%upcase(work.%mf_getuniquename(prefix=mpsd_ds2));
 %let ds3=%upcase(work.%mf_getuniquename(prefix=mpsd_ds3));
@@ -10642,12 +11093,21 @@ proc transpose data=&ds1
   by &inds_keep &hashkey;
   var _character_;
 run;
+
+%if %index(&libds,-)>0 and %scan(&libds,2,-)=FC %then %do;
+  /* this is a format catalog - cannot query cols directly */
+  %let vlist="FMTNAME","START","END","LABEL","MIN","MAX","DEFAULT","LENGTH"
+    ,"FUZZ","PREFIX","MULT","FILL","NOEDIT","TYPE","SEXCL","EEXCL","HLO"
+    ,"DECSEP","DIG3SEP","DATATYPE","LANGUAGE";
+%end;
+%else %let vlist=%mf_getvarlist(&libds,dlm=%str(,),quote=DOUBLE);
+
 data &ds4;
   length &inds_keep $41 tgtvar_nm $32;
   set &ds2 &ds3 indsname=&inds_auto;
 
   tgtvar_nm=upcase(tgtvar_nm);
-  if tgtvar_nm in (%upcase(%mf_getvarlist(&libds,dlm=%str(,),quote=DOUBLE)));
+  if tgtvar_nm in (%upcase(&vlist));
 
   if &inds_auto="&ds2" then tgtvar_type='N';
   else if &inds_auto="&ds3" then tgtvar_type='C';
@@ -10844,7 +11304,7 @@ data _null_;
 run;
 
 %if &contentype=CSV %then %do;
-  %if &platform=SASMETA and &streamweb=1 %then %do;
+  %if (&platform=SASMETA and &streamweb=1) or &platform=SASJS %then %do;
     data _null_;
       rc=stpsrv_header('Content-type','application/csv');
       rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
@@ -10858,7 +11318,7 @@ run;
 %end;
 %else %if &contentype=EXCEL %then %do;
   /* suitable for XLS format */
-  %if &platform=SASMETA and &streamweb=1 %then %do;
+  %if (&platform=SASMETA and &streamweb=1) or &platform=SASJS %then %do;
     data _null_;
       rc=stpsrv_header('Content-type','application/vnd.ms-excel');
       rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
@@ -10871,7 +11331,7 @@ run;
   %end;
 %end;
 %else %if &contentype=GIF or &contentype=JPEG or &contentype=PNG %then %do;
-  %if &platform=SASMETA and &streamweb=1 %then %do;
+  %if (&platform=SASMETA and &streamweb=1) or &platform=SASJS %then %do;
     data _null_;
       rc=stpsrv_header('Content-type',"image/%lowcase(&contenttype)");
     run;
@@ -10888,7 +11348,7 @@ run;
   %end;
 %end;
 %else %if &contentype=TEXT %then %do;
-  %if &platform=SASMETA and &streamweb=1 %then %do;
+  %if (&platform=SASMETA and &streamweb=1) or &platform=SASJS %then %do;
     data _null_;
       rc=stpsrv_header('Content-type','application/text');
       rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
@@ -10901,7 +11361,7 @@ run;
   %end;
 %end;
 %else %if &contentype=WOFF or &contentype=WOFF2 or &contentype=TTF %then %do;
-  %if &platform=SASMETA and &streamweb=1 %then %do;
+  %if (&platform=SASMETA and &streamweb=1) or &platform=SASJS %then %do;
     data _null_;
       rc=stpsrv_header('Content-type',"font/%lowcase(&contenttype)");
     run;
@@ -10912,7 +11372,7 @@ run;
   %end;
 %end;
 %else %if &contentype=XLSX %then %do;
-  %if &platform=SASMETA and &streamweb=1 %then %do;
+  %if (&platform=SASMETA and &streamweb=1) or &platform=SASJS %then %do;
     data _null_;
       rc=stpsrv_header('Content-type',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -10927,7 +11387,7 @@ run;
   %end;
 %end;
 %else %if &contentype=ZIP %then %do;
-  %if &platform=SASMETA and &streamweb=1 %then %do;
+  %if (&platform=SASMETA and &streamweb=1) or &platform=SASJS %then %do;
     data _null_;
       rc=stpsrv_header('Content-type','application/zip');
       rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
@@ -11733,9 +12193,7 @@ alter table &libds modify &var char(&len);
   @details Loops with a `sleep()` command until a file arrives or the max wait
   period expires.
 
-  @example
-
-  Wait 3 minutes OR for /tmp/flag.txt to appear
+  Example: Wait 3 minutes OR for /tmp/flag.txt to appear
 
     %mp_wait4file(/tmp/flag.txt , maxwait=60*3)
 
@@ -12046,25 +12504,30 @@ ods package close;
 
 proc sql;
 create table &libds(
-    FMTNAME char(32)     label='Format name'
-    ,START char(16)     label='Starting value for format'
-    ,END char(16)     label='Ending value for format'
-    ,LABEL char(256)     label='Format value label'
+    FMTNAME char(32)      label='Format name'
+    /*
+      to accomodate larger START values, mp_loadformat.sas will need the
+      SQL dependency removed (proc sql needs to accomodate 3 index values in
+      a 32767 ibufsize limit)
+    */
+    ,START char(10000)    label='Starting value for format'
+    ,END char(32767)      label='Ending value for format'
+    ,LABEL char(32767)    label='Format value label'
     ,MIN num length=3     label='Minimum length'
     ,MAX num length=3     label='Maximum length'
-    ,DEFAULT num length=3     label='Default length'
-    ,LENGTH num length=3     label='Format length'
-    ,FUZZ num     label='Fuzz value'
-    ,PREFIX char(2)     label='Prefix characters'
-    ,MULT num     label='Multiplier'
-    ,FILL char(1)     label='Fill character'
-    ,NOEDIT num length=3     label='Is picture string noedit?'
-    ,TYPE char(1)     label='Type of format'
-    ,SEXCL char(1)     label='Start exclusion'
-    ,EEXCL char(1)     label='End exclusion'
-    ,HLO char(13)     label='Additional information'
-    ,DECSEP char(1)     label='Decimal separator'
-    ,DIG3SEP char(1)     label='Three-digit separator'
+    ,DEFAULT num length=3 label='Default length'
+    ,LENGTH num length=3  label='Format length'
+    ,FUZZ num             label='Fuzz value'
+    ,PREFIX char(2)       label='Prefix characters'
+    ,MULT num             label='Multiplier'
+    ,FILL char(1)         label='Fill character'
+    ,NOEDIT num length=3  label='Is picture string noedit?'
+    ,TYPE char(1)         label='Type of format'
+    ,SEXCL char(1)        label='Start exclusion'
+    ,EEXCL char(1)        label='End exclusion'
+    ,HLO char(13)         label='Additional information'
+    ,DECSEP char(1)       label='Decimal separator'
+    ,DIG3SEP char(1)      label='Three-digit separator'
     ,DATATYPE char(8)     label='Date/time/datetime?'
     ,LANGUAGE char(8)     label='Language for date strings'
 );

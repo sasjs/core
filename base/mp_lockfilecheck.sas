@@ -37,7 +37,7 @@ run;
   ,mac=checklock.sas
   ,msg=Aborting with syscc=&syscc on entry.
 )
-%mp_abort(iftrue= (&libds=0)
+%mp_abort(iftrue= ("&libds"="0")
   ,mac=&sysmacroname
   ,msg=%str(libds not provided)
 )
@@ -45,6 +45,12 @@ run;
 %local msg lib ds;
 %let lib=%upcase(%scan(&libds,1,.));
 %let ds=%upcase(%scan(&libds,2,.));
+
+/* in DC, format catalogs are passed with a -FC suffix. No saslock here! */
+%if %scan(&libds,2,-)=FC %then %do;
+  %put &sysmacroname: Format Catalog detected, no lockfile applied to &libds;
+  %return;
+%end;
 
 /* do not proceed if no observations can be processed */
 %let msg=options obs = 0. syserrortext=%superq(syserrortext);

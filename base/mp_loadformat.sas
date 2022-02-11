@@ -38,6 +38,7 @@
   @li mf_getuniquename.sas
   @li mf_nobs.sas
   @li mp_abort.sas
+  @li mp_cntlout.sas
   @li mp_lockanytable.sas
 
   <h4> Related Macros </h4>
@@ -66,17 +67,26 @@
 );
 /* set up local macro variables and temporary tables (with a prefix) */
 %local err msg prefix dslist i var fmtlist ibufsize;
-%let dslist=base base_fmts template inlibds ds1 stagedata storediffs;
+%let dslist=base_fmts template inlibds ds1 stagedata storediffs;
 %if &outds_add=0 %then %let dslist=&dslist outds_add;
 %if &outds_del=0 %then %let dslist=&dslist outds_del;
 %if &outds_mod=0 %then %let dslist=&dslist outds_mod;
-%let prefix=%substr(%mf_getuniquename(),1,22);
+%let prefix=%substr(%mf_getuniquename(),1,21);
 %do i=1 %to %sysfunc(countw(&dslist));
   %let var=%scan(&dslist,&i);
   %local &var;
   %let &var=%upcase(&prefix._&var);
 %end;
 
+/*
+format values can be up to 32767 wide.  SQL joins on such a wide column can
+cause buffer issues.  Update ibufsize and reset at the end.
+*/
+%let ibufsize=%sysfunc(getoption(ibufsize));
+options ibufsize=32767 ;
+
+/* in DC, format catalogs maybe specified in the libds with a -FC extension */
+%let libcat=%scan(&libcat,1,-);
 
 /* perform input validations */
 %let err=0;
@@ -125,17 +135,9 @@ run;
   */
 proc sql noprint;
 select distinct fmtname into: fmtlist separated by ' ' from &libds;
-proc format lib=&libcat cntlout=&base;
-  select
-  /* send formats individually to avoid line truncation in the input stack */
-  %do i=1 %to %sysfunc(countw(&fmtlist));
-    %scan(&fmtlist,&i,%str( ))
-  %end;
-  ;
-run;
-proc sort data=&base;
-  by fmtname start;
-run;
+
+%mp_cntlout(libcat=&libcat,fmtlist=&fmtlist,cntlout=&base_fmts)
+
 
 /**
   * Ensure input table and base_formats have consistent lengths and types
@@ -148,19 +150,12 @@ data &inlibds;
     if substr(fmtname,1,1)='$' then type='C';
     else type='N';
   end;
-  if type='N' then start=put(input(start,best.),best16.);
-run;
-data &base_fmts;
-  if 0 then set &template;
-  set &base;
+  if type='N' then do;
+    start=cats(start);
+    end=cats(end);
+  end;
 run;
 
-/*
-format values can be up to 32767 wide.  SQL joins on such a wide column can
-cause buffer issues.  Update ibufsize and reset at the end.
-*/
-%let ibufsize=%sysfunc(getoption(ibufsize));
-options ibufsize=32767 ;
 
 /**
   * Identify new records
@@ -237,9 +232,9 @@ options ibufsize=&ibufsize;
   %end;
   %if &locklibds ne 0 %then %do;
     /* prevent parallel updates */
-    %mp_lockanytable(LOCK,
-      lib=%scan(&libcat,1,.)
-      ,ds=%scan(&libcat,2,.)
+    %mp_lockanytable(LOCK
+      ,lib=%scan(&libcat,1,.)
+      ,ds=%scan(&libcat,2,.)-FC
       ,ref=MP_LOADFORMAT commencing format load
       ,ctl_ds=&locklibds
     )
@@ -250,8 +245,8 @@ options ibufsize=&ibufsize;
   %if &locklibds ne 0 %then %do;
     /* unlock the table */
     %mp_lockanytable(UNLOCK
-      lib=%scan(&libcat,1,.)
-      ,ds=%scan(&libcat,2,.)
+      ,lib=%scan(&libcat,1,.)
+      ,ds=%scan(&libcat,2,.)-FC
       ,ref=MP_LOADFORMAT completed format load
       ,ctl_ds=&locklibds
     )
@@ -259,16 +254,16 @@ options ibufsize=&ibufsize;
   /* track the changes */
   %if &auditlibds ne 0 %then %do;
     %if &locklibds ne 0 %then %do;
-      %mp_lockanytable(LOCK,
-        lib=%scan(&auditlibds,1,.)
+      %mp_lockanytable(LOCK
+        ,lib=%scan(&auditlibds,1,.)
         ,ds=%scan(&auditlibds,2,.)
         ,ref=MP_LOADFORMAT commencing audit table load
         ,ctl_ds=&locklibds
       )
     %end;
 
-    %mp_storediffs(&libcat
-      ,&stageds
+    %mp_storediffs(&libcat-FC
+      ,&inlibds
       ,FMTNAME START
       ,delds=&outds_del
       ,modds=&outds_mod
@@ -279,7 +274,7 @@ options ibufsize=&ibufsize;
 
     %if &locklibds ne 0 %then %do;
       %mp_lockanytable(UNLOCK
-        lib=%scan(&auditlibds,1,.)
+        ,lib=%scan(&auditlibds,1,.)
         ,ds=%scan(&auditlibds,2,.)
         ,ref=MP_LOADFORMAT commencing audit table load
         ,ctl_ds=&locklibds

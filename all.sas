@@ -7131,10 +7131,10 @@ create table &outsummary as
       select &&fmtname&i;
     run;
     data &tempds;
-      length label $256;
+      if 0 then set &outdetail;
       set &tempds;
     run;
-    proc append base=&outdetail data=&tempds;
+    proc append base=&outdetail data=&tempds ;
     run;
   %end;
 %end;

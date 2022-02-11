@@ -90,7 +90,7 @@
 %else %let dbg=*;
 
 /* set up unique and temporary vars */
-%local ds1 ds2 ds3 ds4 hashkey inds_auto inds_keep dslist;
+%local ds1 ds2 ds3 ds4 hashkey inds_auto inds_keep dslist vlist;
 %let ds1=%upcase(work.%mf_getuniquename(prefix=mpsd_ds1));
 %let ds2=%upcase(work.%mf_getuniquename(prefix=mpsd_ds2));
 %let ds3=%upcase(work.%mf_getuniquename(prefix=mpsd_ds3));
@@ -144,12 +144,21 @@ proc transpose data=&ds1
   by &inds_keep &hashkey;
   var _character_;
 run;
+
+%if %index(&libds,-)>0 and %scan(&libds,2,-)=FC %then %do;
+  /* this is a format catalog - cannot query cols directly */
+  %let vlist="FMTNAME","START","END","LABEL","MIN","MAX","DEFAULT","LENGTH"
+    ,"FUZZ","PREFIX","MULT","FILL","NOEDIT","TYPE","SEXCL","EEXCL","HLO"
+    ,"DECSEP","DIG3SEP","DATATYPE","LANGUAGE";
+%end;
+%else %let vlist=%mf_getvarlist(&libds,dlm=%str(,),quote=DOUBLE);
+
 data &ds4;
   length &inds_keep $41 tgtvar_nm $32;
   set &ds2 &ds3 indsname=&inds_auto;
 
   tgtvar_nm=upcase(tgtvar_nm);
-  if tgtvar_nm in (%upcase(%mf_getvarlist(&libds,dlm=%str(,),quote=DOUBLE)));
+  if tgtvar_nm in (%upcase(&vlist));
 
   if &inds_auto="&ds2" then tgtvar_type='N';
   else if &inds_auto="&ds3" then tgtvar_type='C';

@@ -48,7 +48,7 @@ data _null_;
   put name '=' value;
 run;
 
-%mp_abort(iftrue= (&ds=0 and &action ne MAKETABLE)
+%mp_abort(iftrue= ("&ds"="0" and &action ne MAKETABLE)
   ,mac=&sysmacroname
   ,msg=%str(dataset was not provided)
 )

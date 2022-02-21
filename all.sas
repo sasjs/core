@@ -18585,8 +18585,9 @@ run;
     `,"$tablename":{"formats":{"col1":"$CHAR1"},"types":{"COL1":"C"}}`
 
   <h4> SAS Macros </h4>
-  @li mp_jsonout.sas
   @li mf_getuser.sas
+  @li mp_jsonout.sas
+  @li mfs_httpheader.sas
 
   <h4> Related Macros </h4>
   @li mv_webout.sas
@@ -18637,6 +18638,9 @@ run;
 %else %if &action=OPEN %then %do;
   /* fix encoding */
   OPTIONS NOBOMFILE;
+
+  /* set the header */
+  %mfs_httpheader(Content-type,application/json)
 
   /* setup json */
   data _null_;file &fref encoding='utf-8' termstr=lf;

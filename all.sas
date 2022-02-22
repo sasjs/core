@@ -13550,12 +13550,13 @@ run;
     The macro is idempotent - if you run it twice, it will only create a folder
     once.
 
-  usage:
+  Usage:
 
       %mm_createfolder(path=/some/meta/folder)
 
   @param [in] path= Name of the folder to create.
   @param [in] mdebug= set DBG to 1 to disable DEBUG messages
+
 
   @version 9.4
   @author Allan Bowe
@@ -14032,7 +14033,7 @@ filename &frefout temp;
     This macro is idempotent - if you run it twice, it will only create an STP
     once.
 
-  usage (type 1 STP):
+  Usage (type 1 STP):
 
       %mm_createstp(stpname=MyNewSTP
         ,filename=mySpecialProgram.sas
@@ -14051,7 +14052,8 @@ filename &frefout temp;
         putlog (_all_)(=);
       run;
 
-  usage (type 2 STP):
+  Usage (type 2 STP):
+
       %mm_createstp(stpname=MyNewType2STP
         ,filename=mySpecialProgram.sas
         ,directory=SASEnvironment/SASCode/STPs
@@ -14094,8 +14096,9 @@ filename &frefout temp;
   @li mf_verifymacvars.sas
   @li mm_getdirectories.sas
   @li mm_updatestpsourcecode.sas
-  @li mp_dropmembers.sas
   @li mm_getservercontexts.sas
+  @li mp_abort.sas
+  @li mp_dropmembers.sas
 
   <h4> Related Macros </h4>
   @li mm_createwebservice.sas

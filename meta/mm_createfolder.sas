@@ -12,12 +12,13 @@
     The macro is idempotent - if you run it twice, it will only create a folder
     once.
 
-  usage:
+  Usage:
 
       %mm_createfolder(path=/some/meta/folder)
 
   @param [in] path= Name of the folder to create.
   @param [in] mdebug= set DBG to 1 to disable DEBUG messages
+
 
   @version 9.4
   @author Allan Bowe

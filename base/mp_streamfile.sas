@@ -22,6 +22,7 @@
 
   <h4> SAS Macros </h4>
   @li mf_getplatform.sas
+  @li mfs_httpheader.sas
   @li mp_binarycopy.sas
 
   @author Allan Bowe
@@ -55,7 +56,7 @@ data _null_;
 run;
 
 %if &contentype=CSV %then %do;
-  %if (&platform=SASMETA and &streamweb=1) or &platform=SASJS %then %do;
+  %if (&platform=SASMETA and &streamweb=1) %then %do;
     data _null_;
       rc=stpsrv_header('Content-type','application/csv');
       rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
@@ -66,10 +67,14 @@ run;
       contenttype='application/csv'
       contentdisp="attachment; filename=&outname";
   %end;
+  %else %if &platform=SASJS %then %do;
+    %mfs_httpheader(Content-type,application/csv)
+    %mfs_httpheader(Content-disposition,%str(attachment; filename=&outname))
+  %end;
 %end;
 %else %if &contentype=EXCEL %then %do;
   /* suitable for XLS format */
-  %if (&platform=SASMETA and &streamweb=1) or &platform=SASJS %then %do;
+  %if (&platform=SASMETA and &streamweb=1) %then %do;
     data _null_;
       rc=stpsrv_header('Content-type','application/vnd.ms-excel');
       rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
@@ -80,9 +85,13 @@ run;
       contenttype='application/vnd.ms-excel'
       contentdisp="attachment; filename=&outname";
   %end;
+  %else %if &platform=SASJS %then %do;
+    %mfs_httpheader(Content-type,application/vnd.ms-excel)
+    %mfs_httpheader(Content-disposition,%str(attachment; filename=&outname))
+  %end;
 %end;
 %else %if &contentype=GIF or &contentype=JPEG or &contentype=PNG %then %do;
-  %if (&platform=SASMETA and &streamweb=1) or &platform=SASJS %then %do;
+  %if (&platform=SASMETA and &streamweb=1) %then %do;
     data _null_;
       rc=stpsrv_header('Content-type',"image/%lowcase(&contenttype)");
     run;
@@ -91,15 +100,21 @@ run;
     filename &outref filesrvc parenturi="&SYS_JES_JOB_URI"
       contenttype="image/%lowcase(&contenttype)";
   %end;
+  %else %if &platform=SASJS %then %do;
+    %mfs_httpheader(Content-type,image/%lowcase(&contenttype))
+  %end;
 %end;
 %else %if &contentype=HTML %then %do;
   %if &platform=SASVIYA %then %do;
     filename &outref filesrvc parenturi="&SYS_JES_JOB_URI" name="_webout.json"
       contenttype="text/html";
   %end;
+  %else %if &platform=SASJS %then %do;
+    %mfs_httpheader(Content-type,text/html)
+  %end;
 %end;
 %else %if &contentype=TEXT %then %do;
-  %if (&platform=SASMETA and &streamweb=1) or &platform=SASJS %then %do;
+  %if (&platform=SASMETA and &streamweb=1) %then %do;
     data _null_;
       rc=stpsrv_header('Content-type','application/text');
       rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
@@ -110,9 +125,13 @@ run;
       contenttype='application/text'
       contentdisp="attachment; filename=&outname";
   %end;
+  %else %if &platform=SASJS %then %do;
+    %mfs_httpheader(Content-type,application/text)
+    %mfs_httpheader(Content-disposition,%str(attachment; filename=&outname))
+  %end;
 %end;
 %else %if &contentype=WOFF or &contentype=WOFF2 or &contentype=TTF %then %do;
-  %if (&platform=SASMETA and &streamweb=1) or &platform=SASJS %then %do;
+  %if (&platform=SASMETA and &streamweb=1) %then %do;
     data _null_;
       rc=stpsrv_header('Content-type',"font/%lowcase(&contenttype)");
     run;
@@ -121,9 +140,12 @@ run;
     filename &outref filesrvc parenturi="&SYS_JES_JOB_URI"
       contenttype="font/%lowcase(&contenttype)";
   %end;
+  %else %if &platform=SASJS %then %do;
+    %mfs_httpheader(Content-type,font/%lowcase(&contenttype))
+  %end;
 %end;
 %else %if &contentype=XLSX %then %do;
-  %if (&platform=SASMETA and &streamweb=1) or &platform=SASJS %then %do;
+  %if (&platform=SASMETA and &streamweb=1) %then %do;
     data _null_;
       rc=stpsrv_header('Content-type',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -136,9 +158,15 @@ run;
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       contentdisp="attachment; filename=&outname";
   %end;
+  %else %if &platform=SASJS %then %do;
+    %mfs_httpheader(Content-type
+      ,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+    )
+    %mfs_httpheader(Content-disposition,%str(attachment; filename=&outname))
+  %end;
 %end;
 %else %if &contentype=ZIP %then %do;
-  %if (&platform=SASMETA and &streamweb=1) or &platform=SASJS %then %do;
+  %if (&platform=SASMETA and &streamweb=1) %then %do;
     data _null_;
       rc=stpsrv_header('Content-type','application/zip');
       rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
@@ -148,6 +176,10 @@ run;
     filename &outref filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.zip'
       contenttype='application/zip'
       contentdisp="attachment; filename=&outname";
+  %end;
+  %else %if &platform=SASJS %then %do;
+    %mfs_httpheader(Content-type,application/zip)
+    %mfs_httpheader(Content-disposition,%str(attachment; filename=&outname))
   %end;
 %end;
 %else %do;

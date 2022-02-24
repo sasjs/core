@@ -1,10 +1,10 @@
 /**
   @file mv_registerclient.sas
   @brief Register Client and Secret (admin task)
-  @details When building apps on SAS Viya, an client id and secret are sometimes
-  required.  In order to generate them, filesystem access to the Consul Token
-  is needed (it is not enough to be in the SASAdministrator group in SAS
-  Environment Manager).
+  @details When building apps on SAS Viya, a client id and secret are usually
+  required.  In order to generate them, the Consul Token is required.  To access
+  this token, you need to be a system administrator (it is not enough to be in
+  the SASAdministrator group in SAS Environment Manager).
 
   If you are registering a lot of clients / secrets, you may find it more
   convenient to use the [Viya Token Generator]
@@ -25,14 +25,17 @@
         "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
+      %* generate random client using consul token as input parameter;
+      %mv_registerclient(consul_token=12x34sa43v2345n234lasd)
+
+      %* generate random client details with all scopes;
+      %mv_registerclient(scopes=openid *)
+
       %* specific client with just openid scope;
       %mv_registerclient(client_id=YourClient
         ,client_secret=YourSecret
         ,scopes=openid
       )
-
-      %* generate random client details with all scopes;
-      %mv_registerclient(scopes=openid *)
 
       %* generate random client with 90/180 second access/refresh token expiry;
       %mv_registerclient(scopes=openid *
@@ -40,36 +43,38 @@
         ,refresh_token_validity=180
       )
 
-  @param client_id= The client name.  Auto generated if blank.
-  @param client_secret= Client secret.  Auto generated if client is blank.
-  @param scopes=(openid) List of space-seperated unquoted scopes
-  @param grant_type=(authorization_code|refresh_token) Valid values are
-    "password" or "authorization_code" (unquoted)
-  @param outds=(mv_registerclient) The dataset to contain the registered client
-    id and secret
-  @param access_token_validity=(DEFAULT) The duration of validity of the access
-    token in seconds.  A value of DEFAULT will omit the entry (and use system
-    default)
-  @param refresh_token_validity=(DEFAULT)  The duration of validity of the
+  @param [in,out] client_id= The client name.  Auto generated if blank.
+  @param [in,out] client_secret= Client secret.  Auto generated if client is
+    blank.
+  @param [in] consul_token= (0) Provide the actual consul token value here if
+    using Viya 4 or above.
+  @param [in] scopes= (openid) List of space-seperated unquoted scopes
+  @param [in] grant_type= (authorization_code|refresh_token) Valid values are
+    "password" or "authorization_code" (unquoted).  Pipe seperated.
+  @param [out] outds=(mv_registerclient) The dataset to contain the registered
+    client id and secret
+  @param [in] access_token_validity= (DEFAULT) The access token duration in
+    seconds.  A value of DEFAULT will omit the entry (and use system default)
+  @param [in] refresh_token_validity= (DEFAULT)  The duration of validity of the
     refresh token in seconds.  A value of DEFAULT will omit the entry (and use
     system default)
-  @param name= An optional, human readable name for the client
-  @param required_user_groups= A list of group names. If a user does not belong
-    to all the required groups, the user will not be authenticated and no tokens
-    are issued to this client for that user. If this field is not specified,
-    authentication and token issuance proceeds normally.
-  @param autoapprove= During the auth step the user can choose which scope to
-    apply.  Setting this to true will autoapprove all the client scopes.
-  @param use_session= If true, access tokens issued to this client will be
+  @param [in] client_name= (DEFAULT) An optional, human readable name for the
+    client.
+  @param [in] required_user_groups= A list of group names. If a user does not
+    belong to all the required groups, the user will not be authenticated and no
+    tokens are issued to this client for that user. If this field is not
+    specified, authentication and token issuance proceeds normally.
+  @param [in] autoapprove= During the auth step the user can choose which scope
+    to apply.  Setting this to true will autoapprove all the client scopes.
+  @param [in] use_session= If true, access tokens issued to this client will be
     associated with an HTTP session and revoked upon logout or time-out.
-  @param outjson= (_null_) A dataset containing the lines of JSON submitted.
-    Useful for debugging.
+  @param [out] outjson= (_null_) A dataset containing the lines of JSON
+    submitted. Useful for debugging.
 
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
 
   <h4> SAS Macros </h4>
-  @li mp_abort.sas
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
   @li mf_getuniquelibref.sas
@@ -81,6 +86,7 @@
 
 %macro mv_registerclient(client_id=
     ,client_secret=
+    ,consul_token=0
     ,client_name=DEFAULT
     ,scopes=openid
     ,grant_type=authorization_code|refresh_token
@@ -92,33 +98,40 @@
     ,refresh_token_validity=DEFAULT
     ,outjson=_null_
   );
-%local consul_token fname1 fname2 fname3 libref access_token url tokloc;
+%local fname1 fname2 fname3 libref access_token url tokloc;
 
 %if client_name=DEFAULT %then %let client_name=
-  Generated by %mf_getuser() on %sysfunc(datetime(),datetime19.) using SASjs;
+  Generated by %mf_getuser() (&sysuserid) on %sysfunc(datetime(),datetime19.
+  ) using SASjs;
 
 options noquotelenmax;
-/* first, get consul token needed to get client id / secret */
-%let tokloc=/etc/SASSecurityCertificateFramework/tokens/consul/default;
-%let tokloc=%mf_loc(VIYACONFIG)&tokloc/client.token;
 
+%if "&consul_token"="0" %then %do;
+  /* first, get consul token needed to get client id / secret */
+  %let tokloc=/etc/SASSecurityCertificateFramework/tokens/consul/default;
+  %let tokloc=%mf_loc(VIYACONFIG)&tokloc/client.token;
 
-%mp_abort(iftrue=(%sysfunc(fileexist(&tokloc))=0)
-  ,mac=&sysmacroname
-  ,msg=%str(Unable to access the consul token at &tokloc)
-)
+  %if %sysfunc(fileexist(&tokloc))=0 %then %do;
+    %put &sysmacroname: unable to access the consul token at &tokloc;
+    %put Try passing the value in the consul= macro parameter;
+    %put See docs:  https://core.sasjs.io/mv__registerclient_8sas.html;
+    %abort;
+  %end;
 
-%let consul_token=0;
-data _null_;
-  infile "&tokloc";
-  input token:$64.;
-  call symputx('consul_token',token);
-run;
+  data _null_;
+    infile "&tokloc";
+    input token:$64.;
+    call symputx('consul_token',token);
+  run;
 
-%mp_abort(iftrue=("&consul_token"="0")
-  ,mac=&sysmacroname
-  ,msg=%str(Unable to source the consul token from &tokloc)
-)
+  %if "&consul_token"="0" %then %do;
+    %put &sysmacroname: Unable to source the consul token from &tokloc;
+    %put It seems your account (&sysuserid) does not have admin rights;
+    %put Please speak with your platform adminstrator;
+    %put Docs:  https://core.sasjs.io/mv__registerclient_8sas.html;
+    %abort;
+  %end;
+%end;
 
 %local base_uri; /* location of rest apis */
 %let base_uri=%mf_getplatform(VIYARESTAPI);
@@ -130,6 +143,9 @@ proc http method='POST' out=&fname1
     )serviceId=app";
   headers "X-Consul-Token"="&consul_token";
 run;
+
+%put &=SYS_PROCHTTP_STATUS_CODE;
+%put &=SYS_PROCHTTP_STATUS_PHRASE;
 
 %let libref=%mf_getuniquelibref();
 libname &libref JSON fileref=&fname1;

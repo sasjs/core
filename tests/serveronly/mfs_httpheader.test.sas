@@ -5,12 +5,16 @@
   <h4> SAS Macros </h4>
   @li mfs_httpheader.sas
   @li mp_assert.sas
+  @li mp_assertscope.sas
 
 **/
 
 %let sasjs_stpsrv_header_loc=%sysfunc(pathname(work))/header.txt;
 
+%mp_assertscope(SNAPSHOT)
 %mfs_httpheader(Content-type,application/csv)
+%mp_assertscope(COMPARE)
+
 data _null_;
   infile "&sasjs_stpsrv_header_loc";
   input;

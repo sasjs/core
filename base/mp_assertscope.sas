@@ -74,7 +74,8 @@
   outds=work.test_results
 )/*/STORE SOURCE*/;
 %local ds test_result test_comments del add mod ilist;
-%let ilist=%upcase(&sasjs_prefix._FUNCTIONS &ignorelist);
+%let ilist=%upcase(&sasjs_prefix._FUNCTIONS SYS_PROCHTTP_STATUS_CODE
+  SYS_PROCHTTP_STATUS_CODE SYS_PROCHTTP_STATUS_PHRASE &ignorelist);
 
 /**
   * this sets up the global vars, it will also enter STRICT mode.  If this
@@ -89,7 +90,7 @@
   create table &scopeds as
     select name,offset,value
     from dictionary.macros
-    where scope="&scope" and name not in (%mf_getquotedstr(&ilist))
+    where scope="&scope" and upcase(name) not in (%mf_getquotedstr(&ilist))
     order by name,offset;
 %end;
 %else %if &action=COMPARE %then %do;

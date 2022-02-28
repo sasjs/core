@@ -12,7 +12,7 @@
 
       %mp_streamfile(contenttype=csv,inloc=/some/where.txt,outname=myfile.txt)
 
-  @param [in] contenttype= (TEXTS) Either TEXT, ZIP, CSV, EXCEL
+  @param [in] contenttype= (TEXT) Either TEXT, ZIP, CSV, EXCEL
   @param [in] inloc= /path/to/file.ext to be sent
   @param [in] inref= fileref of file to be sent (if provided, overrides `inloc`)
   @param [in] iftrue= (1=1) Provide a condition under which to execute.

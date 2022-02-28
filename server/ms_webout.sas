@@ -88,9 +88,6 @@
 
   /* setup json */
   data _null_;file &fref encoding='utf-8' termstr=lf;
-  %if %str(&_debug) ge 131 %then %do;
-    put '>>weboutBEGIN<<';
-  %end;
     put '{"SYSDATE" : "' "&SYSDATE" '"';
     put ',"SYSTIME" : "' "&SYSTIME" '"';
   run;
@@ -170,9 +167,6 @@
     memsize=quote(cats(memsize));
     put ',"MEMSIZE" : ' memsize;
     put "}" @;
-  %if %str(&_debug) ge 131 %then %do;
-    put '>>weboutEND<<';
-  %end;
   run;
 %end;
 

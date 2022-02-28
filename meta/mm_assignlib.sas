@@ -40,6 +40,12 @@
       /* now try and assign it */
       if libname("&libref",,'meta',cats('liburi="',liburi,'";')) ne 0 then do;
         putlog "&libref could not be assigned";
+        putlog liburi=;
+        /**
+          * Fetch the system message for display in the abort modal.  This is
+          * not always helpful though.  One example, previously received:
+          * NOTE: Libref XX refers to the same library metadata as libref XX.
+          */
         call symputx('msg',sysmsg(),'l');
         if "&mabort"='HARD' then call symputx('mp_abort',1,'l');
       end;
@@ -61,7 +67,7 @@
 
   %if &mp_abort=1 %then %do;
     %mp_abort(iftrue= (&mp_abort=1)
-      ,mac=&sysmacroname
+      ,mac=mm_assignlib.sas
       ,msg=&msg
     )
     %return;

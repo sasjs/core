@@ -47,7 +47,7 @@ Documentation: https://core.sasjs.io
 
 This library will not be used for storing data entries (such as formats or datalines).  Where this becomes necessary in the future, a new repo will be created, in order to keep the NPM bundle size down (for the benefit of those looking to embed purely macros in their applications).
 
-#### FCMP library (All Platforms)
+### FCMP library (All Platforms)
 
 - Function and macro names are identical, except for special cases
 - Prefixes: _mcf_
@@ -215,7 +215,6 @@ We are currently on major release v4.  Breaking changes should be marked with th
 If you find this library useful, please leave a [star](https://github.com/sasjs/core/stargazers) and help us grow our star graph!
 
 ![](https://starchart.cc/sasjs/core.svg)
-
 
 
 ## Contributors ✨

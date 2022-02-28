@@ -73,17 +73,24 @@
       "name": "server",
       "serverUrl": "https://sas.analytium.co.uk:5000",
       "serverType": "SASJS",
-      "appLoc": "/Shared Data/temp/macrocore",
+      "httpsAgentOptions": {
+        "allowInsecureRequests": false
+      },
+      "appLoc": "/sasjs/core",
       "macroFolders": [
         "tests/serveronly"
       ],
+      "programFolders": [],
+      "binaryFolders": [],
       "deployConfig": {
-        "deployServicePack": true
+        "deployServicePack": true,
+        "deployScripts": []
       }
     },
     {
       "name": "docsonly",
       "serverType": "SAS9",
+      "appLoc": "dummy",
       "macroFolders": [
         "tests/sas9only",
         "tests/viyaonly"

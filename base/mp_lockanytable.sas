@@ -1,7 +1,8 @@
 /**
   @file
   @brief Mechanism for locking tables to prevent parallel modifications
-  @details Uses a control table to enable ANY table to be locked for updates.
+  @details Uses a control table to enable ANY table to be locked for updates
+  (not just SAS datasets).
   Only useful if every update uses the macro!   Used heavily within
   [Data Controller for SAS](https://datacontroller.io).
 
@@ -15,7 +16,7 @@
     length is 200 characters.
   @param [out] ctl_ds= (0) The control table which controls the actual locking.
     Should already be assigned and available.  The definition is available by
-    running mp_coretable.sas as follows:  `%mp_coretable(LOCKTABLE)`.
+    running the mddl_dc_locktable.sas macro.
 
   @param [in] loops= (25) Number of times to check for a lock.
   @param [in] loop_secs= (1) Seconds to wait between each lock attempt

@@ -1,13 +1,15 @@
 /**
   @file
   @brief Performs a text substitution on a file
-  @details Reads a file in byte by byte, performing text substiution where a
-  match is found.
+  @details Performs a find and replace on a file, either in place or to a new
+  file. Can be used on files where lines are longer than 32767.
 
-  This macro can be used on files where lines are longer than 32767.
+  Works by reading in the file byte by byte, then marking the beginning and end
+  of each matched string, before finally doing the replace.
 
-  If you are running a version of SAS that will allow the io package in LUA, you
-  can also use this macro: mp_gsubfile.sas
+  Full credit for this highly efficient and syntactically satisfying SAS logic
+  goes to [Bartosz Jabłoński](https://www.linkedin.com/in/yabwon), founder of
+  the [SAS Packages](https://github.com/yabwon/SAS_PACKAGES) framework.
 
   Usage:
 
@@ -27,6 +29,9 @@
         list;
       run;
 
+  Note - if you are running a version of SAS that will allow the io package in
+  LUA, you can also use this macro: mp_gsubfile.sas
+
   @param infile The QUOTED path to the file on which to perform the substitution
   @param findvar= Macro variable NAME containing the string to search for
   @param replacevar= Macro variable NAME containing the replacement string
@@ -41,6 +46,7 @@
   @li mp_gsubfile.test.sas
 
   @version 9.4
+  @author Bartosz Jabłoński
   @author Allan Bowe
 **/
 
@@ -64,39 +70,37 @@ filename &inref &infile lrecl=1 recfm=n;
 
 data &ds1;
   infile &inref;
-  input x $ 1. @@;
-  format x hex2.;
+  input sourcechar $ 1. @@;
+  format sourcechar hex2.;
 run;
 
 data &ds2;
-
   /* set find string to length in bytes to cover trailing spaces */
   length string $ %length(%superq(&findvar));
   string =symget("&findvar");
   drop string;
 
-  z =char(string,1);
-  l =lengthm(string); /* <- for trailing bytes */
+  firstchar=char(string,1);
+  findlen=lengthm(string); /* <- for trailing bytes */
 
-  do _N_ =1 to nobs;
+  do _N_=1 to nobs;
     set &ds1 nobs=nobs point=_N_;
-    if x =z then do;
-      pos =1;
-      s =0;
-      do point =_N_ to min(_N_ + l -1,nobs);
+    if sourcechar=firstchar then do;
+      pos=1;
+      s=0;
+      do point=_N_ to min(_N_ + findlen -1,nobs);
         set &ds1 point=point;
-        if x =char(string, pos) then s + 1;
+        if sourcechar=char(string, pos) then s + 1;
         else goto _leave_;
         pos+1;
       end;
       _leave_:
-      if s =l then do;
+      if s=findlen then do;
         START =_N_;
         _N_ =_N_+ s - 1;
         STOP =_N_;
         output;
       end;
-      else _N_ =_N_+ s;
     end;
   end;
   stop;
@@ -107,31 +111,22 @@ data &ds1;
   declare hash HS(dataset:"&ds2(keep=start)");
   HS.defineKey("start");
   HS.defineDone();
-
   declare hash HE(dataset:"&ds2(keep=stop)");
   HE.defineKey("stop");
   HE.defineDone();
-
   do until(eof);
     set &ds1 end=eof curobs =n;
-
-    start=0;
-    stop=0;
-    if 0 =HS.check(key:n) then start =1;
-    if 0 =HE.check(key:n) then stop  =1;
-
+    start = ^HS.check(key:n);
+    stop  = ^HE.check(key:n);
     length strt $ 1;
     strt =put(start,best. -L);
-
     retain out 1;
     if out   then output;
     if start then out=0;
     if stop  then out=1;
   end;
-
   stop;
-
-  keep x strt;
+  keep sourcechar strt;
 run;
 
 filename &outref &outfile recfm=n;
@@ -143,7 +138,7 @@ data _null_;
   do until(eof);
     set &ds1 end=eof;
     if strt ="1" then put replace char.;
-    else put x char1.;
+    else put sourcechar char1.;
   end;
   stop;
 run;

@@ -3116,7 +3116,8 @@ run;
   outds=work.test_results
 )/*/STORE SOURCE*/;
 %local ds test_result test_comments del add mod ilist;
-%let ilist=%upcase(&sasjs_prefix._FUNCTIONS &ignorelist);
+%let ilist=%upcase(&sasjs_prefix._FUNCTIONS SYS_PROCHTTP_STATUS_CODE
+  SYS_PROCHTTP_STATUS_CODE SYS_PROCHTTP_STATUS_PHRASE &ignorelist);
 
 /**
   * this sets up the global vars, it will also enter STRICT mode.  If this
@@ -3131,7 +3132,7 @@ run;
   create table &scopeds as
     select name,offset,value
     from dictionary.macros
-    where scope="&scope" and name not in (%mf_getquotedstr(&ilist))
+    where scope="&scope" and upcase(name) not in (%mf_getquotedstr(&ilist))
     order by name,offset;
 %end;
 %else %if &action=COMPARE %then %do;
@@ -3183,7 +3184,8 @@ run;
   drop table &ds;
 %end;
 
-%mend mp_assertscope;/**
+%mend mp_assertscope;
+/**
   @file
   @brief Convert a file to/from base64 format
   @details Creates a new version of a file either encoded or decoded using
@@ -8872,7 +8874,8 @@ options ibufsize=&ibufsize;
 %mend mp_loadformat;/**
   @file
   @brief Mechanism for locking tables to prevent parallel modifications
-  @details Uses a control table to enable ANY table to be locked for updates.
+  @details Uses a control table to enable ANY table to be locked for updates
+  (not just SAS datasets).
   Only useful if every update uses the macro!   Used heavily within
   [Data Controller for SAS](https://datacontroller.io).
 
@@ -8886,7 +8889,7 @@ options ibufsize=&ibufsize;
     length is 200 characters.
   @param [out] ctl_ds= (0) The control table which controls the actual locking.
     Should already be assigned and available.  The definition is available by
-    running mp_coretable.sas as follows:  `%mp_coretable(LOCKTABLE)`.
+    running the mddl_dc_locktable.sas macro.
 
   @param [in] loops= (25) Number of times to check for a lock.
   @param [in] loop_secs= (1) Seconds to wait between each lock attempt
@@ -9594,6 +9597,155 @@ insert into &outds select distinct * from &append_ds;
 %end;
 
 %mend mp_recursivejoin;
+/**
+  @file
+  @brief Performs a text substitution on a file
+  @details Performs a find and replace on a file, either in place or to a new
+  file. Can be used on files where lines are longer than 32767.
+
+  Works by reading in the file byte by byte, then marking the beginning and end
+  of each matched string, before finally doing the replace.
+
+  Full credit for this highly efficient and syntactically satisfying SAS logic
+  goes to [Bartosz Jabłoński](https://www.linkedin.com/in/yabwon), founder of
+  the [SAS Packages](https://github.com/yabwon/SAS_PACKAGES) framework.
+
+  Usage:
+
+      %let file="%sysfunc(pathname(work))/file.txt";
+      %let str=replace/me;
+      %let rep=with/this;
+      data _null_;
+        file &file;
+        put 'blahblah';
+        put "blahblah&str.blah";
+        put 'blahblahblah';
+      run;
+      %mp_replace(&file, findvar=str, replacevar=rep)
+      data _null_;
+        infile &file;
+        input;
+        list;
+      run;
+
+  Note - if you are running a version of SAS that will allow the io package in
+  LUA, you can also use this macro: mp_gsubfile.sas
+
+  @param infile The QUOTED path to the file on which to perform the substitution
+  @param findvar= Macro variable NAME containing the string to search for
+  @param replacevar= Macro variable NAME containing the replacement string
+  @param outfile= (0) Optional QUOTED path to an the adjusted output file (to
+    avoid overwriting the first file).
+
+  <h4> SAS Macros </h4>
+  @li mf_getuniquefileref.sas
+  @li mf_getuniquename.sas
+
+  <h4> Related Macros </h4>
+  @li mp_gsubfile.test.sas
+
+  @version 9.4
+  @author Bartosz Jabłoński
+  @author Allan Bowe
+**/
+
+%macro mp_replace(infile,
+  findvar=,
+  replacevar=,
+  outfile=0
+)/*/STORE SOURCE*/;
+
+%local inref dttm ds1;
+%let inref=%mf_getuniquefileref();
+%let outref=%mf_getuniquefileref();
+%if &outfile=0 %then %let outfile=&infile;
+%let ds1=%mf_getuniquename(prefix=allchars);
+%let ds2=%mf_getuniquename(prefix=startmark);
+
+/* START */
+%let dttm=%sysfunc(datetime());
+
+filename &inref &infile lrecl=1 recfm=n;
+
+data &ds1;
+  infile &inref;
+  input sourcechar $ 1. @@;
+  format sourcechar hex2.;
+run;
+
+data &ds2;
+  /* set find string to length in bytes to cover trailing spaces */
+  length string $ %length(%superq(&findvar));
+  string =symget("&findvar");
+  drop string;
+
+  firstchar=char(string,1);
+  findlen=lengthm(string); /* <- for trailing bytes */
+
+  do _N_=1 to nobs;
+    set &ds1 nobs=nobs point=_N_;
+    if sourcechar=firstchar then do;
+      pos=1;
+      s=0;
+      do point=_N_ to min(_N_ + findlen -1,nobs);
+        set &ds1 point=point;
+        if sourcechar=char(string, pos) then s + 1;
+        else goto _leave_;
+        pos+1;
+      end;
+      _leave_:
+      if s=findlen then do;
+        START =_N_;
+        _N_ =_N_+ s - 1;
+        STOP =_N_;
+        output;
+      end;
+    end;
+  end;
+  stop;
+  keep START STOP;
+run;
+
+data &ds1;
+  declare hash HS(dataset:"&ds2(keep=start)");
+  HS.defineKey("start");
+  HS.defineDone();
+  declare hash HE(dataset:"&ds2(keep=stop)");
+  HE.defineKey("stop");
+  HE.defineDone();
+  do until(eof);
+    set &ds1 end=eof curobs =n;
+    start = ^HS.check(key:n);
+    stop  = ^HE.check(key:n);
+    length strt $ 1;
+    strt =put(start,best. -L);
+    retain out 1;
+    if out   then output;
+    if start then out=0;
+    if stop  then out=1;
+  end;
+  stop;
+  keep sourcechar strt;
+run;
+
+filename &outref &outfile recfm=n;
+
+data _null_;
+  length replace $ %length(%superq(&replacevar));
+  replace=symget("&replacevar");
+  file &outref;
+  do until(eof);
+    set &ds1 end=eof;
+    if strt ="1" then put replace char.;
+    else put sourcechar char1.;
+  end;
+  stop;
+run;
+
+/* END */
+%put &sysmacroname took %sysevalf(%sysfunc(datetime())-&dttm) seconds to run;
+
+%mend mp_replace;
 /**
   @file
   @brief Reset when an err condition occurs
@@ -11261,7 +11413,7 @@ create table &outds as
 
       %mp_streamfile(contenttype=csv,inloc=/some/where.txt,outname=myfile.txt)
 
-  @param [in] contenttype= (TEXTS) Either TEXT, ZIP, CSV, EXCEL
+  @param [in] contenttype= (TEXT) Either TEXT, ZIP, CSV, EXCEL
   @param [in] inloc= /path/to/file.ext to be sent
   @param [in] inref= fileref of file to be sent (if provided, overrides `inloc`)
   @param [in] iftrue= (1=1) Provide a condition under which to execute.
@@ -13166,6 +13318,12 @@ run;
       /* now try and assign it */
       if libname("&libref",,'meta',cats('liburi="',liburi,'";')) ne 0 then do;
         putlog "&libref could not be assigned";
+        putlog liburi=;
+        /**
+          * Fetch the system message for display in the abort modal.  This is
+          * not always helpful though.  One example, previously received:
+          * NOTE: Libref XX refers to the same library metadata as libref XX.
+          */
         call symputx('msg',sysmsg(),'l');
         if "&mabort"='HARD' then call symputx('mp_abort',1,'l');
       end;
@@ -13187,7 +13345,7 @@ run;
 
   %if &mp_abort=1 %then %do;
     %mp_abort(iftrue= (&mp_abort=1)
-      ,mac=&sysmacroname
+      ,mac=mm_assignlib.sas
       ,msg=&msg
     )
     %return;
@@ -18590,6 +18748,171 @@ run;
 %mend mfs_httpheader;
 /**
   @file
+  @brief Creates a file on SASjs Drive
+  @details Creates a file on SASjs Drive. To use the file as a Stored Program,
+  it must have a ".sas" extension.
+
+  Example:
+
+      filename stpcode temp;
+      data _null_;
+        file stpcode;
+        put '%put hello world;';
+      run;
+      %ms_createfile(/some/stored/program.sas, inref=stpcode)
+
+  @param [in] driveloc The full path to the file in SASjs Drive
+  @param [in] inref= (0) The fileref containing the file to create.
+  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
+
+  <h4> SAS Macros </h4>
+  @li mf_getuniquefileref.sas
+  @li mf_getuniquename.sas
+  @li mp_abort.sas
+
+**/
+
+%macro ms_createfile(driveloc
+    ,inref=0
+    ,mdebug=0
+  );
+
+%local fname0 fname1 boundary fname statcd msg;
+%let fname0=%mf_getuniquefileref();
+%let fname1=%mf_getuniquefileref();
+%let boundary=%mf_getuniquename();
+
+data _null_;
+  file &fname0 termstr=crlf;
+  infile &inref end=eof;
+  if _n_ = 1 then do;
+    put "--&boundary.";
+    put 'Content-Disposition: form-data; name="filePath"';
+    put ;
+    put "&driveloc";
+    put "--&boundary";
+    put 'Content-Disposition: form-data; name="file"; filename="ignore.sas"';
+    put "Content-Type: text/plain";
+    put ;
+  end;
+  input;
+  put _infile_; /* add the actual file to be sent */
+  if eof then do;
+    put ;
+    put "--&boundary--";
+  end;
+run;
+
+%if &mdebug=1 %then %do;
+  data _null_;
+    infile &fname0;
+    input;
+    put _infile_;
+  run;
+%end;
+
+proc http method='POST' in=&fname0 out=&fname1
+  url="&_sasjs_apiserverurl/SASjsApi/drive/file";
+  headers "Content-Type"="multipart/form-data; boundary=&boundary";
+%if &mdebug=1 %then %do;
+  debug level=1;
+%end;
+run;
+
+%let statcd=0;
+data _null_;
+  infile &fname1;
+  input;
+  putlog _infile_;
+  if _infile_='{"status":"success"}' then call symputx('statcd',1,'l');
+  else call symputx('msg',_infile_,'l');
+run;
+
+%mp_abort(
+  iftrue=(&statcd=0)
+  ,mac=ms_createfile.sas
+  ,msg=%superq(msg)
+)
+
+%mend ms_createfile;
+/**
+  @file
+  @brief Executes a SASjs Server Stored Program
+  @details Runs a Stored Program (using POST method) and extracts the webout and
+  log from the response JSON.
+
+  Example:
+
+      %ms_runstp(/some/stored/program
+        ,debug=131
+        ,outref=weboot
+      )
+
+  @param [in] pgm The full path to the Stored Program in SASjs Drive (_program
+    parameter)
+  @param [in] debug= (131) The value to supply to the _debug URL parameter
+  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
+  @param [out] outref= (outweb) The output fileref to contain the response JSON
+    (will be created using temp engine)
+
+  <h4> SAS Macros </h4>
+  @li mf_getuniquefileref.sas
+  @li mp_abort.sas
+
+**/
+
+%macro ms_runstp(pgm
+    ,debug=131
+    ,outref=outweb
+    ,mdebug=0
+  );
+%local dbg fname1;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+%let fname1=%mf_getuniquefileref();
+
+%mp_abort(iftrue=("&pgm"="")
+  ,mac=&sysmacroname
+  ,msg=%str(Program not provided)
+)
+
+data _null_;
+  file &fname1;
+  infile "&_sasjs_tokenfile";
+  input;
+  put 'Authorization: Bearer' _infile_;
+run;
+
+filename &outref temp;
+
+/* prepare request*/
+proc http method='POST' headerin=&fname1 out=&outref
+  url="&_sasjs_apiserverurl.&_sasjs_apipath?_program=&pgm%str(&)_debug=131";
+run;
+%if (&SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201)
+  or &mdebug=1 %then %do;
+  data _null_;infile &outref;input;putlog _infile_;run;
+%end;
+%mp_abort(
+  iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201)
+  ,mac=&sysmacroname
+  ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
+)
+
+
+%if &mdebug=1 %then %do;
+  %put &sysmacroname exit vars:;
+  %put _local_;
+%end;
+%else %do;
+  /* clear refs */
+  filename &fname1 clear;
+%end;
+%mend ms_runstp;/**
+  @file
   @brief Send data to/from @sasjs/server
   @details This macro should be added to the start of each web service,
   **immediately** followed by a call to:
@@ -23216,6 +23539,7 @@ run;
   @li mf_loc.sas
   @li mf_getquotedstr.sas
   @li mf_getuser.sas
+  @li mp_abort.sas
 
 **/
 
@@ -23233,7 +23557,7 @@ run;
     ,refresh_token_validity=DEFAULT
     ,outjson=_null_
   );
-%local fname1 fname2 fname3 libref access_token url tokloc;
+%local fname1 fname2 fname3 libref access_token url tokloc msg;
 
 %if client_name=DEFAULT %then %let client_name=
   Generated by %mf_getuser() (&sysuserid) on %sysfunc(datetime(),datetime19.
@@ -23247,10 +23571,11 @@ options noquotelenmax;
   %let tokloc=%mf_loc(VIYACONFIG)&tokloc/client.token;
 
   %if %sysfunc(fileexist(&tokloc))=0 %then %do;
-    %put &sysmacroname: unable to access the consul token at &tokloc;
+    %let msg=Unable to access the consul token at &tokloc;
+    %put &sysmacroname: &msg;
     %put Try passing the value in the consul= macro parameter;
     %put See docs:  https://core.sasjs.io/mv__registerclient_8sas.html;
-    %abort;
+    %mp_abort(mac=mv_registerclient,msg=%str(&msg))
   %end;
 
   data _null_;

@@ -104,7 +104,9 @@
 
   %let ds=&syslast;
 
-  proc compare base=&scopeds compare=&ds;
+  proc compare
+    base=&scopeds(where=(upcase(name) not in (%mf_getquotedstr(&ilist))))
+    compare=&ds;
   run;
 
   %if &sysinfo=0 %then %do;

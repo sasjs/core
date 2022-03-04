@@ -16,10 +16,11 @@
 
   A blank value is returned if no usable libname is determined.
 
-  @param prefix= first part of the returned libref. As librefs can be as long as
-    8 characters, a maximum length of 7 characters is premitted for this prefix.
-  @param maxtries= Deprecated parameter. Remains here to ensure a non-breaking
-    change.
+  @param [in] prefix= (mclib) first part of the returned libref. As librefs can
+    be as long as 8 characters, a maximum length of 7 characters is premitted
+    for this prefix.
+  @param [in] maxtries= Deprecated parameter. Remains here to ensure a
+    non-breaking change.  Will be removed in v5.
 
   @version 9.2
   @author Allan Bowe
@@ -29,7 +30,13 @@
   %local x;
 
   %if ( %length(&prefix) gt 7 ) %then %do;
-    %put NOTE: The prefix parameter cannot exceed 7 characters.;
+    %put %str(ERR)OR: The prefix parameter cannot exceed 7 characters.;
+    0
+    %return;
+  %end;
+  %else %if (%sysfunc(NVALID(&prefix,v7))=0) %then %do;
+    %put %str(ERR)OR: Invalid prefix (&prefix);
+    0
     %return;
   %end;
 
@@ -44,6 +51,7 @@
     %let x = %eval(&x + 1);
   %end;
 
-  %put NOTE: Unable to find a usable libref in the range &prefix.0-&maxtries..;
-  %put NOTE: Change the prefix parameter.;
+  %put %str(ERR)OR: No usable libref in range &prefix.0-&maxtries;
+  %put %str(ERR)OR- Try reducing the prefix or deleting some libraries!;
+  0
 %mend mf_getuniquelibref;

@@ -970,29 +970,46 @@ or %index(&pgm,/tests/testteardown)
 
 > mclib3
 
-  @param prefix= first part of libref.  Remember that librefs can only be 8 characters,
-    so a 7 letter prefix would mean that maxtries should be 10.
-  @param maxtries= the last part of the libref.  Provide an integer value.
+  A blank value is returned if no usable libname is determined.
+
+  @param [in] prefix= (mclib) first part of the returned libref. As librefs can
+    be as long as 8 characters, a maximum length of 7 characters is premitted
+    for this prefix.
+  @param [in] maxtries= Deprecated parameter. Remains here to ensure a
+    non-breaking change.  Will be removed in v5.
 
   @version 9.2
   @author Allan Bowe
 **/
 
-
 %macro mf_getuniquelibref(prefix=mclib,maxtries=1000);
-  %local x libref;
-  %let x=0;
-  %do x=0 %to &maxtries;
-  %if %sysfunc(libref(&prefix&x)) ne 0 %then %do;
-    %let libref=&prefix&x;
-    %let rc=%sysfunc(libname(&libref,%sysfunc(pathname(work))));
-    %if &rc %then %put %sysfunc(sysmsg());
-    &prefix&x
-    %*put &sysmacroname: Libref &libref assigned as WORK and returned;
+  %local x;
+
+  %if ( %length(&prefix) gt 7 ) %then %do;
+    %put %str(ERR)OR: The prefix parameter cannot exceed 7 characters.;
+    0
     %return;
   %end;
+  %else %if (%sysfunc(NVALID(&prefix,v7))=0) %then %do;
+    %put %str(ERR)OR: Invalid prefix (&prefix);
+    0
+    %return;
   %end;
-  %put unable to find available libref in range &prefix.0-&maxtries;
+
+  /* Set maxtries equal to '10 to the power of [# unused characters] - 1' */
+  %let maxtries=%eval(10**(8-%length(&prefix))-1);
+
+  %do x = 0 %to &maxtries;
+    %if %sysfunc(libref(&prefix&x)) ne 0 %then %do;
+      &prefix&x
+      %return;
+    %end;
+    %let x = %eval(&x + 1);
+  %end;
+
+  %put %str(ERR)OR: No usable libref in range &prefix.0-&maxtries;
+  %put %str(ERR)OR- Try reducing the prefix or deleting some libraries!;
+  0
 %mend mf_getuniquelibref;/**
   @file mf_getuniquename.sas
   @brief Returns a shortened (32 char) GUID as a valid SAS name
@@ -3146,7 +3163,9 @@ run;
 
   %let ds=&syslast;
 
-  proc compare base=&scopeds compare=&ds;
+  proc compare
+    base=&scopeds(where=(upcase(name) not in (%mf_getquotedstr(&ilist))))
+    compare=&ds;
   run;
 
   %if &sysinfo=0 %then %do;

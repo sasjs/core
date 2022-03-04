@@ -33,7 +33,7 @@
     %return;
   %end;
 
-  /* Set maxtries equal to '10 to the power of [unused characters] - 1' */
+  /* Set maxtries equal to '10 to the power of [# unused characters] - 1' */
   %let maxtries=%eval(10**(8-%length(&prefix))-1);
 
   %do x = 0 %to &maxtries;

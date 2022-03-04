@@ -204,6 +204,7 @@ When contributing to this library, it is therefore important to ensure that all 
 
 We are currently on major release v4.  Breaking changes should be marked with the [deprecated](https://www.doxygen.nl/manual/commands.html#cmddeprecated) doxygen tag.  The following changes are planned when the next major/breaking release (v5) becomes necessary:
 
+* mf_getuniquelibref.sas to have the deprecated maxtried parameter removed (no longer needed)
 * mp_testservice.sas to be renamed as mp_execute.sas (as it doesn't actually test anything)
 * `insert_cmplib` option of mcf_xxx macros will be deprecated (the option is now checked automatically with value inserted only if needed)
 * mcf_xxx macros to have `wrap=` option defaulted to YES for convenience.  Set this option explicitly to avoid issues.

@@ -95,6 +95,54 @@
         "tests/sas9only",
         "tests/viyaonly"
       ]
+    },
+    {
+      "name": "viya4",
+      "serverUrl": "https://azureuse011059.my-trials.sas.com",
+      "serverType": "SASVIYA",
+      "appLoc": "/Public/sasjscore",
+      "macroFolders": [],
+      "programFolders": [],
+      "binaryFolders": [],
+      "buildConfig": {
+        "initProgram": "",
+        "termProgram": "",
+        "buildOutputFileName": "viya4.sas",
+        "buildOutputFolder": "sasjsbuild",
+        "buildResultsFolder": "sasjsresults",
+        "macroVars": {}
+      },
+      "jobConfig": {
+        "jobFolders": [],
+        "initProgram": "",
+        "termProgram": "",
+        "macroVars": {}
+      },
+      "serviceConfig": {
+        "serviceFolders": [],
+        "initProgram": "",
+        "termProgram": "",
+        "macroVars": {}
+      },
+      "streamConfig": {
+        "streamWebFolder": "",
+        "streamWeb": false,
+        "webSourcePath": "",
+        "streamServiceName": "",
+        "assetPaths": []
+      },
+      "deployConfig": {
+        "deployServicePack": true,
+        "deployScripts": []
+      },
+      "testConfig": {
+        "initProgram": "",
+        "termProgram": "",
+        "macroVars": {},
+        "testSetUp": "",
+        "testTearDown": ""
+      },
+      "contextName": "SAS Job Execution compute context"
     }
   ]
 }

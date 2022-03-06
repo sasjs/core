@@ -86,7 +86,8 @@
   @li mp_abort.sas
   @li mf_getplatform.sas
   @li mf_existfileref.sas
-  @li ml_json.sas
+  @li mf_getuniquefileref.sas
+  @li mf_getuniquelibref.sas
 
 **/
 
@@ -95,7 +96,7 @@
     ,grant_type=sas_services
     ,mdebug=0
   );
-%local dbg;
+%local dbg libref1 libref2 loglocation fname1 fname2;
 %if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;
@@ -154,8 +155,8 @@ options noquotelenmax;
 %let base_uri=%mf_getplatform(VIYARESTAPI);
 
 /* prepare request*/
-%local  fname1;
 %let fname1=%mf_getuniquefileref();
+%let fname2=%mf_getuniquefileref();
 proc http method='GET' out=&fname1 &oauth_bearer
   url="&base_uri&uri";
   headers
@@ -175,37 +176,19 @@ run;
     ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
   )
 %end;
-%local  fname2 fname3 fpath1 fpath2 fpath3;
-%let fname2=%mf_getuniquefileref();
-%let fname3=%mf_getuniquefileref();
-%let fpath1=%sysfunc(pathname(&fname1));
-%let fpath2=%sysfunc(pathname(&fname2));
-%let fpath3=%sysfunc(pathname(&fname3));
 
-/* compile the lua JSON module */
-%ml_json()
-/* read using LUA - this allows the code to be of any length */
+%let libref1=%mf_getuniquelibref();
+libname &libref1 JSON fileref=&fname1;
 data _null_;
-  file "&fpath3..lua";
-  put '
-    infile = io.open (sas.symget("fpath1"), "r")
-    outfile = io.open (sas.symget("fpath2"), "w")
-    io.input(infile)
-    local resp=json.decode(io.read())
-    local logloc=resp["logLocation"]
-    outfile:write(logloc)
-    io.close(infile)
-    io.close(outfile)
-  ';
+  set &libref1..root;
+  call symputx('loglocation',loglocation,'l');
 run;
-%inc "&fpath3..lua";
-/* get log path*/
+
+/* validate log path*/
 %let errflg=1;
-%let errmsg=No entry in &fname2 fileref;
+%let errmsg=No loglocation entry in &fname1 fileref;
 data _null_;
-  infile &fname2;
-  input;
-  uri=cats(_infile_);
+  uri=symget('loglocation');
   if length(uri)<12 then do;
     call symputx('errflg',1);
     call symputx('errmsg',"URI is invalid (too short) - '&uri'",'l');
@@ -232,7 +215,7 @@ run;
 
 /* we have a log uri - now fetch the log */
 %&dbg.put &sysmacroname: querying &base_uri&logloc/content;
-proc http method='GET' out=&fname1 &oauth_bearer
+proc http method='GET' out=&fname2 &oauth_bearer
   url="&base_uri&logloc/content?limit=10000";
   headers
   %if &grant_type=authorization_code %then %do;
@@ -243,14 +226,14 @@ run;
 
 %if &mdebug=1 %then %do;
   %put &sysmacroname: fetching log content from &base_uri&logloc/content;
-  data _null_;infile &fname1;input;putlog _infile_;run;
+  data _null_;infile &fname2;input;putlog _infile_;run;
 %end;
 
 %if &SYS_PROCHTTP_STATUS_CODE=400 %then %do;
   /* fetch log from parent session */
   %let logloc=%substr(&logloc,1,%index(&logloc,%str(/jobs/))-1);
   %&dbg.put &sysmacroname: Now querying &base_uri&logloc/log/content;
-  proc http method='GET' out=&fname1 &oauth_bearer
+  proc http method='GET' out=&fname2 &oauth_bearer
     url="&base_uri&logloc/log/content?limit=10000";
     headers
     %if &grant_type=authorization_code %then %do;
@@ -260,47 +243,32 @@ run;
   run;
   %if &mdebug=1 %then %do;
     %put &sysmacroname: fetching log content from &base_uri&logloc/log/content;
-    data _null_;infile &fname1;input;putlog _infile_;run;
+    data _null_;infile &fname2;input;putlog _infile_;run;
   %end;
 %end;
 
 %if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201
 %then %do;
   %if &mdebug ne 1 %then %do; /* have already output above */
-    data _null_;infile &fname1;input;putlog _infile_;run;
+    data _null_;infile &fname2;input;putlog _infile_;run;
   %end;
   %mp_abort(mac=&sysmacroname
     ,msg=%str(logfetch: &SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
   )
 %end;
-data _null_;
-  file "&fpath3..lua";
-  put '
-    infile = io.open (sas.symget("fpath1"), "r")
-    outfile = io.open (sas.symget("fpath2"), "w")
-    io.input(infile)
-    local resp=json.decode(io.read())
-    for i, v in pairs(resp["items"]) do
-      outfile:write(v.line,"\n")
-    end
-    io.close(infile)
-    io.close(outfile)
-  ';
-run;
-%inc "&fpath3..lua";
 
-/* write log out to the specified fileref */
+%let libref2=%mf_getuniquelibref();
+libname &libref2 JSON fileref=&fname2;
 data _null_;
-  infile &fname2 end=last;
   file &outref mod;
   if _n_=1 then do;
     put "/** SASJS Viya Job Log Extract start: &uri **/";
   end;
-  input;
-  put _infile_;
+  set &libref2..items end=last;
   %if &mdebug=1 %then %do;
-    putlog _infile_;
+    putlog line;
   %end;
+  put line;
   if last then do;
     put "/** SASJS Viya Job Log Extract end: &uri **/";
   end;
@@ -309,7 +277,8 @@ run;
 %if &mdebug=0 %then %do;
   filename &fname1 clear;
   filename &fname2 clear;
-  filename &fname3 clear;
+  libname &libref1 clear;
+  libname &libref2 clear;
 %end;
 %else %do;
   %put &sysmacroname exit vars:;

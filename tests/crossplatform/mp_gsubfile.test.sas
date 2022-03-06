@@ -8,6 +8,13 @@
 
 **/
 
+
+%macro gsubtest();
+%if "%substr(&sysver,1,4)"="V.04" %then %do;
+  %put %str(ERR)OR: Viya 4 does not support the IO library in lua;
+  %return;
+%end;
+
 /**
   * test 1 - simple replace
   */
@@ -64,3 +71,7 @@ run;
   desc=Check that multi line replacement was successful (line3),
   outds=work.test_results
 )
+
+%mend gsubtest;
+
+%gsubtest()

@@ -48,6 +48,11 @@
   outfile=0
 )/*/STORE SOURCE*/;
 
+  %if "%substr(&sysver,1,4)"="V.04" %then %do;
+    %put %str(ERR)OR: Viya 4 does not support the IO library in lua;
+    %return;
+  %end;
+
   %ml_gsubfile()
 
 %mend mp_gsubfile;

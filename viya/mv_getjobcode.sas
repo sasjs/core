@@ -33,7 +33,6 @@
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
   @li mv_getfoldermembers.sas
-  @li ml_json.sas
 
 **/
 
@@ -44,7 +43,7 @@
     ,grant_type=sas_services
     ,mdebug=0
   );
-%local dbg;
+%local dbg bufsize varcnt fname1 fname2 errmsg;
 %if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;
@@ -104,7 +103,6 @@ run;
 )
 
 /* prepare request*/
-%local  fname1;
 %let fname1=%mf_getuniquefileref();
 proc http method='GET' out=&fname1 &oauth_bearer
   url="&base_uri&joburi";
@@ -121,30 +119,75 @@ run;
     ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
   )
 %end;
-%local  fname2 fname3 fpath1 fpath2 fpath3;
-%let fname2=%mf_getuniquefileref();
-%let fname3=%mf_getuniquefileref();
-%let fpath1=%sysfunc(pathname(&fname1));
-%let fpath2=%sysfunc(pathname(&fname2));
-%let fpath3=%sysfunc(pathname(&fname3));
 
-/* compile the lua JSON module */
-%ml_json()
-/* read using LUA - this allows the code to be of any length */
+%let fname2=%mf_getuniquefileref();
+filename &fname2 temp ;
+
+/* cannot use lua IO package as not available in Viya 4 */
+/* so use data step to read the JSON until the string `"code":"` is found */
 data _null_;
-  file "&fpath3..lua";
-  put '
-    infile = io.open (sas.symget("fpath1"), "r")
-    outfile = io.open (sas.symget("fpath2"), "w")
-    io.input(infile)
-    local resp=json.decode(io.read())
-    local job=resp["code"]
-    outfile:write(job)
-    io.close(infile)
-    io.close(outfile)
-  ';
+  file &fname2 recfm=n;
+  infile &fname1 lrecl=1 recfm=n;
+  input sourcechar $ 1. @@;
+  format sourcechar hex2.;
+  retain startwrite 0;
+  if startwrite=0 and sourcechar='"' then do;
+    reentry:
+    input sourcechar $ 1. @@;
+    if sourcechar='c' then do;
+      reentry2:
+      input sourcechar $ 1. @@;
+      if sourcechar='o' then do;
+        input sourcechar $ 1. @@;
+        if sourcechar='d' then do;
+          input sourcechar $ 1. @@;
+          if sourcechar='e' then do;
+            input sourcechar $ 1. @@;
+            if sourcechar='"' then do;
+              input sourcechar $ 1. @@;
+              if sourcechar=':' then do;
+                input sourcechar $ 1. @@;
+                if sourcechar='"' then do;
+                  putlog 'code found';
+                  startwrite=1;
+                  input sourcechar $ 1. @@;
+                end;
+              end;
+              else if sourcechar='c' then goto reentry2;
+            end;
+          end;
+          else if sourcechar='"' then goto reentry;
+        end;
+        else if sourcechar='"' then goto reentry;
+      end;
+      else if sourcechar='"' then goto reentry;
+    end;
+    else if sourcechar='"' then goto reentry;
+  end;
+  /* once the `"code":"` string is found, write until unescaped `"` is found */
+  if startwrite=1 then do;
+    if sourcechar='\' then do;
+      input sourcechar $ 1. @@;
+      if sourcechar in ('"','\') then put sourcechar char1.;
+      else if sourcechar='n' then put '0A'x;
+      else if sourcechar='r' then put '0D'x;
+      else if sourcechar='t' then put '09'x;
+      else do;
+        call symputx('errmsg',"Uncaught escape char: "!!sourcechar,'l');
+        call symputx('syscc',99);
+        stop;
+      end;
+    end;
+    else if sourcechar='"' then stop;
+    else put sourcechar char1.;
+  end;
 run;
-%inc "&fpath3..lua";
+
+%mp_abort(iftrue=("&syscc"="99")
+  ,mac=mv_getjobcode
+  ,msg=%str(&errmsg)
+)
+
 /* export to desired destination */
 %if "&outref"="0" %then %do;
   data _null_;
@@ -169,7 +212,6 @@ run;
   /* clear refs */
   filename &fname1 clear;
   filename &fname2 clear;
-  filename &fname3 clear;
 %end;
 
 %mend mv_getjobcode;

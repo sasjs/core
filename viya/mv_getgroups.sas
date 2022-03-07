@@ -32,7 +32,7 @@
     ,grant_type=sas_services
     ,outds=work.viyagroups
   );
-%local oauth_bearer;
+%local oauth_bearer base_uri fname1 libref1;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
   %else %let grant_type=sas_services;
@@ -50,11 +50,10 @@
 )
 
 options noquotelenmax;
-%local base_uri; /* location of rest apis */
+/* location of rest apis */
 %let base_uri=%mf_getplatform(VIYARESTAPI);
 
 /* fetching folder details for provided path */
-%local fname1;
 %let fname1=%mf_getuniquefileref();
 %let libref1=%mf_getuniquelibref();
 
@@ -76,7 +75,6 @@ libname &libref1 JSON fileref=&fname1;
 data &outds;
   set &libref1..items;
 run;
-
 
 
 /* clear refs */

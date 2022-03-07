@@ -9693,7 +9693,7 @@ filename &inref &infile lrecl=1 recfm=n;
 
 data &ds1;
   infile &inref;
-  input sourcechar $ 1. @@;
+  input sourcechar $char1. @@;
   format sourcechar hex2.;
 run;
 
@@ -21527,7 +21527,7 @@ filename &fname1 clear;
     ,grant_type=sas_services
     ,outds=work.viyagroups
   );
-%local oauth_bearer;
+%local oauth_bearer base_uri fname1 libref1;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
   %else %let grant_type=sas_services;
@@ -21545,11 +21545,10 @@ filename &fname1 clear;
 )
 
 options noquotelenmax;
-%local base_uri; /* location of rest apis */
+/* location of rest apis */
 %let base_uri=%mf_getplatform(VIYARESTAPI);
 
 /* fetching folder details for provided path */
-%local fname1;
 %let fname1=%mf_getuniquefileref();
 %let libref1=%mf_getuniquelibref();
 
@@ -21573,12 +21572,12 @@ data &outds;
 run;
 
 
-
 /* clear refs */
 filename &fname1 clear;
 libname &libref1 clear;
 
-%mend mv_getgroups;/**
+%mend mv_getgroups;
+/**
   @file
   @brief Extract the source code from a SAS Viya Job
   @details Extracts the SAS code from a Job into a fileref or physical file.
@@ -21625,7 +21624,7 @@ libname &libref1 clear;
   );
 %local dbg bufsize varcnt fname1 fname2 errmsg;
 %if &mdebug=1 %then %do;
-  %put &sysmacroname entry vars:;
+  %put &sysmacroname local entry vars:;
   %put _local_;
 %end;
 %else %let dbg=*;
@@ -21692,13 +21691,20 @@ proc http method='GET' out=&fname1 &oauth_bearer
   %end;
   ;
 run;
-%if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201 %then
-%do;
-  data _null_;infile &fname1;input;putlog _infile_;run;
-  %mp_abort(mac=&sysmacroname
-    ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
-  )
+
+%if &mdebug=1 %then %do;
+  data _null_;
+    infile &fname1;
+    input;
+    putlog _infile_;
+  run;
 %end;
+
+%mp_abort(
+  iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201)
+  ,mac=&sysmacroname
+  ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
+)
 
 %let fname2=%mf_getuniquefileref();
 filename &fname2 temp ;
@@ -21708,7 +21714,7 @@ filename &fname2 temp ;
 data _null_;
   file &fname2 recfm=n;
   infile &fname1 lrecl=1 recfm=n;
-  input sourcechar $ 1. @@;
+  input sourcechar $char1. @@;
   format sourcechar hex2.;
   retain startwrite 0;
   if startwrite=0 and sourcechar='"' then do;

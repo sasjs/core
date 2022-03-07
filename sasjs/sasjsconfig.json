@@ -95,6 +95,19 @@
         "tests/sas9only",
         "tests/viyaonly"
       ]
+    },
+    {
+      "name": "viya4",
+      "serverUrl": "https://azureuse011059.my-trials.sas.com",
+      "serverType": "SASVIYA",
+      "appLoc": "/Public/temp/macrocore",
+      "macroFolders": [
+        "tests/viyaonly"
+      ],
+      "deployConfig": {
+        "deployServicePack": true
+      },
+      "contextName": "SAS Job Execution compute context"
     }
   ]
 }

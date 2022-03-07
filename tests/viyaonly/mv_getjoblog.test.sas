@@ -4,6 +4,7 @@
 
   <h4> SAS Macros </h4>
   @li mp_assert.sas
+  @li mp_assertscope.sas
   @li mv_createjob.sas
   @li mv_jobexecute.sas
   @li mv_jobwaitfor.sas
@@ -49,8 +50,12 @@ data _null_;
 run;
 
 %* Finally, fetch the log;
-%mv_getjoblog(uri=%str(&uri),outref=mylog)
-
+%mp_assertscope(SNAPSHOT)
+%mv_getjoblog(uri=%str(&uri),outref=mylog,mdebug=1)
+/* ignore auto proc json vars */
+%mp_assertscope(COMPARE
+  ,ignorelist=MCLIB2_JADP2LEN MCLIB2_JADPNUM MCLIB2_JADVLEN
+)
 
 data _null_;
   infile mylog end=eof;

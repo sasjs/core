@@ -8,10 +8,16 @@
       %mv_deleteviyafolder(path=/Public/test)
 
 
-  @param path= The full path of the folder to be deleted
-  @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= valid values are "password" or "authorization_code" (unquoted).
-    The default is authorization_code.
+  @param [in] path= The full path of the folder to be deleted
+  @param [in] access_token_var= (ACCESS_TOKEN) The global macro variable to
+    contain the access token
+  @param [in] grant_type= (sas_services) Valid values are:
+    @li password
+    @li authorization_code
+    @li detect - will check if access_token exists, if not will use sas_services
+      if a SASStudioV session else authorization_code.  Default option.
+    @li sas_services - will use oauth_bearer=sas_services.
+  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
 
 
   @version VIYA V.03.04
@@ -29,6 +35,7 @@
 %macro mv_deleteviyafolder(path=
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
+    ,mdebug=0
   );
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
@@ -105,14 +112,17 @@ run;
 %let libref1a=%mf_getuniquelibref();
 libname &libref1a JSON fileref=&fname1a;
 
-data _null_;
-  set &libref1a..items_links;
-  if href=:'/folders/folders' then return;
-  if rel='deleteResource' then
-    call execute('proc http method="DELETE" url='!!quote("&base_uri"!!trim(href))
-    !!'; headers "Authorization"="Bearer &&&access_token_var" '
-    !!' "Accept"="*/*";run; /**/');
-run;
+%if %mf_existds(&libref1a..items_links) %then %do;
+  data _null_;
+    set &libref1a..items_links;
+    if href=:'/folders/folders' then return;
+    if rel='deleteResource' then
+      call execute('proc http method="DELETE" url='
+      !!quote("&base_uri"!!trim(href))
+      !!'; headers "Authorization"="Bearer &&&access_token_var" '
+      !!' "Accept"="*/*";run; /**/');
+  run;
+%end;
 
 %put &sysmacroname: perform the delete operation ;
 %local fname2;
@@ -133,9 +143,11 @@ run;
 %end;
 %else %put &sysmacroname: &path successfully deleted;
 
-/* clear refs */
-filename &fname1 clear;
-filename &fname2 clear;
-libname &libref1 clear;
+%if &mdebug=0 %then %do;
+  /* clear refs */
+  filename &fname1 clear;
+  filename &fname2 clear;
+  libname &libref1 clear;
+%end;
 
 %mend mv_deleteviyafolder;

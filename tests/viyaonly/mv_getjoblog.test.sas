@@ -4,6 +4,7 @@
 
   <h4> SAS Macros </h4>
   @li mp_assert.sas
+  @li mp_assertscope.sas
   @li mv_createjob.sas
   @li mv_jobexecute.sas
   @li mv_jobwaitfor.sas

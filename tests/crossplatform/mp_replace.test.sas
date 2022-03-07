@@ -63,3 +63,33 @@ run;
   desc=Checking second replace 3rd row,
   outds=work.test_results
 )
+
+
+%let test3="&sasjswork/file3.txt";
+%let str=%str(replace.string.with.dots   );
+%let rep=%str( more.dots);
+data _null_;
+  file &test3;
+  put 'blahblah';
+  put "blahblah&str.blah&str. replace &str.X";
+  put "blahbreplacewith&str.spacesahblah";
+run;
+%mp_replace(&test3, findvar=str, replacevar=rep)
+
+data _null_;
+  infile &test3;
+  input;
+  if _n_=2 then call symputx('test3resulta',_infile_);
+  if _n_=3 then call symputx('test3resultb',_infile_);
+run;
+
+%mp_assert(
+  iftrue=("&test3resulta" = "blahblah&rep.blah&rep. replace &rep.X"),
+  desc=Checking third replace 2nd row (dots),
+  outds=work.test_results
+)
+%mp_assert(
+  iftrue=("&test3resultb" = "blahbreplacewith&rep.spacesahblah"),
+  desc=Checking third replace 3rd row (dots),
+  outds=work.test_results
+)

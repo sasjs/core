@@ -70,7 +70,7 @@ filename &inref &infile lrecl=1 recfm=n;
 
 data &ds1;
   infile &inref;
-  input sourcechar $ 1. @@;
+  input sourcechar $char1. @@;
   format sourcechar hex2.;
 run;
 

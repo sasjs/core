@@ -45,7 +45,7 @@
   );
 %local dbg bufsize varcnt fname1 fname2 errmsg;
 %if &mdebug=1 %then %do;
-  %put &sysmacroname entry vars:;
+  %put &sysmacroname local entry vars:;
   %put _local_;
 %end;
 %else %let dbg=*;
@@ -112,13 +112,20 @@ proc http method='GET' out=&fname1 &oauth_bearer
   %end;
   ;
 run;
-%if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201 %then
-%do;
-  data _null_;infile &fname1;input;putlog _infile_;run;
-  %mp_abort(mac=&sysmacroname
-    ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
-  )
+
+%if &mdebug=1 %then %do;
+  data _null_;
+    infile &fname1;
+    input;
+    putlog _infile_;
+  run;
 %end;
+
+%mp_abort(
+  iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201)
+  ,mac=&sysmacroname
+  ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
+)
 
 %let fname2=%mf_getuniquefileref();
 filename &fname2 temp ;
@@ -128,7 +135,7 @@ filename &fname2 temp ;
 data _null_;
   file &fname2 recfm=n;
   infile &fname1 lrecl=1 recfm=n;
-  input sourcechar $ 1. @@;
+  input sourcechar $char1. @@;
   format sourcechar hex2.;
   retain startwrite 0;
   if startwrite=0 and sourcechar='"' then do;

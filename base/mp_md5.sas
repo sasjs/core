@@ -54,5 +54,5 @@ put(md5(
     &sep put(md5(trim(put(ifn(missing(&var),&var,&var*1),binary64.))),$hex32.)
     %let sep=!!;
   %end;
-),hex32.)
+),$hex32.)
 %mend mp_md5;

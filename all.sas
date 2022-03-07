@@ -7573,6 +7573,11 @@ create table &outds as
   outfile=0
 )/*/STORE SOURCE*/;
 
+  %if "%substr(&sysver,1,4)"="V.04" %then %do;
+    %put %str(ERR)OR: Viya 4 does not support the IO library in lua;
+    %return;
+  %end;
+
   %ml_gsubfile()
 
 %mend mp_gsubfile;
@@ -20969,10 +20974,16 @@ libname &libref1a clear;
       %mv_deleteviyafolder(path=/Public/test)
 
 
-  @param path= The full path of the folder to be deleted
-  @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= valid values are "password" or "authorization_code" (unquoted).
-    The default is authorization_code.
+  @param [in] path= The full path of the folder to be deleted
+  @param [in] access_token_var= (ACCESS_TOKEN) The global macro variable to
+    contain the access token
+  @param [in] grant_type= (sas_services) Valid values are:
+    @li password
+    @li authorization_code
+    @li detect - will check if access_token exists, if not will use sas_services
+      if a SASStudioV session else authorization_code.  Default option.
+    @li sas_services - will use oauth_bearer=sas_services.
+  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
 
 
   @version VIYA V.03.04
@@ -20990,6 +21001,7 @@ libname &libref1a clear;
 %macro mv_deleteviyafolder(path=
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
+    ,mdebug=0
   );
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
@@ -21066,14 +21078,17 @@ run;
 %let libref1a=%mf_getuniquelibref();
 libname &libref1a JSON fileref=&fname1a;
 
-data _null_;
-  set &libref1a..items_links;
-  if href=:'/folders/folders' then return;
-  if rel='deleteResource' then
-    call execute('proc http method="DELETE" url='!!quote("&base_uri"!!trim(href))
-    !!'; headers "Authorization"="Bearer &&&access_token_var" '
-    !!' "Accept"="*/*";run; /**/');
-run;
+%if %mf_existds(&libref1a..items_links) %then %do;
+  data _null_;
+    set &libref1a..items_links;
+    if href=:'/folders/folders' then return;
+    if rel='deleteResource' then
+      call execute('proc http method="DELETE" url='
+      !!quote("&base_uri"!!trim(href))
+      !!'; headers "Authorization"="Bearer &&&access_token_var" '
+      !!' "Accept"="*/*";run; /**/');
+  run;
+%end;
 
 %put &sysmacroname: perform the delete operation ;
 %local fname2;
@@ -21094,12 +21109,15 @@ run;
 %end;
 %else %put &sysmacroname: &path successfully deleted;
 
-/* clear refs */
-filename &fname1 clear;
-filename &fname2 clear;
-libname &libref1 clear;
+%if &mdebug=0 %then %do;
+  /* clear refs */
+  filename &fname1 clear;
+  filename &fname2 clear;
+  libname &libref1 clear;
+%end;
 
-%mend mv_deleteviyafolder;/**
+%mend mv_deleteviyafolder;
+/**
   @file mv_getclients.sas
   @brief Get a list of Viya Clients
   @details First, be sure you have an access token (which requires an app token).
@@ -21563,7 +21581,6 @@ libname &libref1 clear;
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
   @li mv_getfoldermembers.sas
-  @li ml_json.sas
 
 **/
 
@@ -21574,7 +21591,7 @@ libname &libref1 clear;
     ,grant_type=sas_services
     ,mdebug=0
   );
-%local dbg;
+%local dbg bufsize varcnt fname1 fname2 errmsg;
 %if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;
@@ -21634,7 +21651,6 @@ run;
 )
 
 /* prepare request*/
-%local  fname1;
 %let fname1=%mf_getuniquefileref();
 proc http method='GET' out=&fname1 &oauth_bearer
   url="&base_uri&joburi";
@@ -21651,30 +21667,81 @@ run;
     ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
   )
 %end;
-%local  fname2 fname3 fpath1 fpath2 fpath3;
-%let fname2=%mf_getuniquefileref();
-%let fname3=%mf_getuniquefileref();
-%let fpath1=%sysfunc(pathname(&fname1));
-%let fpath2=%sysfunc(pathname(&fname2));
-%let fpath3=%sysfunc(pathname(&fname3));
 
-/* compile the lua JSON module */
-%ml_json()
-/* read using LUA - this allows the code to be of any length */
+%let fname2=%mf_getuniquefileref();
+filename &fname2 temp ;
+
+/* cannot use lua IO package as not available in Viya 4 */
+/* so use data step to read the JSON until the string `"code":"` is found */
 data _null_;
-  file "&fpath3..lua";
-  put '
-    infile = io.open (sas.symget("fpath1"), "r")
-    outfile = io.open (sas.symget("fpath2"), "w")
-    io.input(infile)
-    local resp=json.decode(io.read())
-    local job=resp["code"]
-    outfile:write(job)
-    io.close(infile)
-    io.close(outfile)
-  ';
+  file &fname2 recfm=n;
+  infile &fname1 lrecl=1 recfm=n;
+  input sourcechar $ 1. @@;
+  format sourcechar hex2.;
+  retain startwrite 0;
+  if startwrite=0 and sourcechar='"' then do;
+    reentry:
+    input sourcechar $ 1. @@;
+    if sourcechar='c' then do;
+      reentry2:
+      input sourcechar $ 1. @@;
+      if sourcechar='o' then do;
+        input sourcechar $ 1. @@;
+        if sourcechar='d' then do;
+          input sourcechar $ 1. @@;
+          if sourcechar='e' then do;
+            input sourcechar $ 1. @@;
+            if sourcechar='"' then do;
+              input sourcechar $ 1. @@;
+              if sourcechar=':' then do;
+                input sourcechar $ 1. @@;
+                if sourcechar='"' then do;
+                  putlog 'code found';
+                  startwrite=1;
+                  input sourcechar $ 1. @@;
+                end;
+              end;
+              else if sourcechar='c' then goto reentry2;
+            end;
+          end;
+          else if sourcechar='"' then goto reentry;
+        end;
+        else if sourcechar='"' then goto reentry;
+      end;
+      else if sourcechar='"' then goto reentry;
+    end;
+    else if sourcechar='"' then goto reentry;
+  end;
+  /* once the `"code":"` string is found, write until unescaped `"` is found */
+  if startwrite=1 then do;
+    if sourcechar='\' then do;
+      input sourcechar $ 1. @@;
+      if sourcechar in ('"','\') then put sourcechar char1.;
+      else if sourcechar='n' then put '0A'x;
+      else if sourcechar='r' then put '0D'x;
+      else if sourcechar='t' then put '09'x;
+      else if sourcechar='u' then do;
+        length uni $4;
+        input uni $ 4. @@;
+        sourcechar=unicode('\u'!!uni);
+        put sourcechar char1.;
+      end;
+      else do;
+        call symputx('errmsg',"Uncaught escape char: "!!sourcechar,'l');
+        call symputx('syscc',99);
+        stop;
+      end;
+    end;
+    else if sourcechar='"' then stop;
+    else put sourcechar char1.;
+  end;
 run;
-%inc "&fpath3..lua";
+
+%mp_abort(iftrue=("&syscc"="99")
+  ,mac=mv_getjobcode
+  ,msg=%str(&errmsg)
+)
+
 /* export to desired destination */
 %if "&outref"="0" %then %do;
   data _null_;
@@ -21699,7 +21766,6 @@ run;
   /* clear refs */
   filename &fname1 clear;
   filename &fname2 clear;
-  filename &fname3 clear;
 %end;
 
 %mend mv_getjobcode;
@@ -21791,7 +21857,8 @@ run;
   @li mp_abort.sas
   @li mf_getplatform.sas
   @li mf_existfileref.sas
-  @li ml_json.sas
+  @li mf_getuniquefileref.sas
+  @li mf_getuniquelibref.sas
 
 **/
 
@@ -21800,7 +21867,7 @@ run;
     ,grant_type=sas_services
     ,mdebug=0
   );
-%local dbg;
+%local dbg libref1 libref2 loglocation fname1 fname2;
 %if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;
@@ -21859,8 +21926,8 @@ options noquotelenmax;
 %let base_uri=%mf_getplatform(VIYARESTAPI);
 
 /* prepare request*/
-%local  fname1;
 %let fname1=%mf_getuniquefileref();
+%let fname2=%mf_getuniquefileref();
 proc http method='GET' out=&fname1 &oauth_bearer
   url="&base_uri&uri";
   headers
@@ -21880,37 +21947,19 @@ run;
     ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
   )
 %end;
-%local  fname2 fname3 fpath1 fpath2 fpath3;
-%let fname2=%mf_getuniquefileref();
-%let fname3=%mf_getuniquefileref();
-%let fpath1=%sysfunc(pathname(&fname1));
-%let fpath2=%sysfunc(pathname(&fname2));
-%let fpath3=%sysfunc(pathname(&fname3));
 
-/* compile the lua JSON module */
-%ml_json()
-/* read using LUA - this allows the code to be of any length */
+%let libref1=%mf_getuniquelibref();
+libname &libref1 JSON fileref=&fname1;
 data _null_;
-  file "&fpath3..lua";
-  put '
-    infile = io.open (sas.symget("fpath1"), "r")
-    outfile = io.open (sas.symget("fpath2"), "w")
-    io.input(infile)
-    local resp=json.decode(io.read())
-    local logloc=resp["logLocation"]
-    outfile:write(logloc)
-    io.close(infile)
-    io.close(outfile)
-  ';
+  set &libref1..root;
+  call symputx('loglocation',loglocation,'l');
 run;
-%inc "&fpath3..lua";
-/* get log path*/
+
+/* validate log path*/
 %let errflg=1;
-%let errmsg=No entry in &fname2 fileref;
+%let errmsg=No loglocation entry in &fname1 fileref;
 data _null_;
-  infile &fname2;
-  input;
-  uri=cats(_infile_);
+  uri=symget('loglocation');
   if length(uri)<12 then do;
     call symputx('errflg',1);
     call symputx('errmsg',"URI is invalid (too short) - '&uri'",'l');
@@ -21937,7 +21986,7 @@ run;
 
 /* we have a log uri - now fetch the log */
 %&dbg.put &sysmacroname: querying &base_uri&logloc/content;
-proc http method='GET' out=&fname1 &oauth_bearer
+proc http method='GET' out=&fname2 &oauth_bearer
   url="&base_uri&logloc/content?limit=10000";
   headers
   %if &grant_type=authorization_code %then %do;
@@ -21948,14 +21997,14 @@ run;
 
 %if &mdebug=1 %then %do;
   %put &sysmacroname: fetching log content from &base_uri&logloc/content;
-  data _null_;infile &fname1;input;putlog _infile_;run;
+  data _null_;infile &fname2;input;putlog _infile_;run;
 %end;
 
 %if &SYS_PROCHTTP_STATUS_CODE=400 %then %do;
   /* fetch log from parent session */
   %let logloc=%substr(&logloc,1,%index(&logloc,%str(/jobs/))-1);
   %&dbg.put &sysmacroname: Now querying &base_uri&logloc/log/content;
-  proc http method='GET' out=&fname1 &oauth_bearer
+  proc http method='GET' out=&fname2 &oauth_bearer
     url="&base_uri&logloc/log/content?limit=10000";
     headers
     %if &grant_type=authorization_code %then %do;
@@ -21965,47 +22014,32 @@ run;
   run;
   %if &mdebug=1 %then %do;
     %put &sysmacroname: fetching log content from &base_uri&logloc/log/content;
-    data _null_;infile &fname1;input;putlog _infile_;run;
+    data _null_;infile &fname2;input;putlog _infile_;run;
   %end;
 %end;
 
 %if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201
 %then %do;
   %if &mdebug ne 1 %then %do; /* have already output above */
-    data _null_;infile &fname1;input;putlog _infile_;run;
+    data _null_;infile &fname2;input;putlog _infile_;run;
   %end;
   %mp_abort(mac=&sysmacroname
     ,msg=%str(logfetch: &SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
   )
 %end;
-data _null_;
-  file "&fpath3..lua";
-  put '
-    infile = io.open (sas.symget("fpath1"), "r")
-    outfile = io.open (sas.symget("fpath2"), "w")
-    io.input(infile)
-    local resp=json.decode(io.read())
-    for i, v in pairs(resp["items"]) do
-      outfile:write(v.line,"\n")
-    end
-    io.close(infile)
-    io.close(outfile)
-  ';
-run;
-%inc "&fpath3..lua";
 
-/* write log out to the specified fileref */
+%let libref2=%mf_getuniquelibref();
+libname &libref2 JSON fileref=&fname2;
 data _null_;
-  infile &fname2 end=last;
   file &outref mod;
   if _n_=1 then do;
     put "/** SASJS Viya Job Log Extract start: &uri **/";
   end;
-  input;
-  put _infile_;
+  set &libref2..items end=last;
   %if &mdebug=1 %then %do;
-    putlog _infile_;
+    putlog line;
   %end;
+  put line;
   if last then do;
     put "/** SASJS Viya Job Log Extract end: &uri **/";
   end;
@@ -22014,7 +22048,8 @@ run;
 %if &mdebug=0 %then %do;
   filename &fname1 clear;
   filename &fname2 clear;
-  filename &fname3 clear;
+  libname &libref1 clear;
+  libname &libref2 clear;
 %end;
 %else %do;
   %put &sysmacroname exit vars:;
@@ -24971,115 +25006,6 @@ endsub;
 %end;
 
 %mend mcf_length;/**
-  @file
-  @brief Provides a replacement for the stpsrv_header function
-  @details The stpsrv_header is normally a built-in function, used to set the
-  headers for SAS 9 Stored Processes as documented here:
-  https://go.documentation.sas.com/doc/en/itechcdc/9.4/stpug/srvhead.htm
-
-  The purpose of this custom function is to provide a replacement when running
-  similar code as a web service against
-  [sasjs/server](https://github.com/sasjs/server).  It operates by creating a
-  text file with the headers.  The location of this text file is determined by
-  a macro variable (`sasjs_stpsrv_header_loc`) which needs to be injected into
-  each service by the calling process, eg:
-
-      %let sasjs_stpsrv_header_loc = C:/temp/some_uuid/stpsrv_header.txt;
-
-  Note - the function works by appending headers to the file.  If multiple same-
-  named headers are provided, they will all be appended - the calling process
-  needs to pick up the last one.  This will mean removing the attribute if the
-  final record has an empty value.
-
-  The function takes the following (positional) parameters:
-
-  | PARAMETER | DESCRIPTION |
-  |------------|-------------|
-  | name $  | name of the header attribute to create|
-  | value  $  | value of the header attribute|
-
-  It returns 0 if successful, or -1 if an error occured.
-
-  Usage:
-
-      %let sasjs_stpsrv_header_loc=%sysfunc(pathname(work))/stpsrv_header.txt;
-
-      %mcf_stpsrv_header(wrap=YES, insert_cmplib=YES)
-
-      data _null_;
-        rc=stpsrv_header('Content-type','application/text');
-        rc=stpsrv_header('Content-disposition',"attachment; filename=file.txt");
-      run;
-
-      data _null_;
-        infile "&sasjs_stpsrv_header_loc";
-        input;
-        putlog _infile_;
-      run;
-
-
-  @param [out] wrap= (NO) Choose YES to add the proc fcmp wrapper.
-  @param [out] lib= (work) The output library in which to create the catalog.
-  @param [out] cat= (sasjs) The output catalog in which to create the package.
-  @param [out] pkg= (utils) The output package in which to create the function.
-    Uses a 3 part format:  libref.catalog.package
-  @param [out] insert_cmplib= DEPRECATED - The CMPLIB option is checked and
-    values inserted only if needed.
-
-  <h4> SAS Macros </h4>
-  @li mcf_init.sas
-
-  <h4> Related Programs </h4>
-  @li mcf_stpsrv_header.test.sas
-  @li mp_init.sas
-
-**/
-
-%macro mcf_stpsrv_header(wrap=NO
-  ,insert_cmplib=DEPRECATED
-  ,lib=WORK
-  ,cat=SASJS
-  ,pkg=UTILS
-)/*/STORE SOURCE*/;
-%local i var cmpval found;
-%if %mcf_init(stpsrv_header)=1 %then %return;
-
-%if &wrap=YES  %then %do;
-  proc fcmp outlib=&lib..&cat..&pkg;
-%end;
-
-function stpsrv_header(name $, value $);
-  length loc $128 val $512;
-  loc=symget('sasjs_stpsrv_header_loc');
-  val=trim(name)!!': '!!value;
-  length fref $8;
-  rc=filename(fref,loc);
-  if (rc ne 0) then return( -1 );
-  fid = fopen(fref,'a');
-  if (fid = 0) then return( -1 );
-  rc=fput(fid, val);
-  rc=fwrite(fid);
-  rc=fclose(fid);
-  rc=filename(fref);
-  return(0);
-endsub;
-
-%if &wrap=YES %then %do;
-  quit;
-%end;
-
-/* insert the CMPLIB if not already there */
-%let cmpval=%sysfunc(getoption(cmplib));
-%let found=0;
-%do i=1 %to %sysfunc(countw(&cmpval,%str( %(%))));
-  %let var=%scan(&cmpval,&i,%str( %(%)));
-  %if &var=&lib..&cat %then %let found=1;
-%end;
-%if &found=0 %then %do;
-  options insert=(CMPLIB=(&lib..&cat));
-%end;
-
-%mend mcf_stpsrv_header;/**
   @file
   @brief Adds a string to a file
   @details Creates an fcmp function for appending a string to an external file.

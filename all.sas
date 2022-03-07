@@ -7937,7 +7937,7 @@ run;
   @param [in] salt= Provide a salt (could be, for instance, the dataset name)
   @param [in] iftrue= A condition under which the macro should be executed.
   @param [out] outds= (work.mf_hashdataset) The output dataset to create. This
-  will contain one column (hashkey) with one observation (a hex32.
+  will contain one column (hashkey) with one observation (a $hex32.
   representation of the input hash)
   |hashkey:$32.|
   |---|
@@ -9401,7 +9401,7 @@ put(md5(
     &sep put(md5(trim(put(ifn(missing(&var),&var,&var*1),binary64.))),$hex32.)
     %let sep=!!;
   %end;
-),hex32.)
+),$hex32.)
 %mend mp_md5;
 /**
   @file

@@ -23,7 +23,7 @@
   @param [in] salt= Provide a salt (could be, for instance, the dataset name)
   @param [in] iftrue= A condition under which the macro should be executed.
   @param [out] outds= (work.mf_hashdataset) The output dataset to create. This
-  will contain one column (hashkey) with one observation (a hex32.
+  will contain one column (hashkey) with one observation (a $hex32.
   representation of the input hash)
   |hashkey:$32.|
   |---|

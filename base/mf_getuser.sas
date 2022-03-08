@@ -33,7 +33,8 @@
   %else %if %symexist(&metavar) %then %do;
     %if %length(&&&metavar)=0 %then %let user=&sysuserid;
     /* sometimes SAS will add @domain extension - remove for consistency */
-    %else %let user=%scan(&&&metavar,1,@);
+    /* but be sure to quote in case of usernames with commas */
+    %else %let user=%unquote(%scan(%quote(&&&metavar),1,@));
   %end;
   %else %let user=&sysuserid;
 

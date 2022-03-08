@@ -3,6 +3,7 @@
   @brief Testing mp_loadformat.sas macro
 
   <h4> SAS Macros </h4>
+  @li mddl_dc_difftable.sas
   @li mp_loadformat.sas
   @li mp_assert.sas
   @li mp_assertscope.sas
@@ -11,6 +12,8 @@
 
 /* prep format catalog */
 libname perm (work);
+
+%mddl_dc_difftable(libds=perm.audit)
 
 data work.loadfmts;
   length fmtname $32;
@@ -49,7 +52,7 @@ run;
 %mp_loadformat(perm.testcat
   ,work.stagedata
   ,loadtarget=YES
-  ,auditlibds=0
+  ,auditlibds=perm.audit
   ,locklibds=0
   ,delete_col=deleteme
   ,outds_add=add_test1
@@ -71,6 +74,11 @@ run;
 )
 %mp_assert(
   iftrue=(%mf_nobs(mod_test1)=100),
+  desc=Test 1 - mod obs,
+  outds=work.test_results
+)
+%mp_assert(
+  iftrue=(%mf_nobs(perm.audit)=100),
   desc=Test 1 - mod obs,
   outds=work.test_results
 )

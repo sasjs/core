@@ -272,6 +272,9 @@ options ibufsize=&ibufsize;
       ,mdebug=&mdebug
     )
 
+    proc append base=&auditlibds data=&storediffs;
+    run;
+
     %if &locklibds ne 0 %then %do;
       %mp_lockanytable(UNLOCK
         ,lib=%scan(&auditlibds,1,.)

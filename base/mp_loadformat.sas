@@ -40,13 +40,13 @@
   @li mp_abort.sas
   @li mp_cntlout.sas
   @li mp_lockanytable.sas
+  @li mp_storediffs.sas
 
   <h4> Related Macros </h4>
   @li mddl_dc_difftable.sas
   @li mddl_dc_locktable.sas
   @li mp_loadformat.test.sas
   @li mp_lockanytable.sas
-  @li mp_storediffs.sas
   @li mp_stackdiffs.sas
 
 
@@ -271,6 +271,9 @@ options ibufsize=&ibufsize;
       ,outds=&storediffs
       ,mdebug=&mdebug
     )
+
+    proc append base=&auditlibds data=&storediffs;
+    run;
 
     %if &locklibds ne 0 %then %do;
       %mp_lockanytable(UNLOCK

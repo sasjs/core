@@ -78,6 +78,7 @@ filename &fname2 clear;
 %local isgone;
 data _null_;
   length type uri $256;
+  call missing (of _all_);
   rc=metadata_resolve("omsobj:SASLibrary?@Id='&liburi'",type,uri);
   call symputx('isgone',type,'l');
 run;

@@ -1066,7 +1066,8 @@ or %index(&pgm,/tests/testteardown)
   %else %if %symexist(&metavar) %then %do;
     %if %length(&&&metavar)=0 %then %let user=&sysuserid;
     /* sometimes SAS will add @domain extension - remove for consistency */
-    %else %let user=%scan(&&&metavar,1,@);
+    /* but be sure to quote in case of usernames with commas */
+    %else %let user=%unquote(%scan(%quote(&&&metavar),1,@));
   %end;
   %else %let user=&sysuserid;
 
@@ -8640,13 +8641,13 @@ select distinct lowcase(memname)
   @li mp_abort.sas
   @li mp_cntlout.sas
   @li mp_lockanytable.sas
+  @li mp_storediffs.sas
 
   <h4> Related Macros </h4>
   @li mddl_dc_difftable.sas
   @li mddl_dc_locktable.sas
   @li mp_loadformat.test.sas
   @li mp_lockanytable.sas
-  @li mp_storediffs.sas
   @li mp_stackdiffs.sas
 
 
@@ -8898,7 +8899,8 @@ options ibufsize=&ibufsize;
   %put &sysmacroname exit vars:;
   %put _local_;
 %end;
-%mend mp_loadformat;/**
+%mend mp_loadformat;
+/**
   @file
   @brief Mechanism for locking tables to prevent parallel modifications
   @details Uses a control table to enable ANY table to be locked for updates
@@ -15089,7 +15091,8 @@ data _null_;
   put '  %else %if %symexist(&metavar) %then %do; ';
   put '    %if %length(&&&metavar)=0 %then %let user=&sysuserid; ';
   put '    /* sometimes SAS will add @domain extension - remove for consistency */ ';
-  put '    %else %let user=%scan(&&&metavar,1,@); ';
+  put '    /* but be sure to quote in case of usernames with commas */ ';
+  put '    %else %let user=%unquote(%scan(%quote(&&&metavar),1,@)); ';
   put '  %end; ';
   put '  %else %let user=&sysuserid; ';
   put ' ';
@@ -15310,6 +15313,7 @@ filename &fname2 clear;
 %local isgone;
 data _null_;
   length type uri $256;
+  call missing (of _all_);
   rc=metadata_resolve("omsobj:SASLibrary?@Id='&liburi'",type,uri);
   call symputx('isgone',type,'l');
 run;
@@ -20539,7 +20543,8 @@ data _null_;
   put '  %else %if %symexist(&metavar) %then %do; ';
   put '    %if %length(&&&metavar)=0 %then %let user=&sysuserid; ';
   put '    /* sometimes SAS will add @domain extension - remove for consistency */ ';
-  put '    %else %let user=%scan(&&&metavar,1,@); ';
+  put '    /* but be sure to quote in case of usernames with commas */ ';
+  put '    %else %let user=%unquote(%scan(%quote(&&&metavar),1,@)); ';
   put '  %end; ';
   put '  %else %let user=&sysuserid; ';
   put ' ';

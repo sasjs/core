@@ -78,7 +78,7 @@ run;
   outds=work.test_results
 )
 %mp_assert(
-  iftrue=(%mf_nobs(perm.audit)>7329),
+  iftrue=(%mf_nobs(perm.audit)=7329),
   desc=Test 1 - audit table updated,
   outds=work.test_results
 )

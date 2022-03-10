@@ -59,7 +59,7 @@
 
   %goto exit_success;
   %exit_err:
-    %put %str(ERR)OR: &abortmsg;
+    %put &abortmsg;
     %mf_abort(iftrue=(&mabort ne SOFT),
       mac=mf_verifymacvars,
       msg=%str(&abortmsg)

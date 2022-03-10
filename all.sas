@@ -1066,7 +1066,8 @@ or %index(&pgm,/tests/testteardown)
   %else %if %symexist(&metavar) %then %do;
     %if %length(&&&metavar)=0 %then %let user=&sysuserid;
     /* sometimes SAS will add @domain extension - remove for consistency */
-    %else %let user=%scan(&&&metavar,1,@);
+    /* but be sure to quote in case of usernames with commas */
+    %else %let user=%unquote(%scan(%quote(&&&metavar),1,@));
   %end;
   %else %let user=&sysuserid;
 
@@ -1889,7 +1890,7 @@ Usage:
 
   %goto exit_success;
   %exit_err:
-    %put %str(ERR)OR: &abortmsg;
+    %put &abortmsg;
     %mf_abort(iftrue=(&mabort ne SOFT),
       mac=mf_verifymacvars,
       msg=%str(&abortmsg)
@@ -8640,13 +8641,13 @@ select distinct lowcase(memname)
   @li mp_abort.sas
   @li mp_cntlout.sas
   @li mp_lockanytable.sas
+  @li mp_storediffs.sas
 
   <h4> Related Macros </h4>
   @li mddl_dc_difftable.sas
   @li mddl_dc_locktable.sas
   @li mp_loadformat.test.sas
   @li mp_lockanytable.sas
-  @li mp_storediffs.sas
   @li mp_stackdiffs.sas
 
 
@@ -8898,7 +8899,8 @@ options ibufsize=&ibufsize;
   %put &sysmacroname exit vars:;
   %put _local_;
 %end;
-%mend mp_loadformat;/**
+%mend mp_loadformat;
+/**
   @file
   @brief Mechanism for locking tables to prevent parallel modifications
   @details Uses a control table to enable ANY table to be locked for updates
@@ -15089,7 +15091,8 @@ data _null_;
   put '  %else %if %symexist(&metavar) %then %do; ';
   put '    %if %length(&&&metavar)=0 %then %let user=&sysuserid; ';
   put '    /* sometimes SAS will add @domain extension - remove for consistency */ ';
-  put '    %else %let user=%scan(&&&metavar,1,@); ';
+  put '    /* but be sure to quote in case of usernames with commas */ ';
+  put '    %else %let user=%unquote(%scan(%quote(&&&metavar),1,@)); ';
   put '  %end; ';
   put '  %else %let user=&sysuserid; ';
   put ' ';
@@ -17722,20 +17725,25 @@ filename __shake clear;
 
 
   <h4> SAS Macros </h4>
+  @li mf_getuniquefileref.sas
+  @li mf_getuniquename.sas
+  @li mf_isblank.sas
   @li mf_loc.sas
   @li mm_tree.sas
-  @li mf_getuniquefileref.sas
-  @li mf_isblank.sas
   @li mp_abort.sas
 
-  @param metaloc= the metadata folder to export
-  @param secureref= fileref containing the username / password (should point to
-    a file in a secure location).  Leave blank to substitute $bash type vars.
-  @param outref= fileref to which to write the command
-  @param cmdoutloc= the directory to which the command will write the SPK
-    (default=WORK)
-  @param cmdoutname= the name of the spk / log files to create (will be
-    identical just with .spk or .log extension)
+
+  @param [in] metaloc= the metadata folder to export
+  @param [in] secureref= fileref containing the username / password (should
+    point to a file in a secure location). Leave blank to substitute $bash vars.
+  @param [in] excludevars= (0) A space seperated list of macro variable names,
+    each of which contains a value that should be used to filter the output
+    objects.
+  @param [out] outref= fileref to which to write the command
+  @param [out] cmdoutloc= (%sysfunc(pathname(work))) The directory to which the
+    command will write the SPK
+  @param [out] cmdoutname= (mmxport) The name of the spk / log files to create
+    (will be identical just with .spk or .log extension)
 
   @version 9.4
   @author Allan Bowe
@@ -17744,6 +17752,7 @@ filename __shake clear;
 
 %macro mm_spkexport(metaloc=
   ,secureref=
+  ,excludevars=0
   ,outref=
   ,cmdoutloc=%sysfunc(pathname(work))
   ,cmdoutname=mmxport
@@ -17755,7 +17764,7 @@ filename __shake clear;
 %end;
 
 /* set creds */
-%local mmxuser mmxpath;
+%local mmxuser mmxpath i var;
 %let mmxuser=$1;
 %let mmxpass=$2;
 %if %mf_isblank(&secureref)=0 %then %do;
@@ -17763,38 +17772,47 @@ filename __shake clear;
 %end;
 
 /* setup metadata connection options */
-%local host port platform_object_path connx_string;
+%local host port platform_object_path ds;
 %let host=%sysfunc(getoption(metaserver));
 %let port=%sysfunc(getoption(metaport));
 %let platform_object_path=%mf_loc(POF);
+%let ds=%mf_getuniquename(prefix=spkexportable);
 
-%let connx_string=%str(-host &host -port &port -user &mmxuser %trim(
-  )-password &mmxpass);
-
-%mm_tree(root=%str(&metaloc) ,types=EXPORTABLE ,outds=exportable)
+%mm_tree(root=%str(&metaloc) ,types=EXPORTABLE ,outds=&ds)
 
 %if %mf_isblank(&outref)=1 %then %let outref=%mf_getuniquefileref();
 
 data _null_;
-  set exportable end=last;
+  set &ds end=last;
   file &outref lrecl=32767;
   length str $32767;
   if _n_=1 then do;
     put "cd ""&platform_object_path"" \";
-    put "; ./ExportPackage &connx_string -disableX11 \";
-    put " -package ""&cmdoutloc/&cmdoutname..spk"" \";
+    put "; ./ExportPackage -host &host -port &port -user &mmxuser \";
+    put "  -disableX11 -password &mmxpass \"
+    put "  -package ""&cmdoutloc/&cmdoutname..spk"" \";
   end;
+/* exclude particular patterns from the exported SPK */
+%if "&excludevars" ne "0" %then %do;
+  /* ignore top level folder else all subcontent will be exported regardless */
+  if _n_>1;
+  %do i=1 %to %sysfunc(countw(&excludevars));
+    %let var=%scan(&excludevars,&i);
+    if index(path,symget("&var")) ne 0;
+  %end;
+%end;
   str=' -objects '!!cats('"',path,'/',name,"(",publictype,')" \');
   put str;
   if last then put " -log ""&cmdoutloc/&cmdoutname..log"" 2>&1 ";
 run;
 
 %mp_abort(iftrue= (&syscc ne 0)
-  ,mac=&sysmacroname
+  ,mac=mm_spkexport
   ,msg=%str(syscc=&syscc)
 )
 
-%mend mm_spkexport;/**
+%mend mm_spkexport;
+/**
   @file mm_tree.sas
   @brief Returns all folders / subfolder content for a particular root
   @details Shows all members and SubTrees for a particular root.
@@ -20539,7 +20557,8 @@ data _null_;
   put '  %else %if %symexist(&metavar) %then %do; ';
   put '    %if %length(&&&metavar)=0 %then %let user=&sysuserid; ';
   put '    /* sometimes SAS will add @domain extension - remove for consistency */ ';
-  put '    %else %let user=%scan(&&&metavar,1,@); ';
+  put '    /* but be sure to quote in case of usernames with commas */ ';
+  put '    %else %let user=%unquote(%scan(%quote(&&&metavar),1,@)); ';
   put '  %end; ';
   put '  %else %let user=&sysuserid; ';
   put ' ';

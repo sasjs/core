@@ -94,6 +94,13 @@ data &out_ds(compress=no
   %end;
   if rc = 0 then do;
     did = dopen(fref);
+    if did=0 then do;
+      putlog "NOTE: This directory is empty, or does not exist - &path";
+      msg=sysmsg();
+      put msg;
+      put _all_;
+      stop;
+    end;
     /* attribute is OS-dependent - could be "Directory" or "Directory Name" */
     numopts=doptnum(did);
     do i=1 to numopts;
@@ -101,12 +108,6 @@ data &out_ds(compress=no
       if foption=:'Directory' then i=numopts;
     end;
     directory=dinfo(did,foption);
-    if did=0 then do;
-      putlog "NOTE: This directory is empty - " directory;
-      msg=sysmsg();
-      put _all_;
-      stop;
-    end;
     rc = filename(fref);
   end;
   else do;

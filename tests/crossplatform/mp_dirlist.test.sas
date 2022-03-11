@@ -48,3 +48,17 @@ run;
   desc=Top level returned,
   outds=work.test_results
 )
+
+%mp_dirlist(path=&root/b, outds=work.myTable4)
+%mp_assert(
+  iftrue=(%mf_nobs(work.mytable4)=0),
+  desc=Empty table for empty directory,
+  outds=work.test_results
+)
+
+%mp_dirlist(path=&root/notexisting, outds=work.myTable5)
+%mp_assert(
+  iftrue=(%mf_nobs(work.mytable5)=0),
+  desc=Empty table for non-existing directory,
+  outds=work.test_results
+)

@@ -167,19 +167,17 @@ options noquotelenmax;
 
         %put %mf_existfeature(PROCLUA);
 
-  @param feature the feature to detect.  Leave blank to list all in log.
+  @param [in] feature The feature to detect.
 
   @return output returns 1 or 0 (or -1 if not found)
 
   <h4> SAS Macros </h4>
   @li mf_getplatform.sas
 
-
   @version 8
   @author Allan Bowe
 **/
 /** @cond */
-
 %macro mf_existfeature(feature
 )/*/STORE SOURCE*/;
   %let feature=%upcase(&feature);
@@ -187,7 +185,11 @@ options noquotelenmax;
   %let platform=%mf_getplatform();
 
   %if &feature= %then %do;
-    %put Supported features:  PROCLUA;
+    %put No feature was requested for detection;
+  %end;
+  %else %if &feature=COLCONSTRAINTS %then %do;
+    %if %substr(&sysver,1,1)=4 %then 0;
+    %else 1;
   %end;
   %else %if &feature=PROCLUA %then %do;
     /* https://blogs.sas.com/content/sasdummy/2015/08/03/using-lua-within-your-sas-programs */
@@ -201,8 +203,8 @@ options noquotelenmax;
     %put &sysmacroname: &feature not found;
   %end;
 %mend mf_existfeature;
-
-/** @endcond *//**
+/** @endcond */
+/**
   @file
   @brief Checks whether a fileref exists
   @details You can probably do without this macro as it is just a one liner.
@@ -2192,7 +2194,7 @@ Usage:
   %end;
 
   /* Stored Process Server web app context */
-  %if %symexist(_metaperson)
+  %if %symexist(_metaport)
     or "&SYSPROCESSNAME "="Compute Server "
     or &mode=INCLUDE
   %then %do;
@@ -2367,7 +2369,8 @@ Usage:
   %end;
 %mend mp_abort;
 
-/** @endcond *//**
+/** @endcond */
+/**
   @file
   @brief Append (concatenate) two or more files.
   @details Will append one more more `appendrefs` (filerefs) to a `baseref`.
@@ -8768,7 +8771,7 @@ run;
   * First, extract only relevant formats from the catalog
   */
 proc sql noprint;
-select distinct fmtname into: fmtlist separated by ' ' from &libds;
+select distinct upcase(fmtname) into: fmtlist separated by ' ' from &libds;
 
 %mp_cntlout(libcat=&libcat,fmtlist=&fmtlist,cntlout=&base_fmts)
 
@@ -8778,8 +8781,11 @@ select distinct fmtname into: fmtlist separated by ' ' from &libds;
   */
 %mddl_sas_cntlout(libds=&template)
 data &inlibds;
+  length &delete_col $3;
   if 0 then set &template;
   set &libds;
+  if &delete_col='' then &delete_col='No';
+  fmtname=upcase(fmtname);
   if missing(type) then do;
     if substr(fmtname,1,1)='$' then type='C';
     else type='N';
@@ -8789,7 +8795,6 @@ data &inlibds;
     end=cats(end);
   end;
 run;
-
 
 /**
   * Identify new records
@@ -8897,7 +8902,7 @@ options ibufsize=&ibufsize;
     %end;
 
     %mp_storediffs(&libcat-FC
-      ,&inlibds
+      ,&base_fmts
       ,FMTNAME START
       ,delds=&outds_del
       ,modds=&outds_mod
@@ -18924,6 +18929,41 @@ run;
 %mend ms_createfile;
 /**
   @file
+  @brief Deletes a file from SASjs Drive
+  @details Deletes a file from SASjs Drive, if it exists.
+
+  Example:
+
+      filename stpcode temp;
+      data _null_;
+        file stpcode;
+        put '%put hello world;';
+      run;
+      %ms_createfile(/some/stored/program.sas, inref=stpcode)
+
+      %ms_deletefile(/some/stored/program.sas)
+
+  @param [in] driveloc The full path to the file in SASjs Drive
+  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
+
+
+**/
+
+%macro ms_deletefile(driveloc
+    ,mdebug=0
+  );
+
+proc http method='DELETE'
+  url="&_sasjs_apiserverurl/SASjsApi/drive/file?_filePath=&driveloc";
+%if &mdebug=1 %then %do;
+  debug level=2;
+%end;
+run;
+
+
+%mend ms_deletefile;
+/**
+  @file
   @brief Gets a file from SASjs Drive
   @details Fetches a file on SASjs Drive and stores it in the output fileref.
 
@@ -18946,7 +18986,7 @@ run;
 filename &outref temp;
 
 proc http method='GET' out=&outref
-  url="&_sasjs_apiserverurl/SASjsApi/drive/file?filePath=&driveloc";
+  url="&_sasjs_apiserverurl/SASjsApi/drive/file?_filePath=&driveloc";
 %if &mdebug=1 %then %do;
   debug level=2;
 %end;

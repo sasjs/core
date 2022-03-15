@@ -134,7 +134,7 @@ run;
   * First, extract only relevant formats from the catalog
   */
 proc sql noprint;
-select distinct fmtname into: fmtlist separated by ' ' from &libds;
+select distinct upcase(fmtname) into: fmtlist separated by ' ' from &libds;
 
 %mp_cntlout(libcat=&libcat,fmtlist=&fmtlist,cntlout=&base_fmts)
 
@@ -144,8 +144,11 @@ select distinct fmtname into: fmtlist separated by ' ' from &libds;
   */
 %mddl_sas_cntlout(libds=&template)
 data &inlibds;
+  length &delete_col $3;
   if 0 then set &template;
   set &libds;
+  if &delete_col='' then &delete_col='No';
+  fmtname=upcase(fmtname);
   if missing(type) then do;
     if substr(fmtname,1,1)='$' then type='C';
     else type='N';
@@ -155,7 +158,6 @@ data &inlibds;
     end=cats(end);
   end;
 run;
-
 
 /**
   * Identify new records
@@ -263,7 +265,7 @@ options ibufsize=&ibufsize;
     %end;
 
     %mp_storediffs(&libcat-FC
-      ,&inlibds
+      ,&base_fmts
       ,FMTNAME START
       ,delds=&outds_del
       ,modds=&outds_mod

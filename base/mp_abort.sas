@@ -85,7 +85,7 @@
   %end;
 
   /* Stored Process Server web app context */
-  %if %symexist(_metaperson)
+  %if %symexist(_metaport)
     or "&SYSPROCESSNAME "="Compute Server "
     or &mode=INCLUDE
   %then %do;

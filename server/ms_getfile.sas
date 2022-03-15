@@ -22,7 +22,7 @@
 filename &outref temp;
 
 proc http method='GET' out=&outref
-  url="&_sasjs_apiserverurl/SASjsApi/drive/file?filePath=&driveloc";
+  url="&_sasjs_apiserverurl/SASjsApi/drive/file?_filePath=&driveloc";
 %if &mdebug=1 %then %do;
   debug level=2;
 %end;

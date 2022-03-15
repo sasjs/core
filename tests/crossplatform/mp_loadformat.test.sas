@@ -82,3 +82,12 @@ run;
   desc=Test 1 - audit table updated,
   outds=work.test_results
 )
+data work.difftest;
+  set perm.audit;
+  where is_diff=1;
+run;
+%mp_assert(
+  iftrue=(%mf_nobs(work.difftest)>0),
+  desc=Test 1 - diffs were found,
+  outds=work.test_results
+)

@@ -9,19 +9,17 @@
 
         %put %mf_existfeature(PROCLUA);
 
-  @param feature the feature to detect.  Leave blank to list all in log.
+  @param [in] feature The feature to detect.
 
   @return output returns 1 or 0 (or -1 if not found)
 
   <h4> SAS Macros </h4>
   @li mf_getplatform.sas
 
-
   @version 8
   @author Allan Bowe
 **/
 /** @cond */
-
 %macro mf_existfeature(feature
 )/*/STORE SOURCE*/;
   %let feature=%upcase(&feature);
@@ -29,7 +27,11 @@
   %let platform=%mf_getplatform();
 
   %if &feature= %then %do;
-    %put Supported features:  PROCLUA;
+    %put No feature was requested for detection;
+  %end;
+  %else %if &feature=COLCONSTRAINTS %then %do;
+    %if %substr(&sysver,1,1)=4 %then 0;
+    %else 1;
   %end;
   %else %if &feature=PROCLUA %then %do;
     /* https://blogs.sas.com/content/sasdummy/2015/08/03/using-lua-within-your-sas-programs */
@@ -43,5 +45,4 @@
     %put &sysmacroname: &feature not found;
   %end;
 %mend mf_existfeature;
-
 /** @endcond */

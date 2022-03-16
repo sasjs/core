@@ -21127,6 +21127,7 @@ libname &libref1a clear;
 
   <h4> SAS Macros </h4>
   @li mp_abort.sas
+  @li mf_existds.sas
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
   @li mf_getuniquelibref.sas

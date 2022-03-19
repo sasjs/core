@@ -29,9 +29,10 @@
     ,mdebug=0
   );
 
-%local fname0 fname1 boundary fname statcd msg;
+%local fname0 fname1 fname2 boundary fname statcd msg;
 %let fname0=%mf_getuniquefileref();
 %let fname1=%mf_getuniquefileref();
+%let fname2=%mf_getuniquefileref();
 %let boundary=%mf_getuniquename();
 
 data _null_;
@@ -55,17 +56,25 @@ data _null_;
   end;
 run;
 
+data _null_;
+  file &fname1;
+  put "Content-Type: multipart/form-data; boundary=&boundary";
+run;
+
 %if &mdebug=1 %then %do;
   data _null_;
     infile &fname0;
     input;
     put _infile_;
+  data _null_;
+    infile &fname1;
+    input;
+    put _infile_;
   run;
 %end;
 
-proc http method='POST' in=&fname0 out=&fname1
+proc http method='POST' in=&fname0 headerin=&fname1 out=&fname2
   url="&_sasjs_apiserverurl/SASjsApi/drive/file";
-  headers "Content-Type"="multipart/form-data; boundary=&boundary";
 %if &mdebug=1 %then %do;
   debug level=1;
 %end;
@@ -73,7 +82,7 @@ run;
 
 %let statcd=0;
 data _null_;
-  infile &fname1;
+  infile &fname2;
   input;
   putlog _infile_;
   if _infile_='{"status":"success"}' then call symputx('statcd',1,'l');

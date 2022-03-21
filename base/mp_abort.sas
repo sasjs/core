@@ -85,7 +85,7 @@
   %end;
 
   /* Stored Process Server web app context */
-  %if %symexist(_metaport)
+  %if %symexist(_METAFOLDER)
     or "&SYSPROCESSNAME "="Compute Server "
     or &mode=INCLUDE
   %then %do;
@@ -161,12 +161,14 @@
     /* send response in SASjs JSON format */
     data _null_;
       file _webout mod lrecl=32000 encoding='utf-8';
-      length msg $32767 ;
+      length msg syswarningtext syserrortext $32767 ;
       sasdatetime=datetime();
       msg=symget('msg');
     %if &logline>0 %then %do;
       msg=cats(msg,'\n\nLog Extract:\n',symget('logmsg'));
     %end;
+      /* escape the escapes */
+      msg=tranwrd(msg,'\','\\');
       /* escape the quotes */
       msg=tranwrd(msg,'"','\"');
       /* ditch the CRLFs as chrome complains */

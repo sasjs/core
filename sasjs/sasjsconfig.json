@@ -4,11 +4,8 @@
     "base",
     "ddl",
     "fcmp",
-    "meta",
-    "metax",
-    "server",
-    "viya",
     "lua",
+    "server",
     "tests/crossplatform",
     "tests/ddl"
   ],
@@ -39,6 +36,7 @@
       },
       "appLoc": "/Public/temp/macrocore",
       "macroFolders": [
+        "viya",
         "tests/viyaonly"
       ],
       "programFolders": [],
@@ -58,6 +56,8 @@
       },
       "appLoc": "/Shared Data/temp/macrocore",
       "macroFolders": [
+        "meta",
+        "metax",
         "tests/sas9only"
       ],
       "programFolders": [],
@@ -78,6 +78,7 @@
       },
       "appLoc": "/sasjs/core",
       "macroFolders": [
+        "server",
         "tests/serveronly"
       ],
       "programFolders": [],
@@ -102,6 +103,7 @@
       "serverType": "SASVIYA",
       "appLoc": "/Public/temp/macrocore",
       "macroFolders": [
+        "viya",
         "tests/viyaonly"
       ],
       "deployConfig": {

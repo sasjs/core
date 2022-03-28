@@ -8417,8 +8417,11 @@ options
                     prxchange('s/'!!'0A'x!!'/\n/',-1,
                     prxchange('s/'!!'0D'x!!'/\r/',-1,
                     prxchange('s/'!!'09'x!!'/\t/',-1,
+                    prxchange('s/'!!'01'x!!'/\\u0001/',-1, /* SOH */
+                    prxchange('s/'!!'02'x!!'/\\u0002/',-1, /* STX */
+                    prxchange('s/'!!'11'x!!'/\\u0011/',-1, /* DC1 */
                     prxchange('s/\\/\\\\/',-1,&&name&i)
-        )))))!!'"';
+        ))))))))!!'"';
       %end;
     %end;
     run;
@@ -14927,8 +14930,11 @@ data _null_;
   put '                    prxchange(''s/''!!''0A''x!!''/\n/'',-1, ';
   put '                    prxchange(''s/''!!''0D''x!!''/\r/'',-1, ';
   put '                    prxchange(''s/''!!''09''x!!''/\t/'',-1, ';
+  put '                    prxchange(''s/''!!''01''x!!''/\\u0001/'',-1, /* SOH */ ';
+  put '                    prxchange(''s/''!!''02''x!!''/\\u0002/'',-1, /* STX */ ';
+  put '                    prxchange(''s/''!!''11''x!!''/\\u0011/'',-1, /* DC1 */ ';
   put '                    prxchange(''s/\\/\\\\/'',-1,&&name&i) ';
-  put '        )))))!!''"''; ';
+  put '        ))))))))!!''"''; ';
   put '      %end; ';
   put '    %end; ';
   put '    run; ';
@@ -20388,8 +20394,11 @@ data _null_;
   put '                    prxchange(''s/''!!''0A''x!!''/\n/'',-1, ';
   put '                    prxchange(''s/''!!''0D''x!!''/\r/'',-1, ';
   put '                    prxchange(''s/''!!''09''x!!''/\t/'',-1, ';
+  put '                    prxchange(''s/''!!''01''x!!''/\\u0001/'',-1, /* SOH */ ';
+  put '                    prxchange(''s/''!!''02''x!!''/\\u0002/'',-1, /* STX */ ';
+  put '                    prxchange(''s/''!!''11''x!!''/\\u0011/'',-1, /* DC1 */ ';
   put '                    prxchange(''s/\\/\\\\/'',-1,&&name&i) ';
-  put '        )))))!!''"''; ';
+  put '        ))))))))!!''"''; ';
   put '      %end; ';
   put '    %end; ';
   put '    run; ';

@@ -93,6 +93,10 @@
       "serverType": "SAS9",
       "appLoc": "dummy",
       "macroFolders": [
+        "meta",
+        "metax",
+        "server",
+        "viya",
         "tests/sas9only",
         "tests/viyaonly"
       ]

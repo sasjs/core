@@ -203,8 +203,15 @@
                     prxchange('s/'!!'0A'x!!'/\n/',-1,
                     prxchange('s/'!!'0D'x!!'/\r/',-1,
                     prxchange('s/'!!'09'x!!'/\t/',-1,
+                    prxchange('s/'!!'00'x!!'/\\u0000/',-1, /* NUL */
+                    prxchange('s/'!!'0E'x!!'/\\u000E/',-1, /* SS  */
+                    prxchange('s/'!!'0F'x!!'/\\u000F/',-1, /* SF  */
+                    prxchange('s/'!!'01'x!!'/\\u0001/',-1, /* SOH */
+                    prxchange('s/'!!'02'x!!'/\\u0002/',-1, /* STX */
+                    prxchange('s/'!!'02'x!!'/\\u0010/',-1, /* DLE */
+                    prxchange('s/'!!'11'x!!'/\\u0011/',-1, /* DC1 */
                     prxchange('s/\\/\\\\/',-1,&&name&i)
-        )))))!!'"';
+        ))))))))))))!!'"';
       %end;
     %end;
     run;

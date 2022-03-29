@@ -71,7 +71,7 @@
     },
     {
       "name": "server",
-      "serverUrl": " ",
+      "serverUrl": "https://sas.analytium.co.uk:5000",
       "serverType": "SASJS",
       "httpsAgentOptions": {
         "allowInsecureRequests": false

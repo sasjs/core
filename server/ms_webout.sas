@@ -114,6 +114,7 @@
     data _null_;
       set &tempds;
       if not (upcase(name) =:"DATA"); /* ignore temp datasets */
+      if not (upcase(name)=:"_DATA_");
       i+1;
       call symputx(cats('wt',i),name,'l');
       call symputx('wtcnt',i,'l');

@@ -7954,8 +7954,8 @@ run;
 %mend mp_guesspk;/**
   @file
   @brief Returns a unique hash for a dataset
-  @details Ignores metadata attributes, used only to hash values. Compared
-  datasets must be in the same order.
+  @details Ignores metadata attributes, used only to hash values. If used to
+  compare datasets, they must have their columns and rows in the same order.
 
       %mp_hashdataset(sashelp.class,outds=myhash)
 
@@ -7970,7 +7970,10 @@ run;
   @li mf_getattrn.sas
   @li mf_getuniquename.sas
   @li mf_getvarlist.sas
-  @li mf_getvartype.sas
+  @li mp_md5.sas
+
+  <h4> Related Files </h4>
+  @li mp_hashdataset.test.sas
 
   @param [in] libds dataset to hash
   @param [in] salt= Provide a salt (could be, for instance, the dataset name)
@@ -7988,51 +7991,52 @@ run;
 
 %macro mp_hashdataset(
   libds,
-  outds=,
+  outds=work._data_,
   salt=,
   iftrue=%str(1=1)
 )/*/STORE SOURCE*/;
 
-  %if not(%eval(%unquote(&iftrue))) %then %return;
+%local keyvar /* roll up the md5 */
+  prevkeyvar /* retain prev record md5 */
+  lastvar /* last var in input ds */
+  cvars nvars;
 
-  %if %mf_getattrn(&libds,NLOBS)=0 %then %do;
-    %put %str(WARN)ING: Dataset &libds is empty, or is not a dataset;
-  %end;
-  %else %if %mf_getattrn(&libds,NLOBS)<0 %then %do;
-    %put %str(ERR)OR: Dataset &libds is not a dataset;
-  %end;
-  %else %do;
-    %local keyvar /* roll up the md5 */
-      prevkeyvar /* retain prev record md5 */
-      lastvar /* last var in input ds */
-      varlist var i;
-    /* avoid naming conflict for hash key vars */
-    %let keyvar=%mf_getuniquename();
-    %let prevkeyvar=%mf_getuniquename();
-    %let lastvar=%mf_getuniquename();
-    %let varlist=%mf_getvarlist(&libds);
-    data &outds(rename=(&keyvar=hashkey) keep=&keyvar);
-      length &prevkeyvar &keyvar $32;
-      retain &prevkeyvar "%sysfunc(md5(%str(&salt)),$hex32.)";
-      set &libds end=&lastvar;
-      /* hash should include previous row */
-      &keyvar=put(md5(&prevkeyvar
-      /* loop every column, hashing every individual value */
-    %do i=1 %to %sysfunc(countw(&varlist));
-      %let var=%scan(&varlist,&i,%str( ));
-      %if %mf_getvartype(&libds,&var)=C %then %do;
-          !!put(md5(trim(&var)),$hex32.)
-      %end;
-      %else %do;
-          !!put(md5(trim(put(&var*1,binary64.))),$hex32.)
-      %end;
-    %end;
-      ),$hex32.);
-      &prevkeyvar=&keyvar;
-      if &lastvar then output;
-    run;
-  %end;
-%mend mp_hashdataset;/**
+%if not(%eval(%unquote(&iftrue))) %then %return;
+
+/* avoid naming conflict for hash key vars */
+%let keyvar=%mf_getuniquename();
+%let prevkeyvar=%mf_getuniquename();
+%let lastvar=%mf_getuniquename();
+
+%if %mf_getattrn(&libds,NLOBS)=0 %then %do;
+  data &outds;
+    length hashkey $32;
+    retain hashkey "%sysfunc(md5(%str(&salt)),$hex32.)";
+    output;
+    stop;
+  run;
+  %put &sysmacroname: Dataset &libds is empty, or is not a dataset;
+  %put &sysmacroname: hashkey of &outds is based on salt (&salt) only;
+%end;
+%else %if %mf_getattrn(&libds,NLOBS)<0 %then %do;
+  %put %str(ERR)OR: Dataset &libds is not a dataset;
+%end;
+%else %do;
+  data &outds(rename=(&keyvar=hashkey) keep=&keyvar);
+    length &prevkeyvar &keyvar $32;
+    retain &prevkeyvar "%sysfunc(md5(%str(&salt)),$hex32.)";
+    set &libds end=&lastvar;
+    /* hash should include previous row */
+    &keyvar=%mp_md5(
+      cvars=%mf_getvarlist(&libds,typefilter=C) &prevkeyvar,
+      nvars=%mf_getvarlist(&libds,typefilter=N)
+    );
+    &prevkeyvar=&keyvar;
+    if &lastvar then output;
+  run;
+%end;
+%mend mp_hashdataset;
+/**
   @file
   @brief Performs a wrapped \%include
   @details This macro wrapper is necessary if you need your included code to
@@ -19224,6 +19228,7 @@ run;
     data _null_;
       set &tempds;
       if not (upcase(name) =:"DATA"); /* ignore temp datasets */
+      if not (upcase(name)=:"_DATA_");
       i+1;
       call symputx(cats('wt',i),name,'l');
       call symputx('wtcnt',i,'l');

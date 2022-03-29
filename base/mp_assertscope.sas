@@ -106,7 +106,7 @@
 
   proc compare
     base=&scopeds(where=(upcase(name) not in (%mf_getquotedstr(&ilist))))
-    compare=&ds;
+    compare=&ds noprint;
   run;
 
   %if &sysinfo=0 %then %do;

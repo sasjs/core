@@ -5,6 +5,7 @@
   <h4> SAS Macros </h4>
   @li mp_hashdataset.sas
   @li mp_assert.sas
+  @li mp_assertscope.sas
 
 **/
 

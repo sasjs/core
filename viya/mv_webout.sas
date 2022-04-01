@@ -49,7 +49,7 @@
   sasjs_tables SYS_JES_JOB_URI;
 %if %index("&_debug",log) %then %let _debug=131;
 
-%local i tempds;
+%local i tempds table;
 %let action=%upcase(&action);
 
 %if &action=FETCH %then %do;
@@ -64,60 +64,35 @@
   %end;
 
   /* if the sasjs_tables param is passed, we expect param based upload */
-  %if %length(&sasjs_tables.XX)>2 %then %do;
-    filename _sasjs "%sysfunc(pathname(work))/sasjs.lua";
-    data _null_;
-      file _sasjs;
-      put 's=sas.symget("sasjs_tables")';
-      put 'if(s:sub(1,7) == "%nrstr(")';
-      put 'then';
-      put ' tablist=s:sub(8,s:len()-1)';
-      put 'else';
-      put ' tablist=s';
-      put 'end';
-      put 'for i = 1,sas.countw(tablist) ';
-      put 'do ';
-      put '  tab=sas.scan(tablist,i)';
-      put '  sasdata=""';
-      put '  if (sas.symexist("sasjs"..i.."data0")==0)';
-      put '  then';
-      /* TODO - condense this logic */
-      put '    s=sas.symget("sasjs"..i.."data")';
-      put '    if(s:sub(1,7) == "%nrstr(")';
-      put '    then';
-      put '      sasdata=s:sub(8,s:len()-1)';
-      put '    else';
-      put '      sasdata=s';
-      put '    end';
-      put '  else';
-      put '    for d = 1, sas.symget("sasjs"..i.."data0")';
-      put '    do';
-      put '      s=sas.symget("sasjs"..i.."data"..d)';
-      put '      if(s:sub(1,7) == "%nrstr(")';
-      put '      then';
-      put '        sasdata=sasdata..s:sub(8,s:len()-1)';
-      put '      else';
-      put '        sasdata=sasdata..s';
-      put '      end';
-      put '    end';
-      put '  end';
-      put '  file = io.open(sas.pathname("work").."/"..tab..".csv", "a")';
-      put '  io.output(file)';
-      put '  io.write(sasdata)';
-      put '  io.close(file)';
-      put 'end';
-    run;
-    %inc _sasjs;
+  %if %length(&sasjs_tables.X)>1 %then %do;
 
-    /* now read in the data */
+    /* convert data from macro variables to datasets */
     %do i=1 %to %sysfunc(countw(&sasjs_tables));
-      %local table; %let table=%scan(&sasjs_tables,&i);
+      %let table=%scan(&sasjs_tables,&i,%str( ));
+      %if %symexist(sasjs&i.data0)=0 %then %let sasjs&i.data0=1;
+      data _null_;
+        file "%sysfunc(pathname(work))/&table..csv" recfm=n;
+        retain nrflg 0;
+        length line $32767;
+        do i=1 to &&sasjs&i.data0;
+          if &&sasjs&i.data0=1 then line=symget("sasjs&i.data");
+          else line=symget(cats("sasjs&i.data",i));
+          if i=1 and substr(line,1,7)='%nrstr(' then do;
+            nrflg=1;
+            line=substr(line,8);
+          end;
+          if i=&&sasjs&i.data0 and nrflg=1 then do;
+            line=substr(line,1,length(line)-1);
+          end;
+          put line +(-1) @;
+        end;
+      run;
       data _null_;
         infile "%sysfunc(pathname(work))/&table..csv" termstr=crlf ;
         input;
         if _n_=1 then call symputx('input_statement',_infile_);
         list;
-      data &table;
+      data work.&table;
         infile "%sysfunc(pathname(work))/&table..csv" firstobs=2 dsd
           termstr=crlf;
         input &input_statement;

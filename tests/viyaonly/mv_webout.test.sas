@@ -1,13 +1,31 @@
 /**
   @file
-  @brief Testing mm_webout macro
+  @brief Testing mv_webout macro
 
   <h4> SAS Macros </h4>
   @li mf_getuniquefileref.sas
   @li mv_webout.sas
   @li mp_assert.sas
+  @li mp_assertdsobs.sas
 
 **/
+
+
+/* testing FETCHing (WEB approach) */
+
+data _null_;
+  call symputx('sasjs1data','area:$char4.'!!'0d0a'x!!'Adak');
+  call symputx('sasjs_tables','areas');
+run;
+%put &=sasjs1data;
+
+%mv_webout(FETCH)
+
+%mp_assertdsobs(work.areas,
+  desc=Test input table has 1 row,
+  test=EQUALS 1,
+  outds=work.test_results
+)
 
 
 %let fref=%mf_getuniquefileref();

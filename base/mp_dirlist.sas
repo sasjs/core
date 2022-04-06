@@ -152,6 +152,7 @@ run;
   data &out_ds;
     set &out_ds;
     length infoname infoval $60 fref $8;
+    if _n_=1 then call missing(fref);
     rc=filename(fref,filepath);
     drop rc infoname fid i close fref;
     if file_or_folder='file' then do;

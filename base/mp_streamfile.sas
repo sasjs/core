@@ -105,12 +105,20 @@ run;
   %end;
 %end;
 %else %if &contentype=HTML %then %do;
-  %if &platform=SASVIYA %then %do;
+  %if (&platform=SASMETA and &streamweb=1) %then %do;
+    data _null_;
+      rc=stpsrv_header('Content-type','text/html');
+      rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
+    run;
+  %end;
+  %else %if &platform=SASVIYA %then %do;
     filename &outref filesrvc parenturi="&SYS_JES_JOB_URI" name="_webout.json"
-      contenttype="text/html";
+      contenttype="text/html"
+      contentdisp="attachment; filename=&outname";
   %end;
   %else %if &platform=SASJS %then %do;
     %mfs_httpheader(Content-type,text/html)
+    %mfs_httpheader(Content-disposition,%str(attachment; filename=&outname))
   %end;
 %end;
 %else %if &contentype=TEXT %then %do;

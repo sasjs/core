@@ -89,3 +89,49 @@ run;
 %mp_getpk(work,outds=test4)
 
 %mp_assertdsobs(work.test4,test=ATLEAST 2)
+
+/* unique & not null INDEX captured */
+proc sql;
+create table work.example5(
+  TX_FROM float format=datetime19.,
+  DD_TYPE char(16),
+  DD_SOURCE char(2048),
+  DD_SHORTDESC char(256)
+);
+proc datasets lib=work noprint;
+  modify example5;
+  index create tx_from /nomiss unique;
+quit;
+%mp_getpk(work,ds=example5,outds=test5)
+data _null_;
+  set work.test5;
+  call symputx('test5',pk_fields);
+run;
+%mp_assert(
+  iftrue=("&test5"="TX_FROM"),
+  desc=mp_getpk captures single column not null unique index,
+  outds=work.test_results
+)
+
+/* unique & not null COMPOSITE INDEX captured */
+proc sql;
+create table work.example6(
+  TX_FROM float format=datetime19.,
+  DD_TYPE char(16),
+  DD_SOURCE char(2048),
+  DD_SHORTDESC char(256)
+);
+proc datasets lib=work noprint;
+  modify example6;
+  index create pk_6=(tx_from dd_type) /nomiss unique;
+quit;
+%mp_getpk(work,ds=example6,outds=test6)
+data _null_;
+  set work.test6;
+  call symputx('test6',pk_fields);
+run;
+%mp_assert(
+  iftrue=("&test6"="TX_FROM DD_TYPE"),
+  desc=mp_getpk captures multiple column not null unique index,
+  outds=work.test_results
+)

@@ -55,7 +55,8 @@
 )/*/STORE SOURCE*/;
 
 
-%local engine schema ds1 ds2 ds3 dsn tabs1 tabs2 sum pk4sure pkdefault finalpks;
+%local engine schema ds1 ds2 ds3 dsn tabs1 tabs2 sum pk4sure pkdefault finalpks
+  pkfromindex;
 
 %let lib=%upcase(&lib);
 %let ds=%upcase(&ds);
@@ -70,6 +71,7 @@
 %let sum=%mf_getuniquename(prefix=getpk_sum);
 %let pk4sure=%mf_getuniquename(prefix=getpk_pk4sure);
 %let pkdefault=%mf_getuniquename(prefix=getpk_pkdefault);
+%let pkfromindex=%mf_getuniquename(prefix=getpk_pkfromindex);
 %let finalpks=%mf_getuniquename(prefix=getpk_finalpks);
 
 %local dbg;
@@ -180,9 +182,23 @@ create table &ds1 as
       and a.constraint_name=b.constraint_name
     order by 1,2,3,4;
 
+  /* extract cols from the relevant unique INDEXES */
+  create table &pkfromindex as
+    select libname as libref
+      ,memname as table_name
+      ,indxname as constraint_name
+      ,indxpos as constraint_order
+      ,name
+    from dictionary.indexes
+    where nomiss='yes' and unique='yes' and upcase(libname)="&lib"
+  %if &ds ne 0 %then %do;
+      and upcase(memname)="&ds"
+  %end;
+    order by 1,2,3,4;
+
   /* create one table */
   data &finalpks;
-    set &pkdefault &pk4sure ;
+    set &pkdefault &pk4sure &pkfromindex;
     pk_ind=1;
     /* if there are multiple unique constraints, take the first */
     by libref table_name constraint_name;

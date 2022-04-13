@@ -1,6 +1,6 @@
 /**
   @file
-  @brief Send data to/from @sasjs/server
+  @brief Send data to/from sasjs/server
   @details This macro should be added to the start of each web service,
   **immediately** followed by a call to:
 

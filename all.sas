@@ -8239,7 +8239,8 @@ options
 %end;
 ;
 
-%mend mp_init;/**
+%mend mp_init;
+/**
   @file mp_jsonout.sas
   @brief Writes JSON in SASjs format to a fileref
   @details PROC JSON is faster but will produce errs like the ones below if
@@ -18937,11 +18938,15 @@ run;
     ,mdebug=0
   );
 
-%local fname0 fname1 fname2 boundary fname statcd msg;
+%local fname0 fname1 fname2 boundary fname statcd msg optval;
 %let fname0=%mf_getuniquefileref();
 %let fname1=%mf_getuniquefileref();
 %let fname2=%mf_getuniquefileref();
 %let boundary=%mf_getuniquename();
+
+/* avoid sending bom marker to API */
+%let optval=%sysfunc(getoption(bomfile));
+options nobomfile;
 
 data _null_;
   file &fname0 termstr=crlf;
@@ -19002,6 +19007,9 @@ run;
   ,mac=ms_createfile.sas
   ,msg=%superq(msg)
 )
+
+/* reset options */
+options &optval;
 
 %mend ms_createfile;
 /**

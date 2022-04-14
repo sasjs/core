@@ -147,7 +147,8 @@
     put ",""_DEBUG"" : ""&_debug"" ";
     put ',"_PROGRAM" : ' _PROGRAM ;
     put ",""SYSCC"" : ""&syscc"" ";
-    put ",""SYSERRORTEXT"" : ""&syserrortext"" ";
+    syserrortext=quote(cats(symget('SYSERRORTEXT')));
+    put ',"SYSERRORTEXT" : ' syserrortext;
     SYSHOSTINFOLONG=quote(trim(symget('SYSHOSTINFOLONG')));
     put ',"SYSHOSTINFOLONG" : ' SYSHOSTINFOLONG;
     put ",""SYSHOSTNAME"" : ""&syshostname"" ";
@@ -162,7 +163,8 @@
     put ",""SYSTCPIPHOSTNAME"" : ""&SYSTCPIPHOSTNAME"" ";
     sysvlong=quote(trim(symget('sysvlong')));
     put ',"SYSVLONG" : ' sysvlong;
-    put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" ";
+    syswarningtext=quote(cats(symget('SYSWARNINGTEXT')));
+    put ',"SYSWARNINGTEXT" : ' syswarningtext;
     put ',"END_DTTM" : "' "%sysfunc(datetime(),E8601DT26.6)" '" ';
     length autoexec $512;
     autoexec=quote(urlencode(trim(getoption('autoexec'))));

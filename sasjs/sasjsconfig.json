@@ -25,16 +25,16 @@
       "mcTestAppLoc": "/Public/temp/macrocore"
     }
   },
-  "defaultTarget": "viya",
+  "defaultTarget": "server",
   "targets": [
     {
       "name": "viya",
-      "serverUrl": "https://sas.analytium.co.uk",
+      "serverUrl": "",
       "serverType": "SASVIYA",
       "httpsAgentOptions": {
         "allowInsecureRequests": false
       },
-      "appLoc": "/Public/temp/macrocore",
+      "appLoc": "/Public/app/macrocore",
       "macroFolders": [
         "viya",
         "tests/viyaonly"
@@ -65,7 +65,7 @@
     },
     {
       "name": "server",
-      "serverUrl": "",
+      "serverUrl": "https://sas.analytium.co.uk:5000",
       "serverType": "SASJS",
       "httpsAgentOptions": {
         "allowInsecureRequests": false

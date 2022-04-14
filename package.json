@@ -34,8 +34,5 @@
   },
   "devDependencies": {
     "@sasjs/cli": "3.13.0"
-  },
-  "dependencies": {
-    "@sasjs/core": "^4.18.13"
   }
 }

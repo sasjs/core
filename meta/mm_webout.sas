@@ -157,14 +157,16 @@
     put ',"_METAPERSON": ' _METAPERSON;
     put ',"_PROGRAM" : ' _PROGRAM ;
     put ",""SYSCC"" : ""&syscc"" ";
-    put ",""SYSERRORTEXT"" : ""&syserrortext"" ";
+    syserrortext=quote(cats(symget('SYSERRORTEXT')));
+    put ',"SYSERRORTEXT" : ' syserrortext;
     put ",""SYSHOSTNAME"" : ""&syshostname"" ";
     put ",""SYSJOBID"" : ""&sysjobid"" ";
     put ",""SYSSCPL"" : ""&sysscpl"" ";
     put ",""SYSSITE"" : ""&syssite"" ";
     sysvlong=quote(trim(symget('sysvlong')));
     put ',"SYSVLONG" : ' sysvlong;
-    put ",""SYSWARNINGTEXT"" : ""&syswarningtext"" ";
+    syswarningtext=quote(cats(symget('SYSWARNINGTEXT')));
+    put ',"SYSWARNINGTEXT" : ' syswarningtext;
     put ',"END_DTTM" : "' "%sysfunc(datetime(),E8601DT26.6)" '" ';
     length memsize $32;
     memsize="%sysfunc(INPUTN(%sysfunc(getoption(memsize)), best.),sizekmg.)";

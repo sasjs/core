@@ -33,7 +33,6 @@
     "prepare": "git rev-parse --git-dir && git config core.hooksPath ./.git-hooks || true"
   },
   "devDependencies": {
-    "@sasjs/cli": "3.6.0",
-    "@sasjs/core": "4.4.7"
+    "@sasjs/cli": "3.13.0"
   }
 }

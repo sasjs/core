@@ -8447,18 +8447,18 @@ options
           )>0
         then do;
           &&name&i='"'!!trim(
-                    prxchange('s/"/\\"/',-1, /* double quote */
-                    prxchange('s/\x0A/\n/',-1,      /* new line */
-                    prxchange('s/\x0D/\r/',-1,      /* carriage return */
-                    prxchange('s/\x09/\\t/',-1,     /* tab */
-                    prxchange('s/\x00/\\u0000/',-1, /* NUL */
-                    prxchange('s/\x0E/\\u000E/',-1, /* SS  */
-                    prxchange('s/\x0F/\\u000F/',-1, /* SF  */
-                    prxchange('s/\x01/\\u0001/',-1, /* SOH */
-                    prxchange('s/\x02/\\u0002/',-1, /* STX */
-                    prxchange('s/\x10/\\u0010/',-1, /* DLE */
-                    prxchange('s/\x11/\\u0011/',-1, /* DC1 */
-                    prxchange('s/\\/\\\\/',-1,&&name&i)
+            prxchange('s/"/\\"/',-1,        /* double quote */
+            prxchange('s/\x0A/\n/',-1,      /* new line */
+            prxchange('s/\x0D/\r/',-1,      /* carriage return */
+            prxchange('s/\x09/\\t/',-1,     /* tab */
+            prxchange('s/\x00/\\u0000/',-1, /* NUL */
+            prxchange('s/\x0E/\\u000E/',-1, /* SS  */
+            prxchange('s/\x0F/\\u000F/',-1, /* SF  */
+            prxchange('s/\x01/\\u0001/',-1, /* SOH */
+            prxchange('s/\x02/\\u0002/',-1, /* STX */
+            prxchange('s/\x10/\\u0010/',-1, /* DLE */
+            prxchange('s/\x11/\\u0011/',-1, /* DC1 */
+            prxchange('s/\\/\\\\/',-1,&&name&i)
           ))))))))))))!!'"';
         end;
         else &&name&i=quote(cats(&&name&i));
@@ -14980,18 +14980,18 @@ data _null_;
   put '          )>0 ';
   put '        then do; ';
   put '          &&name&i=''"''!!trim( ';
-  put '                    prxchange(''s/"/\\"/'',-1, /* double quote */ ';
-  put '                    prxchange(''s/\x0A/\n/'',-1,      /* new line */ ';
-  put '                    prxchange(''s/\x0D/\r/'',-1,      /* carriage return */ ';
-  put '                    prxchange(''s/\x09/\\t/'',-1,     /* tab */ ';
-  put '                    prxchange(''s/\x00/\\u0000/'',-1, /* NUL */ ';
-  put '                    prxchange(''s/\x0E/\\u000E/'',-1, /* SS  */ ';
-  put '                    prxchange(''s/\x0F/\\u000F/'',-1, /* SF  */ ';
-  put '                    prxchange(''s/\x01/\\u0001/'',-1, /* SOH */ ';
-  put '                    prxchange(''s/\x02/\\u0002/'',-1, /* STX */ ';
-  put '                    prxchange(''s/\x10/\\u0010/'',-1, /* DLE */ ';
-  put '                    prxchange(''s/\x11/\\u0011/'',-1, /* DC1 */ ';
-  put '                    prxchange(''s/\\/\\\\/'',-1,&&name&i) ';
+  put '            prxchange(''s/"/\\"/'',-1,        /* double quote */ ';
+  put '            prxchange(''s/\x0A/\n/'',-1,      /* new line */ ';
+  put '            prxchange(''s/\x0D/\r/'',-1,      /* carriage return */ ';
+  put '            prxchange(''s/\x09/\\t/'',-1,     /* tab */ ';
+  put '            prxchange(''s/\x00/\\u0000/'',-1, /* NUL */ ';
+  put '            prxchange(''s/\x0E/\\u000E/'',-1, /* SS  */ ';
+  put '            prxchange(''s/\x0F/\\u000F/'',-1, /* SF  */ ';
+  put '            prxchange(''s/\x01/\\u0001/'',-1, /* SOH */ ';
+  put '            prxchange(''s/\x02/\\u0002/'',-1, /* STX */ ';
+  put '            prxchange(''s/\x10/\\u0010/'',-1, /* DLE */ ';
+  put '            prxchange(''s/\x11/\\u0011/'',-1, /* DC1 */ ';
+  put '            prxchange(''s/\\/\\\\/'',-1,&&name&i) ';
   put '          ))))))))))))!!''"''; ';
   put '        end; ';
   put '        else &&name&i=quote(cats(&&name&i)); ';
@@ -20479,18 +20479,18 @@ data _null_;
   put '          )>0 ';
   put '        then do; ';
   put '          &&name&i=''"''!!trim( ';
-  put '                    prxchange(''s/"/\\"/'',-1, /* double quote */ ';
-  put '                    prxchange(''s/\x0A/\n/'',-1,      /* new line */ ';
-  put '                    prxchange(''s/\x0D/\r/'',-1,      /* carriage return */ ';
-  put '                    prxchange(''s/\x09/\\t/'',-1,     /* tab */ ';
-  put '                    prxchange(''s/\x00/\\u0000/'',-1, /* NUL */ ';
-  put '                    prxchange(''s/\x0E/\\u000E/'',-1, /* SS  */ ';
-  put '                    prxchange(''s/\x0F/\\u000F/'',-1, /* SF  */ ';
-  put '                    prxchange(''s/\x01/\\u0001/'',-1, /* SOH */ ';
-  put '                    prxchange(''s/\x02/\\u0002/'',-1, /* STX */ ';
-  put '                    prxchange(''s/\x10/\\u0010/'',-1, /* DLE */ ';
-  put '                    prxchange(''s/\x11/\\u0011/'',-1, /* DC1 */ ';
-  put '                    prxchange(''s/\\/\\\\/'',-1,&&name&i) ';
+  put '            prxchange(''s/"/\\"/'',-1,        /* double quote */ ';
+  put '            prxchange(''s/\x0A/\n/'',-1,      /* new line */ ';
+  put '            prxchange(''s/\x0D/\r/'',-1,      /* carriage return */ ';
+  put '            prxchange(''s/\x09/\\t/'',-1,     /* tab */ ';
+  put '            prxchange(''s/\x00/\\u0000/'',-1, /* NUL */ ';
+  put '            prxchange(''s/\x0E/\\u000E/'',-1, /* SS  */ ';
+  put '            prxchange(''s/\x0F/\\u000F/'',-1, /* SF  */ ';
+  put '            prxchange(''s/\x01/\\u0001/'',-1, /* SOH */ ';
+  put '            prxchange(''s/\x02/\\u0002/'',-1, /* STX */ ';
+  put '            prxchange(''s/\x10/\\u0010/'',-1, /* DLE */ ';
+  put '            prxchange(''s/\x11/\\u0011/'',-1, /* DC1 */ ';
+  put '            prxchange(''s/\\/\\\\/'',-1,&&name&i) ';
   put '          ))))))))))))!!''"''; ';
   put '        end; ';
   put '        else &&name&i=quote(cats(&&name&i)); ';

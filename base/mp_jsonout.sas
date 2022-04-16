@@ -199,11 +199,7 @@
       format _numeric_ bart.;
     %do i=1 %to &numcols;
       %if &&typelong&i=char or &fmt=Y %then %do;
-        if prxmatch(
-            'm/\"|\x0A|\x0D|\x09|\x00|\x0E|\x0F|\x01|\x02|\x10|\x11|\\/o',
-            &&name&i
-          )>0
-        then do;
+        if findc(&&name&i,'"\'!!'0A0D09000E0F01021011'x) then do;
           &&name&i='"'!!trim(
             prxchange('s/"/\\"/',-1,        /* double quote */
             prxchange('s/\x0A/\n/',-1,      /* new line */

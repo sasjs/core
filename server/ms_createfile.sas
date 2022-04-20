@@ -61,8 +61,11 @@ data _null_;
 run;
 
 data _null_;
-  file &fname1;
+  file &fname1 lrecl=1000;
+  infile "&_sasjs_tokenfile" lrecl=1000;
+  input;
   put "Content-Type: multipart/form-data; boundary=&boundary";
+  put "Authorization: Bearer " _infile_;
 run;
 
 %if &mdebug=1 %then %do;

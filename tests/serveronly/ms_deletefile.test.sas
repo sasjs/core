@@ -53,7 +53,7 @@ data _null_;
 run;
 
 %mp_assert(
-  iftrue=("&test2"="%str(Err)or: File does not exist."),
+  iftrue=("&test2"="%str(Err)or: File doesn't exist."),
   desc=Make sure the file was deleted,
   outds=work.test_results
 )

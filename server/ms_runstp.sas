@@ -43,10 +43,10 @@
 )
 
 data _null_;
-  file &fname1;
-  infile "&_sasjs_tokenfile";
+  file &fname1 lrecl=1000;
+  infile "&_sasjs_tokenfile" lrecl=1000;
   input;
-  put 'Authorization: Bearer' _infile_;
+  put 'Authorization: Bearer ' _infile_;
 run;
 
 filename &outref temp;

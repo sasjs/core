@@ -65,7 +65,7 @@
     },
     {
       "name": "server",
-      "serverUrl": "https://sas.analytium.co.uk:5000",
+      "serverUrl": "https://sas.analytium.co.uk:5006",
       "serverType": "SASJS",
       "httpsAgentOptions": {
         "allowInsecureRequests": false
@@ -108,6 +108,16 @@
         "deployServicePack": true
       },
       "contextName": "SAS Job Execution compute context"
+    },
+    {
+      "name": "4gl",
+      "serverUrl": "https://frs2.4gl.io",
+      "serverType": "SASJS",
+      "httpsAgentOptions": {
+        "rejectUnauthorized": false,
+        "allowInsecureRequests": true
+      },
+      "appLoc": "/Public/app/core"
     }
   ]
 }

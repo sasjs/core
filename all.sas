@@ -18978,8 +18978,11 @@ data _null_;
 run;
 
 data _null_;
-  file &fname1;
+  file &fname1 lrecl=1000;
+  infile "&_sasjs_tokenfile" lrecl=1000;
+  input;
   put "Content-Type: multipart/form-data; boundary=&boundary";
+  put "Authorization: Bearer " _infile_;
 run;
 
 %if &mdebug=1 %then %do;
@@ -19039,6 +19042,8 @@ options &optval;
   @param [in] driveloc The full path to the file in SASjs Drive
   @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
 
+  <h4> SAS Macros </h4>
+  @li mf_getuniquefileref.sas
 
 **/
 
@@ -19046,13 +19051,24 @@ options &optval;
     ,mdebug=0
   );
 
-proc http method='DELETE'
+%local headref;
+%let headref=%mf_getuniquefileref();
+
+data _null_;
+  file &headref lrecl=1000;
+  infile "&_sasjs_tokenfile" lrecl=1000;
+  input;
+  put "Authorization: Bearer " _infile_;
+run;
+
+proc http method='DELETE' headerin=&headref
   url="&_sasjs_apiserverurl/SASjsApi/drive/file?_filePath=&driveloc";
 %if &mdebug=1 %then %do;
   debug level=2;
 %end;
 run;
 
+filename &headref clear;
 
 %mend ms_deletefile;
 /**
@@ -19062,7 +19078,7 @@ run;
 
   Example:
 
-      %ms_getfile(/some/stored/file.ext, outref=myfile)
+      %ms_getfile(/Public/app/dc/services/public/settings.sas, outref=myfile)
 
   @param [in] driveloc The full path to the file in SASjs Drive
   @param [out] outref= (msgetfil) The fileref to contain the file.
@@ -19080,13 +19096,21 @@ run;
   );
 
 /* use the recfm in a separate fileref to avoid issues with subsequent reads */
-%local binaryfref floc;
+%local binaryfref floc headref;
 %let binaryfref=%mf_getuniquefileref();
+%let headref=%mf_getuniquefileref();
 %let floc=%sysfunc(pathname(work))/%mf_getuniquename().txt;
-filename &outref "&floc";
+filename &outref "&floc" lrecl=32767;
 filename &binaryfref "&floc" recfm=n;
 
-proc http method='GET' out=&binaryfref
+data _null_;
+  file &headref lrecl=1000;
+  infile "&_sasjs_tokenfile" lrecl=1000;
+  input;
+  put "Authorization: Bearer " _infile_;
+run;
+
+proc http method='GET' out=&binaryfref headerin=&headref
   url="&_sasjs_apiserverurl/SASjsApi/drive/file?_filePath=&driveloc";
 %if &mdebug=1 %then %do;
   debug level=2;
@@ -19094,9 +19118,9 @@ proc http method='GET' out=&binaryfref
 run;
 
 filename &binaryfref clear;
+filename &headref clear;
 
-%mend ms_getfile;
-/**
+%mend ms_getfile;/**
   @file
   @brief Executes a SASjs Server Stored Program
   @details Runs a Stored Program (using POST method) and extracts the webout and
@@ -19141,10 +19165,10 @@ filename &binaryfref clear;
 )
 
 data _null_;
-  file &fname1;
-  infile "&_sasjs_tokenfile";
+  file &fname1 lrecl=1000;
+  infile "&_sasjs_tokenfile" lrecl=1000;
   input;
-  put 'Authorization: Bearer' _infile_;
+  put 'Authorization: Bearer ' _infile_;
 run;
 
 filename &outref temp;

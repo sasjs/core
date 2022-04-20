@@ -5,7 +5,7 @@
 
   Example:
 
-      %ms_getfile(/some/stored/file.ext, outref=myfile)
+      %ms_getfile(/Public/app/dc/services/public/settings.sas, outref=myfile)
 
   @param [in] driveloc The full path to the file in SASjs Drive
   @param [out] outref= (msgetfil) The fileref to contain the file.
@@ -23,13 +23,21 @@
   );
 
 /* use the recfm in a separate fileref to avoid issues with subsequent reads */
-%local binaryfref floc;
+%local binaryfref floc headref;
 %let binaryfref=%mf_getuniquefileref();
+%let headref=%mf_getuniquefileref();
 %let floc=%sysfunc(pathname(work))/%mf_getuniquename().txt;
-filename &outref "&floc";
+filename &outref "&floc" lrecl=32767;
 filename &binaryfref "&floc" recfm=n;
 
-proc http method='GET' out=&binaryfref
+data _null_;
+  file &headref lrecl=1000;
+  infile "&_sasjs_tokenfile" lrecl=1000;
+  input;
+  put "Authorization: Bearer " _infile_;
+run;
+
+proc http method='GET' out=&binaryfref headerin=&headref
   url="&_sasjs_apiserverurl/SASjsApi/drive/file?_filePath=&driveloc";
 %if &mdebug=1 %then %do;
   debug level=2;
@@ -37,5 +45,6 @@ proc http method='GET' out=&binaryfref
 run;
 
 filename &binaryfref clear;
+filename &headref clear;
 
 %mend ms_getfile;

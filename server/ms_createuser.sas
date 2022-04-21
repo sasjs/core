@@ -45,13 +45,13 @@
 %mp_abort(
   iftrue=(&syscc ne 0)
   ,mac=ms_createuser.sas
-  ,msg=%superq(syscc=&syscc on macro entry)
+  ,msg=%str(syscc=&syscc on macro entry)
 )
 
-%local fname0 fname1 fname2 libref optval rc msg;
-%let fname0=%mf_getuniquefileref();
-%let fname1=%mf_getuniquefileref();
-%let fname2=%mf_getuniquefileref();
+%local fref0 fref1 fref2 libref optval rc msg;
+%let fref0=%mf_getuniquefileref();
+%let fref1=%mf_getuniquefileref();
+%let fref2=%mf_getuniquefileref();
 %let libref=%mf_getuniquelibref();
 
 /* avoid sending bom marker to API */
@@ -59,7 +59,7 @@
 options nobomfile;
 
 data _null_;
-  file &fname0 termstr=crlf;
+  file &fref0 termstr=crlf;
   username=quote(cats(symget('username')));
   password=quote(cats(symget('password')));
   isadmin=symget('isadmin');
@@ -79,7 +79,7 @@ data _null_;
 run;
 
 data _null_;
-  file &fname1 lrecl=1000;
+  file &fref1 lrecl=1000;
   infile "&_sasjs_tokenfile" lrecl=1000;
   input;
   put "Authorization: Bearer " _infile_;
@@ -89,17 +89,17 @@ run;
 
 %if &mdebug=1 %then %do;
   data _null_;
-    infile &fname0;
+    infile &fref0;
     input;
     put _infile_;
   data _null_;
-    infile &fname1;
+    infile &fref1;
     input;
     put _infile_;
   run;
 %end;
 
-proc http method='POST' in=&fname0 headerin=&fname1 out=&fname2
+proc http method='POST' in=&fref0 headerin=&fref1 out=&fref2
   url="&_sasjs_apiserverurl/SASjsApi/user";
 %if &mdebug=1 %then %do;
   debug level=1;
@@ -109,10 +109,10 @@ run;
 %mp_abort(
   iftrue=(&syscc ne 0)
   ,mac=ms_createuser.sas
-  ,msg=%superq(Issue submitting query to SASjsApi/user)
+  ,msg=%str(Issue submitting query to SASjsApi/user)
 )
 
-libname &libref JSON fileref=&fname2;
+libname &libref JSON fileref=&fref2;
 
 data &outds;
   set &libref..root;
@@ -123,7 +123,7 @@ run;
 %mp_abort(
   iftrue=(&syscc ne 0)
   ,mac=ms_createuser.sas
-  ,msg=%superq(Issue reading response JSON)
+  ,msg=%str(Issue reading response JSON)
 )
 
 /* reset options */

@@ -20,18 +20,23 @@
   @param [in] isadmin= (false) Set to true to give the user admin rights
   @param [in] displayName= (0) Set a friendly name (spaces & special characters
     are ok).  If not provided, username will be used instead.
+  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
   @param [out] outds= (work.ms_createuser) This output dataset will contain the
     values from the JSON response (such as the id of the new user)
 |ID:best.|DISPLAYNAME:$8.|USERNAME:$8.|ISACTIVE:best.|ISADMIN:best.|
 |---|---|---|---|---|
 |`6 `|`New User `|`newuser `|`1 `|`0 `|
 
-  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
+
 
   <h4> SAS Macros </h4>
   @li mf_getuniquefileref.sas
   @li mf_getuniquelibref.sas
   @li mp_abort.sas
+
+  <h4> Related Files </h4>
+  @li ms_createuser.test.sas
+  @li ms_getusers.sas
 
 **/
 

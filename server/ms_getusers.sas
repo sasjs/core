@@ -1,12 +1,14 @@
 /**
   @file
   @brief Fetches the list of users from SASjs Server
-  @details Fetches the list of users from SASjs Server.
+  @details Fetches the list of users from SASjs Server and writes them to an
+  output dataset.
 
   Example:
 
       %ms_getusers(outds=userlist)
 
+  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
   @param [out] outds= (work.ms_getusers) This output dataset will contain the
     list of user accounts. Format:
 |DISPLAYNAME:$18.|USERNAME:$10.|ID:best.|
@@ -17,12 +19,16 @@
 |`Ivor Townsend `|`ivor `|`4`|
 |`New User `|`newuser `|`5`|
 
-  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
+
 
   <h4> SAS Macros </h4>
   @li mf_getuniquefileref.sas
   @li mf_getuniquelibref.sas
   @li mp_abort.sas
+
+  <h4> Related Files </h4>
+  @li ms_createuser.sas
+  @li ms_getusers.test.sas
 
 **/
 

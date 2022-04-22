@@ -65,7 +65,7 @@
     },
     {
       "name": "server",
-      "serverUrl": "https://sas.analytium.co.uk:5000",
+      "serverUrl": "https://sas.analytium.co.uk:5006",
       "serverType": "SASJS",
       "httpsAgentOptions": {
         "allowInsecureRequests": false
@@ -74,13 +74,7 @@
       "macroFolders": [
         "server",
         "tests/serveronly"
-      ],
-      "programFolders": [],
-      "binaryFolders": [],
-      "deployConfig": {
-        "deployServicePack": true,
-        "deployScripts": []
-      }
+      ]
     },
     {
       "name": "docsonly",

@@ -65,7 +65,7 @@
     },
     {
       "name": "server",
-      "serverUrl": "https://sas.analytium.co.uk:5006",
+      "serverUrl": "https://sas.analytium.co.uk:5007",
       "serverType": "SASJS",
       "httpsAgentOptions": {
         "allowInsecureRequests": false
@@ -86,6 +86,7 @@
         "server",
         "viya",
         "tests/sas9only",
+        "tests/serveronly",
         "tests/viyaonly"
       ]
     },

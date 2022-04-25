@@ -1,10 +1,11 @@
 /**
-  @file mm_createwebservice.sas
-  @brief Create a Web Ready Stored Process
-  @details This macro creates a Type 2 Stored Process with the mm_webout macro
-    included as pre-code.
-Usage:
+  @file ms_createwebservice.sas
+  @brief Create a Web-Ready Stored Program
+  @details This macro creates a Stored Program along with the necessary precode
+  to enable the %webout() macro
 
+  Usage:
+  <code>
     %* compile macros ;
     filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
     %inc mc;
@@ -23,48 +24,38 @@ Usage:
         %webout(OBJ,example2) * Object format, easier to work with ;
         %webout(CLOSE)
     ;;;;
-    %mm_createwebservice(path=/Public/app/common,name=appInit,code=ft15f001)
+    %ms_createwebservice(path=/Public/app/common,name=appInit,code=ft15f001)
+
+  </code>
 
   For more examples of using these web services with the SASjs Adapter, see:
   https://github.com/sasjs/adapter#readme
 
-  @param path= The full path (in SAS Metadata) where the service will be created
-  @param name= Stored Process name.  Avoid spaces - testing has shown that
-    the check to avoid creating multiple STPs in the same folder with the same
-    name does not work when the name contains spaces.
-  @param desc= The description of the service (optional)
-  @param precode= Space separated list of filerefs, pointing to the code that
-    needs to be attached to the beginning of the service (optional)
-  @param code= (ft15f001) Space seperated fileref(s) of the actual code to be
-    added
-  @param server= (SASApp) The server which will run the STP.  Server name or uri
-    is fine.
-  @param mDebug= (0) set to 1 to show debug messages in the log
-  @param replace= (YES) select NO to avoid replacing an existing service in that
-    location
-  @param adapter= (sasjs) the macro uses the sasjs adapter by default.  To use
-    another adapter, add a (different) fileref here.
+  @param [in] path= The full SASjs Drive path in which to create the service
+  @param [in] name= Stored Program name
+  @param [in] desc= The description of the service (not implemented yet)
+  @param [in] precode= Space separated list of filerefs, pointing to the code
+    that needs to be attached to the beginning of the service (optional)
+  @param [in] code= (ft15f001) Space seperated fileref(s) of the actual code to
+    be added
+  @param [in] mDebug= (0) set to 1 to show debug messages in the log
 
   <h4> SAS Macros </h4>
-  @li mm_createstp.sas
+  @li ms_createfile.sas
   @li mf_getuser.sas
-  @li mm_createfolder.sas
-  @li mm_deletestp.sas
+  @li mf_getuniquename.sas
 
   @version 9.2
   @author Allan Bowe
 
 **/
 
-%macro mm_createwebservice(path=
+%macro ms_createwebservice(path=
     ,name=initService
     ,precode=
     ,code=ft15f001
-    ,desc=This stp was created automagically by the mm_createwebservice macro
+    ,desc=Not currently used
     ,mDebug=0
-    ,server=SASApp
-    ,replace=YES
-    ,adapter=sasjs
 )/*/STORE SOURCE*/;
 
 %if &syscc ge 4 %then %do;
@@ -75,7 +66,7 @@ Usage:
 %local mD;
 %if &mDebug=1 %then %let mD=;
 %else %let mD=%str(*);
-%&mD.put Executing mm_createwebservice.sas;
+%&mD.put Executing ms_createwebservice.sas;
 %&mD.put _local_;
 
 * remove any trailing slash ;
@@ -85,7 +76,7 @@ Usage:
 /**
   * Add webout macro
   * These put statements are auto generated - to change the macro, change the
-  * source (mm_webout) and run `build.py`
+  * source (ms_webout) and run `build.py`
   */
 filename sasjs temp;
 data _null_;
@@ -333,17 +324,15 @@ data _null_;
   put '  %quote(&user) ';
   put ' ';
   put '%mend mf_getuser; ';
-  put '%macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y,missing=NULL ';
+  put ' ';
+  put '%macro ms_webout(action,ds,dslabel=,fref=_webout,fmt=Y,missing=NULL ';
   put '  ,showmeta=NO ';
   put '); ';
   put '%global _webin_file_count _webin_fileref1 _webin_name1 _program _debug ';
   put '  sasjs_tables; ';
-  put '%local i tempds jsonengine; ';
   put ' ';
-  put '/* see https://github.com/sasjs/core/issues/41 */ ';
-  put '%if "%upcase(&SYSENCODING)" ne "UTF-8" %then %let jsonengine=PROCJSON; ';
-  put '%else %let jsonengine=DATASTEP; ';
-  put ' ';
+  put '%local i tempds; ';
+  put '%let action=%upcase(&action); ';
   put ' ';
   put '%if &action=FETCH %then %do; ';
   put '  %if %str(&_debug) ge 131 %then %do; ';
@@ -377,22 +366,11 @@ data _null_;
   put '  /* fix encoding */ ';
   put '  OPTIONS NOBOMFILE; ';
   put ' ';
-  put '  /** ';
-  put '    * check xengine type to avoid the below err message: ';
-  put '    * > Function is only valid for filerefs using the CACHE access method. ';
-  put '    */ ';
-  put '  data _null_; ';
-  put '    set sashelp.vextfl(where=(fileref="_WEBOUT")); ';
-  put '    if xengine=''STREAM'' then do; ';
-  put '      rc=stpsrv_header(''Content-type'',"text/html; encoding=utf-8"); ';
-  put '    end; ';
-  put '  run; ';
+  put '  /* set the header */ ';
+  put '  %mfs_httpheader(Content-type,application/json) ';
   put ' ';
   put '  /* setup json */ ';
-  put '  data _null_;file &fref encoding=''utf-8''; ';
-  put '  %if %str(&_debug) ge 131 %then %do; ';
-  put '    put ''>>weboutBEGIN<<''; ';
-  put '  %end; ';
+  put '  data _null_;file &fref encoding=''utf-8'' termstr=lf; ';
   put '    put ''{"SYSDATE" : "'' "&SYSDATE" ''"''; ';
   put '    put '',"SYSTIME" : "'' "&SYSTIME" ''"''; ';
   put '  run; ';
@@ -401,7 +379,7 @@ data _null_;
   put ' ';
   put '%else %if &action=ARR or &action=OBJ %then %do; ';
   put '  %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt,jref=&fref ';
-  put '    ,engine=&jsonengine,missing=&missing,showmeta=&showmeta ';
+  put '    ,engine=DATASTEP,missing=&missing,showmeta=&showmeta ';
   put '  ) ';
   put '%end; ';
   put '%else %if &action=CLOSE %then %do; ';
@@ -415,14 +393,15 @@ data _null_;
   put '    data _null_; ';
   put '      set &tempds; ';
   put '      if not (upcase(name) =:"DATA"); /* ignore temp datasets */ ';
+  put '      if not (upcase(name)=:"_DATA_"); ';
   put '      i+1; ';
   put '      call symputx(cats(''wt'',i),name,''l''); ';
   put '      call symputx(''wtcnt'',i,''l''); ';
-  put '    data _null_; file &fref mod encoding=''utf-8''; ';
+  put '    data _null_; file &fref mod encoding=''utf-8'' termstr=lf; ';
   put '      put ",""WORK"":{"; ';
   put '    %do i=1 %to &wtcnt; ';
   put '      %let wt=&&wt&i; ';
-  put '      data _null_; file &fref mod encoding=''utf-8''; ';
+  put '      data _null_; file &fref mod encoding=''utf-8'' termstr=lf; ';
   put '        dsid=open("WORK.&wt",''is''); ';
   put '        nlobs=attrn(dsid,''NLOBS''); ';
   put '        nvars=attrn(dsid,''NVARS''); ';
@@ -432,108 +411,112 @@ data _null_;
   put '        put ''"nlobs":'' nlobs; ';
   put '        put '',"nvars":'' nvars; ';
   put '      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=YES) ';
-  put '      data _null_; file &fref mod encoding=''utf-8''; ';
+  put '      data _null_; file &fref mod encoding=''utf-8'' termstr=lf; ';
   put '        put "}"; ';
   put '    %end; ';
-  put '    data _null_; file &fref mod encoding=''utf-8''; ';
+  put '    data _null_; file &fref mod encoding=''utf-8'' termstr=lf termstr=lf; ';
   put '      put "}"; ';
   put '    run; ';
   put '  %end; ';
   put '  /* close off json */ ';
-  put '  data _null_;file &fref mod encoding=''utf-8''; ';
+  put '  data _null_;file &fref mod encoding=''utf-8'' termstr=lf; ';
   put '    _PROGRAM=quote(trim(resolve(symget(''_PROGRAM'')))); ';
   put '    put ",""SYSUSERID"" : ""&sysuserid"" "; ';
   put '    put ",""MF_GETUSER"" : ""%mf_getuser()"" "; ';
   put '    put ",""_DEBUG"" : ""&_debug"" "; ';
-  put '    _METAUSER=quote(trim(symget(''_METAUSER''))); ';
-  put '    put ",""_METAUSER"": " _METAUSER; ';
-  put '    _METAPERSON=quote(trim(symget(''_METAPERSON''))); ';
-  put '    put '',"_METAPERSON": '' _METAPERSON; ';
   put '    put '',"_PROGRAM" : '' _PROGRAM ; ';
   put '    put ",""SYSCC"" : ""&syscc"" "; ';
   put '    syserrortext=quote(cats(symget(''SYSERRORTEXT''))); ';
   put '    put '',"SYSERRORTEXT" : '' syserrortext; ';
+  put '    SYSHOSTINFOLONG=quote(trim(symget(''SYSHOSTINFOLONG''))); ';
+  put '    put '',"SYSHOSTINFOLONG" : '' SYSHOSTINFOLONG; ';
   put '    put ",""SYSHOSTNAME"" : ""&syshostname"" "; ';
+  put '    put ",""SYSPROCESSID"" : ""&SYSPROCESSID"" "; ';
+  put '    put ",""SYSPROCESSMODE"" : ""&SYSPROCESSMODE"" "; ';
+  put '    length SYSPROCESSNAME $512; ';
+  put '    SYSPROCESSNAME=quote(urlencode(cats(SYSPROCESSNAME))); ';
+  put '    put ",""SYSPROCESSNAME"" : " SYSPROCESSNAME; ';
   put '    put ",""SYSJOBID"" : ""&sysjobid"" "; ';
   put '    put ",""SYSSCPL"" : ""&sysscpl"" "; ';
   put '    put ",""SYSSITE"" : ""&syssite"" "; ';
+  put '    put ",""SYSTCPIPHOSTNAME"" : ""&SYSTCPIPHOSTNAME"" "; ';
   put '    sysvlong=quote(trim(symget(''sysvlong''))); ';
   put '    put '',"SYSVLONG" : '' sysvlong; ';
   put '    syswarningtext=quote(cats(symget(''SYSWARNINGTEXT''))); ';
   put '    put '',"SYSWARNINGTEXT" : '' syswarningtext; ';
   put '    put '',"END_DTTM" : "'' "%sysfunc(datetime(),E8601DT26.6)" ''" ''; ';
+  put '    length autoexec $512; ';
+  put '    autoexec=quote(urlencode(trim(getoption(''autoexec'')))); ';
+  put '    put '',"AUTOEXEC" : '' autoexec; ';
   put '    length memsize $32; ';
   put '    memsize="%sysfunc(INPUTN(%sysfunc(getoption(memsize)), best.),sizekmg.)"; ';
   put '    memsize=quote(cats(memsize)); ';
   put '    put '',"MEMSIZE" : '' memsize; ';
   put '    put "}" @; ';
-  put '  %if %str(&_debug) ge 131 %then %do; ';
-  put '    put ''>>weboutEND<<''; ';
-  put '  %end; ';
   put '  run; ';
   put '%end; ';
   put ' ';
-  put '%mend mm_webout; ';
+  put '%mend ms_webout; ';
+  put ' ';
+  put '%macro mfs_httpheader(header_name ';
+  put '  ,header_value ';
+  put ')/*/STORE SOURCE*/; ';
+  put '%local fref fid i; ';
+  put ' ';
+  put '%if %sysfunc(filename(fref,&sasjs_stpsrv_header_loc)) ne 0 %then %do; ';
+  put '  %put &=fref &=sasjs_stpsrv_header_loc; ';
+  put '  %put %str(ERR)OR: %sysfunc(sysmsg()); ';
+  put '  %return; ';
+  put '%end; ';
+  put ' ';
+  put '%let fid=%sysfunc(fopen(&fref,A)); ';
+  put ' ';
+  put '%if &fid=0 %then %do; ';
+  put '  %put %str(ERR)OR: %sysfunc(sysmsg()); ';
+  put '  %return; ';
+  put '%end; ';
+  put ' ';
+  put '%let rc=%sysfunc(fput(&fid,%str(&header_name): %str(&header_value))); ';
+  put '%let rc=%sysfunc(fwrite(&fid)); ';
+  put ' ';
+  put '%let rc=%sysfunc(fclose(&fid)); ';
+  put '%let rc=%sysfunc(filename(&fref)); ';
+  put ' ';
+  put '%mend mfs_httpheader; ';
 /* WEBOUT END */
   put '%macro webout(action,ds,dslabel=,fmt=,missing=NULL,showmeta=NO);';
-  put '  %mm_webout(&action,ds=&ds,dslabel=&dslabel,fmt=&fmt,missing=&missing';
+  put '  %ms_webout(&action,ds=&ds,dslabel=&dslabel,fmt=&fmt,missing=&missing';
   put '    ,showmeta=&showmeta';
   put '  )';
   put '%mend;';
 run;
 
 /* add precode and code */
-%local work tmpfile;
-%let work=%sysfunc(pathname(work));
-%let tmpfile=__mm_createwebservice.temp;
-%local x fref freflist mod;
-%let freflist= &adapter &precode &code ;
+%local tmpref x fref freflist mod;
+%let tmpref=%mf_getuniquefileref();
+%let freflist=&precode &code ;
 %do x=1 %to %sysfunc(countw(&freflist));
   %if &x>1 %then %let mod=mod;
 
   %let fref=%scan(&freflist,&x);
   %put &sysmacroname: adding &fref;
   data _null_;
-    file "&work/&tmpfile" lrecl=3000 &mod;
+    file &tmpref lrecl=3000 &mod;
     infile &fref;
     input;
     put _infile_;
   run;
 %end;
 
-/* create the metadata folder if not already there */
-%mm_createfolder(path=&path)
-%if &syscc ge 4 %then %return;
-
-%if %upcase(&replace)=YES %then %do;
-  %mm_deletestp(target=&path/&name)
-%end;
-
 /* create the web service */
-%mm_createstp(stpname=&name
-  ,filename=&tmpfile
-  ,directory=&work
-  ,tree=&path
-  ,stpdesc=&desc
-  ,mDebug=&mdebug
-  ,server=&server
-  ,stptype=2)
-
-/* find the web app url */
-%local url;
-%let url=localhost/SASStoredProcess;
-data _null_;
-  length url $128;
-  rc=METADATA_GETURI("Stored Process Web App",url);
-  if rc=0 then call symputx('url',url,'l');
-run;
+%ms_createfile(&path/&name..sas, inref=&tmpref,mdebug=&mdebug)
 
 %put ;%put ;%put ;%put ;%put ;%put ;
 %put &sysmacroname: STP &name successfully created in &path;
 %put ;%put ;%put ;
 %put Check it out here:;
 %put ;%put ;%put ;
-%put &url?_PROGRAM=&path/&name;
+%put &_sasjs_apiserverurl.&_sasjs_apipath?_PROGRAM=&path/&name;
 %put ;%put ;%put ;%put ;%put ;%put ;
 
-%mend mm_createwebservice;
+%mend ms_createwebservice;

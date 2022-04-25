@@ -71,8 +71,15 @@ Usage:
     ,replace=&replace
   )
 %end;
+%else %if &platform=SASJS %then %do;
+  %if "&path"="HOME" %then %let path=/Users/&_sasjs_username/My Folder;
+  %ms_createfile(&path/&name..sas
+    ,inref=&code
+    ,prerefs=&precode
+  )
+%end;
 %else %do;
-  %if "&path"="HOME" %then %let path=/User Folders/&sysuserid/My Folder;
+  %if "&path"="HOME" %then %let path=/User Folders/&_METAPERSON/My Folder;
   %mm_createwebservice(path=&path
     ,name=&name
     ,code=&code

@@ -3841,6 +3841,7 @@ Usage:
   <h4> SAS Macros </h4>
   @li mf_getplatform.sas
   @li mm_createwebservice.sas
+  @li ms_createwebservice.sas
   @li mv_createwebservice.sas
 
   @param [in,out] path= The full folder path where the service will be created
@@ -3852,7 +3853,7 @@ Usage:
     be added
   @param [in] replace= (YES) Select YES to replace any existing service in that
     location
-
+  @param [in] mDebug= (0) set to 1 to show debug messages in the log
 
   @version 9.2
   @author Allan Bowe
@@ -3865,6 +3866,7 @@ Usage:
     ,code=ft15f001
     ,desc=This service was created by the mp_createwebservice macro
     ,replace=YES
+    ,mdebug=0
 )/*/STORE SOURCE*/;
 
 %if &syscc ge 4 %then %do;
@@ -3885,9 +3887,11 @@ Usage:
 %end;
 %else %if &platform=SASJS %then %do;
   %if "&path"="HOME" %then %let path=/Users/&_sasjs_username/My Folder;
-  %ms_createfile(&path/&name..sas
-    ,inref=&code
-    ,prerefs=&precode
+  %ms_createwebservice(path=&path
+    ,name=&name
+    ,code=&code
+    ,precode=&precode
+    ,mdebug=&mdebug
   )
 %end;
 %else %do;
@@ -19220,6 +19224,9 @@ options &optval;
   @li ms_createfile.sas
   @li mf_getuser.sas
   @li mf_getuniquename.sas
+
+  <h4> Related Files </h4>
+  @li ms_createwebservice.test.sas
 
   @version 9.2
   @author Allan Bowe

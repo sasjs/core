@@ -3,13 +3,13 @@
   @brief init file for tests
 
   <h4> SAS Macros </h4>
+  @li mf_uid.sas
   @li mp_init.sas
-  @li mv_webout.sas
 
 **/
 
 /* location in metadata or SAS Drive for temporary files */
-%let mcTestAppLoc=/Public/temp/macrocore;
+%let mcTestAppLoc=/tmp/tests/sasjs/core/%mf_uid();
 
 /* set defaults */
 %mp_init()

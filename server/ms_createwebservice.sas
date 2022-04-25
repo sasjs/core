@@ -45,6 +45,9 @@
   @li mf_getuser.sas
   @li mf_getuniquename.sas
 
+  <h4> Related Files </h4>
+  @li ms_createwebservice.test.sas
+
   @version 9.2
   @author Allan Bowe
 

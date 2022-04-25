@@ -63,7 +63,7 @@
   viyaresult=WEBOUT_JSON,
   viyacontext=SAS Job Execution compute context
 )/*/STORE SOURCE*/;
-%local dbg pcnt fref1 webref i webcount var platform;
+%local dbg pcnt fref1 fref2 webref i webcount var platform;
 %if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;
@@ -106,8 +106,10 @@
 
 
 %let fref1=%mf_getuniquefileref();
+%let fref2=%mf_getuniquefileref();
 %let webref=%mf_getuniquefileref();
 %let platform=%mf_getplatform();
+
 %if &platform=SASMETA %then %do;
 
   /* parse the input files */
@@ -263,12 +265,91 @@
   )
 
 %end;
+%else %if &platform=SASJS %then %do;
+
+  /* avoid sending bom marker to API */
+  %local optval;
+  %let optval=%sysfunc(getoption(bomfile));
+  options nobomfile;
+
+  data _null_;
+    file &fname0 termstr=crlf;
+    infile &inref end=eof;
+    if _n_ = 1 then do;
+      put "--&boundary.";
+      put 'Content-Disposition: form-data; name="filePath"';
+      put ;
+      put "&driveloc";
+      put "--&boundary";
+      put 'Content-Disposition: form-data; name="file"; filename="ignore.sas"';
+      put "Content-Type: text/plain";
+      put ;
+    end;
+    input;
+    put _infile_; /* add the actual file to be sent */
+    if eof then do;
+      put ;
+      put "--&boundary--";
+    end;
+  run;
+
+  data _null_;
+    file &fname1 lrecl=1000;
+    infile "&_sasjs_tokenfile" lrecl=1000;
+    input;
+    put "Content-Type: multipart/form-data; boundary=&boundary";
+    put "Authorization: Bearer " _infile_;
+  run;
+
+  %if &mdebug=1 %then %do;
+    data _null_;
+      infile &fname0;
+      input;
+      put _infile_;
+    data _null_;
+      infile &fname1;
+      input;
+      put _infile_;
+    run;
+  %end;
+
+  proc http method='POST' in=&fname0 headerin=&fname1 out=&webref
+    url="&_sasjs_apiserverurl/SASjsApi/drive/file";
+  %if &mdebug=1 %then %do;
+    debug level=1;
+  %end;
+  run;
+
+  /* reset options */
+  options &optval;
+
+  /* SASjs services have the _webout embedded in wrapper JSON */
+  /* Files can also be very large - so use a dedicated macro to chop it out */
+  %local matchstr;
+  %let matchstr={"status":"success","_webout":{;
+  %mp_chop(&webref,match=matchstr,keep=RIGHT,offset=-1,outref=&fref1)
+
+  %let matchstr=},"log":[{;
+  %mp_chop(&fref1,match=matchstr,keep=LEFT,offset=1,outref=&fref2)
+
+
+  %if &outlib ne 0 %then %do;
+    libname &outlib json (&fref2);
+  %end;
+  %if &outref ne 0 %then %do;
+    filename &outref temp;
+    %mp_binarycopy(inref=&webref,outref=&outref)
+  %end;
+
+%end;
 %else %do;
   %put %str(ERR)OR: Unrecognised platform:  &platform;
 %end;
 
 %if &mdebug=0 %then %do;
   filename &webref clear;
+  filename &fref1 clear;
+  filename &fref2 clear;
 %end;
 %else %do;
   %put &sysmacroname exit vars:;

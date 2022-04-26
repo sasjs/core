@@ -40,6 +40,7 @@
   @li mf_getuniquename.sas
   @li mp_abort.sas
   @li mp_binarycopy.sas
+  @li mp_chop.sas
   @li mp_ds2csv.sas
   @li mv_getjobresult.sas
   @li mv_jobflow.sas
@@ -63,7 +64,7 @@
   viyaresult=WEBOUT_JSON,
   viyacontext=SAS Job Execution compute context
 )/*/STORE SOURCE*/;
-%local dbg pcnt fref1 fref2 webref i webcount var platform;
+%local dbg pcnt fref1 fref2 webref webrefpath i webcount var platform;
 %if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;
@@ -104,11 +105,13 @@
   %end;
 %end;
 
-
+%let platform=%mf_getplatform();
 %let fref1=%mf_getuniquefileref();
 %let fref2=%mf_getuniquefileref();
 %let webref=%mf_getuniquefileref();
-%let platform=%mf_getplatform();
+%let webrefpath=%sysfunc(pathname(work))/%mf_getuniquename();
+/* mp_chop requires a physical path as input */
+filename &webref "&webrefpath";
 
 %if &platform=SASMETA %then %do;
 
@@ -325,20 +328,35 @@
 
   /* SASjs services have the _webout embedded in wrapper JSON */
   /* Files can also be very large - so use a dedicated macro to chop it out */
-  %local matchstr;
-  %let matchstr={"status":"success","_webout":{;
-  %mp_chop(&webref,match=matchstr,keep=RIGHT,offset=-1,outref=&fref1)
+  %local matchstr1 matchstr2 chopout1 chopout2;
+  %let matchstr1={"status":"success","_webout":{;
+  %let matchst2=},"log":[{;
+  %let chopout1=&webrefpath._1;
+  %let chopout2=&webrefpath._2;
 
-  %let matchstr=},"log":[{;
-  %mp_chop(&fref1,match=matchstr,keep=LEFT,offset=1,outref=&fref2)
+  %mp_chop("&webrefpath"
+    ,matchvar=matchstr1
+    ,keep=LAST
+    ,matchpoint=END
+    ,offset=-1
+    ,outfile="&chopout1"
+    ,mdebug=&mdebug
+  )
 
+  %mp_chop("&chopout1"
+    ,matchvar=matchstr2
+    ,keep=FIRST
+    ,matchpoint=START
+    ,offset=1
+    ,outfile="&chopout2"
+    ,mdebug=&mdebug
+  )
 
   %if &outlib ne 0 %then %do;
-    libname &outlib json (&fref2);
+    libname &outlib json ("&chopout2");
   %end;
   %if &outref ne 0 %then %do;
-    filename &outref temp;
-    %mp_binarycopy(inref=&webref,outref=&outref)
+    filename &outref "&chopout2";
   %end;
 
 %end;

@@ -49,22 +49,22 @@ data _null_;
 run;
 
 %mp_assert(
-  iftrue=("&test1" ne "startsection"),
+  iftrue=("&test1" = "startsection"),
   desc=Checking keep FIRST matchpoint START
   outds=work.test_results
 )
 %mp_assert(
-  iftrue=("&test2" ne "Chop here!endsection"),
+  iftrue=("&test2" = "Chop here!endsection"),
   desc=Checking keep LAST matchpoint START
   outds=work.test_results
 )
 %mp_assert(
-  iftrue=("&test1" ne "startsectionChop here!"),
+  iftrue=("&test3" = "startsectionChop here!"),
   desc=Checking keep FIRST matchpoint END
   outds=work.test_results
 )
 %mp_assert(
-  iftrue=("&test2" ne "endsection"),
+  iftrue=("&test4" = "endsection"),
   desc=Checking keep LAST matchpoint END
   outds=work.test_results
 )

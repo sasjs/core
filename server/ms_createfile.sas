@@ -21,6 +21,7 @@
   @li mf_getuniquefileref.sas
   @li mf_getuniquename.sas
   @li mp_abort.sas
+  @li ms_deletefile.sas
 
 **/
 
@@ -28,6 +29,9 @@
     ,inref=0
     ,mdebug=0
   );
+
+/* first, delete in case it exists */
+%ms_deletefile(&driveloc,mdebug=&mdebug)
 
 %local fname0 fname1 fname2 boundary fname statcd msg optval;
 %let fname0=%mf_getuniquefileref();
@@ -40,8 +44,8 @@
 options nobomfile;
 
 data _null_;
-  file &fname0 termstr=crlf;
-  infile &inref end=eof;
+  file &fname0 termstr=crlf lrecl=32767;
+  infile &inref end=eof lrecl=32767;
   if _n_ = 1 then do;
     put "--&boundary.";
     put 'Content-Disposition: form-data; name="filePath"';
@@ -70,11 +74,11 @@ run;
 
 %if &mdebug=1 %then %do;
   data _null_;
-    infile &fname0;
+    infile &fname0 lrecl=32767;
     input;
     put _infile_;
   data _null_;
-    infile &fname1;
+    infile &fname1 lrecl=32767;
     input;
     put _infile_;
   run;

@@ -10,7 +10,7 @@
 
 
 %macro gsubtest();
-%if "%substr(&sysver,1,4)"="V.04" %then %do;
+%if "%substr(&sysver.XX,1,4)"="V.04" %then %do;
   %put %str(ERR)OR: Viya 4 does not support the IO library in lua;
   %return;
 %end;

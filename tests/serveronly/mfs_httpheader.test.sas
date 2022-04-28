@@ -9,11 +9,12 @@
 
 **/
 
+%let orig_sasjs_stpsrv_header_loc=&sasjs_stpsrv_header_loc;
 %let sasjs_stpsrv_header_loc=%sysfunc(pathname(work))/header.txt;
 
 %mp_assertscope(SNAPSHOT)
-%mfs_httpheader(Content-type,application/csv)
-%mp_assertscope(COMPARE)
+%mfs_httpheader(Content-Type,application/csv)
+%mp_assertscope(COMPARE,ignorelist=sasjs_stpsrv_header_loc)
 
 data _null_;
   infile "&sasjs_stpsrv_header_loc";
@@ -27,12 +28,12 @@ run;
   outds=work.test_results
 )
 %mp_assert(
-  iftrue=("&test1"="Content-type: application/csv"),
+  iftrue=("&test1"="Content-Type: application/csv"),
   desc=Checking line was created,
   outds=work.test_results
 )
 
-%mfs_httpheader(Content-type,application/text)
+%mfs_httpheader(Content-Type,application/text)
 %let test2=0;
 data _null_;
   infile "&sasjs_stpsrv_header_loc";
@@ -46,7 +47,11 @@ run;
   outds=work.test_results
 )
 %mp_assert(
-  iftrue=("&test2"="Content-type: application/text"),
+  iftrue=("&test2"="Content-Type: application/text"),
   desc=Checking line was created,
   outds=work.test_results
 )
+
+
+/* reset header so the test will pass */
+%let sasjs_stpsrv_header_loc=&orig_sasjs_stpsrv_header_loc;

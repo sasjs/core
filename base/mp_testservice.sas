@@ -40,7 +40,9 @@
   @li mf_getuniquename.sas
   @li mp_abort.sas
   @li mp_binarycopy.sas
+  @li mp_chop.sas
   @li mp_ds2csv.sas
+  @li ms_testservice.sas
   @li mv_getjobresult.sas
   @li mv_jobflow.sas
 
@@ -63,7 +65,7 @@
   viyaresult=WEBOUT_JSON,
   viyacontext=SAS Job Execution compute context
 )/*/STORE SOURCE*/;
-%local dbg pcnt fref1 webref i webcount var platform;
+%local dbg pcnt fref1 fref2 webref webrefpath i webcount var platform;
 %if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;
@@ -104,10 +106,14 @@
   %end;
 %end;
 
-
-%let fref1=%mf_getuniquefileref();
-%let webref=%mf_getuniquefileref();
 %let platform=%mf_getplatform();
+%let fref1=%mf_getuniquefileref();
+%let fref2=%mf_getuniquefileref();
+%let webref=%mf_getuniquefileref();
+%let webrefpath=%sysfunc(pathname(work))/%mf_getuniquename();
+/* mp_chop requires a physical path as input */
+filename &webref "&webrefpath";
+
 %if &platform=SASMETA %then %do;
 
   /* parse the input files */
@@ -263,12 +269,27 @@
   )
 
 %end;
+%else %if &platform=SASJS %then %do;
+
+  %ms_testservice(&program
+    ,inputfiles=&inputfiles
+    ,inputdatasets=&inputdatasets
+    ,inputparams=&inputparams
+    ,debug=&debug
+    ,mdebug=&mdebug
+    ,outlib=&outlib
+    ,outref=&outref
+  )
+
+%end;
 %else %do;
   %put %str(ERR)OR: Unrecognised platform:  &platform;
 %end;
 
 %if &mdebug=0 %then %do;
   filename &webref clear;
+  filename &fref1 clear;
+  filename &fref2 clear;
 %end;
 %else %do;
   %put &sysmacroname exit vars:;

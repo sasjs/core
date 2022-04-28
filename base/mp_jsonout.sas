@@ -70,7 +70,7 @@
 
 %if &action=OPEN %then %do;
   options nobomfile;
-  data _null_;file &jref encoding='utf-8' ;
+  data _null_;file &jref encoding='utf-8' lrecl=200;
     put '{"PROCESSED_DTTM" : "' "%sysfunc(datetime(),E8601DT26.6)" '"';
   run;
 %end;

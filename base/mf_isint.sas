@@ -20,8 +20,11 @@
 
 %macro mf_isint(arg
 )/*/STORE SOURCE*/;
-  /* remove minus sign if exists */
 
+  /* blank val is not an integer */
+  %if "&arg"="" %then %do;0%return;%end;
+
+  /* remove minus sign if exists */
   %local val;
   %if "%substr(%str(&arg),1,1)"="-" %then %let val=%substr(%str(&arg),2);
   %else %let val=&arg;

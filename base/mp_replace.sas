@@ -35,7 +35,7 @@
   @param infile The QUOTED path to the file on which to perform the substitution
   @param findvar= Macro variable NAME containing the string to search for
   @param replacevar= Macro variable NAME containing the replacement string
-  @param outfile= (0) Optional QUOTED path to an the adjusted output file (to
+  @param outfile= (0) Optional QUOTED path to the adjusted output file (to
     avoid overwriting the first file).
 
   <h4> SAS Macros </h4>
@@ -43,7 +43,9 @@
   @li mf_getuniquename.sas
 
   <h4> Related Macros </h4>
-  @li mp_gsubfile.test.sas
+  @li mp_chop.sas
+  @li mp_gsubfile.sas
+  @li mp_replace.test.sas
 
   @version 9.4
   @author Bartosz Jabłoński

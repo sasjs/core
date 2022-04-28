@@ -28,15 +28,17 @@
     be 8 characters, so a 7 letter prefix would mean `maxtries` should be 10.
     if using zero (0) as the prefix, a native assignment is used.
   @param [in] maxtries= (1000) the last part of the libref. Must be an integer.
+  @param [in] lrecl= (32767) Provide a default lrecl with which to initialise
+    the generated fileref.
 
   @version 9.2
   @author Allan Bowe
 **/
 
-%macro mf_getuniquefileref(prefix=_,maxtries=1000);
+%macro mf_getuniquefileref(prefix=_,maxtries=1000,lrecl=32767);
   %local rc fname;
   %if &prefix=0 %then %do;
-    %let rc=%sysfunc(filename(fname,,temp));
+    %let rc=%sysfunc(filename(fname,,temp,lrecl=&lrecl));
     %if &rc %then %put %sysfunc(sysmsg());
     &fname
   %end;
@@ -47,7 +49,7 @@
     %do x=0 %to &maxtries;
       %let fname=&prefix%substr(%sysfunc(ranuni(0)),3,&len);
       %if %sysfunc(fileref(&fname)) > 0 %then %do;
-        %let rc=%sysfunc(filename(fname,,temp));
+        %let rc=%sysfunc(filename(fname,,temp,lrecl=&lrecl));
         %if &rc %then %put %sysfunc(sysmsg());
         &fname
         %return;

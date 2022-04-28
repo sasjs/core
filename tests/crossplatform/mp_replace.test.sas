@@ -39,7 +39,7 @@ run;
 %let str=%str(replacewith trailing spaces   );
 %let rep=%str( with more spaces  );
 data _null_;
-  file &test2;
+  file &test2 lrecl=500;
   put 'blahblah';
   put "blahblah&str.blah&str. replace &str.X";
   put "blahbreplacewith&str.spacesahblah";
@@ -47,7 +47,7 @@ run;
 %mp_replace(&test2, findvar=str, replacevar=rep)
 
 data _null_;
-  infile &test2;
+  infile &test2 lrecl=500;
   input;
   if _n_=2 then call symputx('test2resulta',_infile_);
   if _n_=3 then call symputx('test2resultb',_infile_);
@@ -69,7 +69,7 @@ run;
 %let str=%str(replace.string.with.dots   );
 %let rep=%str( more.dots);
 data _null_;
-  file &test3;
+  file &test3 lrecl=500;
   put 'blahblah';
   put "blahblah&str.blah&str. replace &str.X";
   put "blahbreplacewith&str.spacesahblah";
@@ -77,7 +77,7 @@ run;
 %mp_replace(&test3, findvar=str, replacevar=rep)
 
 data _null_;
-  infile &test3;
+  infile &test3 lrecl=500;
   input;
   if _n_=2 then call symputx('test3resulta',_infile_);
   if _n_=3 then call symputx('test3resultb',_infile_);

@@ -31,3 +31,11 @@
   desc=Checking mf_isint(-1),
   outds=work.test_results
 )
+
+%mp_assert(
+  iftrue=(
+    "%mf_isint()"="0"
+  ),
+  desc=Checking mf_isint(),
+  outds=work.test_results
+)

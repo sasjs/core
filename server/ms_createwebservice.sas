@@ -473,6 +473,7 @@ data _null_;
   put '%macro mfs_httpheader(header_name ';
   put '  ,header_value ';
   put ')/*/STORE SOURCE*/; ';
+  put '%global sasjs_stpsrv_header_loc; ';
   put '%local fref fid i; ';
   put ' ';
   put '%if %sysfunc(filename(fref,&sasjs_stpsrv_header_loc)) ne 0 %then %do; ';

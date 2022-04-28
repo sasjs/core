@@ -12,7 +12,7 @@
 
   Usage:
 
-      %mfs_httpheader(Content-type,application/csv)
+      %mfs_httpheader(Content-Type,application/csv)
 
   @param [in] header_name Name of the http header to set
   @param [in] header_value Value of the http header to set
@@ -28,6 +28,7 @@
 %macro mfs_httpheader(header_name
   ,header_value
 )/*/STORE SOURCE*/;
+%global sasjs_stpsrv_header_loc;
 %local fref fid i;
 
 %if %sysfunc(filename(fref,&sasjs_stpsrv_header_loc)) ne 0 %then %do;

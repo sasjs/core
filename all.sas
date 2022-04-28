@@ -960,15 +960,17 @@ or %index(&pgm,/tests/testteardown)
     be 8 characters, so a 7 letter prefix would mean `maxtries` should be 10.
     if using zero (0) as the prefix, a native assignment is used.
   @param [in] maxtries= (1000) the last part of the libref. Must be an integer.
+  @param [in] lrecl= (32767) Provide a default lrecl with which to initialise
+    the generated fileref.
 
   @version 9.2
   @author Allan Bowe
 **/
 
-%macro mf_getuniquefileref(prefix=_,maxtries=1000);
+%macro mf_getuniquefileref(prefix=_,maxtries=1000,lrecl=32767);
   %local rc fname;
   %if &prefix=0 %then %do;
-    %let rc=%sysfunc(filename(fname,,temp));
+    %let rc=%sysfunc(filename(fname,,temp,lrecl=&lrecl));
     %if &rc %then %put %sysfunc(sysmsg());
     &fname
   %end;
@@ -979,7 +981,7 @@ or %index(&pgm,/tests/testteardown)
     %do x=0 %to &maxtries;
       %let fname=&prefix%substr(%sysfunc(ranuni(0)),3,&len);
       %if %sysfunc(fileref(&fname)) > 0 %then %do;
-        %let rc=%sysfunc(filename(fname,,temp));
+        %let rc=%sysfunc(filename(fname,,temp,lrecl=&lrecl));
         %if &rc %then %put %sysfunc(sysmsg());
         &fname
         %return;
@@ -1604,8 +1606,11 @@ Usage:
 
 %macro mf_isint(arg
 )/*/STORE SOURCE*/;
-  /* remove minus sign if exists */
 
+  /* blank val is not an integer */
+  %if "&arg"="" %then %do;0%return;%end;
+
+  /* remove minus sign if exists */
   %local val;
   %if "%substr(%str(&arg),1,1)"="-" %then %let val=%substr(%str(&arg),2);
   %else %let val=&arg;
@@ -3441,6 +3446,200 @@ run;
     filename &outref clear;
   %end;
 %mend mp_binarycopy;/**
+  @file
+  @brief Splits a file of ANY SIZE by reference to a search string.
+  @details Provide a fileref and a search string to chop off part of a file.
+
+  Works by reading in the file byte by byte, then marking the beginning and end
+  of each matched string, before finally doing the chop.
+
+  Choose whether to keep the FIRST or the LAST section of the file.  Optionally,
+  use an OFFSET to fix the precise chop point.
+
+  Usage:
+
+      %let src="%sysfunc(pathname(work))/file.txt";
+      %let str=Chop here!;
+      %let out1="%sysfunc(pathname(work))/file1.txt";
+      %let out2="%sysfunc(pathname(work))/file2.txt";
+      %let out3="%sysfunc(pathname(work))/file3.txt";
+      %let out4="%sysfunc(pathname(work))/file4.txt";
+
+      data _null_;
+        file &src;
+        put "startsection&str.endsection";
+      run;
+
+      %mp_chop(&src, matchvar=str, keep=FIRST, outfile=&out1)
+      %mp_chop(&src, matchvar=str, keep=LAST, outfile=&out2)
+      %mp_chop(&src, matchvar=str, keep=FIRST, matchpoint=END, outfile=&out3)
+      %mp_chop(&src, matchvar=str, keep=LAST, matchpoint=END, outfile=&out4)
+
+      filename results (&out1 &out2 &out3 &out4);
+      data _null_;
+        infile results;
+        input;
+        list;
+      run;
+
+  Results:
+    @li `startsection`
+    @li `Chop here!endsection`
+    @li `startsectionChop here!`
+    @li `endsection`
+
+  For more examples, see mp_chop.test.sas
+
+  @param [in] infile The QUOTED path to the file on which to perform the chop
+  @param [in] matchvar= Macro variable NAME containing the string to split by
+  @param [in] matchpoint= (START) Valid values:
+    @li START - chop at the beginning of the string in `matchvar`.
+    @li END - chop at the end of the string in `matchvar`.
+  @param [in] offset= (0) An adjustment to the precise chop location, by
+    by reference to the `matchpoint`. Should be a positive or negative integer.
+  @param [in] keep= (FIRST) Valid values:
+    @li FIRST - keep the section of the file before the chop
+    @li LAST - keep the section of the file after the chop
+  @param [in] mdebug= (0) Set to 1 to provide macro debugging
+  @param outfile= (0) Optional QUOTED path to the adjusted output file (avoids
+    overwriting the first file).
+
+  <h4> SAS Macros </h4>
+  @li mf_getuniquefileref.sas
+  @li mf_getuniquename.sas
+
+  <h4> Related Macros </h4>
+  @li mp_abort.sas
+  @li mp_gsubfile.sas
+  @li mp_replace.sas
+  @li mp_chop.test.sas
+
+  @version 9.4
+  @author Allan Bowe
+
+**/
+
+%macro mp_chop(infile,
+  matchvar=,
+  matchpoint=START,
+  keep=FIRST,
+  offset=0,
+  mdebug=0,
+  outfile=0
+)/*/STORE SOURCE*/;
+
+%local fref0 dttm ds1 outref;
+%let fref0=%mf_getuniquefileref();
+%let ds1=%mf_getuniquename(prefix=allchars);
+%let ds2=%mf_getuniquename(prefix=startmark);
+
+%if &outfile=0 %then %let outfile=&infile;
+
+%mp_abort(iftrue= (%length(%superq(&matchvar))=0)
+  ,mac=mp_chop.sas
+  ,msg=%str(&matchvar is an empty variable)
+)
+
+/* START */
+%let dttm=%sysfunc(datetime());
+
+filename &fref0 &infile lrecl=1 recfm=n;
+
+/* create dataset with one char per row */
+data &ds1;
+  infile &fref0;
+  input sourcechar $char1. @@;
+  format sourcechar hex2.;
+run;
+
+/* get start & stop position of first matchvar string (one row, two vars) */
+data &ds2;
+  /* set find string to length in bytes to cover trailing spaces */
+  length string $ %length(%superq(&matchvar));
+  string =symget("&matchvar");
+  drop string;
+
+  firstchar=char(string,1);
+  findlen=lengthm(string); /* <- for trailing bytes */
+
+  do _N_=1 to nobs;
+    set &ds1 nobs=nobs point=_N_;
+    if sourcechar=firstchar then do;
+      pos=1;
+      s=0;
+      do point=_N_ to min(_N_ + findlen -1,nobs);
+        set &ds1 point=point;
+        if sourcechar=char(string, pos) then s + 1;
+        else goto _leave_;
+        pos+1;
+      end;
+      _leave_:
+      if s=findlen then do;
+        START =_N_;
+        _N_ =_N_+ s - 1;
+        STOP =_N_;
+        output;
+        /* matched! */
+        stop;
+      end;
+    end;
+  end;
+  stop;
+  keep START STOP;
+run;
+
+%local split;
+%let split=0;
+data _null_;
+  set &ds2;
+  if "&matchpoint"='START' then do;
+    if "&keep"='FIRST' then mp=start;
+    else if "&keep"='LAST' then mp=start-1;
+  end;
+  else if "&matchpoint"='END' then do;
+    if "&keep"='FIRST' then mp=stop+1;
+    else if "&keep"='LAST' then mp=stop;
+  end;
+  split=mp+&offset;
+  call symputx('split',split,'l');
+%if &mdebug=1 %then %do;
+  put (_all_)(=);
+  %put &=offset;
+%end;
+run;
+%if &split=0 %then %do;
+  %put &sysmacroname: No match found in &infile for string %superq(&matchvar);
+  %return;
+%end;
+
+data _null_;
+  file &outfile recfm=n;
+  set &ds1;
+%if &keep=FIRST %then %do;
+  if _n_ ge &split then stop;
+%end;
+%else %do;
+  if _n_ gt &split;
+%end;
+  put sourcechar char1.;
+run;
+
+%if &mdebug=0 %then %do;
+  filename &fref0 clear;
+%end;
+%else %do;
+  data _null_;
+    infile &outfile lrecl=32767;
+    input;
+    list;
+    if _n_>50 then stop;
+  run;
+%end;
+/* END */
+%put &sysmacroname took %sysevalf(%sysfunc(datetime())-&dttm) seconds to run;
+
+%mend mp_chop;
+/**
   @file mp_cleancsv.sas
   @brief Fixes embedded cr / lf / crlf in CSV
   @details CSVs will sometimes contain lf or crlf within quotes (eg when
@@ -7646,7 +7845,7 @@ create table &outds as
   outfile=0
 )/*/STORE SOURCE*/;
 
-  %if "%substr(&sysver,1,4)"="V.04" %then %do;
+  %if "%substr(&sysver.XX,1,4)"="V.04" %then %do;
     %put %str(ERR)OR: Viya 4 does not support the IO library in lua;
     %return;
   %end;
@@ -8323,7 +8522,7 @@ options
 
 %if &action=OPEN %then %do;
   options nobomfile;
-  data _null_;file &jref encoding='utf-8' ;
+  data _null_;file &jref encoding='utf-8' lrecl=200;
     put '{"PROCESSED_DTTM" : "' "%sysfunc(datetime(),E8601DT26.6)" '"';
   run;
 %end;
@@ -9753,7 +9952,7 @@ insert into &outds select distinct * from &append_ds;
   @param infile The QUOTED path to the file on which to perform the substitution
   @param findvar= Macro variable NAME containing the string to search for
   @param replacevar= Macro variable NAME containing the replacement string
-  @param outfile= (0) Optional QUOTED path to an the adjusted output file (to
+  @param outfile= (0) Optional QUOTED path to the adjusted output file (to
     avoid overwriting the first file).
 
   <h4> SAS Macros </h4>
@@ -9761,7 +9960,9 @@ insert into &outds select distinct * from &append_ds;
   @li mf_getuniquename.sas
 
   <h4> Related Macros </h4>
-  @li mp_gsubfile.test.sas
+  @li mp_chop.sas
+  @li mp_gsubfile.sas
+  @li mp_replace.test.sas
 
   @version 9.4
   @author Bartosz Jabłoński
@@ -11855,7 +12056,9 @@ libname &lib clear;
   @li mf_getuniquename.sas
   @li mp_abort.sas
   @li mp_binarycopy.sas
+  @li mp_chop.sas
   @li mp_ds2csv.sas
+  @li ms_testservice.sas
   @li mv_getjobresult.sas
   @li mv_jobflow.sas
 
@@ -11878,7 +12081,7 @@ libname &lib clear;
   viyaresult=WEBOUT_JSON,
   viyacontext=SAS Job Execution compute context
 )/*/STORE SOURCE*/;
-%local dbg pcnt fref1 webref i webcount var platform;
+%local dbg pcnt fref1 fref2 webref webrefpath i webcount var platform;
 %if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;
@@ -11919,10 +12122,14 @@ libname &lib clear;
   %end;
 %end;
 
-
-%let fref1=%mf_getuniquefileref();
-%let webref=%mf_getuniquefileref();
 %let platform=%mf_getplatform();
+%let fref1=%mf_getuniquefileref();
+%let fref2=%mf_getuniquefileref();
+%let webref=%mf_getuniquefileref();
+%let webrefpath=%sysfunc(pathname(work))/%mf_getuniquename();
+/* mp_chop requires a physical path as input */
+filename &webref "&webrefpath";
+
 %if &platform=SASMETA %then %do;
 
   /* parse the input files */
@@ -12078,12 +12285,27 @@ libname &lib clear;
   )
 
 %end;
+%else %if &platform=SASJS %then %do;
+
+  %ms_testservice(&program
+    ,inputfiles=&inputfiles
+    ,inputdatasets=&inputdatasets
+    ,inputparams=&inputparams
+    ,debug=&debug
+    ,mdebug=&mdebug
+    ,outlib=&outlib
+    ,outref=&outref
+  )
+
+%end;
 %else %do;
   %put %str(ERR)OR: Unrecognised platform:  &platform;
 %end;
 
 %if &mdebug=0 %then %do;
   filename &webref clear;
+  filename &fref1 clear;
+  filename &fref2 clear;
 %end;
 %else %do;
   %put &sysmacroname exit vars:;
@@ -14852,7 +15074,7 @@ data _null_;
   put ' ';
   put '%if &action=OPEN %then %do; ';
   put '  options nobomfile; ';
-  put '  data _null_;file &jref encoding=''utf-8'' ; ';
+  put '  data _null_;file &jref encoding=''utf-8'' lrecl=200; ';
   put '    put ''{"PROCESSED_DTTM" : "'' "%sysfunc(datetime(),E8601DT26.6)" ''"''; ';
   put '  run; ';
   put '%end; ';
@@ -18949,6 +19171,7 @@ run;
   @li mf_getuniquefileref.sas
   @li mf_getuniquename.sas
   @li mp_abort.sas
+  @li ms_deletefile.sas
 
 **/
 
@@ -18956,6 +19179,9 @@ run;
     ,inref=0
     ,mdebug=0
   );
+
+/* first, delete in case it exists */
+%ms_deletefile(&driveloc,mdebug=&mdebug)
 
 %local fname0 fname1 fname2 boundary fname statcd msg optval;
 %let fname0=%mf_getuniquefileref();
@@ -18968,8 +19194,8 @@ run;
 options nobomfile;
 
 data _null_;
-  file &fname0 termstr=crlf;
-  infile &inref end=eof;
+  file &fname0 termstr=crlf lrecl=32767;
+  infile &inref end=eof lrecl=32767;
   if _n_ = 1 then do;
     put "--&boundary.";
     put 'Content-Disposition: form-data; name="filePath"';
@@ -18998,11 +19224,11 @@ run;
 
 %if &mdebug=1 %then %do;
   data _null_;
-    infile &fname0;
+    infile &fname0 lrecl=32767;
     input;
     put _infile_;
   data _null_;
-    infile &fname1;
+    infile &fname1 lrecl=32767;
     input;
     put _infile_;
   run;
@@ -19211,7 +19437,7 @@ options &optval;
   For more examples of using these web services with the SASjs Adapter, see:
   https://github.com/sasjs/adapter#readme
 
-  @param [in] path= The full SASjs Drive path in which to create the service
+  @param [in] path= (0) The full SASjs Drive path in which to create the service
   @param [in] name= Stored Program name
   @param [in] desc= The description of the service (not implemented yet)
   @param [in] precode= Space separated list of filerefs, pointing to the code
@@ -19224,6 +19450,8 @@ options &optval;
   @li ms_createfile.sas
   @li mf_getuser.sas
   @li mf_getuniquename.sas
+  @li mf_getuniquefileref.sas
+  @li mp_abort.sas
 
   <h4> Related Files </h4>
   @li ms_createwebservice.test.sas
@@ -19233,7 +19461,7 @@ options &optval;
 
 **/
 
-%macro ms_createwebservice(path=
+%macro ms_createwebservice(path=0
     ,name=initService
     ,precode=
     ,code=ft15f001
@@ -19241,18 +19469,23 @@ options &optval;
     ,mDebug=0
 )/*/STORE SOURCE*/;
 
-%if &syscc ge 4 %then %do;
-  %put &=syscc - &sysmacroname will not execute in this state;
-  %return;
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
 %end;
+%else %let dbg=*;
 
-%local mD;
-%if &mDebug=1 %then %let mD=;
-%else %let mD=%str(*);
-%&mD.put Executing ms_createwebservice.sas;
-%&mD.put _local_;
+%mp_abort(iftrue=(&syscc ge 4 )
+  ,mac=ms_createwebservice
+  ,msg=%str(syscc=&syscc on macro entry)
+)
+%mp_abort(iftrue=("&path"="0")
+  ,mac=ms_createwebservice
+  ,msg=%str(Path not provided)
+)
 
-* remove any trailing slash ;
+/* remove any trailing slash */
 %if "%substr(&path,%length(&path),1)" = "/" %then
   %let path=%substr(&path,1,%length(&path)-1);
 
@@ -19261,9 +19494,10 @@ options &optval;
   * These put statements are auto generated - to change the macro, change the
   * source (ms_webout) and run `build.py`
   */
-filename sasjs temp;
+%local sasjsref;
+%let sasjsref=%mf_getuniquefileref();
 data _null_;
-  file sasjs lrecl=3000 ;
+  file &sasjsref termstr=crlf lrecl=512;
   put "/* Created on %sysfunc(datetime(),datetime19.) by %mf_getuser() */";
 /* WEBOUT BEGIN */
   put ' ';
@@ -19277,7 +19511,7 @@ data _null_;
   put ' ';
   put '%if &action=OPEN %then %do; ';
   put '  options nobomfile; ';
-  put '  data _null_;file &jref encoding=''utf-8'' ; ';
+  put '  data _null_;file &jref encoding=''utf-8'' lrecl=200; ';
   put '    put ''{"PROCESSED_DTTM" : "'' "%sysfunc(datetime(),E8601DT26.6)" ''"''; ';
   put '  run; ';
   put '%end; ';
@@ -19529,13 +19763,14 @@ data _null_;
   put '      %let _webin_name1=&_webin_name; ';
   put '    %end; ';
   put '    data _null_; ';
-  put '      infile &&_webin_fileref&i termstr=crlf; ';
+  put '      infile &&_webin_fileref&i termstr=crlf lrecl=32767; ';
   put '      input; ';
   put '      call symputx(''input_statement'',_infile_); ';
   put '      putlog "&&_webin_name&i input statement: "  _infile_; ';
   put '      stop; ';
   put '    data &&_webin_name&i; ';
-  put '      infile &&_webin_fileref&i firstobs=2 dsd termstr=crlf encoding=''utf-8''; ';
+  put '      infile &&_webin_fileref&i firstobs=2 dsd termstr=crlf encoding=''utf-8'' ';
+  put '        lrecl=32767; ';
   put '      input &input_statement; ';
   put '      %if %str(&_debug) ge 131 %then %do; ';
   put '        if _n_<20 then putlog _infile_; ';
@@ -19546,14 +19781,14 @@ data _null_;
   put '%end; ';
   put ' ';
   put '%else %if &action=OPEN %then %do; ';
-  put '  /* fix encoding */ ';
-  put '  OPTIONS NOBOMFILE; ';
+  put '  /* fix encoding and ensure enough lrecl */ ';
+  put '  OPTIONS NOBOMFILE lrecl=32767; ';
   put ' ';
   put '  /* set the header */ ';
   put '  %mfs_httpheader(Content-type,application/json) ';
   put ' ';
-  put '  /* setup json */ ';
-  put '  data _null_;file &fref encoding=''utf-8'' termstr=lf; ';
+  put '  /* setup json.  */ ';
+  put '  data _null_;file &fref encoding=''utf-8'' termstr=lf ; ';
   put '    put ''{"SYSDATE" : "'' "&SYSDATE" ''"''; ';
   put '    put '',"SYSTIME" : "'' "&SYSTIME" ''"''; ';
   put '  run; ';
@@ -19597,12 +19832,12 @@ data _null_;
   put '      data _null_; file &fref mod encoding=''utf-8'' termstr=lf; ';
   put '        put "}"; ';
   put '    %end; ';
-  put '    data _null_; file &fref mod encoding=''utf-8'' termstr=lf termstr=lf; ';
+  put '    data _null_; file &fref mod encoding=''utf-8'' termstr=lf; ';
   put '      put "}"; ';
   put '    run; ';
   put '  %end; ';
   put '  /* close off json */ ';
-  put '  data _null_;file &fref mod encoding=''utf-8'' termstr=lf; ';
+  put '  data _null_;file &fref mod encoding=''utf-8'' termstr=lf lrecl=32767; ';
   put '    _PROGRAM=quote(trim(resolve(symget(''_PROGRAM'')))); ';
   put '    put ",""SYSUSERID"" : ""&sysuserid"" "; ';
   put '    put ",""MF_GETUSER"" : ""%mf_getuser()"" "; ';
@@ -19675,24 +19910,21 @@ data _null_;
 run;
 
 /* add precode and code */
-%local tmpref x fref freflist mod;
-%let tmpref=%mf_getuniquefileref();
+%local x fref freflist;
 %let freflist=&precode &code ;
 %do x=1 %to %sysfunc(countw(&freflist));
-  %if &x>1 %then %let mod=mod;
-
   %let fref=%scan(&freflist,&x);
   %put &sysmacroname: adding &fref;
   data _null_;
-    file &tmpref lrecl=3000 &mod;
-    infile &fref;
+    file &sasjsref lrecl=3000 termstr=crlf mod;
+    infile &fref lrecl=3000;
     input;
     put _infile_;
   run;
 %end;
 
 /* create the web service */
-%ms_createfile(&path/&name..sas, inref=&tmpref,mdebug=&mdebug)
+%ms_createfile(&path/&name..sas, inref=&sasjsref, mdebug=&mdebug)
 
 %put ;%put ;%put ;%put ;%put ;%put ;
 %put &sysmacroname: STP &name successfully created in &path;
@@ -19924,48 +20156,154 @@ options &optval;
     parameter)
   @param [in] debug= (131) The value to supply to the _debug URL parameter
   @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
+  @param [in] inputparams=(_null_) A dataset containing name/value pairs in the
+    following format:
+    |name:$32|value:$10000|
+    |---|---|
+    |stpmacname|some value|
+    |mustbevalidname|can be anything, oops, %abort!!|
+  @param [in] inputfiles= (_null_) A dataset containing fileref/name/filename in
+    the following format:
+    |fileref:$8|name:$32|filename:$256|
+    |---|---|--|
+    |someref|some_name|some_filename.xls|
+    |fref2|another_file|zyx_v2.csv|
+
   @param [out] outref= (outweb) The output fileref to contain the response JSON
     (will be created using temp engine)
+  @param [out] outlogds= (_null_) Set to the name of a dataset to contain the
+    log. Table format:
+    |line:$2000|
+    |---|
+    |log line 1|
+    |log line 2|
 
   <h4> SAS Macros </h4>
   @li mf_getuniquefileref.sas
+  @li mf_getuniquelibref.sas
   @li mp_abort.sas
 
 **/
 
 %macro ms_runstp(pgm
     ,debug=131
+    ,inputparams=_null_
+    ,inputfiles=_null_
     ,outref=outweb
+    ,outlogds=_null_
     ,mdebug=0
   );
-%local dbg fname1;
+%local dbg mainref authref boundary;
+%let mainref=%mf_getuniquefileref();
+%let authref=%mf_getuniquefileref();
+%let boundary=%mf_getuniquename();
+%if &inputparams=0 %then %let inputparams=_null_;
+
 %if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;
 %end;
 %else %let dbg=*;
-%let fname1=%mf_getuniquefileref();
+
 
 %mp_abort(iftrue=("&pgm"="")
   ,mac=&sysmacroname
   ,msg=%str(Program not provided)
 )
 
+/* avoid sending bom marker to API */
+%local optval;
+%let optval=%sysfunc(getoption(bomfile));
+options nobomfile;
+
+/* add params */
 data _null_;
-  file &fname1 lrecl=1000;
+  file &mainref termstr=crlf lrecl=32767 mod;
+  length line $1000 name $32 value $32767;
+  if _n_=1 then call missing(of _all_);
+  set &inputparams;
+  put "--&boundary";
+  line=cats('Content-Disposition: form-data; name="',name,'"');
+  put line;
+  put ;
+  put value;
+run;
+
+/* parse input file list */
+%local webcount;
+%let webcount=0;
+data _null_;
+  set &inputfiles end=last;
+  length fileref $8 name $32 filename $256;
+  call symputx(cats('webref',_n_),fileref,'l');
+  call symputx(cats('webname',_n_),name,'l');
+  call symputx(cats('webfilename',_n_),filename,'l');
+  if last then do;
+    call symputx('webcount',_n_);
+    call missing(of _all_);
+  end;
+run;
+
+/* write out the input files */
+%local i;
+%do i=1 %to &webcount;
+  data _null_;
+    file &mainref termstr=crlf lrecl=32767 mod;
+    infile &&webref&i lrecl=32767;
+    if _n_ = 1 then do;
+      length line $32767;
+      line=cats(
+        'Content-Disposition: form-data; name="'
+        ,"&&webname&i"
+        ,'"; filename="'
+        ,"&&webfilename&i"
+        ,'"'
+      );
+      put "--&boundary";
+      put line;
+      put "Content-Type: text/plain";
+      put ;
+    end;
+    input;
+    put _infile_; /* add the actual file to be sent */
+  run;
+%end;
+
+data _null_;
+  file &mainref termstr=crlf mod;
+  put "--&boundary--";
+run;
+
+data _null_;
+  file &authref lrecl=1000;
   infile "&_sasjs_tokenfile" lrecl=1000;
   input;
   put 'Authorization: Bearer ' _infile_;
+  put "Content-Type: multipart/form-data; boundary=&boundary";
 run;
 
-filename &outref temp;
+%if &mdebug=1 %then %do;
+  data _null_;
+    infile &authref;
+    input;
+    put _infile_;
+  data _null_;
+    infile &mainref;
+    input;
+    put _infile_;
+  run;
+%end;
 
+filename &outref temp lrecl=32767;
 /* prepare request*/
-proc http method='POST' headerin=&fname1 out=&outref
+proc http method='POST' headerin=&authref in=&mainref out=&outref
   url="&_sasjs_apiserverurl.&_sasjs_apipath?_program=&pgm%str(&)_debug=131";
+%if &mdebug=1 %then %do;
+  debug level=2;
+%end;
 run;
 %if (&SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201)
-  or &mdebug=1 %then %do;
+%then %do;
   data _null_;infile &outref;input;putlog _infile_;run;
 %end;
 %mp_abort(
@@ -19974,6 +20312,20 @@ run;
   ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
 )
 
+/* reset options */
+options &optval;
+
+%if &outlogds ne _null_ or &mdebug=1 %then %do;
+  %local dumplib;
+  %let dumplib=%mf_getuniquelibref();
+  libname &dumplib json (&outref);
+  data &outlogds;
+    set &dumplib..log;
+  %if &mdebug=1 %then %do;
+    putlog line=;
+  %end;
+  run;
+%end;
 
 %if &mdebug=1 %then %do;
   %put &sysmacroname exit vars:;
@@ -19981,9 +20333,161 @@ run;
 %end;
 %else %do;
   /* clear refs */
-  filename &fname1 clear;
+  filename &authref;
+  filename &mainref;
 %end;
 %mend ms_runstp;/**
+  @file
+  @brief Will execute a SASjs web service on SASjs Server
+  @details Prepares the input files and retrieves the resulting datasets from
+  the response JSON.
+
+  @param [in] program The Stored Program endpoint to test
+  @param [in] inputfiles=(0) A list of space seperated fileref:filename pairs as
+    follows:
+        inputfiles=inref:filename inref2:filename2
+  @param [in] inputdatasets= (0) All datasets in this space seperated list are
+    converted into SASJS-formatted CSVs (see mp_ds2csv.sas) files and added to
+    the list of `inputfiles` for ingestion.  The dataset will be sent with the
+    same name (no need for a colon modifier).
+  @param [in] inputparams=(0) A dataset containing name/value pairs in the
+    following format:
+    |name:$32|value:$1000|
+    |---|---|
+    |stpmacname|some value|
+    |mustbevalidname|can be anything, oops, %abort!!|
+
+  @param [in] debug= (131) Provide the _debug value to pass to the STP
+  @param [in] mdebug= (0) Set to 1 to provide macro debugging (this macro)
+  @param [out] outlib= (0) Output libref to contain the final tables.  Set to
+    0 if the service output is not in JSON format.
+  @param [out] outref= (0) Output fileref to create, to contain the full _webout
+    response.
+  @param [out] outlogds= (_null_) Set to the name of a dataset to contain the
+    log. Table format:
+    |line:$2000|
+    |---|
+    |log line 1|
+    |log line 2|
+
+  <h4> SAS Macros </h4>
+  @li mf_getuniquefileref.sas
+  @li mf_getuniquename.sas
+  @li mp_abort.sas
+  @li mp_binarycopy.sas
+  @li mp_chop.sas
+  @li mp_ds2csv.sas
+  @li ms_runstp.sas
+
+  <h4> Related Programs </h4>
+  @li mp_testservice.test.sas
+
+  @version 9.4
+  @author Allan Bowe
+
+**/
+
+%macro ms_testservice(program,
+  inputfiles=0,
+  inputdatasets=0,
+  inputparams=0,
+  debug=0,
+  mdebug=0,
+  outlib=0,
+  outref=0,
+  outlogds=_null_
+)/*/STORE SOURCE*/;
+%local dbg fref1 chopout1 chopout2;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
+%end;
+%else %let dbg=*;
+
+/* convert inputdatasets to filerefs */
+%if "&inputdatasets" ne "0" %then %do;
+  %if %quote(&inputfiles)=0 %then %let inputfiles=;
+  %do i=1 %to %sysfunc(countw(&inputdatasets,%str( )));
+    %let var=%scan(&inputdatasets,&i,%str( ));
+    %local dsref&i;
+    %let dsref&i=%mf_getuniquefileref();
+    %mp_ds2csv(&var,outref=&&dsref&i,headerformat=SASJS)
+    %let inputfiles=&inputfiles &&dsref&i:%scan(&var,-1,.);
+  %end;
+%end;
+
+/* parse the filerefs - convert to a dataset */
+%let ds1=%mf_getuniquename();
+data &ds1;
+  length fileref $8 name $32 filename $256 var $300;
+  webcount=countw("&inputfiles");
+  do i=1 to webcount;
+    var=scan("&inputfiles",i,' ');
+    fileref=scan(var,1,':');
+    name=scan(var,2,':');
+    filename=cats(name,'.csv');
+    output;
+  end;
+run;
+
+
+/* execute the STP */
+%let fref1=%mf_getuniquefileref();
+
+%ms_runstp(&program
+  ,debug=&debug
+  ,inputparams=&inputparams
+  ,inputfiles=&ds1
+  ,outref=&fref1
+  ,mdebug=&mdebug
+  ,outlogds=&outlogds
+)
+
+
+/* SASjs services have the _webout embedded in wrapper JSON */
+/* Files can also be very large - so use a dedicated macro to chop it out */
+%local matchstr1 matchstr2 ;
+%let matchstr1={"status":"success","_webout":{;
+%let matchstr2=},"log":[{;
+%let chopout1=%sysfunc(pathname(work))/%mf_getuniquename(prefix=chop1);
+%let chopout2=%sysfunc(pathname(work))/%mf_getuniquename(prefix=chop2);
+
+%mp_chop("%sysfunc(pathname(&fref1,F))"
+  ,matchvar=matchstr1
+  ,keep=LAST
+  ,matchpoint=END
+  ,offset=-1
+  ,outfile="&chopout1"
+  ,mdebug=&mdebug
+)
+
+%mp_chop("&chopout1"
+  ,matchvar=matchstr2
+  ,keep=FIRST
+  ,matchpoint=START
+  ,offset=1
+  ,outfile="&chopout2"
+  ,mdebug=&mdebug
+)
+
+%if &outlib ne 0 %then %do;
+  libname &outlib json "&chopout2";
+%end;
+%if &outref ne 0 %then %do;
+  filename &outref "&chopout2";
+%end;
+
+%if &mdebug=0 %then %do;
+  filename &webref clear;
+  filename &fref1 clear;
+  filename &fref2 clear;
+%end;
+%else %do;
+  %put &sysmacroname exit vars:;
+  %put _local_;
+%end;
+
+%mend ms_testservice;/**
   @file
   @brief Send data to/from sasjs/server
   @details This macro should be added to the start of each web service,
@@ -20052,13 +20556,14 @@ run;
       %let _webin_name1=&_webin_name;
     %end;
     data _null_;
-      infile &&_webin_fileref&i termstr=crlf;
+      infile &&_webin_fileref&i termstr=crlf lrecl=32767;
       input;
       call symputx('input_statement',_infile_);
       putlog "&&_webin_name&i input statement: "  _infile_;
       stop;
     data &&_webin_name&i;
-      infile &&_webin_fileref&i firstobs=2 dsd termstr=crlf encoding='utf-8';
+      infile &&_webin_fileref&i firstobs=2 dsd termstr=crlf encoding='utf-8'
+        lrecl=32767;
       input &input_statement;
       %if %str(&_debug) ge 131 %then %do;
         if _n_<20 then putlog _infile_;
@@ -20069,14 +20574,14 @@ run;
 %end;
 
 %else %if &action=OPEN %then %do;
-  /* fix encoding */
-  OPTIONS NOBOMFILE;
+  /* fix encoding and ensure enough lrecl */
+  OPTIONS NOBOMFILE lrecl=32767;
 
   /* set the header */
   %mfs_httpheader(Content-type,application/json)
 
-  /* setup json */
-  data _null_;file &fref encoding='utf-8' termstr=lf;
+  /* setup json.  */
+  data _null_;file &fref encoding='utf-8' termstr=lf ;
     put '{"SYSDATE" : "' "&SYSDATE" '"';
     put ',"SYSTIME" : "' "&SYSTIME" '"';
   run;
@@ -20120,12 +20625,12 @@ run;
       data _null_; file &fref mod encoding='utf-8' termstr=lf;
         put "}";
     %end;
-    data _null_; file &fref mod encoding='utf-8' termstr=lf termstr=lf;
+    data _null_; file &fref mod encoding='utf-8' termstr=lf;
       put "}";
     run;
   %end;
   /* close off json */
-  data _null_;file &fref mod encoding='utf-8' termstr=lf;
+  data _null_;file &fref mod encoding='utf-8' termstr=lf lrecl=32767;
     _PROGRAM=quote(trim(resolve(symget('_PROGRAM'))));
     put ",""SYSUSERID"" : ""&sysuserid"" ";
     put ",""MF_GETUSER"" : ""%mf_getuser()"" ";
@@ -21147,7 +21652,7 @@ data _null_;
   put ' ';
   put '%if &action=OPEN %then %do; ';
   put '  options nobomfile; ';
-  put '  data _null_;file &jref encoding=''utf-8'' ; ';
+  put '  data _null_;file &jref encoding=''utf-8'' lrecl=200; ';
   put '    put ''{"PROCESSED_DTTM" : "'' "%sysfunc(datetime(),E8601DT26.6)" ''"''; ';
   put '  run; ';
   put '%end; ';
@@ -25382,7 +25887,15 @@ data _null_;
   put 'io.close(file) ';
 run;
 
+/* ensure big enough lrecl to avoid lua compilation issues */
+%local optval;
+%let optval=%sysfunc(getoption(lrecl));
+options lrecl=1024;
+
+/* execute the lua code by using a .lua extension */
 %inc "%sysfunc(pathname(work))/ml_gsubfile.lua" /source2;
+
+options lrecl=&optval;
 
 %mend ml_gsubfile;
 /**
@@ -25776,7 +26289,15 @@ data _null_;
   put '-- JSON.LUA ENDS HERE ';
 run;
 
+/* ensure big enough lrecl to avoid lua compilation issues */
+%local optval;
+%let optval=%sysfunc(getoption(lrecl));
+options lrecl=1024;
+
+/* execute the lua code by using a .lua extension */
 %inc "%sysfunc(pathname(work))/ml_json.lua" /source2;
+
+options lrecl=&optval;
 
 %mend ml_json;
 /**

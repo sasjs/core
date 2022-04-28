@@ -389,6 +389,14 @@ data _null_;
   put '-- JSON.LUA ENDS HERE ';
 run;
 
+/* ensure big enough lrecl to avoid lua compilation issues */
+%local optval;
+%let optval=%sysfunc(getoption(lrecl));
+options lrecl=1024;
+
+/* execute the lua code by using a .lua extension */
 %inc "%sysfunc(pathname(work))/ml_json.lua" /source2;
+
+options lrecl=&optval;
 
 %mend ml_json;

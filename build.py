@@ -22,8 +22,15 @@ for file in files:
         for line in infile:
             ml.write("  put '" + line.rstrip().replace("'", "''") + " ';\n")
     ml.write("run;\n\n")
+
+    ml.write("/* ensure big enough lrecl to avoid lua compilation issues */\n")
+    ml.write("%local optval;\n")
+    ml.write("%let optval=%sysfunc(getoption(lrecl));\n")
+    ml.write("options lrecl=1024;\n\n")
+    ml.write("/* execute the lua code by using a .lua extension */\n")
     ml.write("%inc \"%sysfunc(pathname(work))/" +
              name + ".lua\" /source2;\n\n")
+    ml.write("options lrecl=&optval;\n\n")
     ml.write("%mend " + name + ";\n")
 
 ml.close()

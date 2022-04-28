@@ -62,6 +62,7 @@
   @li mf_getuniquename.sas
 
   <h4> Related Macros </h4>
+  @li mp_abort.sas
   @li mp_gsubfile.sas
   @li mp_replace.sas
   @li mp_chop.test.sas
@@ -86,6 +87,11 @@
 %let ds2=%mf_getuniquename(prefix=startmark);
 
 %if &outfile=0 %then %let outfile=&infile;
+
+%mp_abort(iftrue= (%length(%superq(&matchvar))=0)
+  ,mac=mp_chop.sas
+  ,msg=%str(&matchvar is an empty variable)
+)
 
 /* START */
 %let dttm=%sysfunc(datetime());
@@ -148,10 +154,14 @@ data _null_;
     else if "&keep"='LAST' then mp=stop;
   end;
   split=mp+&offset;
-  call symputx('split',split);
+  call symputx('split',split,'l');
+%if &mdebug=1 %then %do;
+  put (_all_)(=);
+  %put &=offset;
+%end;
 run;
 %if &split=0 %then %do;
-  %put &sysmacroname: No match found in &inref for string %superq(matchvar);
+  %put &sysmacroname: No match found in &infile for string %superq(&matchvar);
   %return;
 %end;
 
@@ -172,7 +182,7 @@ run;
 %end;
 %else %do;
   data _null_;
-    infile &infile lrecl=32767;
+    infile &outfile lrecl=32767;
     input;
     list;
     if _n_>50 then stop;

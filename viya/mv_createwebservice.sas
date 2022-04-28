@@ -247,7 +247,7 @@ data _null_;
   put ' ';
   put '%if &action=OPEN %then %do; ';
   put '  options nobomfile; ';
-  put '  data _null_;file &jref encoding=''utf-8'' ; ';
+  put '  data _null_;file &jref encoding=''utf-8'' lrecl=200; ';
   put '    put ''{"PROCESSED_DTTM" : "'' "%sysfunc(datetime(),E8601DT26.6)" ''"''; ';
   put '  run; ';
   put '%end; ';

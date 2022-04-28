@@ -18,7 +18,7 @@
   , cards_file= "%sysfunc(pathname(work))/cars.sas"
   , showlog=NO
 )
-%inc "%sysfunc(pathname(work))/cars.sas"/source2;
+%inc "%sysfunc(pathname(work))/cars.sas"/source2 lrecl=32767;
 
 proc compare base=sashelp.cars compare=work.test;
 quit;
@@ -48,7 +48,7 @@ run;
   , append=
 )
 
-%inc "%sysfunc(pathname(work))/c2.sas"/source2;
+%inc "%sysfunc(pathname(work))/c2.sas"/source2 lrecl=32767;
 
 proc compare base=work.binarybase compare=work.binarycompare;
 run;

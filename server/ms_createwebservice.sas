@@ -31,7 +31,7 @@
   For more examples of using these web services with the SASjs Adapter, see:
   https://github.com/sasjs/adapter#readme
 
-  @param [in] path= The full SASjs Drive path in which to create the service
+  @param [in] path= (0) The full SASjs Drive path in which to create the service
   @param [in] name= Stored Program name
   @param [in] desc= The description of the service (not implemented yet)
   @param [in] precode= Space separated list of filerefs, pointing to the code
@@ -44,6 +44,8 @@
   @li ms_createfile.sas
   @li mf_getuser.sas
   @li mf_getuniquename.sas
+  @li mf_getuniquefileref.sas
+  @li mp_abort.sas
 
   <h4> Related Files </h4>
   @li ms_createwebservice.test.sas
@@ -53,7 +55,7 @@
 
 **/
 
-%macro ms_createwebservice(path=
+%macro ms_createwebservice(path=0
     ,name=initService
     ,precode=
     ,code=ft15f001
@@ -61,18 +63,23 @@
     ,mDebug=0
 )/*/STORE SOURCE*/;
 
-%if &syscc ge 4 %then %do;
-  %put &=syscc - &sysmacroname will not execute in this state;
-  %return;
+%local dbg;
+%if &mdebug=1 %then %do;
+  %put &sysmacroname entry vars:;
+  %put _local_;
 %end;
+%else %let dbg=*;
 
-%local mD;
-%if &mDebug=1 %then %let mD=;
-%else %let mD=%str(*);
-%&mD.put Executing ms_createwebservice.sas;
-%&mD.put _local_;
+%mp_abort(iftrue=(&syscc ge 4 )
+  ,mac=ms_createwebservice
+  ,msg=%str(syscc=&syscc on macro entry)
+)
+%mp_abort(iftrue=("&path"="0")
+  ,mac=ms_createwebservice
+  ,msg=%str(Path not provided)
+)
 
-* remove any trailing slash ;
+/* remove any trailing slash */
 %if "%substr(&path,%length(&path),1)" = "/" %then
   %let path=%substr(&path,1,%length(&path)-1);
 
@@ -81,9 +88,10 @@
   * These put statements are auto generated - to change the macro, change the
   * source (ms_webout) and run `build.py`
   */
-filename sasjs temp;
+%local sasjsref;
+%let sasjsref=%mf_getuniquefileref();
 data _null_;
-  file sasjs lrecl=3000 ;
+  file &sasjsref termstr=crlf lrecl=512;
   put "/* Created on %sysfunc(datetime(),datetime19.) by %mf_getuser() */";
 /* WEBOUT BEGIN */
   put ' ';
@@ -97,7 +105,7 @@ data _null_;
   put ' ';
   put '%if &action=OPEN %then %do; ';
   put '  options nobomfile; ';
-  put '  data _null_;file &jref encoding=''utf-8'' ; ';
+  put '  data _null_;file &jref encoding=''utf-8'' lrecl=200; ';
   put '    put ''{"PROCESSED_DTTM" : "'' "%sysfunc(datetime(),E8601DT26.6)" ''"''; ';
   put '  run; ';
   put '%end; ';
@@ -349,13 +357,14 @@ data _null_;
   put '      %let _webin_name1=&_webin_name; ';
   put '    %end; ';
   put '    data _null_; ';
-  put '      infile &&_webin_fileref&i termstr=crlf; ';
+  put '      infile &&_webin_fileref&i termstr=crlf lrecl=32767; ';
   put '      input; ';
   put '      call symputx(''input_statement'',_infile_); ';
   put '      putlog "&&_webin_name&i input statement: "  _infile_; ';
   put '      stop; ';
   put '    data &&_webin_name&i; ';
-  put '      infile &&_webin_fileref&i firstobs=2 dsd termstr=crlf encoding=''utf-8''; ';
+  put '      infile &&_webin_fileref&i firstobs=2 dsd termstr=crlf encoding=''utf-8'' ';
+  put '        lrecl=32767; ';
   put '      input &input_statement; ';
   put '      %if %str(&_debug) ge 131 %then %do; ';
   put '        if _n_<20 then putlog _infile_; ';
@@ -366,14 +375,14 @@ data _null_;
   put '%end; ';
   put ' ';
   put '%else %if &action=OPEN %then %do; ';
-  put '  /* fix encoding */ ';
-  put '  OPTIONS NOBOMFILE; ';
+  put '  /* fix encoding and ensure enough lrecl */ ';
+  put '  OPTIONS NOBOMFILE lrecl=32767; ';
   put ' ';
   put '  /* set the header */ ';
   put '  %mfs_httpheader(Content-type,application/json) ';
   put ' ';
-  put '  /* setup json */ ';
-  put '  data _null_;file &fref encoding=''utf-8'' termstr=lf; ';
+  put '  /* setup json.  */ ';
+  put '  data _null_;file &fref encoding=''utf-8'' termstr=lf ; ';
   put '    put ''{"SYSDATE" : "'' "&SYSDATE" ''"''; ';
   put '    put '',"SYSTIME" : "'' "&SYSTIME" ''"''; ';
   put '  run; ';
@@ -417,12 +426,12 @@ data _null_;
   put '      data _null_; file &fref mod encoding=''utf-8'' termstr=lf; ';
   put '        put "}"; ';
   put '    %end; ';
-  put '    data _null_; file &fref mod encoding=''utf-8'' termstr=lf termstr=lf; ';
+  put '    data _null_; file &fref mod encoding=''utf-8'' termstr=lf; ';
   put '      put "}"; ';
   put '    run; ';
   put '  %end; ';
   put '  /* close off json */ ';
-  put '  data _null_;file &fref mod encoding=''utf-8'' termstr=lf; ';
+  put '  data _null_;file &fref mod encoding=''utf-8'' termstr=lf lrecl=32767; ';
   put '    _PROGRAM=quote(trim(resolve(symget(''_PROGRAM'')))); ';
   put '    put ",""SYSUSERID"" : ""&sysuserid"" "; ';
   put '    put ",""MF_GETUSER"" : ""%mf_getuser()"" "; ';
@@ -495,24 +504,21 @@ data _null_;
 run;
 
 /* add precode and code */
-%local tmpref x fref freflist mod;
-%let tmpref=%mf_getuniquefileref();
+%local x fref freflist;
 %let freflist=&precode &code ;
 %do x=1 %to %sysfunc(countw(&freflist));
-  %if &x>1 %then %let mod=mod;
-
   %let fref=%scan(&freflist,&x);
   %put &sysmacroname: adding &fref;
   data _null_;
-    file &tmpref lrecl=3000 &mod;
-    infile &fref;
+    file &sasjsref lrecl=3000 termstr=crlf mod;
+    infile &fref lrecl=3000;
     input;
     put _infile_;
   run;
 %end;
 
 /* create the web service */
-%ms_createfile(&path/&name..sas, inref=&tmpref,mdebug=&mdebug)
+%ms_createfile(&path/&name..sas, inref=&sasjsref, mdebug=&mdebug)
 
 %put ;%put ;%put ;%put ;%put ;%put ;
 %put &sysmacroname: STP &name successfully created in &path;

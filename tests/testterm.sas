@@ -9,7 +9,7 @@
 
 %mp_assert(
   iftrue=(&syscc=0),
-  desc=Checking final error condition,
+  desc=Checking final err condition,
   outds=work.test_results
 )
 

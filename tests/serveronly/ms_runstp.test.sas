@@ -16,6 +16,7 @@ filename stpcode temp;
 data _null_;
   file stpcode;
   put '%put hello world;';
+  put '%put _all_;';
 run;
 
 options mprint;

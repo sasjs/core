@@ -50,3 +50,8 @@ run;
   desc=Checking line was created,
   outds=work.test_results
 )
+
+
+/* reset header so the test will pass */
+
+%mfs_httpheader(Content-type,application/json)

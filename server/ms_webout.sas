@@ -67,13 +67,14 @@
       %let _webin_name1=&_webin_name;
     %end;
     data _null_;
-      infile &&_webin_fileref&i termstr=crlf;
+      infile &&_webin_fileref&i termstr=crlf lrecl=32767;
       input;
       call symputx('input_statement',_infile_);
       putlog "&&_webin_name&i input statement: "  _infile_;
       stop;
     data &&_webin_name&i;
-      infile &&_webin_fileref&i firstobs=2 dsd termstr=crlf encoding='utf-8';
+      infile &&_webin_fileref&i firstobs=2 dsd termstr=crlf encoding='utf-8'
+        lrecl=32767;
       input &input_statement;
       %if %str(&_debug) ge 131 %then %do;
         if _n_<20 then putlog _infile_;
@@ -84,14 +85,14 @@
 %end;
 
 %else %if &action=OPEN %then %do;
-  /* fix encoding */
-  OPTIONS NOBOMFILE;
+  /* fix encoding and ensure enough lrecl */
+  OPTIONS NOBOMFILE lrecl=32767;
 
   /* set the header */
   %mfs_httpheader(Content-type,application/json)
 
-  /* setup json */
-  data _null_;file &fref encoding='utf-8' termstr=lf;
+  /* setup json.  */
+  data _null_;file &fref encoding='utf-8' termstr=lf ;
     put '{"SYSDATE" : "' "&SYSDATE" '"';
     put ',"SYSTIME" : "' "&SYSTIME" '"';
   run;
@@ -135,12 +136,12 @@
       data _null_; file &fref mod encoding='utf-8' termstr=lf;
         put "}";
     %end;
-    data _null_; file &fref mod encoding='utf-8' termstr=lf termstr=lf;
+    data _null_; file &fref mod encoding='utf-8' termstr=lf;
       put "}";
     run;
   %end;
   /* close off json */
-  data _null_;file &fref mod encoding='utf-8' termstr=lf;
+  data _null_;file &fref mod encoding='utf-8' termstr=lf lrecl=32767;
     _PROGRAM=quote(trim(resolve(symget('_PROGRAM'))));
     put ",""SYSUSERID"" : ""&sysuserid"" ";
     put ",""MF_GETUSER"" : ""%mf_getuser()"" ";

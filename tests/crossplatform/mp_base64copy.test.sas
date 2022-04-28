@@ -41,7 +41,7 @@ run;
 
 /* multibyte string check */
 
-filename tmp2 temp;
+filename tmp2 temp lrecl=500;
 data _null_;
   file tmp2;
   put "'╤', '╔', '╗', '═', '╧', '╚', '╝', '║', '╟', '─', '┼', '║', '╢', '│'";

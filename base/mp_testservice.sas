@@ -42,6 +42,7 @@
   @li mp_binarycopy.sas
   @li mp_chop.sas
   @li mp_ds2csv.sas
+  @li ms_testservice.sas
   @li mv_getjobresult.sas
   @li mv_jobflow.sas
 
@@ -270,94 +271,15 @@ filename &webref "&webrefpath";
 %end;
 %else %if &platform=SASJS %then %do;
 
-  /* avoid sending bom marker to API */
-  %local optval;
-  %let optval=%sysfunc(getoption(bomfile));
-  options nobomfile;
-
-  data _null_;
-    file &fname0 termstr=crlf;
-    infile &inref end=eof;
-    if _n_ = 1 then do;
-      put "--&boundary.";
-      put 'Content-Disposition: form-data; name="filePath"';
-      put ;
-      put "&driveloc";
-      put "--&boundary";
-      put 'Content-Disposition: form-data; name="file"; filename="ignore.sas"';
-      put "Content-Type: text/plain";
-      put ;
-    end;
-    input;
-    put _infile_; /* add the actual file to be sent */
-    if eof then do;
-      put ;
-      put "--&boundary--";
-    end;
-  run;
-
-  data _null_;
-    file &fname1 lrecl=1000;
-    infile "&_sasjs_tokenfile" lrecl=1000;
-    input;
-    put "Content-Type: multipart/form-data; boundary=&boundary";
-    put "Authorization: Bearer " _infile_;
-  run;
-
-  %if &mdebug=1 %then %do;
-    data _null_;
-      infile &fname0;
-      input;
-      put _infile_;
-    data _null_;
-      infile &fname1;
-      input;
-      put _infile_;
-    run;
-  %end;
-
-  proc http method='POST' in=&fname0 headerin=&fname1 out=&webref
-    url="&_sasjs_apiserverurl/SASjsApi/drive/file";
-  %if &mdebug=1 %then %do;
-    debug level=1;
-  %end;
-  run;
-
-  /* reset options */
-  options &optval;
-
-  /* SASjs services have the _webout embedded in wrapper JSON */
-  /* Files can also be very large - so use a dedicated macro to chop it out */
-  %local matchstr1 matchstr2 chopout1 chopout2;
-  %let matchstr1={"status":"success","_webout":{;
-  %let matchst2=},"log":[{;
-  %let chopout1=&webrefpath._1;
-  %let chopout2=&webrefpath._2;
-
-  %mp_chop("&webrefpath"
-    ,matchvar=matchstr1
-    ,keep=LAST
-    ,matchpoint=END
-    ,offset=-1
-    ,outfile="&chopout1"
+  %ms_testservice(&program
+    ,inputfiles=&inputfiles
+    ,inputdatasets=&inputdatasets
+    ,inputparams=&inputparams
+    ,debug=&debug
     ,mdebug=&mdebug
+    ,outlib=&outlib
+    ,outref=&outref
   )
-
-  %mp_chop("&chopout1"
-    ,matchvar=matchstr2
-    ,keep=FIRST
-    ,matchpoint=START
-    ,offset=1
-    ,outfile="&chopout2"
-    ,mdebug=&mdebug
-  )
-
-  %if &outlib ne 0 %then %do;
-    libname &outlib json ("&chopout2");
-  %end;
-  %if &outref ne 0 %then %do;
-    filename &outref "&chopout2";
-  %end;
 
 %end;
 %else %do;

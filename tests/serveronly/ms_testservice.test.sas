@@ -1,13 +1,10 @@
 /**
   @file
-  @brief Testing mp_testservice.sas macro
-
-  Be sure to run <code>%let mcTestAppLoc=/Public/temp/macrocore;</code> when
-  runnin in Studio
+  @brief Testing ms_testservice.sas macro
 
   <h4> SAS Macros </h4>
-  @li mp_createwebservice.sas
-  @li mp_testservice.sas
+  @li ms_createwebservice.sas
+  @li ms_testservice.sas
   @li mp_assert.sas
 
 **/
@@ -19,7 +16,8 @@ parmcards4;
   %webout(FETCH)
   %webout(OPEN)
   %macro x();
-  %if %symexist(sasjs_tables) %then %do i=1 %to %sysfunc(countw(&sasjs_tables));
+  %if (%symexist(sasjs_tables) and %length(&sasjs_tables)>0)
+  %then %do i=1 %to %sysfunc(countw(&sasjs_tables));
     %let table=%scan(&sasjs_tables,&i);
     %webout(OBJ,&table,missing=STRING)
   %end;
@@ -29,7 +27,13 @@ parmcards4;
   %mend x; %x()
   %webout(CLOSE)
 ;;;;
-%mp_createwebservice(path=&mcTestAppLoc/services,name=sendObj)
+%put creating web service: &mcTestAppLoc/services;
+%ms_createwebservice(
+  path=&mcTestAppLoc/services,
+  name=sendObj,
+  mdebug=&sasjs_mdebug
+)
+%put created web service: &mcTestAppLoc/services;
 
 %mp_assert(
   iftrue=(&syscc=0),
@@ -48,13 +52,14 @@ data work.somedata1 work.somedata2;
   output;
 run;
 
-%mp_testservice(&mcTestAppLoc/services/sendObj,
+%ms_testservice(&mcTestAppLoc/services/sendObj,
   inputdatasets=work.somedata1 work.somedata2,
   debug=log,
   mdebug=1,
   outlib=testlib1,
   outref=test1
 )
+
 %let test1=FAIL;
 data _null_;
   set testlib1.somedata1;

@@ -12303,9 +12303,11 @@ filename &webref "&webrefpath";
 %end;
 
 %if &mdebug=0 %then %do;
-  filename &webref clear;
   filename &fref1 clear;
-  filename &fref2 clear;
+  %if &platform ne SASJS %then %do;
+    filename &fref2 clear;
+    filename &webref clear;
+  %end;
 %end;
 %else %do;
   %put &sysmacroname exit vars:;

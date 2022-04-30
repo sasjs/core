@@ -4,8 +4,6 @@
   @details Will set headers using appropriate functions per the server type
   (Viya, EBI, SASjs Server) and content as a binary stream.
 
-  A co
-
   Usage:
 
       filename mc url

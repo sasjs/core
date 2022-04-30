@@ -20409,7 +20409,7 @@ options &optval;
   outref=0,
   outlogds=_null_
 )/*/STORE SOURCE*/;
-%local dbg fref1 chopout1 chopout2;
+%local dbg i var ds1 fref1 chopout1 chopout2;
 %if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;

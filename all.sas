@@ -11723,7 +11723,8 @@ create table &outds as
   @file
   @brief Streams a file to _webout according to content type
   @details Will set headers using appropriate functions per the server type
-  (Viya, EBI, SASjs Server) and content as a binary stream.
+  (Viya, EBI, [SASjs Server](https://github.com/sasjs/server)) and stream
+  content using mp_binarycopy().
 
   Usage:
 

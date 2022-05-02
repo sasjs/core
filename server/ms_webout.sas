@@ -100,6 +100,11 @@
 %end;
 
 %else %if &action=ARR or &action=OBJ %then %do;
+  %if "%substr(&sysver,1,1)"="4" or "%substr(&sysver,1,1)"="5" %then %do;
+    /* functions in formats unsupported */
+    %put &sysmacroname: forcing missing back to NULL as feature not supported;
+    %let missing=NULL;
+  %end;
   %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt,jref=&fref
     ,engine=DATASTEP,missing=&missing,showmeta=&showmeta
   )

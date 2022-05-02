@@ -188,7 +188,7 @@ options noquotelenmax;
     %put No feature was requested for detection;
   %end;
   %else %if &feature=COLCONSTRAINTS %then %do;
-    %if %substr(&sysver,1,1)=4 %then 0;
+    %if "%substr(&sysver,1,1)"="4" or "%substr(&sysver,1,1)"="5" %then 0;
     %else 1;
   %end;
   %else %if &feature=PROCLUA %then %do;

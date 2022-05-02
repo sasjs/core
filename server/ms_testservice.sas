@@ -82,13 +82,15 @@
 %let ds1=%mf_getuniquename();
 data &ds1;
   length fileref $8 name $32 filename $256 var $300;
-  webcount=countw("&inputfiles");
-  do i=1 to webcount;
-    var=scan("&inputfiles",i,' ');
-    fileref=scan(var,1,':');
-    name=scan(var,2,':');
-    filename=cats(name,'.csv');
-    output;
+  if "&inputfiles" ne "0" then do;
+    webcount=countw("&inputfiles");
+    do i=1 to webcount;
+      var=scan("&inputfiles",i,' ');
+      fileref=scan(var,1,':');
+      name=scan(var,2,':');
+      filename=cats(name,'.csv');
+      output;
+    end;
   end;
 run;
 

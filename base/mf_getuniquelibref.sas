@@ -3,12 +3,12 @@
   @brief Returns an unused libref
   @details Use as follows:
 
-    libname mclib0 (work);
-    libname mclib1 (work);
-    libname mclib2 (work);
+      libname mclib0 (work);
+      libname mclib1 (work);
+      libname mclib2 (work);
 
-    %let libref=%mf_getuniquelibref();
-    %put &=libref;
+      %let libref=%mf_getuniquelibref();
+      %put &=libref;
 
   which returns:
 

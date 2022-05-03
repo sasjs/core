@@ -4,6 +4,7 @@
 
   <h4> SAS Macros </h4>
   @li mf_getvarcount.sas
+  @li mp_assertscope.sas
 
 **/
 
@@ -12,6 +13,10 @@ data work.all work.nums(keep=num1 num2) work.chars(keep=char1 char2);
   call missing (of _all_);
   output;
 run;
+
+%mp_assertscope(SNAPSHOT)
+%put scope check:%mf_getvarcount(work.all);
+%mp_assertscope(COMPARE)
 
 %mp_assert(
   iftrue=(%mf_getvarcount(work.all)=5),

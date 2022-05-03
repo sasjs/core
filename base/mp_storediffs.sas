@@ -125,7 +125,7 @@
 data &ds1;
   set &dslist indsname=&inds_auto;
   &hashkey=put(md5(catx('|',%mf_getquotedstr(&key,quote=N))),$hex32.);
-  &inds_keep=&inds_auto;
+  &inds_keep=upcase(&inds_auto);
 proc sort;
   by &inds_keep &hashkey;
 run;
@@ -160,8 +160,8 @@ data &ds4;
   tgtvar_nm=upcase(tgtvar_nm);
   if tgtvar_nm in (%upcase(&vlist));
 
-  if &inds_auto="&ds2" then tgtvar_type='N';
-  else if &inds_auto="&ds3" then tgtvar_type='C';
+  if upcase(&inds_auto)="&ds2" then tgtvar_type='N';
+  else if upcase(&inds_auto)="&ds3" then tgtvar_type='C';
   else do;
     putlog "%str(ERR)OR: unidentified vartype input!" &inds_auto;
     call symputx('syscc',98);

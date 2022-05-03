@@ -994,12 +994,12 @@ or %index(&pgm,/tests/testteardown)
   @brief Returns an unused libref
   @details Use as follows:
 
-    libname mclib0 (work);
-    libname mclib1 (work);
-    libname mclib2 (work);
+      libname mclib0 (work);
+      libname mclib1 (work);
+      libname mclib2 (work);
 
-    %let libref=%mf_getuniquelibref();
-    %put &=libref;
+      %let libref=%mf_getuniquelibref();
+      %put &=libref;
 
   which returns:
 
@@ -1148,33 +1148,50 @@ or %index(&pgm,/tests/testteardown)
   @file
   @brief Returns number of variables in a dataset
   @details Useful to identify those renagade datasets that have no columns!
+  Can also be used to count for numeric, or character columns
 
-        %put Number of Variables=%mf_getvarcount(sashelp.class);
+      %put Number of Variables=%mf_getvarcount(sashelp.class);
+      %put Character Variables=%mf_getvarcount(sashelp.class,typefilter=C);
+      %put Numeric Variables = %mf_getvarcount(sashelp.class,typefilter=N);
 
   returns:
   > Number of Variables=4
 
-  @param libds Two part dataset (or view) reference.
+
+  @param [in] libds Two part dataset (or view) reference.
+  @param [in] typefilter= (A) Filter for certain types of column.  Valid values:
+    @li A Count All columns
+    @li C Count Character columns only
+    @li N Count Numeric columns only
 
   @version 9.2
   @author Allan Bowe
 
 **/
 
-%macro mf_getvarcount(libds
+%macro mf_getvarcount(libds,typefilter=A
 )/*/STORE SOURCE*/;
-  %local dsid nvars rc ;
+  %local dsid nvars rc outcnt x;
   %let dsid=%sysfunc(open(&libds));
   %let nvars=.;
+  %let outcnt=0;
+  %let typefilter=%upcase(&typefilter);
   %if &dsid %then %do;
     %let nvars=%sysfunc(attrn(&dsid,NVARS));
+    %if &typefilter=A %then %let outcnt=&nvars;
+    %else %if &nvars>0 %then %do x=1 %to &nvars;
+      /* increment based on variable type */
+      %if %sysfunc(vartype(&dsid,&x))=&typefilter %then %do;
+        %let outcnt=%eval(&outcnt+1);
+      %end;
+    %end;
     %let rc=%sysfunc(close(&dsid));
   %end;
   %else %do;
     %put unable to open &libds (rc=&dsid);
     %let rc=%sysfunc(close(&dsid));
   %end;
-  &nvars
+  &outcnt
 %mend mf_getvarcount;/**
   @file
   @brief Returns the format of a variable
@@ -2203,7 +2220,12 @@ Usage:
     or "&SYSPROCESSNAME "="Compute Server "
     or &mode=INCLUDE
   %then %do;
-    options obs=max replace nosyntaxcheck mprint;
+    options obs=max replace mprint;
+    %if "%substr(&sysver,1,1)" ne "4" and "%substr(&sysver,1,1)" ne "5"
+    %then %do;
+      options nosyntaxcheck;
+    %end;
+
     %if &mode=INCLUDE %then %do;
       %if %sysfunc(exist(&errds))=1 %then %do;
         data _null_;
@@ -7458,6 +7480,7 @@ create table &outsummary as
   <h4> SAS Macros </h4>
   @li mcf_length.sas
   @li mf_getuniquename.sas
+  @li mf_getvarcount.sas
   @li mf_getvarlist.sas
   @li mf_getvartype.sas
   @li mf_getvarformat.sas
@@ -7477,7 +7500,7 @@ create table &outsummary as
   ,outds=work.mp_getmaxvarlengths
 )/*/STORE SOURCE*/;
 
-%local vars prefix x var fmt;
+%local vars prefix x var fmt srcds;
 %let vars=%mf_getvarlist(libds=&libds);
 %let prefix=%substr(%mf_getuniquename(),1,25);
 %let num2char=%upcase(&num2char);
@@ -7486,6 +7509,24 @@ create table &outsummary as
   /* compile length function for numeric fields */
   %mcf_length(wrap=YES, insert_cmplib=YES)
 %end;
+
+%if &num2char=NO
+  and ("%substr(&sysver,1,1)"="4" or "%substr(&sysver,1,1)"="5")
+  and %mf_getvarcount(&libds,typefilter=N) gt 0
+%then %do;
+  /* custom functions not supported in summary operations */
+  %let srcds=%mf_getuniquename();
+  data &srcds/view=&srcds;
+    set &libds;
+  %do x=1 %to %sysfunc(countw(&vars,%str( )));
+    %let var=%scan(&vars,&x);
+    %if %mf_getvartype(&libds,&var)=N %then %do;
+      &prefix.&x=mcf_length(&var);
+    %end;
+  %end;
+  run;
+%end;
+%else %let srcds=&libds;
 
 proc sql;
 create table &outds (rename=(
@@ -7511,10 +7552,15 @@ create table &outds (rename=(
         %end;
       %end;
       %else %do;
-        max(mcf_length(&var)) as &prefix.&x
+        %if "%substr(&sysver,1,1)"="4" or "%substr(&sysver,1,1)"="5" %then %do;
+          max(&prefix.&x) as &prefix.&x
+        %end;
+        %else %do;
+          max(mcf_length(&var)) as &prefix.&x
+        %end;
       %end;
     %end;
-  from &libds;
+  from &srcds;
 
   proc transpose data=&outds
     out=&outds(rename=(_name_=NAME COL1=MAXLEN));
@@ -11546,7 +11592,7 @@ select distinct tgtvar_nm into: missvars separated by ' '
 data &ds1;
   set &dslist indsname=&inds_auto;
   &hashkey=put(md5(catx('|',%mf_getquotedstr(&key,quote=N))),$hex32.);
-  &inds_keep=&inds_auto;
+  &inds_keep=upcase(&inds_auto);
 proc sort;
   by &inds_keep &hashkey;
 run;
@@ -11581,8 +11627,8 @@ data &ds4;
   tgtvar_nm=upcase(tgtvar_nm);
   if tgtvar_nm in (%upcase(&vlist));
 
-  if &inds_auto="&ds2" then tgtvar_type='N';
-  else if &inds_auto="&ds3" then tgtvar_type='C';
+  if upcase(&inds_auto)="&ds2" then tgtvar_type='N';
+  else if upcase(&inds_auto)="&ds3" then tgtvar_type='C';
   else do;
     putlog "%str(ERR)OR: unidentified vartype input!" &inds_auto;
     call symputx('syscc',98);

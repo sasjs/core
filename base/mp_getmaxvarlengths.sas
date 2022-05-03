@@ -41,6 +41,7 @@
   <h4> SAS Macros </h4>
   @li mcf_length.sas
   @li mf_getuniquename.sas
+  @li mf_getvarcount.sas
   @li mf_getvarlist.sas
   @li mf_getvartype.sas
   @li mf_getvarformat.sas
@@ -60,7 +61,7 @@
   ,outds=work.mp_getmaxvarlengths
 )/*/STORE SOURCE*/;
 
-%local vars prefix x var fmt;
+%local vars prefix x var fmt srcds;
 %let vars=%mf_getvarlist(libds=&libds);
 %let prefix=%substr(%mf_getuniquename(),1,25);
 %let num2char=%upcase(&num2char);
@@ -69,6 +70,24 @@
   /* compile length function for numeric fields */
   %mcf_length(wrap=YES, insert_cmplib=YES)
 %end;
+
+%if &num2char=NO
+  and ("%substr(&sysver,1,1)"="4" or "%substr(&sysver,1,1)"="5")
+  and %mf_getvarcount(&libds,typefilter=N) gt 0
+%then %do;
+  /* custom functions not supported in summary operations */
+  %let srcds=%mf_getuniquename();
+  data &srcds/view=&srcds;
+    set &libds;
+  %do x=1 %to %sysfunc(countw(&vars,%str( )));
+    %let var=%scan(&vars,&x);
+    %if %mf_getvartype(&libds,&var)=N %then %do;
+      &prefix.&x=mcf_length(&var);
+    %end;
+  %end;
+  run;
+%end;
+%else %let srcds=&libds;
 
 proc sql;
 create table &outds (rename=(
@@ -94,10 +113,15 @@ create table &outds (rename=(
         %end;
       %end;
       %else %do;
-        max(mcf_length(&var)) as &prefix.&x
+        %if "%substr(&sysver,1,1)"="4" or "%substr(&sysver,1,1)"="5" %then %do;
+          max(&prefix.&x) as &prefix.&x
+        %end;
+        %else %do;
+          max(mcf_length(&var)) as &prefix.&x
+        %end;
       %end;
     %end;
-  from &libds;
+  from &srcds;
 
   proc transpose data=&outds
     out=&outds(rename=(_name_=NAME COL1=MAXLEN));

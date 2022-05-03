@@ -89,7 +89,12 @@
     or "&SYSPROCESSNAME "="Compute Server "
     or &mode=INCLUDE
   %then %do;
-    options obs=max replace nosyntaxcheck mprint;
+    options obs=max replace mprint;
+    %if "%substr(&sysver,1,1)" ne "4" and "%substr(&sysver,1,1)" ne "5"
+    %then %do;
+      options nosyntaxcheck;
+    %end;
+
     %if &mode=INCLUDE %then %do;
       %if %sysfunc(exist(&errds))=1 %then %do;
         data _null_;

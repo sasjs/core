@@ -137,8 +137,8 @@ data _null_;
   file &authref lrecl=1000;
   infile "&_sasjs_tokenfile" lrecl=1000;
   input;
-  put 'Authorization: Bearer ' _infile_;
-  put "Content-Type: multipart/form-data; boundary=&boundary";
+  if _n_=1 then put "Content-Type: multipart/form-data; boundary=&boundary";
+  put _infile_;
 run;
 
 %if &mdebug=1 %then %do;

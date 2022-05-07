@@ -87,9 +87,11 @@ data _null_;
   file &fref1 lrecl=1000;
   infile "&_sasjs_tokenfile" lrecl=1000;
   input;
-  put "Authorization: Bearer " _infile_;
-  put "Content-Type: application/json";
-  put "accept: application/json";
+  if _n_=1 then do;
+    put "Content-Type: application/json";
+    put "accept: application/json";
+  end;
+  put _infile_;
 run;
 
 %if &mdebug=1 %then %do;

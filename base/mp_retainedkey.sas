@@ -58,6 +58,7 @@
 
   <h4> SAS Macros </h4>
   @li mf_existvar.sas
+  @li mf_fmtdttm.sas
   @li mf_getquotedstr.sas
   @li mf_getuniquename.sas
   @li mf_nobs.sas
@@ -217,12 +218,12 @@ quit;
     set keytable="&base_libds"
       ,keycolumn="&retained_key"
       ,max_key=%eval(&maxkey+&newkey_cnt)
-      ,processed_dttm="%sysfunc(datetime(),E8601DT26.6)"dt;
+      ,processed_dttm="%sysfunc(datetime(),%mf_fmtdttm())"dt;
   %end;
   %else %do;
   update &maxkeytable
     set max_key=%eval(&maxkey+&newkey_cnt)
-      ,processed_dttm="%sysfunc(datetime(),E8601DT26.6)"dt
+      ,processed_dttm="%sysfunc(datetime(),%mf_fmtdttm())"dt
     where keytable="&base_libds";
   %end;
   %mp_lockanytable(UNLOCK

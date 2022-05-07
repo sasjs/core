@@ -1,6 +1,6 @@
 /**
   @file
-  @brief Testing mf_dttm macro
+  @brief Testing mf_fmtdttm macro
 
   <h4> SAS Macros </h4>
   @li mf_dttm.sas
@@ -12,7 +12,7 @@
 %global test1;
 
 %mp_assertscope(SNAPSHOT)
-%let test1=%mf_dttm();
+%let test1=%mf_fmtdttm();
 %mp_assertscope(COMPARE,ignorelist=test1)
 
 %mp_assert(

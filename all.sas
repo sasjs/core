@@ -19319,8 +19319,8 @@ data _null_;
   file &fname1 lrecl=1000;
   infile "&_sasjs_tokenfile" lrecl=1000;
   input;
-  put "Content-Type: multipart/form-data; boundary=&boundary";
-  put "Authorization: Bearer " _infile_;
+  if _n_=1 then put "Content-Type: multipart/form-data; boundary=&boundary";
+  put _infile_;
 run;
 
 %if &mdebug=1 %then %do;
@@ -19450,9 +19450,11 @@ data _null_;
   file &fref1 lrecl=1000;
   infile "&_sasjs_tokenfile" lrecl=1000;
   input;
-  put "Authorization: Bearer " _infile_;
-  put "Content-Type: application/json";
-  put "accept: application/json";
+  if _n_=1 then do;
+    put "Content-Type: application/json";
+    put "accept: application/json";
+  end;
+  put _infile_;
 run;
 
 %if &mdebug=1 %then %do;
@@ -20077,7 +20079,7 @@ data _null_;
   file &headref lrecl=1000;
   infile "&_sasjs_tokenfile" lrecl=1000;
   input;
-  put "Authorization: Bearer " _infile_;
+  put _infile_;
 run;
 
 proc http method='DELETE' headerin=&headref
@@ -20126,7 +20128,7 @@ data _null_;
   file &headref lrecl=1000;
   infile "&_sasjs_tokenfile" lrecl=1000;
   input;
-  put "Authorization: Bearer " _infile_;
+  put _infile_;
 run;
 
 proc http method='GET' out=&binaryfref headerin=&headref
@@ -20197,8 +20199,8 @@ data _null_;
   file &fref0 lrecl=1000;
   infile "&_sasjs_tokenfile" lrecl=1000;
   input;
-  put "Authorization: Bearer " _infile_;
-  put "accept: application/json";
+  if _n_=1 then put "accept: application/json";
+  put _infile_;
 run;
 
 %if &mdebug=1 %then %do;
@@ -20385,8 +20387,8 @@ data _null_;
   file &authref lrecl=1000;
   infile "&_sasjs_tokenfile" lrecl=1000;
   input;
-  put 'Authorization: Bearer ' _infile_;
-  put "Content-Type: multipart/form-data; boundary=&boundary";
+  if _n_=1 then put "Content-Type: multipart/form-data; boundary=&boundary";
+  put _infile_;
 run;
 
 %if &mdebug=1 %then %do;

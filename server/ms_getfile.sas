@@ -34,7 +34,7 @@ data _null_;
   file &headref lrecl=1000;
   infile "&_sasjs_tokenfile" lrecl=1000;
   input;
-  put "Authorization: Bearer " _infile_;
+  put _infile_;
 run;
 
 proc http method='GET' out=&binaryfref headerin=&headref

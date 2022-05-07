@@ -3,7 +3,7 @@
   @brief Testing mf_fmtdttm macro
 
   <h4> SAS Macros </h4>
-  @li mf_dttm.sas
+  @li mf_fmtdttm.sas
   @li mp_assert.sas
   @li mp_assertscope.sas
 

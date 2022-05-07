@@ -5,9 +5,21 @@
   (https://datacontroller.io) deployments, the E8601DT26.6 datetime format has
   the widest support when it comes to pass-through SQL queries.
 
-  However, it is not supported in WPS or early versions of SAS 9 (M3 and below).
+  However, it is not supported in WPS or early versions of SAS 9 (M3 and below)
+  when used as a datetime literal, eg:
 
-  This macro will therefore return the appropriate format based on the runtime.
+      data _null_;
+        demo="%sysfunc(datetime(),E8601DT26.6)"dt;
+        demo=;
+      run;
+
+  This macro will therefore return DATEITME19.3 as an alternative format
+  based on the runtime environment so that it can be used in such cases, eg:
+
+      data _null_;
+        demo="%sysfunc(datetime(),%mf_fmtdttm())"dt;
+        demo=;
+      run;
 
   <h4> Related Macros </h4>
   @li mf_fmtdttm.test.sas

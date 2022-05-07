@@ -22,6 +22,7 @@
   @param [in] loop_secs= (1) Seconds to wait between each lock attempt
 
   <h4> SAS Macros </h4>
+  @li mf_fmtdttm.sas
   @li mp_abort.sas
   @li mp_lockfilecheck.sas
   @li mf_getuser.sas
@@ -111,7 +112,7 @@ run;
       LOCK_LIB ="&lib";
       LOCK_DS="&ds";
       LOCK_STATUS_CD='LOCKED';
-      LOCK_START_DTTM="%sysfunc(datetime(),E8601DT26.6)"dt;
+      LOCK_START_DTTM="%sysfunc(datetime(),%mf_fmtdttm())"dt;
       LOCK_USER_NM="&user";
       LOCK_PID="&sysjobid";
       LOCK_REF="&ref";
@@ -131,7 +132,7 @@ run;
     proc sql;
     update &ctl_ds
       set LOCK_STATUS_CD='LOCKED'
-        , LOCK_START_DTTM="%sysfunc(datetime(),E8601DT26.6)"dt
+        , LOCK_START_DTTM="%sysfunc(datetime(),%mf_fmtdttm())"dt
         , LOCK_USER_NM="&user"
         , LOCK_PID="&sysjobid"
         , LOCK_REF="&ref"
@@ -206,7 +207,7 @@ run;
     proc sql;
     update &ctl_ds
       set LOCK_STATUS_CD='UNLOCKED'
-        , LOCK_END_DTTM="%sysfunc(datetime(),E8601DT26.6)"dt
+        , LOCK_END_DTTM="%sysfunc(datetime(),%mf_fmtdttm())"dt
         , LOCK_USER_NM="&user"
         , LOCK_PID="&sysjobid"
         , LOCK_REF="&ref"

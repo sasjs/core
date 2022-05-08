@@ -6,7 +6,6 @@ sasjs/
 .github/
 .git-hooks/
 .vscode/
-main.dox
 make_singlefile.sh
 *.md
 .all-contributorsrc

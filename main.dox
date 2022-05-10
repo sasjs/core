@@ -92,4 +92,15 @@
         * Auto-generated from the plain source `.lua` files in the same directory
         * Prefixes: _ml_
 
+*/
+
+/*! \dir ddl
+ *  \brief Data Definition Language files
+ *  \details Provides templates for commonly used tables in sasjs/core.
+   Attributes:
+
+        * OS independent
+        * No X command
+        * Prefixes: _mddl_
+
  */

@@ -6571,6 +6571,22 @@ drop table &dropds;
 %let ds=%upcase(&ds);
 
 /**
+  * Cater for environments where sashelp.vcncolu is not available
+  */
+%if %sysfunc(exist(sashelp.vcncolu,view))=0 %then %do;
+  proc sql;
+  create table &outds(
+      libref char(8)
+    ,TABLE_NAME char(32)
+    ,constraint_type char(8)     label='Constraint Type'
+    ,constraint_name char(32)     label='Constraint Name'
+    ,column_name char(32)     label='Column'
+    ,constraint_order num
+  );
+  %return;
+%end;
+
+/**
   * Neither dictionary tables nor sashelp provides a constraint order column,
   * however they DO arrive in the correct order.  So, create the col.
   **/

@@ -43,7 +43,7 @@
     },
     {
       "name": "sas9",
-      "serverUrl": "https://sas.analytium.co.uk:8343",
+      "serverUrl": "",
       "serverType": "SAS9",
       "httpsAgentOptions": {
         "allowInsecureRequests": false
@@ -65,7 +65,7 @@
     },
     {
       "name": "server",
-      "serverUrl": "https://sas.analytium.co.uk:5007",
+      "serverUrl": "",
       "serverType": "SASJS",
       "httpsAgentOptions": {
         "allowInsecureRequests": false
@@ -78,7 +78,7 @@
     },
     {
       "name": "docsonly",
-      "serverType": "SAS9",
+      "serverType": "SASJS",
       "appLoc": "dummy",
       "macroFolders": [
         "meta",

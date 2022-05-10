@@ -13139,8 +13139,8 @@ proc sql;
 create table &libds(
     FMTNAME char(32)      label='Format name'
     /*
-      to accomodate larger START values, mp_loadformat.sas will need the
-      SQL dependency removed (proc sql needs to accomodate 3 index values in
+      to accommodate larger START values, mp_loadformat.sas will need the
+      SQL dependency removed (proc sql needs to accommodate 3 index values in
       a 32767 ibufsize limit)
     */
     ,START char(10000)    label='Starting value for format'
@@ -13165,7 +13165,8 @@ create table &libds(
     ,LANGUAGE char(8)     label='Language for date strings'
 );
 
-%mend mddl_sas_cntlout;/**
+%mend mddl_sas_cntlout;
+/**
   @file mm_adduser2group.sas
   @brief Adds a user to a group
   @details Adds a user to a metadata group.  The macro first checks whether the

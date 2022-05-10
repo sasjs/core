@@ -92,7 +92,26 @@ data &outds;
   /*length GROUP_LOGIC SUBGROUP_LOGIC $3 SUBGROUP_ID 8 VARIABLE_NM $32
     OPERATOR_NM $10 RAW_VALUE $4000;*/
   set &inds;
-  length reason_cd $4032;
+  length reason_cd $4032 vtype $1 vnum dsid 8;
+
+  /* get column attributes */
+  if dsid=open("&inds","i")<1 then do;
+    REASON_CD="Unable to assign &inds";
+    putlog REASON_CD= dsid=;
+    call symputx('reason_cd',reason_cd,'l');
+    call symputx('nobs',_n_,'l');
+    output;
+  end;
+  vnum=varnum(dsid,VARIABLE_NM);
+  if vnum<1 then do;
+    REASON_CD=cats("Variable (",VARIABLE_NM,") not found in &inds");
+    putlog REASON_CD= dsid=;
+    call symputx('reason_cd',reason_cd,'l');
+    call symputx('nobs',_n_,'l');
+    output;
+  end;
+
+  vtype=vartype(dsid,vnum);
 
   /* closed list checks */
   if GROUP_LOGIC not in ('AND','OR') then do;
@@ -126,13 +145,25 @@ data &outds;
     output;
   end;
   if OPERATOR_NM not in
-  ('=','>','<','<=','>=','BETWEEN','IN','NOT IN','NE','CONTAINS','GE','LE')
+  ('=','>','<','<=','>=','NE','GE','LE','BETWEEN','IN','NOT IN','CONTAINS')
   then do;
     REASON_CD='Invalid OPERATOR_NM: '!!cats(OPERATOR_NM);
     putlog REASON_CD= OPERATOR_NM=;
     call symputx('reason_cd',reason_cd,'l');
     call symputx('nobs',_n_,'l');
     output;
+  end;
+
+  /* special missing logic */
+  if vtype='N'
+    and OPERATOR_NM in ('=','>','<','<=','>=','NE','GE','LE')
+    and cats(upcase(raw_value)) in (
+      '.','.A','.B','.C','.D','.E','.F','.G','.H','.I','.J','.K','.L','.M','.N'
+      '.N','.O','.P','.Q','.R','.S','.T','.U','.V','.W','.X','.Y','.Z','._'
+    )
+  then do;
+    /* valid numeric - exit data step loop */
+    return;
   end;
 
   /* special logic */

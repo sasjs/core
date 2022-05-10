@@ -19,9 +19,19 @@
       variable_nm varchar(32) not null,
       operator_nm varchar(12) not null,
       raw_value varchar(4000) not null,
-      processed_dttm num not null format=E8601DT26.6,
-    constraint pk_mpe_filteranytable
-      primary key(filter_hash,filter_line)
+      processed_dttm num not null format=E8601DT26.6
   );
+
+  %local lib;
+  %let libds=%upcase(&libds);
+  %if %index(&libds,.)=0 %then %let lib=WORK;
+  %else %let lib=%scan(&libds,1,.);
+
+  proc datasets lib=&lib noprint;
+    modify %scan(&libds,-1,.);
+    index create
+      pk_mpe_filterdetail=(filter_hash filter_line)
+      /nomiss unique;
+  quit;
 
 %mend mddl_dc_filterdetail;

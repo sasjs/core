@@ -18,8 +18,19 @@
       lock_ref char(200),
       lock_pid char(10),
       lock_start_dttm num format=E8601DT26.6,
-      lock_end_dttm num format=E8601DT26.6,
-    constraint pk_mp_lockanytable primary key(lock_lib,lock_ds)
+      lock_end_dttm num format=E8601DT26.6
   );
+
+  %local lib;
+  %let libds=%upcase(&libds);
+  %if %index(&libds,.)=0 %then %let lib=WORK;
+  %else %let lib=%scan(&libds,1,.);
+
+  proc datasets lib=&lib noprint;
+    modify %scan(&libds,-1,.);
+    index create
+      pk_mp_lockanytable=(lock_lib lock_ds)
+      /nomiss unique;
+  quit;
 
 %mend mddl_dc_locktable;

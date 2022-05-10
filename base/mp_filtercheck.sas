@@ -95,8 +95,9 @@ data &outds;
   length reason_cd $4032 vtype $1 vnum dsid 8;
 
   /* get column attributes */
-  if dsid=open("&inds","i")<1 then do;
-    REASON_CD="Unable to assign &inds";
+  dsid=open("&targetds","i");
+  if dsid<1 then do;
+    REASON_CD="Unable to assign &targetds";
     putlog REASON_CD= dsid=;
     call symputx('reason_cd',reason_cd,'l');
     call symputx('nobs',_n_,'l');
@@ -104,7 +105,7 @@ data &outds;
   end;
   vnum=varnum(dsid,VARIABLE_NM);
   if vnum<1 then do;
-    REASON_CD=cats("Variable (",VARIABLE_NM,") not found in &inds");
+    REASON_CD=cats("Variable (",VARIABLE_NM,") not found in &targetds");
     putlog REASON_CD= dsid=;
     call symputx('reason_cd',reason_cd,'l');
     call symputx('nobs',_n_,'l');

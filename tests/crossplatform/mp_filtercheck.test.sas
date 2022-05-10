@@ -174,7 +174,7 @@ run;
   outds=work.badrecords,
   abort=NO
 )
-%mp_assert(iftrue=(&syscc=42),
+%mp_assert(iftrue=(&syscc=1008),
   desc=Throw error if RAW_VALUE is incorrect,
   outds=work.test_results
 )

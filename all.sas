@@ -4004,10 +4004,12 @@ proc sql;
 %end;
 
 %if &libds=0 %then %do;
+  proc sql;
   describe table &syslast;
   drop table &syslast;
 %end;
-%mend mp_coretable;/**
+%mend mp_coretable;
+/**
   @file mp_createconstraints.sas
   @brief Creates constraints
   @details Takes the output from mp_getconstraints.sas as input

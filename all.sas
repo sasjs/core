@@ -4782,7 +4782,7 @@ drop table &out_ds;
 
   Usage:
 
-      %mp_ds2cards(base_ds=sashelp.class
+      %mp_ds2cards(sashelp.class
         , tgt_ds=work.class
         , cards_file= "C:\temp\class.sas"
         , showlog=NO
@@ -4794,7 +4794,7 @@ drop table &out_ds;
     - explicity setting a unix LF
     - constraints / indexes etc
 
-  @param [in] base_ds= Should be two level - eg work.blah.  This is the table
+  @param [in] base_ds Should be two level - eg work.blah.  This is the table
                   that is converted to a cards file.
   @param [in] tgt_ds= Table that the generated cards file would create.
     Optional - if omitted, will be same as BASE_DS.
@@ -5892,7 +5892,36 @@ data &outds;
   /*length GROUP_LOGIC SUBGROUP_LOGIC $3 SUBGROUP_ID 8 VARIABLE_NM $32
     OPERATOR_NM $10 RAW_VALUE $4000;*/
   set &inds;
-  length reason_cd $4032;
+  length reason_cd $4032 vtype $1 vnum dsid 8;
+
+  /* quick check to ensure column exists */
+  if upcase(VARIABLE_NM) not in
+  (%upcase(%mf_getvarlist(&targetds,dlm=%str(,),quote=SINGLE)))
+  then do;
+    REASON_CD="Variable "!!cats(variable_nm)!!" not in &targetds";
+    putlog REASON_CD= VARIABLE_NM=;
+    call symputx('reason_cd',reason_cd,'l');
+    call symputx('nobs',_n_,'l');
+    output;
+    return;
+  end;
+
+  /* need to open the dataset to get the column type */
+  dsid=open("&targetds","i");
+  if dsid>0 then do;
+    vnum=varnum(dsid,VARIABLE_NM);
+    if vnum<1 then do;
+      /* should not happen as was also tested for above */
+      REASON_CD=cats("Variable (",VARIABLE_NM,") not found in &targetds");
+      putlog REASON_CD= dsid=;
+      call symputx('reason_cd',reason_cd,'l');
+      call symputx('nobs',_n_,'l');
+      output;
+      return;
+    end;
+    /* now we can get the type */
+    else vtype=vartype(dsid,vnum);
+  end;
 
   /* closed list checks */
   if GROUP_LOGIC not in ('AND','OR') then do;
@@ -5916,23 +5945,26 @@ data &outds;
     call symputx('nobs',_n_,'l');
     output;
   end;
-  if upcase(VARIABLE_NM) not in
-  (%upcase(%mf_getvarlist(&targetds,dlm=%str(,),quote=SINGLE)))
-  then do;
-    REASON_CD="Variable "!!cats(variable_nm)!!" not in &targetds";
-    putlog REASON_CD= VARIABLE_NM=;
-    call symputx('reason_cd',reason_cd,'l');
-    call symputx('nobs',_n_,'l');
-    output;
-  end;
   if OPERATOR_NM not in
-  ('=','>','<','<=','>=','BETWEEN','IN','NOT IN','NE','CONTAINS','GE','LE')
+  ('=','>','<','<=','>=','NE','GE','LE','BETWEEN','IN','NOT IN','CONTAINS')
   then do;
     REASON_CD='Invalid OPERATOR_NM: '!!cats(OPERATOR_NM);
     putlog REASON_CD= OPERATOR_NM=;
     call symputx('reason_cd',reason_cd,'l');
     call symputx('nobs',_n_,'l');
     output;
+  end;
+
+  /* special missing logic */
+  if vtype='N'
+    and OPERATOR_NM in ('=','>','<','<=','>=','NE','GE','LE')
+    and cats(upcase(raw_value)) in (
+      '.','.A','.B','.C','.D','.E','.F','.G','.H','.I','.J','.K','.L','.M','.N'
+      '.N','.O','.P','.Q','.R','.S','.T','.U','.V','.W','.X','.Y','.Z','._'
+    )
+  then do;
+    /* valid numeric - exit data step loop */
+    return;
   end;
 
   /* special logic */
@@ -6088,6 +6120,9 @@ filename &outref temp;
   run;
 %end;
 %else %do;
+  proc sort data=&inds;
+    by SUBGROUP_ID;
+  run;
   data _null_;
     file &outref lrecl=32800;
     set &inds end=last;
@@ -8359,7 +8394,11 @@ run;
   %put %str(ERR)OR: Dataset &libds is not a dataset;
 %end;
 %else %do;
-  data &outds(rename=(&keyvar=hashkey) keep=&keyvar)/nonote2err;
+  data &outds(rename=(&keyvar=hashkey) keep=&keyvar)
+  %if "%substr(&sysver,1,1)" ne "4" and "%substr(&sysver,1,1)" ne "5" %then %do;
+    /nonote2err
+  %end;
+  ;
     length &prevkeyvar &keyvar $32;
     retain &prevkeyvar "%sysfunc(md5(%str(&salt)),$hex32.)";
     set &libds end=&lastvar;
@@ -13040,10 +13079,20 @@ ods package close;
       oldval_num num format=best32. label='Old (numeric) value',
       newval_num num format=best32. label='New (numeric) value',
       oldval_char char(32765) label='Old (character) value',
-      newval_char char(32765) label='New (character) value',
-    constraint pk_mpe_audit
-      primary key(load_ref,libref,dsn,key_hash,tgtvar_nm)
+      newval_char char(32765) label='New (character) value'
   );
+
+  %local lib;
+  %let libds=%upcase(&libds);
+  %if %index(&libds,.)=0 %then %let lib=WORK;
+  %else %let lib=%scan(&libds,1,.);
+
+  proc datasets lib=&lib noprint;
+    modify %scan(&libds,-1,.);
+    index create
+      pk_mpe_audit=(load_ref libref dsn key_hash tgtvar_nm)
+      /nomiss unique;
+  quit;
 
 %mend mddl_dc_difftable;/**
   @file
@@ -13056,20 +13105,33 @@ ods package close;
 
 %macro mddl_dc_filterdetail(libds=WORK.FILTER_DETAIL);
 
+%local nn lib;
+%if "%substr(&sysver,1,1)" ne "4" and "%substr(&sysver,1,1)" ne "5" %then %do;
+  %let nn=not null;
+%end;
+%else %let nn=;
+
   proc sql;
   create table &libds(
-      filter_hash char(32) not null,
-      filter_line num not null,
-      group_logic char(3) not null,
-      subgroup_logic char(3) not null,
-      subgroup_id num not null,
-      variable_nm varchar(32) not null,
-      operator_nm varchar(12) not null,
-      raw_value varchar(4000) not null,
-      processed_dttm num not null format=E8601DT26.6,
-    constraint pk_mpe_filteranytable
-      primary key(filter_hash,filter_line)
+      filter_hash char(32) &nn,
+      filter_line num &nn,
+      group_logic char(3) &nn,
+      subgroup_logic char(3) &nn,
+      subgroup_id num &nn,
+      variable_nm varchar(32) &nn,
+      operator_nm varchar(12) &nn,
+      raw_value varchar(4000) &nn,
+      processed_dttm num &nn format=E8601DT26.6
   );
+
+  %let libds=%upcase(&libds);
+  %if %index(&libds,.)=0 %then %let lib=WORK;
+  %else %let lib=%scan(&libds,1,.);
+
+  proc datasets lib=&lib noprint;
+    modify %scan(&libds,-1,.);
+    index create pk_mpe_filterdetail=(filter_hash filter_line)/nomiss unique;
+  quit;
 
 %mend mddl_dc_filterdetail;/**
   @file
@@ -13082,15 +13144,28 @@ ods package close;
 
 %macro mddl_dc_filtersummary(libds=WORK.FILTER_SUMMARY);
 
+%local nn lib;
+%if "%substr(&sysver,1,1)" ne "4" and "%substr(&sysver,1,1)" ne "5" %then %do;
+  %let nn=not null;
+%end;
+%else %let nn=;
+
   proc sql;
   create table &libds(
-      filter_rk num not null,
-      filter_hash char(32) not null,
-      filter_table char(41) not null,
-      processed_dttm num not null format=E8601DT26.6,
-    constraint pk_mpe_filteranytable
-      primary key(filter_rk)
+      filter_rk num &nn,
+      filter_hash char(32) &nn,
+      filter_table char(41) &nn,
+      processed_dttm num &nn format=E8601DT26.6
   );
+
+  %let libds=%upcase(&libds);
+  %if %index(&libds,.)=0 %then %let lib=WORK;
+  %else %let lib=%scan(&libds,1,.);
+
+  proc datasets lib=&lib noprint;
+    modify %scan(&libds,-1,.);
+    index create filter_rk /nomiss unique;
+  quit;
 
 %mend mddl_dc_filtersummary;/**
   @file
@@ -13103,18 +13178,34 @@ ods package close;
 
 %macro mddl_dc_locktable(libds=WORK.LOCKTABLE);
 
+%local nn lib;
+%if "%substr(&sysver,1,1)" ne "4" and "%substr(&sysver,1,1)" ne "5" %then %do;
+  %let nn=not null;
+%end;
+%else %let nn=;
+
   proc sql;
   create table &libds(
       lock_lib char(8),
       lock_ds char(32),
-      lock_status_cd char(10) not null,
-      lock_user_nm char(100) not null ,
+      lock_status_cd char(10) &nn,
+      lock_user_nm char(100) &nn ,
       lock_ref char(200),
       lock_pid char(10),
       lock_start_dttm num format=E8601DT26.6,
-      lock_end_dttm num format=E8601DT26.6,
-    constraint pk_mp_lockanytable primary key(lock_lib,lock_ds)
+      lock_end_dttm num format=E8601DT26.6
   );
+
+  %let libds=%upcase(&libds);
+  %if %index(&libds,.)=0 %then %let lib=WORK;
+  %else %let lib=%scan(&libds,1,.);
+
+  proc datasets lib=&lib noprint;
+    modify %scan(&libds,-1,.);
+    index create
+      pk_mp_lockanytable=(lock_lib lock_ds)
+      /nomiss unique;
+  quit;
 
 %mend mddl_dc_locktable;/**
   @file
@@ -13135,9 +13226,18 @@ ods package close;
       max_key num label=
         'Integer representing current max RK or SK value in the KEYTABLE',
       processed_dttm num format=E8601DT26.6
-        label='Datetime this value was last updated',
-    constraint pk_mpe_maxkeyvalues
-        primary key(keytable));
+        label='Datetime this value was last updated'
+  );
+
+  %local lib;
+  %let libds=%upcase(&libds);
+  %if %index(&libds,.)=0 %then %let lib=WORK;
+  %else %let lib=%scan(&libds,1,.);
+
+  proc datasets lib=&lib noprint;
+    modify %scan(&libds,-1,.);
+    index create keytable /nomiss unique;
+  quit;
 
 %mend mddl_dc_maxkeytable;/**
   @file

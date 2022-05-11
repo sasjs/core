@@ -94,25 +94,34 @@ data &outds;
   set &inds;
   length reason_cd $4032 vtype $1 vnum dsid 8;
 
-  /* get column attributes */
-  dsid=open("&targetds","i");
-  if dsid<1 then do;
-    REASON_CD="Unable to assign &targetds";
-    putlog REASON_CD= dsid=;
+  /* quick check to ensure column exists */
+  if upcase(VARIABLE_NM) not in
+  (%upcase(%mf_getvarlist(&targetds,dlm=%str(,),quote=SINGLE)))
+  then do;
+    REASON_CD="Variable "!!cats(variable_nm)!!" not in &targetds";
+    putlog REASON_CD= VARIABLE_NM=;
     call symputx('reason_cd',reason_cd,'l');
     call symputx('nobs',_n_,'l');
     output;
-  end;
-  vnum=varnum(dsid,VARIABLE_NM);
-  if vnum<1 then do;
-    REASON_CD=cats("Variable (",VARIABLE_NM,") not found in &targetds");
-    putlog REASON_CD= dsid=;
-    call symputx('reason_cd',reason_cd,'l');
-    call symputx('nobs',_n_,'l');
-    output;
+    return;
   end;
 
-  vtype=vartype(dsid,vnum);
+  /* need to open the dataset to get the column type */
+  dsid=open("&targetds","i");
+  if dsid>0 then do;
+    vnum=varnum(dsid,VARIABLE_NM);
+    if vnum<1 then do;
+      /* should not happen as was also tested for above */
+      REASON_CD=cats("Variable (",VARIABLE_NM,") not found in &targetds");
+      putlog REASON_CD= dsid=;
+      call symputx('reason_cd',reason_cd,'l');
+      call symputx('nobs',_n_,'l');
+      output;
+      return;
+    end;
+    /* now we can get the type */
+    else vtype=vartype(dsid,vnum);
+  end;
 
   /* closed list checks */
   if GROUP_LOGIC not in ('AND','OR') then do;
@@ -132,15 +141,6 @@ data &outds;
   if mod(SUBGROUP_ID,1) ne 0 then do;
     REASON_CD='SUBGROUP_ID should be integer, not '!!cats(subgroup_id);
     putlog REASON_CD= SUBGROUP_ID=;
-    call symputx('reason_cd',reason_cd,'l');
-    call symputx('nobs',_n_,'l');
-    output;
-  end;
-  if upcase(VARIABLE_NM) not in
-  (%upcase(%mf_getvarlist(&targetds,dlm=%str(,),quote=SINGLE)))
-  then do;
-    REASON_CD="Variable "!!cats(variable_nm)!!" not in &targetds";
-    putlog REASON_CD= VARIABLE_NM=;
     call symputx('reason_cd',reason_cd,'l');
     call symputx('nobs',_n_,'l');
     output;

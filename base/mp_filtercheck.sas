@@ -92,7 +92,36 @@ data &outds;
   /*length GROUP_LOGIC SUBGROUP_LOGIC $3 SUBGROUP_ID 8 VARIABLE_NM $32
     OPERATOR_NM $10 RAW_VALUE $4000;*/
   set &inds;
-  length reason_cd $4032;
+  length reason_cd $4032 vtype $1 vnum dsid 8;
+
+  /* quick check to ensure column exists */
+  if upcase(VARIABLE_NM) not in
+  (%upcase(%mf_getvarlist(&targetds,dlm=%str(,),quote=SINGLE)))
+  then do;
+    REASON_CD="Variable "!!cats(variable_nm)!!" not in &targetds";
+    putlog REASON_CD= VARIABLE_NM=;
+    call symputx('reason_cd',reason_cd,'l');
+    call symputx('nobs',_n_,'l');
+    output;
+    return;
+  end;
+
+  /* need to open the dataset to get the column type */
+  dsid=open("&targetds","i");
+  if dsid>0 then do;
+    vnum=varnum(dsid,VARIABLE_NM);
+    if vnum<1 then do;
+      /* should not happen as was also tested for above */
+      REASON_CD=cats("Variable (",VARIABLE_NM,") not found in &targetds");
+      putlog REASON_CD= dsid=;
+      call symputx('reason_cd',reason_cd,'l');
+      call symputx('nobs',_n_,'l');
+      output;
+      return;
+    end;
+    /* now we can get the type */
+    else vtype=vartype(dsid,vnum);
+  end;
 
   /* closed list checks */
   if GROUP_LOGIC not in ('AND','OR') then do;
@@ -116,23 +145,26 @@ data &outds;
     call symputx('nobs',_n_,'l');
     output;
   end;
-  if upcase(VARIABLE_NM) not in
-  (%upcase(%mf_getvarlist(&targetds,dlm=%str(,),quote=SINGLE)))
-  then do;
-    REASON_CD="Variable "!!cats(variable_nm)!!" not in &targetds";
-    putlog REASON_CD= VARIABLE_NM=;
-    call symputx('reason_cd',reason_cd,'l');
-    call symputx('nobs',_n_,'l');
-    output;
-  end;
   if OPERATOR_NM not in
-  ('=','>','<','<=','>=','BETWEEN','IN','NOT IN','NE','CONTAINS','GE','LE')
+  ('=','>','<','<=','>=','NE','GE','LE','BETWEEN','IN','NOT IN','CONTAINS')
   then do;
     REASON_CD='Invalid OPERATOR_NM: '!!cats(OPERATOR_NM);
     putlog REASON_CD= OPERATOR_NM=;
     call symputx('reason_cd',reason_cd,'l');
     call symputx('nobs',_n_,'l');
     output;
+  end;
+
+  /* special missing logic */
+  if vtype='N'
+    and OPERATOR_NM in ('=','>','<','<=','>=','NE','GE','LE')
+    and cats(upcase(raw_value)) in (
+      '.','.A','.B','.C','.D','.E','.F','.G','.H','.I','.J','.K','.L','.M','.N'
+      '.N','.O','.P','.Q','.R','.S','.T','.U','.V','.W','.X','.Y','.Z','._'
+    )
+  then do;
+    /* valid numeric - exit data step loop */
+    return;
   end;
 
   /* special logic */

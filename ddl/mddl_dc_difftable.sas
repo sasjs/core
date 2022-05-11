@@ -26,9 +26,19 @@
       oldval_num num format=best32. label='Old (numeric) value',
       newval_num num format=best32. label='New (numeric) value',
       oldval_char char(32765) label='Old (character) value',
-      newval_char char(32765) label='New (character) value',
-    constraint pk_mpe_audit
-      primary key(load_ref,libref,dsn,key_hash,tgtvar_nm)
+      newval_char char(32765) label='New (character) value'
   );
+
+  %local lib;
+  %let libds=%upcase(&libds);
+  %if %index(&libds,.)=0 %then %let lib=WORK;
+  %else %let lib=%scan(&libds,1,.);
+
+  proc datasets lib=&lib noprint;
+    modify %scan(&libds,-1,.);
+    index create
+      pk_mpe_audit=(load_ref libref dsn key_hash tgtvar_nm)
+      /nomiss unique;
+  quit;
 
 %mend mddl_dc_difftable;

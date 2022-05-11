@@ -17,8 +17,17 @@
       max_key num label=
         'Integer representing current max RK or SK value in the KEYTABLE',
       processed_dttm num format=E8601DT26.6
-        label='Datetime this value was last updated',
-    constraint pk_mpe_maxkeyvalues
-        primary key(keytable));
+        label='Datetime this value was last updated'
+  );
+
+  %local lib;
+  %let libds=%upcase(&libds);
+  %if %index(&libds,.)=0 %then %let lib=WORK;
+  %else %let lib=%scan(&libds,1,.);
+
+  proc datasets lib=&lib noprint;
+    modify %scan(&libds,-1,.);
+    index create keytable /nomiss unique;
+  quit;
 
 %mend mddl_dc_maxkeytable;

@@ -69,7 +69,11 @@
   %put %str(ERR)OR: Dataset &libds is not a dataset;
 %end;
 %else %do;
-  data &outds(rename=(&keyvar=hashkey) keep=&keyvar)/nonote2err;
+  data &outds(rename=(&keyvar=hashkey) keep=&keyvar)
+  %if "%substr(&sysver,1,1)" ne "4" and "%substr(&sysver,1,1)" ne "5" %then %do;
+    /nonote2err
+  %end;
+  ;
     length &prevkeyvar &keyvar $32;
     retain &prevkeyvar "%sysfunc(md5(%str(&salt)),$hex32.)";
     set &libds end=&lastvar;

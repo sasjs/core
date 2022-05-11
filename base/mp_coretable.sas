@@ -65,6 +65,7 @@ proc sql;
 %end;
 
 %if &libds=0 %then %do;
+  proc sql;
   describe table &syslast;
   drop table &syslast;
 %end;

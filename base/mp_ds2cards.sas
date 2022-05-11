@@ -11,7 +11,7 @@
 
   Usage:
 
-      %mp_ds2cards(base_ds=sashelp.class
+      %mp_ds2cards(sashelp.class
         , tgt_ds=work.class
         , cards_file= "C:\temp\class.sas"
         , showlog=NO
@@ -23,7 +23,7 @@
     - explicity setting a unix LF
     - constraints / indexes etc
 
-  @param [in] base_ds= Should be two level - eg work.blah.  This is the table
+  @param [in] base_ds Should be two level - eg work.blah.  This is the table
                   that is converted to a cards file.
   @param [in] tgt_ds= Table that the generated cards file would create.
     Optional - if omitted, will be same as BASE_DS.

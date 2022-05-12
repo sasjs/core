@@ -58,7 +58,7 @@
 %if %mf_getattrn(&libds,NLOBS)=0 %then %do;
   data &outds;
     length hashkey $32;
-    retain hashkey "%sysfunc(md5(%str(&salt)),$hex32.)";
+    hashkey=put(md5("&salt"),$hex32.);
     output;
     stop;
   run;
@@ -75,7 +75,8 @@
   %end;
   ;
     length &prevkeyvar &keyvar $32;
-    retain &prevkeyvar "%sysfunc(md5(%str(&salt)),$hex32.)";
+    retain &prevkeyvar;
+    if _n_=1 then &prevkeyvar=put(md5("&salt"),$hex32.);
     set &libds end=&lastvar;
     /* hash should include previous row */
     &keyvar=%mp_md5(

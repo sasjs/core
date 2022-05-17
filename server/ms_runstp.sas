@@ -162,6 +162,7 @@ proc http method='POST' headerin=&authref in=&mainref out=&outref
 %end;
 run;
 %if (&SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201)
+or &mdebug=1
 %then %do;
   data _null_;infile &outref;input;putlog _infile_;run;
 %end;
@@ -177,7 +178,7 @@ options &optval;
 %if &outlogds ne _null_ or &mdebug=1 %then %do;
   %local dumplib;
   %let dumplib=%mf_getuniquelibref();
-  libname &dumplib json (&outref);
+  libname &dumplib json fileref=&outref;
   data &outlogds;
     set &dumplib..log;
   %if &mdebug=1 %then %do;

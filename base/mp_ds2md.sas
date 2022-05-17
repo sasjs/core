@@ -57,6 +57,11 @@
 %local vars;
 %let vars=%upcase(%mf_getvarlist(&libds));
 
+%if %trim(X&vars)=X %then %do;
+  %put &sysmacroname: Table &libds has no columns!!;
+  %return;
+%end;
+
 /* create the header row */
 data _null_;
   file &outref;

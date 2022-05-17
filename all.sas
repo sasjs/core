@@ -5647,6 +5647,11 @@ run;
 %local vars;
 %let vars=%upcase(%mf_getvarlist(&libds));
 
+%if %trim(X&vars)=X %then %do;
+  %put &sysmacroname: Table &libds has no columns!!;
+  %return;
+%end;
+
 /* create the header row */
 data _null_;
   file &outref;
@@ -19487,6 +19492,155 @@ options &optval;
 %mend ms_createfile;
 /**
   @file
+  @brief Creates a group on SASjs Server
+  @details Creates a group on SASjs Server with the following attributes:
+
+  @li name
+  @li description
+  @li isActive
+
+  Examples:
+
+      %ms_creategroup(mynewgroup)
+
+      %ms_creategroup(mynewergroup, desc=The group description)
+
+  @param [in] groupname The group name to create.  No spaces or special chars.
+  @param [in] desc= (0) If no description provided, group name will be used.
+  @param [in] isactive= (true) Set to false to create an inactive group.
+  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
+  @param [out] outds= (work.ms_creategroup) This output dataset will contain the
+    values from the JSON response (such as the id of the new group)
+|DESCRIPTION:$1.|GROUPID:best.|ISACTIVE:best.|NAME:$11.|
+|---|---|---|---|
+|`The group description`|`2 `|`1 `|`mynewergroup `|
+
+
+
+  <h4> SAS Macros </h4>
+  @li mf_getuniquefileref.sas
+  @li mf_getuniquelibref.sas
+  @li mp_abort.sas
+
+  <h4> Related Files </h4>
+  @li ms_creategroup.test.sas
+  @li ms_getgroups.sas
+
+**/
+
+%macro ms_creategroup(groupname
+    ,desc=0
+    ,isactive=true
+    ,outds=work.ms_creategroup
+    ,mdebug=0
+  );
+
+%mp_abort(
+  iftrue=(&syscc ne 0)
+  ,mac=ms_creategroup.sas
+  ,msg=%str(syscc=&syscc on macro entry)
+)
+
+%local fref0 fref1 fref2 libref optval rc msg;
+%let fref0=%mf_getuniquefileref();
+%let fref1=%mf_getuniquefileref();
+%let fref2=%mf_getuniquefileref();
+%let libref=%mf_getuniquelibref();
+
+/* avoid sending bom marker to API */
+%let optval=%sysfunc(getoption(bomfile));
+options nobomfile;
+
+data _null_;
+  file &fref0 termstr=crlf;
+  name=quote(cats(symget('groupname')));
+  description=quote(cats(symget('desc')));
+  if cats(description)='"0"' then description=name;
+  isactive=symget('isactive');
+%if &mdebug=1 %then %do;
+  putlog _all_;
+%end;
+
+  put '{'@;
+  put '"name":' name @;
+  put ',"description":' description @;
+  put ',"isActive":' isactive @;
+  put '}';
+run;
+
+data _null_;
+  file &fref1 lrecl=1000;
+  infile "&_sasjs_tokenfile" lrecl=1000;
+  input;
+  if _n_=1 then do;
+    put "Content-Type: application/json";
+    put "accept: application/json";
+  end;
+  put _infile_;
+run;
+
+%if &mdebug=1 %then %do;
+  data _null_;
+    infile &fref0;
+    input;
+    put _infile_;
+  data _null_;
+    infile &fref1;
+    input;
+    put _infile_;
+  run;
+%end;
+
+proc http method='POST' in=&fref0 headerin=&fref1 out=&fref2
+  url="&_sasjs_apiserverurl/SASjsApi/group";
+%if &mdebug=1 %then %do;
+  debug level=1;
+%end;
+run;
+
+%mp_abort(
+  iftrue=(&syscc ne 0)
+  ,mac=ms_creategroup.sas
+  ,msg=%str(Issue submitting query to SASjsApi/group)
+)
+
+libname &libref JSON fileref=&fref2;
+
+data &outds;
+  set &libref..root;
+  drop ordinal_root;
+%if &mdebug=1 %then %do;
+  putlog _all_;
+%end;
+run;
+
+
+%mp_abort(
+  iftrue=(&syscc ne 0)
+  ,mac=ms_creategroup.sas
+  ,msg=%str(Issue reading response JSON)
+)
+
+/* reset options */
+options &optval;
+
+%if &mdebug=0 %then %do;
+  filename &fref0 clear;
+  filename &fref1 clear;
+  filename &fref2 clear;
+  libname &libref clear;
+%end;
+%else %do;
+  data _null_;
+    infile &fref2;
+    input;
+    putlog _infile_;
+  run;
+%end;
+
+%mend ms_creategroup;
+/**
+  @file
   @brief Creates a user on SASjs Server
   @details Creates a user on SASjs Server with the following attributes:
 
@@ -20266,6 +20420,111 @@ filename &binaryfref clear;
 filename &headref clear;
 
 %mend ms_getfile;/**
+  @file
+  @brief Fetches the list of groups from SASjs Server
+  @details Fetches the list of groups from SASjs Server and writes them to an
+  output dataset.
+
+  Example:
+
+      %ms_getgroups(outds=userlist)
+
+  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
+  @param [out] outds= (work.ms_getgroups) This output dataset will contain the
+    list of groups. Format:
+|NAME:$32.|DESCRIPTION:$64.|GROUPID:best.|
+|---|---|---|
+|`SomeGroup `|`A group `|`1`|
+|`Another Group`|`this is a different group`|`2`|
+|`admin`|`Administrators `|`3`|
+
+
+  <h4> SAS Macros </h4>
+  @li mf_getuniquefileref.sas
+  @li mf_getuniquelibref.sas
+  @li mp_abort.sas
+
+  <h4> Related Files </h4>
+  @li ms_creategroup.sas
+  @li ms_getusers.test.sas
+
+**/
+
+%macro ms_getgroups(
+    outds=work.ms_getgroups
+    ,mdebug=0
+  );
+
+%mp_abort(
+  iftrue=(&syscc ne 0)
+  ,mac=ms_getusers.sas
+  ,msg=%str(syscc=&syscc on macro entry)
+)
+
+%local fref0 fref1 libref optval rc msg;
+%let fref0=%mf_getuniquefileref();
+%let fref1=%mf_getuniquefileref();
+%let libref=%mf_getuniquelibref();
+
+/* avoid sending bom marker to API */
+%let optval=%sysfunc(getoption(bomfile));
+options nobomfile;
+
+data _null_;
+  file &fref0 lrecl=1000;
+  infile "&_sasjs_tokenfile" lrecl=1000;
+  input;
+  if _n_=1 then put "accept: application/json";
+  put _infile_;
+run;
+
+%if &mdebug=1 %then %do;
+  data _null_;
+    infile &fref0;
+    input;
+    put _infile_;
+  run;
+%end;
+
+proc http method='GET' headerin=&fref0 out=&fref1
+  url="&_sasjs_apiserverurl/SASjsApi/group";
+%if &mdebug=1 %then %do;
+  debug level=1;
+%end;
+run;
+
+%mp_abort(
+  iftrue=(&syscc ne 0)
+  ,mac=ms_getgroups.sas
+  ,msg=%str(Issue submitting GET query to SASjsApi/group)
+)
+
+libname &libref JSON fileref=&fref1;
+
+data &outds;
+  length NAME $32 DESCRIPTION $64. GROUPID 8;
+  if _n_=1 then call missing(of _all_);
+  set &libref..root;
+  drop ordinal_root;
+run;
+
+%mp_abort(
+  iftrue=(&syscc ne 0)
+  ,mac=ms_getusers.sas
+  ,msg=%str(Issue reading response JSON)
+)
+
+/* reset options */
+options &optval;
+
+%if &mdebug=1 %then %do;
+  filename &fref0 clear;
+  filename &fref1 clear;
+  libname &libref clear;
+%end;
+
+%mend ms_getgroups;
+/**
   @file
   @brief Fetches the list of users from SASjs Server
   @details Fetches the list of users from SASjs Server and writes them to an

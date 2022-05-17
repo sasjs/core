@@ -18,6 +18,9 @@
 
   @param source Unquoted path to the folder to copy from.
   @param target Unquoted path to the folder to copy to.
+  @param [in] copymax=(MAX) Set to a positive integer to indicate the level of
+    subdirectory copy recursion - eg 3, to go `./3/levels/deep`.  For unlimited
+    recursion, set to MAX.
 
   <h4> SAS Macros </h4>
   @li mf_getuniquename.sas
@@ -31,7 +34,7 @@
 
 **/
 
-%macro mp_copyfolder(source,target);
+%macro mp_copyfolder(source,target,copymax=MAX);
 
   %mp_abort(iftrue=(%mf_isdir(&source)=0)
     ,mac=&sysmacroname
@@ -50,7 +53,7 @@
   %let tempds=%mf_getuniquename();
 
   /* recursive directory listing */
-  %mp_dirlist(path=&source,outds=work.&tempds, maxdepth=MAX)
+  %mp_dirlist(path=&source,outds=work.&tempds,maxdepth=&copymax)
 
   /* create folders and copy content */
   data _null_;

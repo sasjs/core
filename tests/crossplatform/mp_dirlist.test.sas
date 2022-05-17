@@ -21,7 +21,8 @@
 %mf_mkdir(&root/a/d)
 %mf_mkdir(&root/a/e)
 %mf_mkdir(&root/a/e/f)
-data "&root/a/e/f/ds1.sas7bdat";
+libname test "&root/a/e/f";
+data test.ds1;
   x=1;
 run;
 

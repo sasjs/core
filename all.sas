@@ -3875,8 +3875,11 @@ drop table &ddlds,&cntlds;
 
       %mp_copyfolder(&rootdir,&copydir)
 
-  @param source Unquoted path to the folder to copy from.
-  @param target Unquoted path to the folder to copy to.
+  @param [in] source Unquoted path to the folder to copy from.
+  @param [out] target Unquoted path to the folder to copy to.
+  @param [in] copymax=(MAX) Set to a positive integer to indicate the level of
+    subdirectory copy recursion - eg 3, to go `./3/levels/deep`.  For unlimited
+    recursion, set to MAX.
 
   <h4> SAS Macros </h4>
   @li mf_getuniquename.sas
@@ -3890,7 +3893,7 @@ drop table &ddlds,&cntlds;
 
 **/
 
-%macro mp_copyfolder(source,target);
+%macro mp_copyfolder(source,target,copymax=MAX);
 
   %mp_abort(iftrue=(%mf_isdir(&source)=0)
     ,mac=&sysmacroname
@@ -3909,7 +3912,7 @@ drop table &ddlds,&cntlds;
   %let tempds=%mf_getuniquename();
 
   /* recursive directory listing */
-  %mp_dirlist(path=&source,outds=work.&tempds, maxdepth=MAX)
+  %mp_dirlist(path=&source,outds=work.&tempds,maxdepth=&copymax)
 
   /* create folders and copy content */
   data _null_;
@@ -3937,7 +3940,8 @@ drop table &ddlds,&cntlds;
   proc sql;
   drop table work.&tempds;
 
-%mend mp_copyfolder;/**
+%mend mp_copyfolder;
+/**
   @file
   @brief Create the permanent Core tables
   @details Several macros in the [core](https://github.com/sasjs/core) library

@@ -117,6 +117,9 @@ libname &libref JSON fileref=&fref2;
 data &outds;
   set &libref..root;
   drop ordinal_root;
+%if &mdebug=1 %then %do;
+  putlog _all_;
+%end;
 run;
 
 
@@ -129,11 +132,18 @@ run;
 /* reset options */
 options &optval;
 
-%if &mdebug=1 %then %do;
+%if &mdebug=0 %then %do;
   filename &fref0 clear;
   filename &fref1 clear;
   filename &fref2 clear;
   libname &libref clear;
+%end;
+%else %do;
+  data _null_;
+    infile &fref2;
+    input;
+    putlog _infile_;
+  run;
 %end;
 
 %mend ms_creategroup;

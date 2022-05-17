@@ -22,7 +22,7 @@
 %let id=0;
 data _null_;
   set work.test1;
-  call symputx('id',id);
+  call symputx('id',groupid);
 run;
 %mp_assert(
   iftrue=(&id>0),
@@ -36,7 +36,7 @@ run;
 data _null_;
   set work.test2;
   where name="&group";
-  call symputx('checkid',id);
+  call symputx('checkid',groupid);
 run;
 %mp_assert(
   iftrue=(&checkid=&id),

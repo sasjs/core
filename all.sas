@@ -198,6 +198,12 @@ options noquotelenmax;
     %else %if "&SYSVLONG" < "9.04.01M3" %then 0;
     %else 1;
   %end;
+  %else %if &feature=EXPORTXLS %then %do;
+    /* is it possible to PROC EXPORT an excel file? */
+    %if "%substr(&sysver,1,1)"="4" or "%substr(&sysver,1,1)"="5" %then 1;
+    %else %if %sysfunc(sysprod(SAS/ACCESS Interface to PC Files)) = 1 %then 1;
+    %else 0;
+  %end;
   %else %do;
     -1
     %put &sysmacroname: &feature not found;

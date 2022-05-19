@@ -1,13 +1,13 @@
 /**
   @file
-  @brief Testing mp_testservice.sas macro
+  @brief Testing mx_testservice.sas macro
 
   Be sure to run <code>%let mcTestAppLoc=/Public/temp/macrocore;</code> when
   runnin in Studio
 
   <h4> SAS Macros </h4>
   @li mp_createwebservice.sas
-  @li mp_testservice.sas
+  @li mx_testservice.sas
   @li mp_assert.sas
 
 **/
@@ -29,7 +29,7 @@ parmcards4;
   %mend x; %x()
   %webout(CLOSE)
 ;;;;
-%mp_createwebservice(path=&mcTestAppLoc/services,name=sendObj)
+%mx_createwebservice(path=&mcTestAppLoc/services,name=sendObj)
 
 %mp_assert(
   iftrue=(&syscc=0),
@@ -48,7 +48,7 @@ data work.somedata1 work.somedata2;
   output;
 run;
 
-%mp_testservice(&mcTestAppLoc/services/sendObj,
+%mx_testservice(&mcTestAppLoc/services/sendObj,
   inputdatasets=work.somedata1 work.somedata2,
   debug=log,
   mdebug=1,

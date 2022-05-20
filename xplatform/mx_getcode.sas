@@ -15,7 +15,7 @@
   @param [out] outref= (0) The fileref to create, which will contain the source
     code.
 
-  <h4> SAS Macros  </h4>
+  <h4> SAS Macros </h4>
   @li mf_getplatform.sas
   @li mm_getstpcode.sas
   @li ms_getfile.sas

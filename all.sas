@@ -26841,7 +26841,8 @@ endsub;
   @file mx_createwebservice.sas
   @brief Create a web service in SAS 9, Viya or SASjs
   @details Creates a SASJS ready Stored Process in SAS 9, a Job Execution
-  Service in SAS Viya, and a Stored Program on SASjs Server
+  Service in SAS Viya, or a Stored Program on SASjs Server - depending on the
+  executing environment.
 
 Usage:
 
@@ -26863,7 +26864,9 @@ Usage:
         %webout(OBJ,example2) * Object format, easier to work with ;
         %webout(CLOSE)
     ;;;;
-    %mp_createwebservice(path=/Public/app/common,name=appInit,replace=YES)
+
+    %* create the service (including webout macro and dependencies);
+    %mx_createwebservice(path=/Public/app/common,name=appInit,replace=YES)
 
   <h4> SAS Macros </h4>
   @li mf_getplatform.sas
@@ -26882,7 +26885,6 @@ Usage:
     location
   @param [in] mDebug= (0) set to 1 to show debug messages in the log
 
-  @version 9.2
   @author Allan Bowe
 
 **/

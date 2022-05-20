@@ -18,7 +18,17 @@
     statements.  Those starting `mp_` are macro _procedures_, which generate
     SAS statements, and must therefore be applied accordingly.
 
- */
+*/
+
+/*! \dir ddl
+ *  \brief Data Definition Language files
+ *  \details Provides templates for commonly used tables in sasjs/core.
+    Attributes:
+
+        * OS independent
+        * No X command
+        * Prefixes: _mddl_
+*/
 
 /*! \dir fcmp
  *  \brief Macros for generating FCMP functions
@@ -94,15 +104,28 @@
 
 */
 
-/*! \dir ddl
- *  \brief Data Definition Language files
- *  \details Provides templates for commonly used tables in sasjs/core.
-   Attributes:
+/*! \dir tests/base
+ *  \brief Tests for Base macros
+ */
 
-        * OS independent
-        * No X command
-        * Prefixes: _mddl_
+/*! \dir tests/ddlonly
+ *  \brief Tests for DDL macros
+ */
 
+/*! \dir tests/sas9only
+ *  \brief Tests for SAS Metadata macros
+ */
+
+/*! \dir tests/serveronly
+ *  \brief Tests for SASjs Server macros
+ */
+
+/*! \dir tests/viyaonly
+ *  \brief Tests for Viya macros
+ */
+
+/*! \dir tests/x-platform
+ *  \brief Tests for cross-platform macros
  */
 
 /*! \dir xplatform

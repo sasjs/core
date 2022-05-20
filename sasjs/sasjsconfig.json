@@ -8,8 +8,8 @@
     "server",
     "xplatform",
     "tests/base",
-    "tests/ddl",
-    "tests/xplatform"
+    "tests/ddlonly",
+    "tests/x-platform"
   ],
   "docConfig": {
     "displayMacroCore": false,

@@ -54,7 +54,7 @@ This library will not be used for storing data entries (such as formats or datal
 
 The fcmp macros are used to generate fcmp functions, and can be used with or without the `proc fcmp` wrapper.
 
-### LUA library
+### LUA folder
 
 Wait - this is a macro library - what is LUA doing here?  Well, it is a little known fact that you CAN run LUA within a SAS Macro.  It has to be written to a text file with a `.lua` extension, from where you can `%include` it.  So, without using the `proc lua` wrapper.
 

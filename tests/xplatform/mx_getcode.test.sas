@@ -27,7 +27,7 @@ parmcards4;
 ;;;;
 %mx_createwebservice(path=&mcTestAppLoc/temp,name=&item)
 
-%mx_getcode(&mcTestAppLoc/temp/&item,testref1)
+%mx_getcode(&mcTestAppLoc/temp/&item,outref=testref1)
 
 %inc testref1/lrecl=1000;
 

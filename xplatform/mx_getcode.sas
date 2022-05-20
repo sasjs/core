@@ -17,9 +17,9 @@
 
   <h4> SAS Macros  </h4>
   @li mf_getplatform.sas
-  @li mf_getuniquename.sas
   @li mm_getstpcode.sas
   @li ms_getfile.sas
+  @li mv_getjobcode.sas
 
   @author Allan Bowe
 

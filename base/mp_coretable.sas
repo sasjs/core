@@ -30,6 +30,7 @@
   @li mddl_dc_filtersummary.sas
   @li mddl_dc_locktable.sas
   @li mddl_dc_maxkeytable.sas
+  @li mf_getuniquename.sas
 
   <h4> Related Macros </h4>
   @li mp_filterstore.sas
@@ -46,7 +47,7 @@
 %macro mp_coretable(table_ref,libds=0
 )/*/STORE SOURCE*/;
 %local outds ;
-%let outds=%sysfunc(ifc(&libds=0,_data_,&libds));
+%let outds=%sysfunc(ifc(&libds=0,%mf_getuniquename(),&libds));
 proc sql;
 %if &table_ref=DIFFTABLE %then %do;
   %mddl_dc_difftable(libds=&outds)

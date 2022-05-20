@@ -6,8 +6,10 @@
     "fcmp",
     "lua",
     "server",
-    "tests/crossplatform",
-    "tests/ddl"
+    "xplatform",
+    "tests/base",
+    "tests/ddl",
+    "tests/xplatform"
   ],
   "docConfig": {
     "displayMacroCore": false,

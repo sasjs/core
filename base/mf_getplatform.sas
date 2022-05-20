@@ -5,8 +5,12 @@
 
       %put %mf_getplatform();
 
-    returns:
-      SASMETA  (or SASVIYA)
+  returns one of:
+
+  @li SASMETA
+  @li SASVIYA
+  @li SASJS
+  @li BASESAS
 
   @param switch the param for which to return a platform specific variable
 

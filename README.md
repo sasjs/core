@@ -31,14 +31,14 @@ Documentation: https://core.sasjs.io
 
 ## Components
 
-### BASE library (All Platforms)
+### BASE folder (All Platforms)
 
 - OS independent
 - Works on all SAS Platforms
 - No X command
 - Prefixes: _mf_, _mp_
 
-### DDL library (All Platforms)
+### DDL folder (All Platforms)
 
 - OS independent
 - Works on all SAS Platforms
@@ -47,46 +47,14 @@ Documentation: https://core.sasjs.io
 
 This library will not be used for storing data entries (such as formats or datalines).  Where this becomes necessary in the future, a new repo will be created, in order to keep the NPM bundle size down (for the benefit of those looking to embed purely macros in their applications).
 
-### FCMP library (All Platforms)
+### FCMP folder (All Platforms)
 
 - Function and macro names are identical, except for special cases
 - Prefixes: _mcf_
 
 The fcmp macros are used to generate fcmp functions, and can be used with or without the `proc fcmp` wrapper.
 
-### META library (SAS9 only)
-
-Macros used in SAS EBI, which connect to the metadata server.
-
-- OS independent
-- Metadata aware
-- No X command
-- Prefixes: _mm_
-
-### SERVER library (@sasjs/server only)
-These macros are used for building applications using [@sasjs/server](https://server.sasjs.io) - an open source REST API for Desktop SAS.
-
-- OS independent
-- @sasjs/server aware
-- No X command
-- Prefixes: _ms_
-
-### VIYA library (Viya only)
-
-Macros used for interfacing with SAS Viya.
-
-- OS independent
-- No X command
-- Prefixes: _mv_, _mvf_
-
-### METAX library (SAS9 only)
-
-- OS specific
-- Metadata aware
-- X command enabled
-- Prefixes: _mmw_,_mmu_,_mmx_
-
-### LUA library
+### LUA folder
 
 Wait - this is a macro library - what is LUA doing here?  Well, it is a little known fact that you CAN run LUA within a SAS Macro.  It has to be written to a text file with a `.lua` extension, from where you can `%include` it.  So, without using the `proc lua` wrapper.
 
@@ -106,13 +74,61 @@ run;
 
 - Prefixes: _ml_
 
+### META folder (SAS9 only)
+
+Macros used in SAS EBI, which connect to the metadata server.
+
+- OS independent
+- Metadata aware
+- No X command
+- Prefixes: _mm_
+
+### METAX folder (SAS9 only)
+
+- OS specific
+- Metadata aware
+- X command enabled
+- Prefixes: _mmw_,_mmu_,_mmx_
+
+### SERVER folder (@sasjs/server only)
+These macros are used for building applications using [@sasjs/server](https://server.sasjs.io) - an open source REST API for Desktop SAS.
+
+- OS independent
+- @sasjs/server aware
+- No X command
+- Prefixes: _ms_
+
+### VIYA folder (Viya only)
+
+Macros used for interfacing with SAS Viya.
+
+- OS independent
+- No X command
+- Prefixes: _mv_, _mvf_
+
+### XPLATFORM folder (Viya, Meta, and Server)
+
+Sometimes it is helpful to use a macro that can be used interchangeably regardless of the server type on which is is running (SASVIYA, SAS9, SASJS).
+
+- OS independent
+- No X command
+- Prefixes: _mx_
+
 ## Installation
 
 First, download the repo to a location your SAS system can access. Then update your sasautos path to include the components you wish to have available, eg:
 
 ```sas
-options insert=(sasautos="/your/path/macrocore/base");
-options insert=(sasautos="/your/path/macrocore/meta");
+%let repoloc=/your/path/core;
+options insert=(sasautos="&repoloc/base");
+options insert=(sasautos="&repoloc/ddl");
+options insert=(sasautos="&repoloc/fcmp");
+options insert=(sasautos="&repoloc/lua");
+options insert=(sasautos="&repoloc/meta");
+options insert=(sasautos="&repoloc/metax");
+options insert=(sasautos="&repoloc/server");
+options insert=(sasautos="&repoloc/viya");
+options insert=(sasautos="&repoloc/xplatform");
 ```
 
 The above can be done directly in your sas program, via an autoexec, or an initialisation program.
@@ -142,7 +158,7 @@ filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
   - _mp_ for macro procedures (which generate sas code)
   - _ms_ for macro procedures that will only work with [@sasjs/server](https://github.com/sasjs/server)
   - _mv_ for macro procedures that will only work in Viya
-  - _mx_ for macros that are XCMD enabled (working on both windows and unix)
+  - _mx_ for macros that work on Viya, SAS 9 EBI and SASjs Server
 - follow verb-noun convention
 - unix style line endings (lf)
 - individual lines should be no more than 80 characters long

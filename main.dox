@@ -104,3 +104,14 @@
         * Prefixes: _mddl_
 
  */
+
+/*! \dir xplatform
+ *  \brief Cross Platform, works on all SAS servers (Viya, EBI, SASjs)
+ *  \details Useful when you need to run a single piece of code against Viya,
+     SAS 9 with metadata, or SASjs on Base SAS.
+
+        * OS independent
+        * No X command
+        * Prefixes: _mx_
+
+ */

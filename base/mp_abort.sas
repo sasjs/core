@@ -84,8 +84,8 @@
     %end;
   %end;
 
-  /* Stored Process Server web app context */
-  %if %symexist(_METAFOLDER)
+  /* Web App Context */
+  %if %symexist(_PROGRAM)
     or "&SYSPROCESSNAME "="Compute Server "
     or &mode=INCLUDE
   %then %do;

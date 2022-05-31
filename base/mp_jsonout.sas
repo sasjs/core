@@ -231,7 +231,7 @@
       %do i=1 %to &numcols;
         %if &i>1 %then  "," ;
         %if &action=OBJ %then """&&name&i"":" ;
-        &&name&i
+        "&&name&i"n /* name literal for reserved variable names */
       %end;
       %if &action=ARR %then "]" ; %else "}" ; ;
     /* now write the long strings to _webout 1 byte at a time */

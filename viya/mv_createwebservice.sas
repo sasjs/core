@@ -408,7 +408,7 @@ data _null_;
   put '      %do i=1 %to &numcols; ';
   put '        %if &i>1 %then  "," ; ';
   put '        %if &action=OBJ %then """&&name&i"":" ; ';
-  put '        &&name&i ';
+  put '        "&&name&i"n /* name literal for reserved variable names */ ';
   put '      %end; ';
   put '      %if &action=ARR %then "]" ; %else "}" ; ; ';
   put '    /* now write the long strings to _webout 1 byte at a time */ ';

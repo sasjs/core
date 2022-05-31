@@ -34,7 +34,7 @@
 %if &platform=SASJS %then %do;
   %ms_getfile(&loc..sas, outref=&outref)
 %end;
-%else %if &platform=SAS9 %then %do;
+%else %if &platform=SAS9 or &platform=SASMETA %then %do;
   %mm_getstpcode(tree=&loc,outloc=&outref)
 %end;
 %else %if &platform=SASVIYA %then %do;

@@ -13801,24 +13801,23 @@ run;
 
 
 %mend mm_createapplication;/**
-  @file mm_createdataset.sas
-  @brief Create a dataset from a metadata definition
+  @file
+  @brief Create an empty dataset from a metadata definition
   @details This macro was built to support viewing empty tables in
-    https://datacontroller.io - a free evaluation copy is available by
-    contacting the author (Allan Bowe).
+  https://datacontroller.io
 
-    The table can be retrieved using LIBRARY.DATASET reference, or directly
-    using the metadata URI.
+  The table can be retrieved using LIBRARY.DATASET reference, or directly
+  using the metadata URI.
 
-    The dataset is written to the WORK library.
+  The dataset is written to the WORK library.
 
-  usage:
+  Usage:
 
-    %mm_createdataset(libds=metlib.some_dataset)
+      %mm_createdataset(libds=metlib.some_dataset)
 
-    or
+  or
 
-    %mm_createdataset(tableuri=G5X8AFW1.BE00015Y)
+      %mm_createdataset(tableuri=G5X8AFW1.BE00015Y)
 
   <h4> SAS Macros </h4>
   @li mm_getlibs.sas
@@ -13828,9 +13827,9 @@ run;
   @param libds= library.dataset metadata source.  Note - table names in metadata
     can be longer than 32 chars (just fyi, not an issue here)
   @param tableuri= Metadata URI of the table to be created
-  @param outds= The dataset to create, default is `work.mm_createdataset`.
-    The table name needs to be 32 chars or less as per SAS naming rules.
-  @param mdebug= set DBG to 1 to disable DEBUG messages
+  @param outds= (work.mm_createdataset) The dataset to create.  The table name
+    needs to be 32 chars or less as per SAS naming rules.
+  @param mdebug= (0) Set to 1 to enable DEBUG messages
 
   @version 9.4
   @author Allan Bowe
@@ -13856,13 +13855,22 @@ run;
   %mm_gettables(uri=&liburi,outds=&tempds2)
   data _null_;
     set &tempds2;
-    if upcase(tablename)="%upcase(%scan(&libds,2,.))";
+    where upcase(tablename)="%upcase(%scan(&libds,2,.))";
+    &dbg putlog tableuri=;
     call symputx('tableuri',tableuri);
   run;
 %end;
 
-data;run;%let tempds3=&syslast;
+data;run;
+%let tempds3=&syslast;
 %mm_getcols(tableuri=&tableuri,outds=&tempds3)
+
+%if %mf_nobs(&tempds3)=0 %then %do;
+  %put &libds (&tableuri) has no columns defined!!;
+  data &outds;
+  run;
+  %return;
+%end;
 
 data _null_;
   set &tempds3 end=last;

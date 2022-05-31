@@ -26980,7 +26980,7 @@ Usage:
   %ms_getfile(&loc..sas, outref=&outref)
 %end;
 %else %if &platform=SAS9 or &platform=SASMETA %then %do;
-  %mm_getstpcode(tree=&loc,outloc=&outref)
+  %mm_getstpcode(tree=&loc,outref=&outref)
 %end;
 %else %if &platform=SASVIYA %then %do;
   /* extract name & path from &loc */

@@ -17163,6 +17163,7 @@ filename __mc2 clear;
 
   <h4> SAS Macros </h4>
   @li mf_getuniquefileref.sas
+  @li mp_abort.sas
 
   @author Allan Bowe
 
@@ -17212,11 +17213,10 @@ data _null_;
   else put (_all_)(=);
 run;
 
-%if &tsuri=stopifempty %then %do;
-  %put %str(WARN)ING:  &tree&name.(StoredProcess) not found!;
-  %return;
-%end;
-
+%mp_abort(iftrue= (&tsuri=stopifempty)
+  ,mac=mm_getstpcode
+  ,msg=%str(&tree&name.(StoredProcess) not found!)
+)
 
 /**
   * Now we can extract the textstore

@@ -2200,16 +2200,20 @@ Usage:
     recognise this and fetch the log of the parent session instead)
   @li STP environments must finish cleanly to avoid the log being sent to
     _webout.  To assist with this, we also run stpsrvset('program error', 0)
-    and set SYSCC=0.  We take a unique "soft abort" approach - we open a macro
+    and set SYSCC=0.
+    Where possible, we take a unique "soft abort" approach - we open a macro
     but don't close it!  This works everywhere EXCEPT inside a \%include inside
     a macro.  For that, we recommend you use mp_include.sas to perform the
     include, and then call \%mp_abort(mode=INCLUDE) from the source program (ie,
     OUTSIDE of the top-parent macro).
+    The soft abort has also been found to be ineffective in 9.4m6 windows
+    environments.
 
 
-  @param mac= to contain the name of the calling macro
+  @param mac= (mp_abort.sas) To contain the name of the calling macro. Do not
+    use &sysmacroname as this will always resolve to MP_ABORT.
   @param msg= message to be returned
-  @param iftrue= supply a condition under which the macro should be executed.
+  @param iftrue= (1=1) Supply a condition for which the macro should be executed
   @param errds= (work.mp_abort_errds) There is no clean way to end a process
     within a %include called within a macro.  Furthermore, there is no way to
     test if a macro is called within a %include.  To handle this particular
@@ -2230,11 +2234,12 @@ Usage:
     @li REGULAR (default)
     @li INCLUDE
 
+  @version 9.4
+  @author Allan Bowe
+
   <h4> Related Macros </h4>
   @li mp_include.sas
 
-  @version 9.4
-  @author Allan Bowe
   @cond
 **/
 
@@ -2411,22 +2416,28 @@ Usage:
         rc=stpsrvset('program error', 0);
         call symputx("syscc",0,"g");
       run;
-      /**
-        * endsas kills 9.4m3 deployments by orphaning multibridges.
-        * Abort variants are ungraceful (non zero return code)
-        * This approach lets SAS run silently until the end :-)
-        * Caution - fails when called within a %include within a macro
-        * Use mp_include() to handle this.
-        */
-      filename skip temp;
-      data _null_;
-        file skip;
-        put '%macro skip();';
-        comment '%mend skip; -> fix lint ';
-        put '%macro skippy();';
-        comment '%mend skippy; -> fix lint ';
-      run;
-      %inc skip;
+      %if &sysscp=WIN and "%substr(&sysvlong.    ,1,9)"="9.04.01M6" %then %do;
+        /* skip approach (below) does not work on this OS / version combo */
+        endsas;
+      %end;
+      %else %do;
+        /**
+          * endsas kills 9.4m3 deployments by orphaning multibridges.
+          * Abort variants are ungraceful (non zero return code)
+          * This approach lets SAS run silently until the end :-)
+          * Caution - fails when called within a %include within a macro
+          * Use mp_include() to handle this.
+          */
+        filename skip temp;
+        data _null_;
+          file skip;
+          put '%macro skip();';
+          comment '%mend skip; -> fix lint ';
+          put '%macro skippy();';
+          comment '%mend skippy; -> fix lint ';
+        run;
+        %inc skip;
+      %end;
     %end;
     %else %if "&sysprocessmode " = "SAS Compute Server " %then %do;
       /* endsas kills the session making it harder to fetch results */
@@ -16214,16 +16225,14 @@ filename __outdoc clear;
 
   Usage:
 
-    options ps=max nonotes nosource;
-    %mm_getfoldertree(root=/My/Meta/Path, outds=iwantthisdataset)
-    options notes source;
+      options ps=max nonotes nosource;
+      %mm_getfoldertree(root=/My/Meta/Path, outds=iwantthisdataset)
+      options notes source;
 
   @param [in] root= the parent folder under which to return all contents
   @param [out] outds= the dataset to create that contains the list of
     directories
   @param [in] mDebug= set to 1 to show debug messages in the log
-
-  <h4> SAS Macros </h4>
 
   @version 9.4
   @author Allan Bowe

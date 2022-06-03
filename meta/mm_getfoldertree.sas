@@ -8,16 +8,14 @@
 
   Usage:
 
-    options ps=max nonotes nosource;
-    %mm_getfoldertree(root=/My/Meta/Path, outds=iwantthisdataset)
-    options notes source;
+      options ps=max nonotes nosource;
+      %mm_getfoldertree(root=/My/Meta/Path, outds=iwantthisdataset)
+      options notes source;
 
   @param [in] root= the parent folder under which to return all contents
   @param [out] outds= the dataset to create that contains the list of
     directories
   @param [in] mDebug= set to 1 to show debug messages in the log
-
-  <h4> SAS Macros </h4>
 
   @version 9.4
   @author Allan Bowe

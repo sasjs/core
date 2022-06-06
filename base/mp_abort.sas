@@ -22,7 +22,7 @@
     include, and then call \%mp_abort(mode=INCLUDE) from the source program (ie,
     OUTSIDE of the top-parent macro).
     The soft abort has also been found to be ineffective in 9.4m6 windows
-    environments.
+    environments and above, so in these cases, endsas is used.
 
 
   @param mac= (mp_abort.sas) To contain the name of the calling macro. Do not
@@ -231,8 +231,10 @@
         rc=stpsrvset('program error', 0);
         call symputx("syscc",0,"g");
       run;
-      %if &sysscp=WIN and "%substr(&sysvlong.    ,1,9)"="9.04.01M6" %then %do;
-        /* skip approach (below) does not work on this OS / version combo */
+      %if &sysscp=WIN
+      and "%substr(%str(&sysvlong         ),1,8)"="9.04.01M"
+      and "%substr(%str(&sysvlong         ),9,1)">"5" %then %do;
+        /* skip approach (below) does not work in windows m6+ envs */
         endsas;
       %end;
       %else %do;

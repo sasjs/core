@@ -2356,7 +2356,7 @@ Usage:
     /* send response in SASjs JSON format */
     data _null_;
       file _webout mod lrecl=32000 encoding='utf-8';
-      length msg syswarningtext syserrortext $32767 ;
+      length msg syswarningtext syserrortext $32767 mode $10 ;
       sasdatetime=datetime();
       msg=symget('msg');
     %if &logline>0 %then %do;
@@ -2372,7 +2372,10 @@ Usage:
       msg=cats('"',msg,'"');
       if symexist('_debug') then debug=quote(trim(symget('_debug')));
       else debug='""';
-      put '>>weboutBEGIN<<';
+      if symexist('sasjsprocessmode')
+      and symget('sasjsprocessmode')='Stored Program'
+      then mode='SASJS';
+      if mode ne 'SASJS' then put '>>weboutBEGIN<<';
       put '{"SYSDATE" : "' "&SYSDATE" '"';
       put ',"SYSTIME" : "' "&SYSTIME" '"';
       put ',"sasjsAbort" : [{';
@@ -2405,7 +2408,7 @@ Usage:
       put ",""SYSWARNINGTEXT"" : " syswarningtext;
       put ',"END_DTTM" : "' "%sysfunc(datetime(),E8601DT26.6)" '" ';
       put "}" @;
-      put '>>weboutEND<<';
+      if mode ne 'SASJS' then put '>>weboutEND<<';
     run;
 
     %put _all_;

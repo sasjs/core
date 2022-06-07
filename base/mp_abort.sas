@@ -63,7 +63,8 @@
   , mode=REGULAR
 )/*/STORE SOURCE*/;
 
-  %global sysprocessmode sysprocessname;
+  %global sysprocessmode sysprocessname sasjs_stpsrv_header_loc;
+  %local fref fid i;
 
   %if not(%eval(%unquote(&iftrue))) %then %return;
 
@@ -157,7 +158,7 @@
     %end;
 
     %if %symexist(SYS_JES_JOB_URI) %then %do;
-      /* setup webout */
+      /* setup webout for Viya */
       OPTIONS NOBOMFILE;
       %if "X&SYS_JES_JOB_URI.X"="XX" %then %do;
           filename _webout temp lrecl=999999 mod;
@@ -166,6 +167,18 @@
         filename _webout filesrvc parenturi="&SYS_JES_JOB_URI"
           name="_webout.json" lrecl=999999 mod;
       %end;
+    %end;
+    %else %if %sysfunc(filename(fref,&sasjs_stpsrv_header_loc))=0 %then %do;
+      /* set up http header for SASjs Server */
+      %let fid=%sysfunc(fopen(&fref,A));
+      %if &fid=0 %then %do;
+        %put %str(ERR)OR: %sysfunc(sysmsg());
+        %return;
+      %end;
+      %let rc=%sysfunc(fput(&fid,%str(Content-Type: application/json)));
+      %let rc=%sysfunc(fwrite(&fid));
+      %let rc=%sysfunc(fclose(&fid));
+      %let rc=%sysfunc(filename(&fref));
     %end;
 
     /* send response in SASjs JSON format */
@@ -187,9 +200,7 @@
       msg=cats('"',msg,'"');
       if symexist('_debug') then debug=quote(trim(symget('_debug')));
       else debug='""';
-      if symexist('sasjsprocessmode')
-      and symget('sasjsprocessmode')='Stored Program'
-      then mode='SASJS';
+      if symget('sasjsprocessmode')='Stored Program' then mode='SASJS';
       if mode ne 'SASJS' then put '>>weboutBEGIN<<';
       put '{"SYSDATE" : "' "&SYSDATE" '"';
       put ',"SYSTIME" : "' "&SYSTIME" '"';
@@ -222,7 +233,7 @@
       syswarningtext=quote(trim(symget('syswarningtext')));
       put ",""SYSWARNINGTEXT"" : " syswarningtext;
       put ',"END_DTTM" : "' "%sysfunc(datetime(),E8601DT26.6)" '" ';
-      put "}" @;
+      put "}" ;
       if mode ne 'SASJS' then put '>>weboutEND<<';
     run;
 

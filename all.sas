@@ -324,9 +324,6 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
 
       %put %mf_existVarList(sashelp.class, age sex name dummyvar);
 
-  <h4> SAS Macros </h4>
-  @li mf_abort.sas
-
   @param libds 2 part dataset or view reference
   @param varlist space separated variable names
 
@@ -2344,7 +2341,7 @@ Usage:
 
     %if %symexist(SYS_JES_JOB_URI) %then %do;
       /* setup webout for Viya */
-      OPTIONS NOBOMFILE;
+      options nobomfile;
       %if "X&SYS_JES_JOB_URI.X"="XX" %then %do;
           filename _webout temp lrecl=999999 mod;
       %end;
@@ -2354,6 +2351,7 @@ Usage:
       %end;
     %end;
     %else %if %sysfunc(filename(fref,&sasjs_stpsrv_header_loc))=0 %then %do;
+      options nobomfile;
       /* set up http header for SASjs Server */
       %let fid=%sysfunc(fopen(&fref,A));
       %if &fid=0 %then %do;

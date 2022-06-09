@@ -6,9 +6,6 @@
 
       %put %mf_existVarList(sashelp.class, age sex name dummyvar);
 
-  <h4> SAS Macros </h4>
-  @li mf_abort.sas
-
   @param libds 2 part dataset or view reference
   @param varlist space separated variable names
 

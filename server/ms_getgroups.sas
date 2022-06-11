@@ -41,6 +41,17 @@
 )
 
 %local fref0 fref1 libref optval rc msg;
+
+%if %sysget(MODE)=desktop %then %do;
+  /* groups api does not exist in desktop mode */
+  data &outds;
+    length NAME $32 DESCRIPTION $64. GROUPID 8;
+    call missing (of _all_);
+    stop;
+  run;
+  %return;
+%end;
+
 %let fref0=%mf_getuniquefileref();
 %let fref1=%mf_getuniquefileref();
 %let libref=%mf_getuniquelibref();
@@ -89,7 +100,7 @@ run;
 
 %mp_abort(
   iftrue=(&syscc ne 0)
-  ,mac=ms_getusers.sas
+  ,mac=ms_getgroups.sas
   ,msg=%str(Issue reading response JSON)
 )
 

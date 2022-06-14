@@ -2,13 +2,19 @@
   @file
   @brief Fetches the list of groups from SASjs Server
   @details Fetches the list of groups from SASjs Server and writes them to an
-  output dataset.
+  output dataset.  Provide a username to filter for the groups for a particular
+  user.
 
   Example:
 
       %ms_getgroups(outds=userlist)
 
+  With filter:
+
+      %ms_getgroups(outds=userlist, user=James)
+
   @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
+  @param [in] user= (0) Provide the username on which to filter
   @param [out] outds= (work.ms_getgroups) This output dataset will contain the
     list of groups. Format:
 |NAME:$32.|DESCRIPTION:$64.|GROUPID:best.|
@@ -30,9 +36,10 @@
 **/
 
 %macro ms_getgroups(
-    outds=work.ms_getgroups
-    ,mdebug=0
-  );
+  user=0,
+  outds=work.ms_getgroups,
+  mdebug=0
+);
 
 %mp_abort(
   iftrue=(&syscc ne 0)
@@ -46,7 +53,10 @@
   /* groups api does not exist in desktop mode */
   data &outds;
     length NAME $32 DESCRIPTION $64. GROUPID 8;
-    call missing (of _all_);
+    name="&sysuserid";
+    description="&sysuserid (group - desktop mode)";
+    groupid=1;
+    output;
     stop;
   run;
   %return;
@@ -76,12 +86,35 @@ run;
   run;
 %end;
 
-proc http method='GET' headerin=&fref0 out=&fref1
-  url="&_sasjs_apiserverurl/SASjsApi/group";
-%if &mdebug=1 %then %do;
-  debug level=1;
+%if "&user"="0" %then %do;
+  proc http method='GET' headerin=&fref0 out=&fref1
+    url="&_sasjs_apiserverurl/SASjsApi/group";
+  %if &mdebug=1 %then %do;
+    debug level=1;
+  %end;
+  run;
 %end;
-run;
+%else %do;
+  /*
+    first get the userid - cannot do this directly until the following ticket
+    is closed: https://github.com/sasjs/server/issues/188
+  */
+  data;run;
+  %local ds1 uid;
+  %let ds1=&syslast;
+  %ms_getusers(outds=&ds1)
+  %let uid=0;
+  data _null_;
+    set &ds1;
+    if username="&user" then call symputx('uid',id,'l');
+  run;
+  proc http method='GET' headerin=&fref0 out=&fref1
+    url="&_sasjs_apiserverurl/SASjsApi/group";
+  %if &mdebug=1 %then %do;
+    debug level=1;
+  %end;
+  run;
+%end;
 
 %mp_abort(
   iftrue=(&syscc ne 0)

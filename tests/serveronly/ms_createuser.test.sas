@@ -23,6 +23,7 @@
 data _null_;
   set work.test1;
   call symputx('id',id);
+  putlog (_all_)(=);
 run;
 %mp_assert(
   iftrue=(&id>0),
@@ -35,7 +36,8 @@ run;
 %let checkid=0;
 data _null_;
   set work.test2;
-  where username="&user";
+  if _n_<20 then putlog (_all_)(=);
+  if username="&user";
   call symputx('checkid',id);
 run;
 %mp_assert(

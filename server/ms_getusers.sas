@@ -2,13 +2,18 @@
   @file
   @brief Fetches the list of users from SASjs Server
   @details Fetches the list of users from SASjs Server and writes them to an
-  output dataset.
+  output dataset.  Can also be filtered, for a particular group.
 
   Example:
 
       %ms_getusers(outds=userlist)
 
+  Filtering for a group:
+
+      %ms_getusers(outds=work.groupmembers, group=GROUPNAME)
+
   @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
+  @param [in] group= (0) Set to a group name to filter members for that group
   @param [out] outds= (work.ms_getusers) This output dataset will contain the
     list of user accounts. Format:
 |DISPLAYNAME:$18.|USERNAME:$10.|ID:best.|
@@ -24,18 +29,22 @@
   <h4> SAS Macros </h4>
   @li mf_getuniquefileref.sas
   @li mf_getuniquelibref.sas
+  @li mf_getuniquename.sas
   @li mp_abort.sas
+  @li ms_getgroups.sas
 
   <h4> Related Files </h4>
   @li ms_createuser.sas
+  @li ms_getgroups.sas
   @li ms_getusers.test.sas
 
 **/
 
 %macro ms_getusers(
-    outds=work.ms_getusers
-    ,mdebug=0
-  );
+  outds=work.ms_getusers,
+  group=0,
+  mdebug=0
+);
 
 %mp_abort(
   iftrue=(&syscc ne 0)
@@ -67,27 +76,56 @@ run;
     put _infile_;
   run;
 %end;
-
-proc http method='GET' headerin=&fref0 out=&fref1
-  url="&_sasjs_apiserverurl/SASjsApi/user";
-%if &mdebug=1 %then %do;
-  debug level=1;
+%if "&group"="0" %then %do;
+  proc http method='GET' headerin=&fref0 out=&fref1
+    url="&_sasjs_apiserverurl/SASjsApi/user";
+  %if &mdebug=1 %then %do;
+    debug level=1;
+  %end;
+  run;
 %end;
-run;
+%else %do;
+  /* currently we only have an API to fetch by group ID */
+  /* so first fetch all the groups, and grab the id */
+  %local groupid ds1;
+  %let ds1=%mf_getuniquename(prefix=groups);
+  %ms_getgroups(outds=&ds1)
+  data _null_;
+    set &ds1;
+    where name="&group";
+    call symputx('groupid',groupid,'l');
+  run;
+
+  proc http method='GET' headerin=&fref0 out=&fref1
+    url="&_sasjs_apiserverurl/SASjsApi/group/&groupid";
+  %if &mdebug=1 %then %do;
+    debug level=1;
+    %put &=groupid;
+  %end;
+  run;
+
+%end;
 
 %mp_abort(
   iftrue=(&syscc ne 0)
   ,mac=ms_getusers.sas
-  ,msg=%str(Issue submitting GET query to SASjsApi/user)
+  ,msg=%str(Issue submitting API query)
 )
 
 libname &libref JSON fileref=&fref1;
 
-data &outds;
-  set &libref..root;
-  drop ordinal_root;
-run;
-
+%if "&group"="0" %then %do;
+  data &outds;
+    set &libref..root;
+    drop ordinal_root;
+  run;
+%end;
+%else %do;
+  data &outds;
+    set &libref..users;
+    drop ordinal_root ordinal_users;
+  run;
+%end;
 
 %mp_abort(
   iftrue=(&syscc ne 0)

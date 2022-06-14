@@ -13015,7 +13015,10 @@ create table &libds(
   @file mm_adduser2group.sas
   @brief Adds a user to a group
   @details Adds a user to a metadata group.  The macro first checks whether the
-    user is in that group, and if not, the user is added.
+  user is in that group, and if not, the user is added.
+
+  Note that the macro does not check inherited group memberships - it looks at
+    direct members only.
 
   Usage:
 
@@ -13025,10 +13028,10 @@ create table &libds(
 
   @param user= the user name (not displayname)
   @param group= the group to which to add the user
-  @param mdebug= set to 1 to show debug info in log
+  @param mdebug= (0) set to 1 to show debug info in log
 
-  @warning the macro does not check inherited group memberships - it looks at
-    direct members only
+  <h4> Related Files </h4>
+  @li ms_adduser2group.sas
 
   @version 9.3
   @author Allan Bowe
@@ -19103,6 +19106,128 @@ run;
 %mend mfs_httpheader;
 /**
   @file
+  @brief Adds a user to a group on SASjs Server
+  @details Adds a user to a group based on userid and groupid.  Both user and
+  group must already exist.
+
+  Examples:
+
+      %ms_adduser2group(uid=1,gid=1)
+
+
+  @param [in] uid= (0) The User ID to be added
+  @param [in] gid= (0) The Group ID to contain the new user
+  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
+  @param [out] outds= (work.ms_adduser2group) This output dataset will contain
+    the new list of group members, eg:
+|DISPLAYNAME:$18.|USERNAME:$10.|ID:best.|
+|---|---|---|
+|`Super Admin `|`secretuser `|`1`|
+|`Sabir Hassan`|`sabir`|`2`|
+|`Mihajlo Medjedovic `|`mihajlo `|`3`|
+|`Ivor Townsend `|`ivor `|`4`|
+|`New User `|`newuser `|`5`|
+
+
+
+  <h4> SAS Macros </h4>
+  @li mf_getuniquefileref.sas
+  @li mf_getuniquelibref.sas
+  @li mp_abort.sas
+
+  <h4> Related Files </h4>
+  @li ms_creategroup.sas
+  @li ms_createuser.sas
+
+**/
+
+%macro ms_adduser2group(uid=0
+    ,gid=0
+    ,outds=work.ms_adduser2group
+    ,mdebug=0
+  );
+
+%mp_abort(
+  iftrue=(&syscc ne 0)
+  ,mac=ms_adduser2group.sas
+  ,msg=%str(syscc=&syscc on macro entry)
+)
+
+%local fref0 fref1 fref2 libref optval rc msg;
+%let fref0=%mf_getuniquefileref();
+%let fref1=%mf_getuniquefileref();
+%let libref=%mf_getuniquelibref();
+
+/* avoid sending bom marker to API */
+%let optval=%sysfunc(getoption(bomfile));
+options nobomfile;
+
+data _null_;
+  file &fref0 lrecl=1000;
+  infile "&_sasjs_tokenfile" lrecl=1000;
+  input;
+  if _n_=1 then put "accept: application/json";
+  put _infile_;
+run;
+
+%if &mdebug=1 %then %do;
+  %put _local_;
+  data _null_;
+    infile &fref0;
+    input;
+    put _infile_;
+  run;
+%end;
+
+proc http method='POST' headerin=&fref0 out=&fref1
+  url="&_sasjs_apiserverurl/SASjsApi/group/&gid/&uid";
+%if &mdebug=1 %then %do;
+  debug level=1;
+%end;
+run;
+
+%mp_abort(
+  iftrue=(&syscc ne 0)
+  ,mac=ms_adduser2group.sas
+  ,msg=%str(Issue submitting query to SASjsApi/group)
+)
+
+libname &libref JSON fileref=&fref1;
+
+data &outds;
+  set &libref..users;
+  drop ordinal_root ordinal_users;
+%if &mdebug=1 %then %do;
+  putlog _all_;
+%end;
+run;
+
+
+%mp_abort(
+  iftrue=(&syscc ne 0)
+  ,mac=ms_creategroup.sas
+  ,msg=%str(Issue reading response JSON)
+)
+
+/* reset options */
+options &optval;
+
+%if &mdebug=0 %then %do;
+  filename &fref0 clear;
+  filename &fref1 clear;
+  libname &libref clear;
+%end;
+%else %do;
+  data _null_;
+    infile &fref1;
+    input;
+    putlog _infile_;
+  run;
+%end;
+
+%mend ms_adduser2group;
+/**
+  @file
   @brief Creates a file on SASjs Drive
   @details Creates a file on SASjs Drive. To use the file as a Stored Program,
   it must have a ".sas" extension.
@@ -20146,13 +20271,19 @@ filename &headref clear;
   @file
   @brief Fetches the list of groups from SASjs Server
   @details Fetches the list of groups from SASjs Server and writes them to an
-  output dataset.
+  output dataset.  Provide a username to filter for the groups for a particular
+  user.
 
   Example:
 
       %ms_getgroups(outds=userlist)
 
+  With filter:
+
+      %ms_getgroups(outds=userlist, user=James)
+
   @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
+  @param [in] user= (0) Provide the username on which to filter
   @param [out] outds= (work.ms_getgroups) This output dataset will contain the
     list of groups. Format:
 |NAME:$32.|DESCRIPTION:$64.|GROUPID:best.|
@@ -20174,9 +20305,10 @@ filename &headref clear;
 **/
 
 %macro ms_getgroups(
-    outds=work.ms_getgroups
-    ,mdebug=0
-  );
+  user=0,
+  outds=work.ms_getgroups,
+  mdebug=0
+);
 
 %mp_abort(
   iftrue=(&syscc ne 0)
@@ -20190,7 +20322,10 @@ filename &headref clear;
   /* groups api does not exist in desktop mode */
   data &outds;
     length NAME $32 DESCRIPTION $64. GROUPID 8;
-    call missing (of _all_);
+    name="&sysuserid";
+    description="&sysuserid (group - desktop mode)";
+    groupid=1;
+    output;
     stop;
   run;
   %return;
@@ -20220,12 +20355,35 @@ run;
   run;
 %end;
 
-proc http method='GET' headerin=&fref0 out=&fref1
-  url="&_sasjs_apiserverurl/SASjsApi/group";
-%if &mdebug=1 %then %do;
-  debug level=1;
+%if "&user"="0" %then %do;
+  proc http method='GET' headerin=&fref0 out=&fref1
+    url="&_sasjs_apiserverurl/SASjsApi/group";
+  %if &mdebug=1 %then %do;
+    debug level=1;
+  %end;
+  run;
 %end;
-run;
+%else %do;
+  /*
+    first get the userid - cannot do this directly until the following ticket
+    is closed: https://github.com/sasjs/server/issues/188
+  */
+  data;run;
+  %local ds1 uid;
+  %let ds1=&syslast;
+  %ms_getusers(outds=&ds1)
+  %let uid=0;
+  data _null_;
+    set &ds1;
+    if username="&user" then call symputx('uid',id,'l');
+  run;
+  proc http method='GET' headerin=&fref0 out=&fref1
+    url="&_sasjs_apiserverurl/SASjsApi/group";
+  %if &mdebug=1 %then %do;
+    debug level=1;
+  %end;
+  run;
+%end;
 
 %mp_abort(
   iftrue=(&syscc ne 0)
@@ -20262,13 +20420,18 @@ options &optval;
   @file
   @brief Fetches the list of users from SASjs Server
   @details Fetches the list of users from SASjs Server and writes them to an
-  output dataset.
+  output dataset.  Can also be filtered, for a particular group.
 
   Example:
 
       %ms_getusers(outds=userlist)
 
+  Filtering for a group:
+
+      %ms_getusers(outds=work.groupmembers, group=GROUPNAME)
+
   @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
+  @param [in] group= (0) Set to a group name to filter members for that group
   @param [out] outds= (work.ms_getusers) This output dataset will contain the
     list of user accounts. Format:
 |DISPLAYNAME:$18.|USERNAME:$10.|ID:best.|
@@ -20284,18 +20447,22 @@ options &optval;
   <h4> SAS Macros </h4>
   @li mf_getuniquefileref.sas
   @li mf_getuniquelibref.sas
+  @li mf_getuniquename.sas
   @li mp_abort.sas
+  @li ms_getgroups.sas
 
   <h4> Related Files </h4>
   @li ms_createuser.sas
+  @li ms_getgroups.sas
   @li ms_getusers.test.sas
 
 **/
 
 %macro ms_getusers(
-    outds=work.ms_getusers
-    ,mdebug=0
-  );
+  outds=work.ms_getusers,
+  group=0,
+  mdebug=0
+);
 
 %mp_abort(
   iftrue=(&syscc ne 0)
@@ -20327,27 +20494,56 @@ run;
     put _infile_;
   run;
 %end;
-
-proc http method='GET' headerin=&fref0 out=&fref1
-  url="&_sasjs_apiserverurl/SASjsApi/user";
-%if &mdebug=1 %then %do;
-  debug level=1;
+%if "&group"="0" %then %do;
+  proc http method='GET' headerin=&fref0 out=&fref1
+    url="&_sasjs_apiserverurl/SASjsApi/user";
+  %if &mdebug=1 %then %do;
+    debug level=1;
+  %end;
+  run;
 %end;
-run;
+%else %do;
+  /* currently we only have an API to fetch by group ID */
+  /* so first fetch all the groups, and grab the id */
+  %local groupid ds1;
+  %let ds1=%mf_getuniquename(prefix=groups);
+  %ms_getgroups(outds=&ds1)
+  data _null_;
+    set &ds1;
+    where name="&group";
+    call symputx('groupid',groupid,'l');
+  run;
+
+  proc http method='GET' headerin=&fref0 out=&fref1
+    url="&_sasjs_apiserverurl/SASjsApi/group/&groupid";
+  %if &mdebug=1 %then %do;
+    debug level=1;
+    %put &=groupid;
+  %end;
+  run;
+
+%end;
 
 %mp_abort(
   iftrue=(&syscc ne 0)
   ,mac=ms_getusers.sas
-  ,msg=%str(Issue submitting GET query to SASjsApi/user)
+  ,msg=%str(Issue submitting API query)
 )
 
 libname &libref JSON fileref=&fref1;
 
-data &outds;
-  set &libref..root;
-  drop ordinal_root;
-run;
-
+%if "&group"="0" %then %do;
+  data &outds;
+    set &libref..root;
+    drop ordinal_root;
+  run;
+%end;
+%else %do;
+  data &outds;
+    set &libref..users;
+    drop ordinal_root ordinal_users;
+  run;
+%end;
 
 %mp_abort(
   iftrue=(&syscc ne 0)

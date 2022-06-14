@@ -31,7 +31,7 @@
 
   <h4> Related Files </h4>
   @li ms_creategroup.sas
-  @li ms_getusers.test.sas
+  @li ms_getgroups.test.sas
 
 **/
 
@@ -43,11 +43,11 @@
 
 %mp_abort(
   iftrue=(&syscc ne 0)
-  ,mac=ms_getusers.sas
+  ,mac=ms_getgroups.sas
   ,msg=%str(syscc=&syscc on macro entry)
 )
 
-%local fref0 fref1 libref optval rc msg;
+%local fref0 fref1 libref optval rc msg url;
 
 %if %sysget(MODE)=desktop %then %do;
   /* groups api does not exist in desktop mode */
@@ -86,50 +86,40 @@ run;
   run;
 %end;
 
-%if "&user"="0" %then %do;
-  proc http method='GET' headerin=&fref0 out=&fref1
-    url="&_sasjs_apiserverurl/SASjsApi/group";
-  %if &mdebug=1 %then %do;
-    debug level=1;
-  %end;
-  run;
+%if "&user"="0" %then %let url=/SASjsApi/group;
+%else %let url=/SASjsApi/user/by/username/&user;
+
+proc http method='GET' headerin=&fref0 out=&fref1
+  url="&_sasjs_apiserverurl.&url";
+%if &mdebug=1 %then %do;
+  debug level=1;
 %end;
-%else %do;
-  /*
-    first get the userid - cannot do this directly until the following ticket
-    is closed: https://github.com/sasjs/server/issues/188
-  */
-  data;run;
-  %local ds1 uid;
-  %let ds1=&syslast;
-  %ms_getusers(outds=&ds1)
-  %let uid=0;
-  data _null_;
-    set &ds1;
-    if username="&user" then call symputx('uid',id,'l');
-  run;
-  proc http method='GET' headerin=&fref0 out=&fref1
-    url="&_sasjs_apiserverurl/SASjsApi/group";
-  %if &mdebug=1 %then %do;
-    debug level=1;
-  %end;
-  run;
-%end;
+run;
 
 %mp_abort(
   iftrue=(&syscc ne 0)
   ,mac=ms_getgroups.sas
-  ,msg=%str(Issue submitting GET query to SASjsApi/group)
+  ,msg=%str(Issue submitting GET query to SASjsApi)
 )
 
 libname &libref JSON fileref=&fref1;
 
-data &outds;
-  length NAME $32 DESCRIPTION $64. GROUPID 8;
-  if _n_=1 then call missing(of _all_);
-  set &libref..root;
-  drop ordinal_root;
-run;
+%if "&user"="0" %then %do;
+  data &outds;
+    length NAME $32 DESCRIPTION $64. GROUPID 8;
+    if _n_=1 then call missing(of _all_);
+    set &libref..root;
+    drop ordinal_root;
+  run;
+%end;
+%else %do;
+  data &outds;
+    length NAME $32 DESCRIPTION $64. GROUPID 8;
+    if _n_=1 then call missing(of _all_);
+    set &libref..groups;
+    drop ordinal_:;
+  run;
+%end;
 
 %mp_abort(
   iftrue=(&syscc ne 0)

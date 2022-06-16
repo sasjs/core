@@ -35,7 +35,7 @@ run;
 %let checkid=0;
 data _null_;
   set work.test2;
-  where name="&group";
+  where upcase(name)="%upcase(&group)";
   call symputx('checkid',groupid);
 run;
 %mp_assert(

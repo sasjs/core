@@ -34,7 +34,7 @@ options mprint;
 )
 %mp_assertscope(COMPARE)
 
-libname webeen json (weboot);
+libname webeen json fileref=weboot;
 
 data _null_;
   infile weboot;

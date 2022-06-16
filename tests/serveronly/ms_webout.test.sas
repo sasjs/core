@@ -20,7 +20,7 @@ run;
 %ms_webout(OBJ,datasets,fref=&fref)
 %ms_webout(CLOSE,fref=&fref)
 
-libname test JSON (&fref);
+libname test JSON fileref=&fref;
 data root;
   set test.root;
   call symputx('checkval',sysvlong);

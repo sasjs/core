@@ -10,7 +10,12 @@
 **/
 
 filename ft15f001 temp;
-parmcards4;
+data _null_;
+  file ft15f001;
+  infile cards;
+  input;
+  put _infile_;
+cards4;
   %put Initialising sendObj: ;
   %put _all_;
   %webout(FETCH)
@@ -27,6 +32,7 @@ parmcards4;
   %mend x; %x()
   %webout(CLOSE)
 ;;;;
+run;
 %put creating web service: &mcTestAppLoc/services;
 %ms_createwebservice(
   path=&mcTestAppLoc/services,

@@ -28,9 +28,12 @@
 %mp_assertdsobs(work.test1,test=ATLEAST 1)
 
 %let test2=0;
+%put &=group;
 data _null_;
   set work.test1;
-  if groupname="&group" then do;
+  putlog (_all_)(=);
+  if upcase(name)="%upcase(&group)" then do;
+    putlog "&group found!";
     call symputx('test2',1);
     call symputx('gid',groupid); /* used in next test */
   end;

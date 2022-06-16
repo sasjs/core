@@ -37,7 +37,7 @@ run;
 data _null_;
   set work.test2;
   if _n_<20 then putlog (_all_)(=);
-  if username="&user";
+  if upcase(username)="%upcase(&user)";
   call symputx('checkid',id);
 run;
 %mp_assert(

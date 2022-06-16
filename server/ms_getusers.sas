@@ -16,7 +16,7 @@
   @param [in] group= (0) Set to a group name to filter members for that group
   @param [out] outds= (work.ms_getusers) This output dataset will contain the
     list of user accounts. Format:
-|DISPLAYNAME:$18.|USERNAME:$10.|ID:best.|
+|DISPLAYNAME:$60.|USERNAME:$30.|ID:best.|
 |---|---|---|
 |`Super Admin `|`secretuser `|`1`|
 |`Sabir Hassan`|`sabir`|`2`|
@@ -29,9 +29,7 @@
   <h4> SAS Macros </h4>
   @li mf_getuniquefileref.sas
   @li mf_getuniquelibref.sas
-  @li mf_getuniquename.sas
   @li mp_abort.sas
-  @li ms_getgroups.sas
 
   <h4> Related Files </h4>
   @li ms_createuser.sas
@@ -52,7 +50,7 @@
   ,msg=%str(syscc=&syscc on macro entry)
 )
 
-%local fref0 fref1 libref optval rc msg;
+%local fref0 fref1 libref optval rc msg url;
 %let fref0=%mf_getuniquefileref();
 %let fref1=%mf_getuniquefileref();
 %let libref=%mf_getuniquelibref();
@@ -76,35 +74,18 @@ run;
     put _infile_;
   run;
 %end;
-%if "&group"="0" %then %do;
-  proc http method='GET' headerin=&fref0 out=&fref1
-    url="&_sasjs_apiserverurl/SASjsApi/user";
-  %if &mdebug=1 %then %do;
-    debug level=1;
-  %end;
-  run;
-%end;
-%else %do;
-  /* currently we only have an API to fetch by group ID */
-  /* so first fetch all the groups, and grab the id */
-  %local groupid ds1;
-  %let ds1=%mf_getuniquename(prefix=groups);
-  %ms_getgroups(outds=&ds1)
-  data _null_;
-    set &ds1;
-    where name="&group";
-    call symputx('groupid',groupid,'l');
-  run;
 
-  proc http method='GET' headerin=&fref0 out=&fref1
-    url="&_sasjs_apiserverurl/SASjsApi/group/&groupid";
-  %if &mdebug=1 %then %do;
-    debug level=1;
-    %put &=groupid;
-  %end;
-  run;
+%if "&group"="0" %then %let url=/SASjsApi/user;
+%else %let url=/SASjsApi/group/by/groupname/&group;
 
+
+proc http method='GET' headerin=&fref0 out=&fref1
+  url="&_sasjs_apiserverurl.&url";
+%if &mdebug=1 %then %do;
+  debug level=1;
 %end;
+run;
+
 
 %mp_abort(
   iftrue=(&syscc ne 0)
@@ -116,12 +97,14 @@ libname &libref JSON fileref=&fref1;
 
 %if "&group"="0" %then %do;
   data &outds;
+    length DISPLAYNAME $60 USERNAME:$30 ID 8;
     set &libref..root;
     drop ordinal_root;
   run;
 %end;
 %else %do;
   data &outds;
+    length DISPLAYNAME $60 USERNAME:$30 ID 8;
     set &libref..users;
     drop ordinal_root ordinal_users;
   run;

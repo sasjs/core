@@ -17807,7 +17807,7 @@ libname _XML_ clear;
 )/*/STORE SOURCE*/;
 
 filename response temp;
-%if %superq(&user)=0 %then %do;
+%if %superq(user)=0 %then %do;
   proc metadata in= '<GetMetadataObjects>
     <Reposid>$METAREPOSITORY</Reposid>
     <Type>Person</Type>

@@ -9,12 +9,17 @@
 
       %ms_getgroups(outds=userlist)
 
-  With filter:
+  With filter on username:
 
       %ms_getgroups(outds=userlist, user=James)
 
+  With filter on userid:
+
+      %ms_getgroups(outds=userlist, uid=1)
+
   @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
   @param [in] user= (0) Provide the username on which to filter
+  @param [in] uid= (0) Provide the userid on which to filter
   @param [out] outds= (work.ms_getgroups) This output dataset will contain the
     list of groups. Format:
 |NAME:$32.|DESCRIPTION:$64.|GROUPID:best.|
@@ -37,6 +42,7 @@
 
 %macro ms_getgroups(
   user=0,
+  uid=0,
   outds=work.ms_getgroups,
   mdebug=0
 );
@@ -86,8 +92,10 @@ run;
   run;
 %end;
 
-%if "&user"="0" %then %let url=/SASjsApi/group;
-%else %let url=/SASjsApi/user/by/username/&user;
+%if "&user" ne "0" %then %let url=/SASjsApi/user/by/username/&user;
+%else %if "&uid" ne "0" %then %let url=/SASjsApi/user/&uid;
+%else %let url=/SASjsApi/group;
+
 
 proc http method='GET' headerin=&fref0 out=&fref1
   url="&_sasjs_apiserverurl.&url";
@@ -104,7 +112,7 @@ run;
 
 libname &libref JSON fileref=&fref1;
 
-%if "&user"="0" %then %do;
+%if "&user"="0" and "&uid"="0" %then %do;
   data &outds;
     length NAME $32 DESCRIPTION $64. GROUPID 8;
     if _n_=1 then call missing(of _all_);

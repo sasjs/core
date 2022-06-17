@@ -23,18 +23,19 @@
   @author Allan Bowe
 **/
 
-%macro mf_getuser(type=META
+%macro mf_getuser(
 )/*/STORE SOURCE*/;
-  %local user metavar;
-  %if &type=OS %then %let metavar=_secureusername;
-  %else %let metavar=_metaperson;
+  %local user;
 
-  %if %symexist(SYS_COMPUTE_SESSION_OWNER) %then %let user=&SYS_COMPUTE_SESSION_OWNER;
-  %else %if %symexist(&metavar) %then %do;
-    %if %length(&&&metavar)=0 %then %let user=&sysuserid;
+  %if %symexist(_sasjs_username) %then %let user=&_sasjs_username;
+  %else %if %symexist(SYS_COMPUTE_SESSION_OWNER) %then %do;
+    %let user=&SYS_COMPUTE_SESSION_OWNER;
+  %end;
+  %else %if %symexist(_metaperson) %then %do;
+    %if %length(&_metaperson)=0 %then %let user=&sysuserid;
     /* sometimes SAS will add @domain extension - remove for consistency */
     /* but be sure to quote in case of usernames with commas */
-    %else %let user=%unquote(%scan(%quote(&&&metavar),1,@));
+    %else %let user=%unquote(%scan(%quote(&_metaperson),1,@));
   %end;
   %else %let user=&sysuserid;
 

@@ -8,12 +8,17 @@
 
       %ms_getusers(outds=userlist)
 
-  Filtering for a group:
+  Filtering for a group by group name:
 
       %ms_getusers(outds=work.groupmembers, group=GROUPNAME)
 
+  Filtering for a group by group id:
+
+      %ms_getusers(outds=work.groupmembers, gid=1)
+
   @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
   @param [in] group= (0) Set to a group name to filter members for that group
+  @param [in] gid= (0) Set to a group id to filter members for that group
   @param [out] outds= (work.ms_getusers) This output dataset will contain the
     list of user accounts. Format:
 |DISPLAYNAME:$60.|USERNAME:$30.|ID:best.|
@@ -23,7 +28,6 @@
 |`Mihajlo Medjedovic `|`mihajlo `|`3`|
 |`Ivor Townsend `|`ivor `|`4`|
 |`New User `|`newuser `|`5`|
-
 
 
   <h4> SAS Macros </h4>
@@ -41,6 +45,7 @@
 %macro ms_getusers(
   outds=work.ms_getusers,
   group=0,
+  gid=0,
   mdebug=0
 );
 
@@ -75,9 +80,9 @@ run;
   run;
 %end;
 
-%if "&group"="0" %then %let url=/SASjsApi/user;
-%else %let url=/SASjsApi/group/by/groupname/&group;
-
+%if "&group" ne "0" %then %let url=/SASjsApi/group/by/groupname/&group;
+%else %if "&gid" ne "0" %then %let url=/SASjsApi/group/&gid;
+%else %let url=/SASjsApi/user;
 
 proc http method='GET' headerin=&fref0 out=&fref1
   url="&_sasjs_apiserverurl.&url";
@@ -95,7 +100,7 @@ run;
 
 libname &libref JSON fileref=&fref1;
 
-%if "&group"="0" %then %do;
+%if "&group"="0" and "&gid"="0" %then %do;
   data &outds;
     length DISPLAYNAME $60 USERNAME:$30 ID 8;
     set &libref..root;

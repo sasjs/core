@@ -60,6 +60,19 @@
 %let fref1=%mf_getuniquefileref();
 %let libref=%mf_getuniquelibref();
 
+%if %sysget(MODE)=desktop %then %do;
+  /* users api does not exist in desktop mode */
+  data &outds;
+    length DISPLAYNAME $60 USERNAME:$30 ID 8;
+    USERNAME="&sysuserid";
+    DISPLAYNAME="&sysuserid (desktop mode)";
+    ID=1;
+    output;
+    stop;
+  run;
+  %return;
+%end;
+
 /* avoid sending bom marker to API */
 %let optval=%sysfunc(getoption(bomfile));
 options nobomfile;

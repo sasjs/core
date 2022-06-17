@@ -74,7 +74,7 @@
 
   %if %symexist(_SYSINCLUDEFILEDEVICE)
   /* abort cancel FILE does not restart outside the INCLUDE on Viya 3.5 */
-  and %str(&SYSPROCESSNAME) ne %str(Compute Server)
+  and %superq(SYSPROCESSNAME) ne %str(Compute Server)
   %then %do;
     %if "*&_SYSINCLUDEFILEDEVICE*" ne "**" %then %do;
       data &errds;
@@ -92,7 +92,7 @@
 
   /* Web App Context */
   %if %symexist(_PROGRAM)
-    or %str(&SYSPROCESSNAME) = %str(Compute Server)
+    or %superq(SYSPROCESSNAME) = %str(Compute Server)
     or &mode=INCLUDE
   %then %do;
     options obs=max replace mprint;

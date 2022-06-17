@@ -17807,7 +17807,6 @@ libname _XML_ clear;
 )/*/STORE SOURCE*/;
 
 filename response temp;
-
 %if %superq(&user)=0 %then %do;
   proc metadata in= '<GetMetadataObjects>
     <Reposid>$METAREPOSITORY</Reposid>
@@ -17824,20 +17823,24 @@ filename response temp;
   run;
 %end;
 %else %do;
-  proc metadata in= "<GetMetadataObjects>
-    <Reposid>$METAREPOSITORY</Reposid>
-    <Type>Person</Type>
-    <NS>SAS</NS>
-    <!-- Specify the OMI_XMLSELECT (128) flag  -->
-    <Flags>128</Flags>
-    <Options>
-    <Templates>
-    <Person Name=""/>
-    </Templates>
-    <XMLSELECT search=""Person[@Name='&user']""/>
-    </Options>
-    </GetMetadataObjects>"
-    out=response;
+  filename inref temp;
+  data _null_;
+    file inref;
+    put "<GetMetadataObjects>";
+    put "<Reposid>$METAREPOSITORY</Reposid>";
+    put "<Type>Person</Type>";
+    put "<NS>SAS</NS>";
+    put "<!-- Specify the OMI_XMLSELECT (128) flag  -->";
+    put "<Flags>128</Flags>";
+    put "<Options>";
+    put "<Templates>";
+    put "<Person Name=""/>";
+    put "</Templates>";
+    put '<XMLSELECT search="Person[@Name='!!"'&user'"!!']"/>';
+    put "</Options>";
+    put "</GetMetadataObjects>";
+  run;
+  proc metadata in=inref out=response;
   run;
 %end;
 

@@ -8,17 +8,18 @@
 
       %mm_getusers()
 
+  Optionally, filter for a user (useful to get the uri):
+
+      %mm_getusers(user=&_metaperson)
+
   @param outds the dataset to create that contains the list of libraries
 
   @returns outds  dataset containing all users, with the following columns:
     - uri
     - name
 
-  @warning The following filenames are created and then de-assigned:
-
-      filename sxlemap clear;
-      filename response clear;
-      libname _XML_ clear;
+  @param user= (0) Set to a metadata user to filter on that user
+  @param outds= (work.mm_getusers) The output table to create
 
   @version 9.3
   @author Allan Bowe
@@ -26,23 +27,44 @@
 **/
 
 %macro mm_getusers(
-    outds=work.mm_getusers
+    outds=work.mm_getusers,
+    user=0
 )/*/STORE SOURCE*/;
 
 filename response temp;
-proc metadata in= '<GetMetadataObjects>
-  <Reposid>$METAREPOSITORY</Reposid>
-  <Type>Person</Type>
-  <NS>SAS</NS>
-  <Flags>0</Flags>
-  <Options>
-  <Templates>
-  <Person Name=""/>
-  </Templates>
-  </Options>
-  </GetMetadataObjects>'
-  out=response;
-run;
+
+%if %superq(&user)=0 %then %do;
+  proc metadata in= '<GetMetadataObjects>
+    <Reposid>$METAREPOSITORY</Reposid>
+    <Type>Person</Type>
+    <NS>SAS</NS>
+    <Flags>0</Flags>
+    <Options>
+    <Templates>
+    <Person Name=""/>
+    </Templates>
+    </Options>
+    </GetMetadataObjects>'
+    out=response;
+  run;
+%end;
+%else %do;
+  proc metadata in= "<GetMetadataObjects>
+    <Reposid>$METAREPOSITORY</Reposid>
+    <Type>Person</Type>
+    <NS>SAS</NS>
+    <!-- Specify the OMI_XMLSELECT (128) flag  -->
+    <Flags>128</Flags>
+    <Options>
+    <Templates>
+    <Person Name=""/>
+    </Templates>
+    <XMLSELECT search=""Person[@Name='&user']""/>
+    </Options>
+    </GetMetadataObjects>"
+    out=response;
+  run;
+%end;
 
 filename sxlemap temp;
 data _null_;

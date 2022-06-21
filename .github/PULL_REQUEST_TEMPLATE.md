@@ -12,8 +12,6 @@ What code changes have been made to achieve the intent.
 
 ## Checks
 
-- [ ] Code is formatted correctly (`npm run lint`).
+- [ ] Code is formatted correctly (`sasjs lint`).
 - [ ] Any new functionality has been unit tested.
-- [ ] All unit tests are passing (`npm test`).
-- [ ] All CI checks are green.
-- [ ] Reviewer is assigned.
+- [ ] All unit tests are passing (`sasjs test`).

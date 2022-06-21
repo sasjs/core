@@ -67,7 +67,6 @@
     },
     {
       "name": "server",
-      "serverUrl": "https://sas.4gl.io",
       "serverType": "SASJS",
       "httpsAgentOptions": {
         "allowInsecureRequests": false

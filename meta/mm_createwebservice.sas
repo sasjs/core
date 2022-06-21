@@ -296,7 +296,7 @@ data _null_;
   put '      do i=1 to &numcols; ';
   put '        name=quote(trim(symget(cats(''name'',i)))); ';
   put '        format=quote(trim(symget(cats(''fmt'',i)))); ';
-  put '        label=quote(trim(symget(cats(''label'',i)))); ';
+  put '        label=quote(prxchange(''s/\\/\\\\/'',-1,trim(symget(cats(''label'',i))))); ';
   put '        length=quote(trim(symget(cats(''length'',i)))); ';
   put '        type=quote(trim(symget(cats(''typelong'',i)))); ';
   put '        if i>1 then put "," @@; ';

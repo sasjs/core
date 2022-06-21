@@ -263,7 +263,7 @@
       do i=1 to &numcols;
         name=quote(trim(symget(cats('name',i))));
         format=quote(trim(symget(cats('fmt',i))));
-        label=quote(trim(symget(cats('label',i))));
+        label=quote(prxchange('s/\\/\\\\/',-1,trim(symget(cats('label',i)))));
         length=quote(trim(symget(cats('length',i))));
         type=quote(trim(symget(cats('typelong',i))));
         if i>1 then put "," @@;

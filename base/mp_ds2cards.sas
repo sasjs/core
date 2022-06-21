@@ -51,7 +51,7 @@
   @cond
 **/
 
-%macro mp_ds2cards(base_ds=, tgt_ds=
+%macro mp_ds2cards(base_ds, tgt_ds=
     ,cards_file="%sysfunc(pathname(work))/cardgen.sas"
     ,maxobs=max
     ,random_sample=NO
@@ -254,6 +254,7 @@ data _null_;
         ;
       %end;
       put ";";
+      put 'missing a b c d e f g h i j k l m n o p q r s t u v w x y z _;';
       put "datalines4;";
     end;
   end;

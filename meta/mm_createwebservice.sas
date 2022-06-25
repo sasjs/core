@@ -2,7 +2,8 @@
   @file mm_createwebservice.sas
   @brief Create a Web Ready Stored Process
   @details This macro creates a Type 2 Stored Process with the mm_webout macro
-    included as pre-code.
+  (and dependencies) included as pre-code.
+
 Usage:
 
     %* compile macros ;
@@ -494,7 +495,7 @@ run;
   %if &x>1 %then %let mod=mod;
 
   %let fref=%scan(&freflist,&x);
-  %put &sysmacroname: adding &fref;
+  %&mD.put &sysmacroname: adding &fref;
   data _null_;
     file "&work/&tmpfile" lrecl=3000 &mod;
     infile &fref;
@@ -530,12 +531,10 @@ data _null_;
   if rc=0 then call symputx('url',url,'l');
 run;
 
-%put ;%put ;%put ;%put ;%put ;%put ;
 %put &sysmacroname: STP &name successfully created in &path;
-%put ;%put ;%put ;
 %put Check it out here:;
 %put ;%put ;%put ;
 %put &url?_PROGRAM=&path/&name;
-%put ;%put ;%put ;%put ;%put ;%put ;
+%put ;%put ;%put ;
 
 %mend mm_createwebservice;

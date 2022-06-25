@@ -63,18 +63,13 @@
 
   /* copy the file byte-for-byte  */
   data _null_;
-    length filein 8 fileid 8;
-    filein = fopen("&inref",'I',1,'B');
-    fileid = fopen("&outref",&outmode,1,'B');
-    rec = '20'x;
-    do while(fread(filein)=0);
-      rc = fget(filein,rec,1);
-      rc = fput(fileid, rec);
-      rc =fwrite(fileid);
-    end;
-    rc = fclose(filein);
-    rc = fclose(fileid);
+    infile &inref;
+    file &outref;
+    input sourcechar $char1. @@;
+    format sourcechar hex2.;
+    put sourcechar char1. @@;
   run;
+
   %if &inref = ____in %then %do;
     filename &inref clear;
   %end;

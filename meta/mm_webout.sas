@@ -157,6 +157,7 @@
     put ',"_METAPERSON": ' _METAPERSON;
     put ',"_PROGRAM" : ' _PROGRAM ;
     put ",""SYSCC"" : ""&syscc"" ";
+    put ",""SYSENCODING"" : ""&sysencoding"" ";
     syserrortext=quote(cats(symget('SYSERRORTEXT')));
     put ',"SYSERRORTEXT" : ' syserrortext;
     put ",""SYSHOSTNAME"" : ""&syshostname"" ";

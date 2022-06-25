@@ -444,6 +444,7 @@ data _null_;
   put '    put ",""_DEBUG"" : ""&_debug"" "; ';
   put '    put '',"_PROGRAM" : '' _PROGRAM ; ';
   put '    put ",""SYSCC"" : ""&syscc"" "; ';
+  put '    put ",""SYSENCODING"" : ""&sysencoding"" "; ';
   put '    syserrortext=quote(cats(symget(''SYSERRORTEXT''))); ';
   put '    put '',"SYSERRORTEXT" : '' syserrortext; ';
   put '    SYSHOSTINFOLONG=quote(trim(symget(''SYSHOSTINFOLONG''))); ';

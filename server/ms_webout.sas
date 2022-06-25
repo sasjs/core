@@ -153,6 +153,7 @@
     put ",""_DEBUG"" : ""&_debug"" ";
     put ',"_PROGRAM" : ' _PROGRAM ;
     put ",""SYSCC"" : ""&syscc"" ";
+    put ",""SYSENCODING"" : ""&sysencoding"" ";
     syserrortext=quote(cats(symget('SYSERRORTEXT')));
     put ',"SYSERRORTEXT" : ' syserrortext;
     SYSHOSTINFOLONG=quote(trim(symget('SYSHOSTINFOLONG')));

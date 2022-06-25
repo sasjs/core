@@ -452,6 +452,7 @@ data _null_;
   put '    put '',"_METAPERSON": '' _METAPERSON; ';
   put '    put '',"_PROGRAM" : '' _PROGRAM ; ';
   put '    put ",""SYSCC"" : ""&syscc"" "; ';
+  put '    put ",""SYSENCODING"" : ""&sysencoding"" "; ';
   put '    syserrortext=quote(cats(symget(''SYSERRORTEXT''))); ';
   put '    put '',"SYSERRORTEXT" : '' syserrortext; ';
   put '    put ",""SYSHOSTNAME"" : ""&syshostname"" "; ';

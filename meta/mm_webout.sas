@@ -4,23 +4,23 @@
   @details This macro should be added to the start of each Stored Process,
   **immediately** followed by a call to:
 
-        %mm_webout(FETCH)
+      %mm_webout(FETCH)
 
-    This will read all the input data and create same-named SAS datasets in the
-    WORK library.  You can then insert your code, and send data back using the
-    following syntax:
+  This will read all the input data and create same-named SAS datasets in the
+  WORK library.  You can then insert your code, and send data back using the
+  following syntax:
 
-        data some datasets; * make some data ;
-        retain some columns;
-        run;
+      data some datasets; * make some data ;
+      retain some columns;
+      run;
 
-        %mm_webout(OPEN)
-        %mm_webout(ARR,some)  * Array format, fast, suitable for large tables ;
-        %mm_webout(OBJ,datasets) * Object format, easier to work with ;
+      %mm_webout(OPEN)
+      %mm_webout(ARR,some)  * Array format, fast, suitable for large tables ;
+      %mm_webout(OBJ,datasets) * Object format, easier to work with ;
 
-    Finally, wrap everything up send some helpful system variables too
+  Finally, wrap everything up send some helpful system variables too
 
-        %mm_webout(CLOSE)
+      %mm_webout(CLOSE)
 
 
   @param [in] action Either FETCH, OPEN, ARR, OBJ or CLOSE
@@ -34,6 +34,10 @@
     such as the column formats and types.  The metadata is contained inside an
     object with the same name as the table but prefixed with a dollar sign - ie,
     `,"$tablename":{"formats":{"col1":"$CHAR1"},"types":{"COL1":"C"}}`
+
+
+  <h4> SAS Macros </h4>
+  @li mp_jsonout.sas
 
   @version 9.3
   @author Allan Bowe
@@ -111,6 +115,8 @@
   )
 %end;
 %else %if &action=CLOSE %then %do;
+  /* To avoid issues with _webout on EBI we use a temporary file */
+  filename _sjsref temp lrecl=131068;
   %if %str(&_debug) ge 131 %then %do;
     /* if debug mode, send back first 10 records of each work table also */
     options obs=10;
@@ -124,11 +130,11 @@
       i+1;
       call symputx(cats('wt',i),name,'l');
       call symputx('wtcnt',i,'l');
-    data _null_; file &fref mod encoding='utf-8';
+    data _null_; file _sjsref mod encoding='utf-8';
       put ",""WORK"":{";
     %do i=1 %to &wtcnt;
       %let wt=&&wt&i;
-      data _null_; file &fref mod encoding='utf-8';
+      data _null_; file _sjsref mod encoding='utf-8';
         dsid=open("WORK.&wt",'is');
         nlobs=attrn(dsid,'NLOBS');
         nvars=attrn(dsid,'NVARS');
@@ -137,16 +143,16 @@
         put " ""&wt"" : {";
         put '"nlobs":' nlobs;
         put ',"nvars":' nvars;
-      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=YES)
-      data _null_; file &fref mod encoding='utf-8';
+      %mp_jsonout(OBJ,&wt,jref=_sjsref,dslabel=first10rows,showmeta=YES)
+      data _null_; file _sjsref mod encoding='utf-8';
         put "}";
     %end;
-    data _null_; file &fref mod encoding='utf-8';
+    data _null_; file _sjsref mod encoding='utf-8';
       put "}";
     run;
   %end;
   /* close off json */
-  data _null_;file &fref mod encoding='utf-8';
+  data _null_;file _sjsref mod encoding='utf-8';
     _PROGRAM=quote(trim(resolve(symget('_PROGRAM'))));
     put ",""SYSUSERID"" : ""&sysuserid"" ";
     put ",""MF_GETUSER"" : ""%mf_getuser()"" ";
@@ -178,6 +184,16 @@
     put '>>weboutEND<<';
   %end;
   run;
+  /* now write to _webout 1 char at a time */
+  data _null_;
+    infile _sjsref lrecl=1 recfm=n;
+    file &fref mod lrecl=1 recfm=n;
+    input sourcechar $char1. @@;
+    format sourcechar hex2.;
+    put sourcechar char1. @@;
+  run;
+  filename _sjsref clear;
+
 %end;
 
 %mend mm_webout;

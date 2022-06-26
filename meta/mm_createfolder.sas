@@ -17,7 +17,7 @@
       %mm_createfolder(path=/some/meta/folder)
 
   @param [in] path= Name of the folder to create.
-  @param [in] mdebug= set DBG to 1 to disable DEBUG messages
+  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
 
 
   @version 9.4

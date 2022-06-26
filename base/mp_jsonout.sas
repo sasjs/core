@@ -234,22 +234,18 @@
         "&&name&i"n /* name literal for reserved variable names */
       %end;
       %if &action=ARR %then "]" ; %else "}" ; ;
-    /* now write the long strings to _webout 1 byte at a time */
+    /* now write the long strings to _webout 1 char at a time */
     data _null_;
-      length filein 8 fileid 8;
-      filein=fopen("_sjs",'I',1,'B');
-      fileid=fopen("&jref",'A',1,'B');
-      rec='20'x;
-      do while(fread(filein)=0);
-        rc=fget(filein,rec,1);
-        rc=fput(fileid, rec);
-        rc=fwrite(fileid);
-      end;
-      /* close out the table */
-      rc=fput(fileid, "]");
-      rc=fwrite(fileid);
-      rc=fclose(filein);
-      rc=fclose(fileid);
+      infile _sjs lrecl=1 recfm=n;
+      file &jref mod lrecl=1 recfm=n;
+      input sourcechar $char1. @@;
+      format sourcechar hex2.;
+      put sourcechar char1. @@;
+    run;
+    /* close out the table */
+    data _null_;
+      file &jref mod;
+      put ']';
     run;
     filename _sjs clear;
   %end;

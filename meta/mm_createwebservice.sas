@@ -2,7 +2,8 @@
   @file mm_createwebservice.sas
   @brief Create a Web Ready Stored Process
   @details This macro creates a Type 2 Stored Process with the mm_webout macro
-    included as pre-code.
+  (and dependencies) included as pre-code.
+
 Usage:
 
     %* compile macros ;
@@ -267,22 +268,18 @@ data _null_;
   put '        "&&name&i"n /* name literal for reserved variable names */ ';
   put '      %end; ';
   put '      %if &action=ARR %then "]" ; %else "}" ; ; ';
-  put '    /* now write the long strings to _webout 1 byte at a time */ ';
+  put '    /* now write the long strings to _webout 1 char at a time */ ';
   put '    data _null_; ';
-  put '      length filein 8 fileid 8; ';
-  put '      filein=fopen("_sjs",''I'',1,''B''); ';
-  put '      fileid=fopen("&jref",''A'',1,''B''); ';
-  put '      rec=''20''x; ';
-  put '      do while(fread(filein)=0); ';
-  put '        rc=fget(filein,rec,1); ';
-  put '        rc=fput(fileid, rec); ';
-  put '        rc=fwrite(fileid); ';
-  put '      end; ';
-  put '      /* close out the table */ ';
-  put '      rc=fput(fileid, "]"); ';
-  put '      rc=fwrite(fileid); ';
-  put '      rc=fclose(filein); ';
-  put '      rc=fclose(fileid); ';
+  put '      infile _sjs lrecl=1 recfm=n; ';
+  put '      file &jref mod lrecl=1 recfm=n; ';
+  put '      input sourcechar $char1. @@; ';
+  put '      format sourcechar hex2.; ';
+  put '      put sourcechar char1. @@; ';
+  put '    run; ';
+  put '    /* close out the table */ ';
+  put '    data _null_; ';
+  put '      file &jref mod; ';
+  put '      put '']''; ';
   put '    run; ';
   put '    filename _sjs clear; ';
   put '  %end; ';
@@ -494,7 +491,7 @@ run;
   %if &x>1 %then %let mod=mod;
 
   %let fref=%scan(&freflist,&x);
-  %put &sysmacroname: adding &fref;
+  %&mD.put &sysmacroname: adding &fref;
   data _null_;
     file "&work/&tmpfile" lrecl=3000 &mod;
     infile &fref;
@@ -530,12 +527,10 @@ data _null_;
   if rc=0 then call symputx('url',url,'l');
 run;
 
-%put ;%put ;%put ;%put ;%put ;%put ;
 %put &sysmacroname: STP &name successfully created in &path;
-%put ;%put ;%put ;
 %put Check it out here:;
 %put ;%put ;%put ;
 %put &url?_PROGRAM=&path/&name;
-%put ;%put ;%put ;%put ;%put ;%put ;
+%put ;%put ;%put ;
 
 %mend mm_createwebservice;

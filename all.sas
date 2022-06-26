@@ -3470,8 +3470,8 @@ run;
   @details Reads in a file byte by byte and writes it back out.  Is an
   os-independent method to copy files.  In case of naming collision, the
   default filerefs can be modified.
-  Based on:
-  https://stackoverflow.com/questions/13046116/using-sas-to-copy-a-text-file
+  Note that if you have a new enough version of SAS, and you don't need features
+  such as APPEND, you may be better of using the fcopy() function instead.
 
         %mp_binarycopy(inloc="/home/me/blah.txt", outref=_webout)
 
@@ -3511,14 +3511,9 @@ run;
     ,outref=____out /* override default to use own filerefs */
     ,mode=CREATE
 )/*/STORE SOURCE*/;
-  %local mod outmode;
-  %if &mode=APPEND %then %do;
-    %let mod=mod;
-    %let outmode='a';
-  %end;
-  %else %do;
-    %let outmode='o';
-  %end;
+  %local mod;
+  %if &mode=APPEND %then %let mod=mod;
+
   /* these IN and OUT filerefs can point to anything */
   %if &inref = ____in %then %do;
     filename &inref &inloc lrecl=1048576 ;
@@ -3529,25 +3524,21 @@ run;
 
   /* copy the file byte-for-byte  */
   data _null_;
-    length filein 8 fileid 8;
-    filein = fopen("&inref",'I',1,'B');
-    fileid = fopen("&outref",&outmode,1,'B');
-    rec = '20'x;
-    do while(fread(filein)=0);
-      rc = fget(filein,rec,1);
-      rc = fput(fileid, rec);
-      rc =fwrite(fileid);
-    end;
-    rc = fclose(filein);
-    rc = fclose(fileid);
+    infile &inref lrecl=1 recfm=n;
+    file &outref &mod recfm=n;
+    input sourcechar $char1. @@;
+    format sourcechar hex2.;
+    put sourcechar char1. @@;
   run;
+
   %if &inref = ____in %then %do;
     filename &inref clear;
   %end;
   %if &outref=____out %then %do;
     filename &outref clear;
   %end;
-%mend mp_binarycopy;/**
+%mend mp_binarycopy;
+/**
   @file
   @brief Splits a file of ANY SIZE by reference to a search string.
   @details Provide a fileref and a search string to chop off part of a file.
@@ -8817,22 +8808,18 @@ options
         "&&name&i"n /* name literal for reserved variable names */
       %end;
       %if &action=ARR %then "]" ; %else "}" ; ;
-    /* now write the long strings to _webout 1 byte at a time */
+    /* now write the long strings to _webout 1 char at a time */
     data _null_;
-      length filein 8 fileid 8;
-      filein=fopen("_sjs",'I',1,'B');
-      fileid=fopen("&jref",'A',1,'B');
-      rec='20'x;
-      do while(fread(filein)=0);
-        rc=fget(filein,rec,1);
-        rc=fput(fileid, rec);
-        rc=fwrite(fileid);
-      end;
-      /* close out the table */
-      rc=fput(fileid, "]");
-      rc=fwrite(fileid);
-      rc=fclose(filein);
-      rc=fclose(fileid);
+      infile _sjs lrecl=1 recfm=n;
+      file &jref mod lrecl=1 recfm=n;
+      input sourcechar $char1. @@;
+      format sourcechar hex2.;
+      put sourcechar char1. @@;
+    run;
+    /* close out the table */
+    data _null_;
+      file &jref mod;
+      put ']';
     run;
     filename _sjs clear;
   %end;
@@ -14066,7 +14053,7 @@ run;
       %mm_createfolder(path=/some/meta/folder)
 
   @param [in] path= Name of the folder to create.
-  @param [in] mdebug= set DBG to 1 to disable DEBUG messages
+  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
 
 
   @version 9.4
@@ -14932,7 +14919,8 @@ run;
   @file mm_createwebservice.sas
   @brief Create a Web Ready Stored Process
   @details This macro creates a Type 2 Stored Process with the mm_webout macro
-    included as pre-code.
+  (and dependencies) included as pre-code.
+
 Usage:
 
     %* compile macros ;
@@ -15197,22 +15185,18 @@ data _null_;
   put '        "&&name&i"n /* name literal for reserved variable names */ ';
   put '      %end; ';
   put '      %if &action=ARR %then "]" ; %else "}" ; ; ';
-  put '    /* now write the long strings to _webout 1 byte at a time */ ';
+  put '    /* now write the long strings to _webout 1 char at a time */ ';
   put '    data _null_; ';
-  put '      length filein 8 fileid 8; ';
-  put '      filein=fopen("_sjs",''I'',1,''B''); ';
-  put '      fileid=fopen("&jref",''A'',1,''B''); ';
-  put '      rec=''20''x; ';
-  put '      do while(fread(filein)=0); ';
-  put '        rc=fget(filein,rec,1); ';
-  put '        rc=fput(fileid, rec); ';
-  put '        rc=fwrite(fileid); ';
-  put '      end; ';
-  put '      /* close out the table */ ';
-  put '      rc=fput(fileid, "]"); ';
-  put '      rc=fwrite(fileid); ';
-  put '      rc=fclose(filein); ';
-  put '      rc=fclose(fileid); ';
+  put '      infile _sjs lrecl=1 recfm=n; ';
+  put '      file &jref mod lrecl=1 recfm=n; ';
+  put '      input sourcechar $char1. @@; ';
+  put '      format sourcechar hex2.; ';
+  put '      put sourcechar char1. @@; ';
+  put '    run; ';
+  put '    /* close out the table */ ';
+  put '    data _null_; ';
+  put '      file &jref mod; ';
+  put '      put '']''; ';
   put '    run; ';
   put '    filename _sjs clear; ';
   put '  %end; ';
@@ -15424,7 +15408,7 @@ run;
   %if &x>1 %then %let mod=mod;
 
   %let fref=%scan(&freflist,&x);
-  %put &sysmacroname: adding &fref;
+  %&mD.put &sysmacroname: adding &fref;
   data _null_;
     file "&work/&tmpfile" lrecl=3000 &mod;
     infile &fref;
@@ -15460,13 +15444,11 @@ data _null_;
   if rc=0 then call symputx('url',url,'l');
 run;
 
-%put ;%put ;%put ;%put ;%put ;%put ;
 %put &sysmacroname: STP &name successfully created in &path;
-%put ;%put ;%put ;
 %put Check it out here:;
 %put ;%put ;%put ;
 %put &url?_PROGRAM=&path/&name;
-%put ;%put ;%put ;%put ;%put ;%put ;
+%put ;%put ;%put ;
 
 %mend mm_createwebservice;
 /**
@@ -19936,22 +19918,18 @@ data _null_;
   put '        "&&name&i"n /* name literal for reserved variable names */ ';
   put '      %end; ';
   put '      %if &action=ARR %then "]" ; %else "}" ; ; ';
-  put '    /* now write the long strings to _webout 1 byte at a time */ ';
+  put '    /* now write the long strings to _webout 1 char at a time */ ';
   put '    data _null_; ';
-  put '      length filein 8 fileid 8; ';
-  put '      filein=fopen("_sjs",''I'',1,''B''); ';
-  put '      fileid=fopen("&jref",''A'',1,''B''); ';
-  put '      rec=''20''x; ';
-  put '      do while(fread(filein)=0); ';
-  put '        rc=fget(filein,rec,1); ';
-  put '        rc=fput(fileid, rec); ';
-  put '        rc=fwrite(fileid); ';
-  put '      end; ';
-  put '      /* close out the table */ ';
-  put '      rc=fput(fileid, "]"); ';
-  put '      rc=fwrite(fileid); ';
-  put '      rc=fclose(filein); ';
-  put '      rc=fclose(fileid); ';
+  put '      infile _sjs lrecl=1 recfm=n; ';
+  put '      file &jref mod lrecl=1 recfm=n; ';
+  put '      input sourcechar $char1. @@; ';
+  put '      format sourcechar hex2.; ';
+  put '      put sourcechar char1. @@; ';
+  put '    run; ';
+  put '    /* close out the table */ ';
+  put '    data _null_; ';
+  put '      file &jref mod; ';
+  put '      put '']''; ';
   put '    run; ';
   put '    filename _sjs clear; ';
   put '  %end; ';
@@ -22281,22 +22259,18 @@ data _null_;
   put '        "&&name&i"n /* name literal for reserved variable names */ ';
   put '      %end; ';
   put '      %if &action=ARR %then "]" ; %else "}" ; ; ';
-  put '    /* now write the long strings to _webout 1 byte at a time */ ';
+  put '    /* now write the long strings to _webout 1 char at a time */ ';
   put '    data _null_; ';
-  put '      length filein 8 fileid 8; ';
-  put '      filein=fopen("_sjs",''I'',1,''B''); ';
-  put '      fileid=fopen("&jref",''A'',1,''B''); ';
-  put '      rec=''20''x; ';
-  put '      do while(fread(filein)=0); ';
-  put '        rc=fget(filein,rec,1); ';
-  put '        rc=fput(fileid, rec); ';
-  put '        rc=fwrite(fileid); ';
-  put '      end; ';
-  put '      /* close out the table */ ';
-  put '      rc=fput(fileid, "]"); ';
-  put '      rc=fwrite(fileid); ';
-  put '      rc=fclose(filein); ';
-  put '      rc=fclose(fileid); ';
+  put '      infile _sjs lrecl=1 recfm=n; ';
+  put '      file &jref mod lrecl=1 recfm=n; ';
+  put '      input sourcechar $char1. @@; ';
+  put '      format sourcechar hex2.; ';
+  put '      put sourcechar char1. @@; ';
+  put '    run; ';
+  put '    /* close out the table */ ';
+  put '    data _null_; ';
+  put '      file &jref mod; ';
+  put '      put '']''; ';
   put '    run; ';
   put '    filename _sjs clear; ';
   put '  %end; ';

@@ -1,7 +1,12 @@
 /**
   @file mp_jsonout.sas
   @brief Writes JSON in SASjs format to a fileref
-  @details PROC JSON is faster but will produce errs like the ones below if
+  @details This macro can be used to OPEN a JSON stream and send one or more
+  tables as arrays of rows, where each row can be an object or a nested array.
+
+  There are two engines available - DATASTEP or PROCJSON.
+
+  PROC JSON is fast but will produce errs like the ones below if
   special chars are encountered.
 
   > (ERR)OR: Some code points did not transcode.
@@ -11,6 +16,10 @@
   > Date value out of range
 
   If this happens, try running with ENGINE=DATASTEP.
+
+  The DATASTEP engine is used to handle special SAS missing numerics, and
+  can also convert entire datasets to formatted values.  Output JSON is always
+  in UTF-8.
 
   Usage:
 
@@ -75,9 +84,23 @@
   run;
 %end;
 %else %if (&action=ARR or &action=OBJ) %then %do;
+  /* force variable names to always be uppercase in the JSON */
   options validvarname=upcase;
-  data _null_; file &jref encoding='utf-8' mod;
+  /* To avoid issues with _webout on EBI - such as encoding diffs and truncation
+    (https://support.sas.com/kb/49/325.html) we use temporary files */
+  filename _sjs1 temp lrecl=200 ;
+  data _null_; file _sjs1 encoding='utf-8';
     put ", ""%lowcase(%sysfunc(coalescec(&dslabel,&ds)))"":";
+  run;
+  /* now write to _webout 1 char at a time */
+  data _null_;
+    infile _sjs1 lrecl=1 recfm=n;
+    file &jref mod lrecl=1 recfm=n;
+    input sourcechar $char1. @@;
+    format sourcechar hex2.;
+    put sourcechar char1. @@;
+  run;
+  filename _sjs1 clear;
 
   /* grab col defs */
   proc contents noprint data=&ds
@@ -134,10 +157,20 @@
     data &tempds;set &ds;
     %if &fmt=N %then format _numeric_ best32.;;
     /* PRETTY is necessary to avoid line truncation in large files */
-    proc json out=&jref pretty
+    filename _sjs2 temp lrecl=131068 encoding='utf-8';
+    proc json out=_sjs2 pretty
         %if &action=ARR %then nokeys ;
         ;export &tempds / nosastags fmtnumeric;
     run;
+    /* send back to webout */
+    data _null_;
+      infile _sjs2 lrecl=1 recfm=n;
+      file &jref mod lrecl=1 recfm=n;
+      input sourcechar $char1. @@;
+      format sourcechar hex2.;
+      put sourcechar char1. @@;
+    run;
+    filename _sjs2 clear;
   %end;
   %else %if &engine=DATASTEP %then %do;
     %datastep:
@@ -220,10 +253,9 @@
     %end;
     run;
 
-    /* write to temp loc to avoid _webout truncation
-      - https://support.sas.com/kb/49/325.html */
-    filename _sjs temp lrecl=131068 encoding='utf-8';
-    data _null_; file _sjs lrecl=131068 encoding='utf-8' mod ;
+    filename _sjs3 temp lrecl=131068 ;
+    data _null_;
+      file _sjs3 encoding='utf-8';
       if _n_=1 then put "[";
       set &tempds;
       if _n_>1 then put "," @; put
@@ -234,27 +266,29 @@
         "&&name&i"n /* name literal for reserved variable names */
       %end;
       %if &action=ARR %then "]" ; %else "}" ; ;
-    /* now write the long strings to _webout 1 char at a time */
+
+    /* close out the table */
     data _null_;
-      infile _sjs lrecl=1 recfm=n;
+      file _sjs3 mod encoding='utf-8';
+      put ']';
+    run;
+    data _null_;
+      infile _sjs3 lrecl=1 recfm=n;
       file &jref mod lrecl=1 recfm=n;
       input sourcechar $char1. @@;
       format sourcechar hex2.;
       put sourcechar char1. @@;
     run;
-    /* close out the table */
-    data _null_;
-      file &jref mod;
-      put ']';
-    run;
-    filename _sjs clear;
+    filename _sjs3 clear;
   %end;
 
   proc sql;
   drop table &colinfo, &tempds;
 
   %if &showmeta=YES %then %do;
-    data _null_; file &jref encoding='utf-8' mod;
+    filename _sjs4 temp lrecl=131068 encoding='utf-8';
+    data _null_;
+      file _sjs4;
       put ", ""$%lowcase(%sysfunc(coalescec(&dslabel,&ds)))"":{""vars"":{";
       do i=1 to &numcols;
         name=quote(trim(symget(cats('name',i))));
@@ -268,6 +302,15 @@
       end;
       put '}}';
     run;
+    /* send back to webout */
+    data _null_;
+      infile _sjs4 lrecl=1 recfm=n;
+      file &jref mod lrecl=1 recfm=n;
+      input sourcechar $char1. @@;
+      format sourcechar hex2.;
+      put sourcechar char1. @@;
+    run;
+    filename _sjs4 clear;
   %end;
 %end;
 

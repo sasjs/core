@@ -67,6 +67,7 @@
     },
     {
       "name": "server",
+      "serverUrl": "",
       "serverType": "SASJS",
       "httpsAgentOptions": {
         "allowInsecureRequests": false

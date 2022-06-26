@@ -5,6 +5,7 @@
   <h4> SAS Macros </h4>
   @li mp_binarycopy.sas
   @li mp_assert.sas
+  @li mp_hashdataset.sas
 
 **/
 
@@ -95,5 +96,41 @@ run;
 %mp_assert(
   iftrue=("&string4"="&string4_check"),
   desc=Append Check (ref to file),
+  outds=work.test_results
+)
+
+/* test 5 - ensure copy works for binary characters */
+/* do this backwards to avoid null chars in JSON preview */
+data work.test5;
+do i=255 to 1 by -1;
+  str=byte(i);
+  output;
+end;
+run;
+/* get an md5 hash of the ds */
+%mp_hashdataset(work.test5,outds=myhash)
+
+/* copy it */
+%mp_binarycopy(inloc="%sysfunc(pathname(work))/test5.sas7bdat",
+  outloc="%sysfunc(pathname(work))/test5copy.sas7bdat"
+)
+
+/* get an md5 hash of the copied ds */
+%mp_hashdataset(work.test5copy,outds=myhash2)
+
+/* compare hashes */
+%let test5a=0;
+%let test5b=1;
+data _null_;
+  set myhash;
+  call symputx('test5a',hashkey);
+run;
+data _null_;
+  set myhash2;
+  call symputx('test5b',hashkey);
+run;
+%mp_assert(
+  iftrue=("&test5a"="&test5b"),
+  desc=Ensuring binary copy works on binary characters,
   outds=work.test_results
 )

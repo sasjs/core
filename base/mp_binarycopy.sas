@@ -4,8 +4,8 @@
   @details Reads in a file byte by byte and writes it back out.  Is an
   os-independent method to copy files.  In case of naming collision, the
   default filerefs can be modified.
-  Based on:
-  https://stackoverflow.com/questions/13046116/using-sas-to-copy-a-text-file
+  Note that if you have a new enough version of SAS, and you don't need features
+  such as APPEND, you may be better of using the fcopy() function instead.
 
         %mp_binarycopy(inloc="/home/me/blah.txt", outref=_webout)
 
@@ -45,14 +45,9 @@
     ,outref=____out /* override default to use own filerefs */
     ,mode=CREATE
 )/*/STORE SOURCE*/;
-  %local mod outmode;
-  %if &mode=APPEND %then %do;
-    %let mod=mod;
-    %let outmode='a';
-  %end;
-  %else %do;
-    %let outmode='o';
-  %end;
+  %local mod;
+  %if &mode=APPEND %then %let mod=mod;
+
   /* these IN and OUT filerefs can point to anything */
   %if &inref = ____in %then %do;
     filename &inref &inloc lrecl=1048576 ;
@@ -63,8 +58,8 @@
 
   /* copy the file byte-for-byte  */
   data _null_;
-    infile &inref;
-    file &outref;
+    infile &inref lrecl=1 recfm=n;
+    file &outref &mod recfm=n;
     input sourcechar $char1. @@;
     format sourcechar hex2.;
     put sourcechar char1. @@;

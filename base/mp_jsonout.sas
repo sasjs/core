@@ -234,10 +234,10 @@
         "&&name&i"n /* name literal for reserved variable names */
       %end;
       %if &action=ARR %then "]" ; %else "}" ; ;
-    /* now write the long strings to _webout 1 byte at a time */
+    /* now write the long strings to _webout 1 char at a time */
     data _null_;
-      infile _sjs;
-      file &jref mod;
+      infile _sjs lrecl=1 recfm=n;
+      file &jref mod lrecl=1 recfm=n;
       input sourcechar $char1. @@;
       format sourcechar hex2.;
       put sourcechar char1. @@;

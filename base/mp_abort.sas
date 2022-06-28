@@ -8,8 +8,10 @@
 
   The method used varies according to the context.  Important points:
 
-  @li should not use endsas or abort cancel in 9.4m3 environments as this can
-    cause hung multibridge sessions and result in a frozen STP server
+  @li should not use endsas or abort cancel in 9.4m3 WIN environments as this
+    can cause hung multibridge sessions and result in a frozen STP server
+  @li The use of endsas in 9.4m6+ windows environments for POST requests to the
+    STP server can result in an empty response body
   @li should not use endsas in viya 3.5 as this destroys the session and cannot
     fetch results (although both mv_getjoblog.sas and the @sasjs/adapter will
     recognise this and fetch the log of the parent session instead)
@@ -21,8 +23,8 @@
     a macro.  For that, we recommend you use mp_include.sas to perform the
     include, and then call \%mp_abort(mode=INCLUDE) from the source program (ie,
     OUTSIDE of the top-parent macro).
-    The soft abort has also been found to be ineffective in 9.4m6 windows
-    environments and above, so in these cases, endsas is used.
+    The soft abort has become ineffective in 9.4m6 WINDOWS environments.  We are
+    currently investigating approaches to deal with this.
 
 
   @param mac= (mp_abort.sas) To contain the name of the calling macro. Do not
@@ -247,6 +249,7 @@ and %superq(SYSPROCESSNAME) ne %str(Compute Server)
       call symputx("syscc",0,"g");
     run;
     %if &sysscp=WIN
+    and 1=0 /* deprecating this logic until we figure out a consistent abort */
     and "%substr(%str(&sysvlong         ),1,8)"="9.04.01M"
     and "%substr(%str(&sysvlong         ),9,1)">"5" %then %do;
       /* skip approach (below) does not work in windows m6+ envs */

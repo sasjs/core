@@ -17304,7 +17304,7 @@ data _null_;
     cnt=1;
     do while (metadata_getnasn(uri,"Notes",cnt,tsuri)>0);
       rc=metadata_getattr(tsuri,"Name",value);
-      put tsuri= value=;
+      &mD.put tsuri= value=;
       if value="SourceCode" then do;
         /* found it! */
         rc=metadata_getattr(tsuri,"Id",value);
@@ -18760,7 +18760,9 @@ data _null_;
     cnt=1;
     do while (metadata_getnasn(uri,"Notes",cnt,tsuri)>0);
       rc=metadata_getattr(tsuri,"Name",value);
+    %if &mdebug=1 %then %do;
       put tsuri= value=;
+    %end;
       if value="SourceCode" then do;
         /* found it! */
         rc=metadata_getattr(tsuri,"Id",value);
@@ -18843,7 +18845,8 @@ run;
   filename &frefout clear;
 %end;
 
-%mend mm_updatestpsourcecode;/**
+%mend mm_updatestpsourcecode;
+/**
   @file mm_webout.sas
   @brief Send data to/from SAS Stored Processes
   @details This macro should be added to the start of each Stored Process,

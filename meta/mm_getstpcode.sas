@@ -58,7 +58,7 @@ data _null_;
     cnt=1;
     do while (metadata_getnasn(uri,"Notes",cnt,tsuri)>0);
       rc=metadata_getattr(tsuri,"Name",value);
-      put tsuri= value=;
+      &mD.put tsuri= value=;
       if value="SourceCode" then do;
         /* found it! */
         rc=metadata_getattr(tsuri,"Id",value);

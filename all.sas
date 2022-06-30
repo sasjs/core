@@ -22612,8 +22612,7 @@ data _null_;
   put ' ';
   put '  /* setup temp ref */ ';
   put '  %if %upcase(&fref) ne _WEBOUT %then %do; ';
-  put '    filename &fref temp lrecl=999999 permission=''A::u::rwx,A::g::rw-,A::o::---'' ';
-  put '      mod; ';
+  put '    filename &fref temp lrecl=999999 permission=''A::u::rwx,A::g::rw-,A::o::---''; ';
   put '  %end; ';
   put ' ';
   put '  /* setup json */ ';
@@ -26401,8 +26400,7 @@ filename &fref1 clear;
 
   /* setup temp ref */
   %if %upcase(&fref) ne _WEBOUT %then %do;
-    filename &fref temp lrecl=999999 permission='A::u::rwx,A::g::rw-,A::o::---'
-      mod;
+    filename &fref temp lrecl=999999 permission='A::u::rwx,A::g::rw-,A::o::---';
   %end;
 
   /* setup json */

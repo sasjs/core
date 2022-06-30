@@ -135,8 +135,7 @@
 
   /* setup temp ref */
   %if %upcase(&fref) ne _WEBOUT %then %do;
-    filename &fref temp lrecl=999999 permission='A::u::rwx,A::g::rw-,A::o::---'
-      mod;
+    filename &fref temp lrecl=999999 permission='A::u::rwx,A::g::rw-,A::o::---';
   %end;
 
   /* setup json */

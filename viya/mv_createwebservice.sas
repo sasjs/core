@@ -245,7 +245,7 @@ data _null_;
   put ')/*/STORE SOURCE*/; ';
   put '%local tempds colinfo fmtds i numcols stmt_obs; ';
   put '%let numcols=0; ';
-  put '%if maxobs ne MAX %then %let stmt_obs=%str(if _n_>&maxobs then stop;); ';
+  put '%if &maxobs ne MAX %then %let stmt_obs=%str(if _n_>&maxobs then stop;); ';
   put ' ';
   put '%if &action=OPEN %then %do; ';
   put '  options nobomfile; ';

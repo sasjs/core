@@ -79,7 +79,7 @@
 )/*/STORE SOURCE*/;
 %local tempds colinfo fmtds i numcols stmt_obs;
 %let numcols=0;
-%if maxobs ne MAX %then %let stmt_obs=%str(if _n_>&maxobs then stop;);
+%if &maxobs ne MAX %then %let stmt_obs=%str(if _n_>&maxobs then stop;);
 
 %if &action=OPEN %then %do;
   options nobomfile;

@@ -28,7 +28,7 @@
 
         %mp_jsonout(OPEN,jref=tmp)
         %mp_jsonout(OBJ,class,jref=tmp)
-        %mp_jsonout(OBJ,class,dslabel=class2,jref=tmp,showmeta=YES)
+        %mp_jsonout(OBJ,class,dslabel=class2,jref=tmp,showmeta=Y)
         %mp_jsonout(CLOSE,jref=tmp)
 
         data _null_;
@@ -55,10 +55,12 @@
     @li DATASTEP (more reliable when data has non standard characters)
   @param [in] missing= (NULL) Special numeric missing values can be sent as NULL
     (eg `null`) or as STRING values (eg `".a"` or `".b"`)
-  @param [in] showmeta= (NO) Set to YES to output metadata alongside each table,
+  @param [in] showmeta= (N) Set to Y to output metadata alongside each table,
     such as the column formats and types.  The metadata is contained inside an
     object with the same name as the table but prefixed with a dollar sign - ie,
     `,"$tablename":{"formats":{"col1":"$CHAR1"},"types":{"COL1":"C"}}`
+  @param [in] maxobs= (MAX) Provide an integer to limit the number of input rows
+    that should be converted to JSON
 
   <h4> Related Macros <h4>
   @li mp_ds2fmtds.sas
@@ -72,10 +74,12 @@
 %macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y
   ,engine=DATASTEP
   ,missing=NULL
-  ,showmeta=NO
+  ,showmeta=N
+  ,maxobs=MAX
 )/*/STORE SOURCE*/;
-%local tempds colinfo fmtds i numcols;
+%local tempds colinfo fmtds i numcols stmt_obs;
 %let numcols=0;
+%if maxobs ne MAX %then %let stmt_obs=%str(if _n_>&maxobs then stop;);
 
 %if &action=OPEN %then %do;
   options nobomfile;
@@ -154,7 +158,9 @@
       %put &sysmacroname: Switching to DATASTEP engine;
       %goto datastep;
     %end;
-    data &tempds;set &ds;
+    data &tempds;
+      set &ds;
+      &stmt_obs;
     %if &fmt=N %then format _numeric_ best32.;;
     /* PRETTY is necessary to avoid line truncation in large files */
     filename _sjs2 temp lrecl=131068 encoding='utf-8';
@@ -229,6 +235,7 @@
       %else %do;
         set &ds;
       %end;
+      &stmt_obs;
       format _numeric_ bart.;
     %do i=1 %to &numcols;
       %if &&typelong&i=char or &fmt=Y %then %do;
@@ -285,7 +292,7 @@
   proc sql;
   drop table &colinfo, &tempds;
 
-  %if &showmeta=YES %then %do;
+  %if %substr(&showmeta,1,1)=Y %then %do;
     filename _sjs4 temp lrecl=131068 encoding='utf-8';
     data _null_;
       file _sjs4;

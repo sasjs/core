@@ -8605,7 +8605,7 @@ options
 
         %mp_jsonout(OPEN,jref=tmp)
         %mp_jsonout(OBJ,class,jref=tmp)
-        %mp_jsonout(OBJ,class,dslabel=class2,jref=tmp,showmeta=YES)
+        %mp_jsonout(OBJ,class,dslabel=class2,jref=tmp,showmeta=Y)
         %mp_jsonout(CLOSE,jref=tmp)
 
         data _null_;
@@ -8632,10 +8632,12 @@ options
     @li DATASTEP (more reliable when data has non standard characters)
   @param [in] missing= (NULL) Special numeric missing values can be sent as NULL
     (eg `null`) or as STRING values (eg `".a"` or `".b"`)
-  @param [in] showmeta= (NO) Set to YES to output metadata alongside each table,
+  @param [in] showmeta= (N) Set to Y to output metadata alongside each table,
     such as the column formats and types.  The metadata is contained inside an
     object with the same name as the table but prefixed with a dollar sign - ie,
     `,"$tablename":{"formats":{"col1":"$CHAR1"},"types":{"COL1":"C"}}`
+  @param [in] maxobs= (MAX) Provide an integer to limit the number of input rows
+    that should be converted to JSON
 
   <h4> Related Macros <h4>
   @li mp_ds2fmtds.sas
@@ -8649,10 +8651,12 @@ options
 %macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y
   ,engine=DATASTEP
   ,missing=NULL
-  ,showmeta=NO
+  ,showmeta=N
+  ,maxobs=MAX
 )/*/STORE SOURCE*/;
-%local tempds colinfo fmtds i numcols;
+%local tempds colinfo fmtds i numcols stmt_obs;
 %let numcols=0;
+%if maxobs ne MAX %then %let stmt_obs=%str(if _n_>&maxobs then stop;);
 
 %if &action=OPEN %then %do;
   options nobomfile;
@@ -8731,7 +8735,9 @@ options
       %put &sysmacroname: Switching to DATASTEP engine;
       %goto datastep;
     %end;
-    data &tempds;set &ds;
+    data &tempds;
+      set &ds;
+      &stmt_obs;
     %if &fmt=N %then format _numeric_ best32.;;
     /* PRETTY is necessary to avoid line truncation in large files */
     filename _sjs2 temp lrecl=131068 encoding='utf-8';
@@ -8806,6 +8812,7 @@ options
       %else %do;
         set &ds;
       %end;
+      &stmt_obs;
       format _numeric_ bart.;
     %do i=1 %to &numcols;
       %if &&typelong&i=char or &fmt=Y %then %do;
@@ -8862,7 +8869,7 @@ options
   proc sql;
   drop table &colinfo, &tempds;
 
-  %if &showmeta=YES %then %do;
+  %if %substr(&showmeta,1,1)=Y %then %do;
     filename _sjs4 temp lrecl=131068 encoding='utf-8';
     data _null_;
       file _sjs4;
@@ -15060,10 +15067,12 @@ data _null_;
   put '%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y ';
   put '  ,engine=DATASTEP ';
   put '  ,missing=NULL ';
-  put '  ,showmeta=NO ';
+  put '  ,showmeta=N ';
+  put '  ,maxobs=MAX ';
   put ')/*/STORE SOURCE*/; ';
-  put '%local tempds colinfo fmtds i numcols; ';
+  put '%local tempds colinfo fmtds i numcols stmt_obs; ';
   put '%let numcols=0; ';
+  put '%if maxobs ne MAX %then %let stmt_obs=%str(if _n_>&maxobs then stop;); ';
   put ' ';
   put '%if &action=OPEN %then %do; ';
   put '  options nobomfile; ';
@@ -15142,7 +15151,9 @@ data _null_;
   put '      %put &sysmacroname: Switching to DATASTEP engine; ';
   put '      %goto datastep; ';
   put '    %end; ';
-  put '    data &tempds;set &ds; ';
+  put '    data &tempds; ';
+  put '      set &ds; ';
+  put '      &stmt_obs; ';
   put '    %if &fmt=N %then format _numeric_ best32.;; ';
   put '    /* PRETTY is necessary to avoid line truncation in large files */ ';
   put '    filename _sjs2 temp lrecl=131068 encoding=''utf-8''; ';
@@ -15217,6 +15228,7 @@ data _null_;
   put '      %else %do; ';
   put '        set &ds; ';
   put '      %end; ';
+  put '      &stmt_obs; ';
   put '      format _numeric_ bart.; ';
   put '    %do i=1 %to &numcols; ';
   put '      %if &&typelong&i=char or &fmt=Y %then %do; ';
@@ -15273,7 +15285,7 @@ data _null_;
   put '  proc sql; ';
   put '  drop table &colinfo, &tempds; ';
   put ' ';
-  put '  %if &showmeta=YES %then %do; ';
+  put '  %if %substr(&showmeta,1,1)=Y %then %do; ';
   put '    filename _sjs4 temp lrecl=131068 encoding=''utf-8''; ';
   put '    data _null_; ';
   put '      file _sjs4; ';
@@ -15329,7 +15341,7 @@ data _null_;
   put ' ';
   put '%mend mf_getuser; ';
   put '%macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y,missing=NULL ';
-  put '  ,showmeta=NO ';
+  put '  ,showmeta=N ';
   put '); ';
   put '%global _webin_file_count _webin_fileref1 _webin_name1 _program _debug ';
   put '  sasjs_tables; ';
@@ -15404,7 +15416,6 @@ data _null_;
   put '  filename _sjsref temp lrecl=131068; ';
   put '  %if %str(&_debug) ge 131 %then %do; ';
   put '    /* if debug mode, send back first 10 records of each work table also */ ';
-  put '    options obs=10; ';
   put '    data;run;%let tempds=%scan(&syslast,2,.); ';
   put '    ods output Members=&tempds; ';
   put '    proc datasets library=WORK memtype=data; ';
@@ -15428,7 +15439,7 @@ data _null_;
   put '        put " ""&wt"" : {"; ';
   put '        put ''"nlobs":'' nlobs; ';
   put '        put '',"nvars":'' nvars; ';
-  put '      %mp_jsonout(OBJ,&wt,jref=_sjsref,dslabel=first10rows,showmeta=YES) ';
+  put '      %mp_jsonout(OBJ,&wt,jref=_sjsref,dslabel=first10rows,showmeta=Y,maxobs=10) ';
   put '      data _null_; file _sjsref mod encoding=''utf-8''; ';
   put '        put "}"; ';
   put '    %end; ';
@@ -18878,7 +18889,7 @@ run;
   @param [out] fref= (_webout) The fileref to which to write the JSON
   @param [in] missing= (NULL) Special numeric missing values can be sent as NULL
     (eg `null`) or as STRING values (eg `".a"` or `".b"`)
-  @param [in] showmeta= (NO) Set to YES to output metadata alongside each table,
+  @param [in] showmeta= (N) Set to Y to output metadata alongside each table,
     such as the column formats and types.  The metadata is contained inside an
     object with the same name as the table but prefixed with a dollar sign - ie,
     `,"$tablename":{"formats":{"col1":"$CHAR1"},"types":{"COL1":"C"}}`
@@ -18892,7 +18903,7 @@ run;
 
 **/
 %macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y,missing=NULL
-  ,showmeta=NO
+  ,showmeta=N
 );
 %global _webin_file_count _webin_fileref1 _webin_name1 _program _debug
   sasjs_tables;
@@ -18967,7 +18978,6 @@ run;
   filename _sjsref temp lrecl=131068;
   %if %str(&_debug) ge 131 %then %do;
     /* if debug mode, send back first 10 records of each work table also */
-    options obs=10;
     data;run;%let tempds=%scan(&syslast,2,.);
     ods output Members=&tempds;
     proc datasets library=WORK memtype=data;
@@ -18991,7 +19001,7 @@ run;
         put " ""&wt"" : {";
         put '"nlobs":' nlobs;
         put ',"nvars":' nvars;
-      %mp_jsonout(OBJ,&wt,jref=_sjsref,dslabel=first10rows,showmeta=YES)
+      %mp_jsonout(OBJ,&wt,jref=_sjsref,dslabel=first10rows,showmeta=Y,maxobs=10)
       data _null_; file _sjsref mod encoding='utf-8';
         put "}";
     %end;
@@ -19858,10 +19868,12 @@ data _null_;
   put '%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y ';
   put '  ,engine=DATASTEP ';
   put '  ,missing=NULL ';
-  put '  ,showmeta=NO ';
+  put '  ,showmeta=N ';
+  put '  ,maxobs=MAX ';
   put ')/*/STORE SOURCE*/; ';
-  put '%local tempds colinfo fmtds i numcols; ';
+  put '%local tempds colinfo fmtds i numcols stmt_obs; ';
   put '%let numcols=0; ';
+  put '%if maxobs ne MAX %then %let stmt_obs=%str(if _n_>&maxobs then stop;); ';
   put ' ';
   put '%if &action=OPEN %then %do; ';
   put '  options nobomfile; ';
@@ -19940,7 +19952,9 @@ data _null_;
   put '      %put &sysmacroname: Switching to DATASTEP engine; ';
   put '      %goto datastep; ';
   put '    %end; ';
-  put '    data &tempds;set &ds; ';
+  put '    data &tempds; ';
+  put '      set &ds; ';
+  put '      &stmt_obs; ';
   put '    %if &fmt=N %then format _numeric_ best32.;; ';
   put '    /* PRETTY is necessary to avoid line truncation in large files */ ';
   put '    filename _sjs2 temp lrecl=131068 encoding=''utf-8''; ';
@@ -20015,6 +20029,7 @@ data _null_;
   put '      %else %do; ';
   put '        set &ds; ';
   put '      %end; ';
+  put '      &stmt_obs; ';
   put '      format _numeric_ bart.; ';
   put '    %do i=1 %to &numcols; ';
   put '      %if &&typelong&i=char or &fmt=Y %then %do; ';
@@ -20071,7 +20086,7 @@ data _null_;
   put '  proc sql; ';
   put '  drop table &colinfo, &tempds; ';
   put ' ';
-  put '  %if &showmeta=YES %then %do; ';
+  put '  %if %substr(&showmeta,1,1)=Y %then %do; ';
   put '    filename _sjs4 temp lrecl=131068 encoding=''utf-8''; ';
   put '    data _null_; ';
   put '      file _sjs4; ';
@@ -20128,7 +20143,7 @@ data _null_;
   put '%mend mf_getuser; ';
   put ' ';
   put '%macro ms_webout(action,ds,dslabel=,fref=_webout,fmt=Y,missing=NULL ';
-  put '  ,showmeta=NO ';
+  put '  ,showmeta=N ';
   put '); ';
   put '%global _webin_file_count _webin_fileref1 _webin_name1 _program _debug ';
   put '  sasjs_tables; ';
@@ -20193,7 +20208,6 @@ data _null_;
   put '%else %if &action=CLOSE %then %do; ';
   put '  %if %str(&_debug) ge 131 %then %do; ';
   put '    /* if debug mode, send back first 10 records of each work table also */ ';
-  put '    options obs=10; ';
   put '    data;run;%let tempds=%scan(&syslast,2,.); ';
   put '    ods output Members=&tempds; ';
   put '    proc datasets library=WORK memtype=data; ';
@@ -20218,7 +20232,7 @@ data _null_;
   put '        put " ""&wt"" : {"; ';
   put '        put ''"nlobs":'' nlobs; ';
   put '        put '',"nvars":'' nvars; ';
-  put '      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=YES) ';
+  put '      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=Y,maxobs=10) ';
   put '      data _null_; file &fref mod encoding=''utf-8'' termstr=lf; ';
   put '        put "}"; ';
   put '    %end; ';
@@ -21098,7 +21112,7 @@ run;
   @param [out] fref= (_webout) The fileref to which to write the JSON
   @param [in] missing= (NULL) Special numeric missing values can be sent as NULL
     (eg `null`) or as STRING values (eg `".a"` or `".b"`)
-  @param [in] showmeta= (NO) Set to YES to output metadata alongside each table,
+  @param [in] showmeta= (N) Set to Y to output metadata alongside each table,
     such as the column formats and types.  The metadata is contained inside an
     object with the same name as the table but prefixed with a dollar sign - ie,
     `,"$tablename":{"formats":{"col1":"$CHAR1"},"types":{"COL1":"C"}}`
@@ -21118,7 +21132,7 @@ run;
 **/
 
 %macro ms_webout(action,ds,dslabel=,fref=_webout,fmt=Y,missing=NULL
-  ,showmeta=NO
+  ,showmeta=N
 );
 %global _webin_file_count _webin_fileref1 _webin_name1 _program _debug
   sasjs_tables;
@@ -21183,7 +21197,6 @@ run;
 %else %if &action=CLOSE %then %do;
   %if %str(&_debug) ge 131 %then %do;
     /* if debug mode, send back first 10 records of each work table also */
-    options obs=10;
     data;run;%let tempds=%scan(&syslast,2,.);
     ods output Members=&tempds;
     proc datasets library=WORK memtype=data;
@@ -21208,7 +21221,7 @@ run;
         put " ""&wt"" : {";
         put '"nlobs":' nlobs;
         put ',"nvars":' nvars;
-      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=YES)
+      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=Y,maxobs=10)
       data _null_; file &fref mod encoding='utf-8' termstr=lf;
         put "}";
     %end;
@@ -22233,10 +22246,12 @@ data _null_;
   put '%macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y ';
   put '  ,engine=DATASTEP ';
   put '  ,missing=NULL ';
-  put '  ,showmeta=NO ';
+  put '  ,showmeta=N ';
+  put '  ,maxobs=MAX ';
   put ')/*/STORE SOURCE*/; ';
-  put '%local tempds colinfo fmtds i numcols; ';
+  put '%local tempds colinfo fmtds i numcols stmt_obs; ';
   put '%let numcols=0; ';
+  put '%if maxobs ne MAX %then %let stmt_obs=%str(if _n_>&maxobs then stop;); ';
   put ' ';
   put '%if &action=OPEN %then %do; ';
   put '  options nobomfile; ';
@@ -22315,7 +22330,9 @@ data _null_;
   put '      %put &sysmacroname: Switching to DATASTEP engine; ';
   put '      %goto datastep; ';
   put '    %end; ';
-  put '    data &tempds;set &ds; ';
+  put '    data &tempds; ';
+  put '      set &ds; ';
+  put '      &stmt_obs; ';
   put '    %if &fmt=N %then format _numeric_ best32.;; ';
   put '    /* PRETTY is necessary to avoid line truncation in large files */ ';
   put '    filename _sjs2 temp lrecl=131068 encoding=''utf-8''; ';
@@ -22390,6 +22407,7 @@ data _null_;
   put '      %else %do; ';
   put '        set &ds; ';
   put '      %end; ';
+  put '      &stmt_obs; ';
   put '      format _numeric_ bart.; ';
   put '    %do i=1 %to &numcols; ';
   put '      %if &&typelong&i=char or &fmt=Y %then %do; ';
@@ -22446,7 +22464,7 @@ data _null_;
   put '  proc sql; ';
   put '  drop table &colinfo, &tempds; ';
   put ' ';
-  put '  %if &showmeta=YES %then %do; ';
+  put '  %if %substr(&showmeta,1,1)=Y %then %do; ';
   put '    filename _sjs4 temp lrecl=131068 encoding=''utf-8''; ';
   put '    data _null_; ';
   put '      file _sjs4; ';
@@ -22502,7 +22520,7 @@ data _null_;
   put ' ';
   put '%mend mf_getuser; ';
   put '%macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=Y,stream=Y,missing=NULL ';
-  put '  ,showmeta=NO ';
+  put '  ,showmeta=N ';
   put '); ';
   put '%global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name ';
   put '  sasjs_tables SYS_JES_JOB_URI; ';
@@ -22612,7 +22630,6 @@ data _null_;
   put '%else %if &action=CLOSE %then %do; ';
   put '  %if %str(&_debug) ge 131 %then %do; ';
   put '    /* send back first 10 records of each work table for debugging */ ';
-  put '    options obs=10; ';
   put '    data;run;%let tempds=%scan(&syslast,2,.); ';
   put '    ods output Members=&tempds; ';
   put '    proc datasets library=WORK memtype=data; ';
@@ -22635,7 +22652,7 @@ data _null_;
   put '        put " ""&wt"" : {"; ';
   put '        put ''"nlobs":'' nlobs; ';
   put '        put '',"nvars":'' nvars; ';
-  put '      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=YES) ';
+  put '      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=Y,maxobs=10) ';
   put '      data _null_; file &fref mod;put "}"; ';
   put '    %end; ';
   put '    data _null_; file &fref mod;put "}";run; ';
@@ -26278,7 +26295,7 @@ filename &fref1 clear;
   @param [in] stream=(Y) Change to N if not streaming to _webout
   @param [in] missing= (NULL) Special numeric missing values can be sent as NULL
     (eg `null`) or as STRING values (eg `".a"` or `".b"`)
-  @param [in] showmeta= (NO) Set to YES to output metadata alongside each table,
+  @param [in] showmeta= (N) Set to Y to output metadata alongside each table,
     such as the column formats and types.  The metadata is contained inside an
     object with the same name as the table but prefixed with a dollar sign - ie,
     `,"$tablename":{"formats":{"col1":"$CHAR1"},"types":{"COL1":"C"}}`
@@ -26292,7 +26309,7 @@ filename &fref1 clear;
 
 **/
 %macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=Y,stream=Y,missing=NULL
-  ,showmeta=NO
+  ,showmeta=N
 );
 %global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name
   sasjs_tables SYS_JES_JOB_URI;
@@ -26402,7 +26419,6 @@ filename &fref1 clear;
 %else %if &action=CLOSE %then %do;
   %if %str(&_debug) ge 131 %then %do;
     /* send back first 10 records of each work table for debugging */
-    options obs=10;
     data;run;%let tempds=%scan(&syslast,2,.);
     ods output Members=&tempds;
     proc datasets library=WORK memtype=data;
@@ -26425,7 +26441,7 @@ filename &fref1 clear;
         put " ""&wt"" : {";
         put '"nlobs":' nlobs;
         put ',"nvars":' nvars;
-      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=YES)
+      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=Y,maxobs=10)
       data _null_; file &fref mod;put "}";
     %end;
     data _null_; file &fref mod;put "}";run;

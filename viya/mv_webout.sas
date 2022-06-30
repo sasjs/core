@@ -29,7 +29,7 @@
   @param [in] stream=(Y) Change to N if not streaming to _webout
   @param [in] missing= (NULL) Special numeric missing values can be sent as NULL
     (eg `null`) or as STRING values (eg `".a"` or `".b"`)
-  @param [in] showmeta= (NO) Set to YES to output metadata alongside each table,
+  @param [in] showmeta= (N) Set to Y to output metadata alongside each table,
     such as the column formats and types.  The metadata is contained inside an
     object with the same name as the table but prefixed with a dollar sign - ie,
     `,"$tablename":{"formats":{"col1":"$CHAR1"},"types":{"COL1":"C"}}`
@@ -43,7 +43,7 @@
 
 **/
 %macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=Y,stream=Y,missing=NULL
-  ,showmeta=NO
+  ,showmeta=N
 );
 %global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name
   sasjs_tables SYS_JES_JOB_URI;
@@ -153,7 +153,6 @@
 %else %if &action=CLOSE %then %do;
   %if %str(&_debug) ge 131 %then %do;
     /* send back first 10 records of each work table for debugging */
-    options obs=10;
     data;run;%let tempds=%scan(&syslast,2,.);
     ods output Members=&tempds;
     proc datasets library=WORK memtype=data;
@@ -176,7 +175,7 @@
         put " ""&wt"" : {";
         put '"nlobs":' nlobs;
         put ',"nvars":' nvars;
-      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=YES)
+      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=Y,maxobs=10)
       data _null_; file &fref mod;put "}";
     %end;
     data _null_; file &fref mod;put "}";run;

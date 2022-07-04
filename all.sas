@@ -198,6 +198,11 @@ options noquotelenmax;
     %else %if "&SYSVLONG" < "9.04.01M3" %then 0;
     %else 1;
   %end;
+  %else %if &feature=DBMS_MEMTYPE %then %do;
+    /* does dbms_memtype exist in dictionary.tables? */
+    %if "%substr(&sysver,1,1)"="4" or "%substr(&sysver,1,1)"="5" %then 0;
+    %else 1;
+  %end;
   %else %if &feature=EXPORTXLS %then %do;
     /* is it possible to PROC EXPORT an excel file? */
     %if "%substr(&sysver,1,1)"="4" or "%substr(&sysver,1,1)"="5" %then 1;
@@ -7676,6 +7681,7 @@ create table &outds (rename=(
   @param [out] outds= (work.mp_getpk) The name of the output table to create.
 
   <h4> SAS Macros </h4>
+  @li mf_existfeature.sas
   @li mf_getengine.sas
   @li mf_getschema.sas
   @li mp_dropmembers.sas
@@ -7871,7 +7877,12 @@ create table work.&tabs1 as select
   libname as libref
   ,upcase(memname) as dsn
   ,memtype
+%if %mf_existfeature(DBMS_MEMTYPE)=1 %then %do;
   ,dbms_memtype
+%end;
+%else %do;
+  ,'n/a' as dbms_memtype format=$32.
+%end;
   ,typemem
   ,memlabel
   ,nvar

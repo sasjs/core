@@ -40,6 +40,11 @@
     %else %if "&SYSVLONG" < "9.04.01M3" %then 0;
     %else 1;
   %end;
+  %else %if &feature=DBMS_MEMTYPE %then %do;
+    /* does dbms_memtype exist in dictionary.tables? */
+    %if "%substr(&sysver,1,1)"="4" or "%substr(&sysver,1,1)"="5" %then 0;
+    %else 1;
+  %end;
   %else %if &feature=EXPORTXLS %then %do;
     /* is it possible to PROC EXPORT an excel file? */
     %if "%substr(&sysver,1,1)"="4" or "%substr(&sysver,1,1)"="5" %then 1;

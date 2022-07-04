@@ -34,6 +34,7 @@
   @param [out] outds= (work.mp_getpk) The name of the output table to create.
 
   <h4> SAS Macros </h4>
+  @li mf_existfeature.sas
   @li mf_getengine.sas
   @li mf_getschema.sas
   @li mp_dropmembers.sas
@@ -229,7 +230,12 @@ create table work.&tabs1 as select
   libname as libref
   ,upcase(memname) as dsn
   ,memtype
+%if %mf_existfeature(DBMS_MEMTYPE)=1 %then %do;
   ,dbms_memtype
+%end;
+%else %do;
+  ,'n/a' as dbms_memtype format=$32.
+%end;
   ,typemem
   ,memlabel
   ,nvar

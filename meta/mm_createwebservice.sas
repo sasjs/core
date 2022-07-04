@@ -319,6 +319,7 @@ data _null_;
   put '    filename _sjs4 temp lrecl=131068 encoding=''utf-8''; ';
   put '    data _null_; ';
   put '      file _sjs4; ';
+  put '      length label $350; ';
   put '      put ", ""$%lowcase(%sysfunc(coalescec(&dslabel,&ds)))"":{""vars"":{"; ';
   put '      do i=1 to &numcols; ';
   put '        name=quote(trim(symget(cats(''name'',i)))); ';

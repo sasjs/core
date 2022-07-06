@@ -191,14 +191,14 @@
     put ",""_DEBUG"" : ""&_debug"" ";
     put ',"_PROGRAM" : ' _PROGRAM ;
     put ",""SYSCC"" : ""&syscc"" ";
-    syserrortext=quote(cats(symget('SYSERRORTEXT')));
+    syserrortext=cats('"',tranwrd(symget('syserrortext'),'"','\"'),'"');
     put ',"SYSERRORTEXT" : ' syserrortext;
     put ",""SYSHOSTNAME"" : ""&syshostname"" ";
     put ",""SYSSCPL"" : ""&sysscpl"" ";
     put ",""SYSSITE"" : ""&syssite"" ";
     sysvlong=quote(trim(symget('sysvlong')));
     put ',"SYSVLONG" : ' sysvlong;
-    syswarningtext=quote(cats(symget('SYSWARNINGTEXT')));
+    syswarningtext=cats('"',tranwrd(symget('syswarningtext'),'"','\"'),'"');
     put ',"SYSWARNINGTEXT" : ' syswarningtext;
     put ',"END_DTTM" : "' "%sysfunc(datetime(),E8601DT26.6)" '" ';
     length memsize $32;

@@ -225,7 +225,7 @@ and %superq(SYSPROCESSNAME) ne %str(Compute Server)
     _PROGRAM=quote(trim(resolve(symget('_PROGRAM'))));
     put ',"_PROGRAM" : ' _PROGRAM ;
     put ",""SYSCC"" : ""&syscc"" ";
-    syserrortext=quote(trim(symget('syserrortext')));
+    syserrortext=cats('"',tranwrd(symget('syserrortext'),'"','\"'),'"');
     put ",""SYSERRORTEXT"" : " syserrortext;
     put ",""SYSHOSTNAME"" : ""&syshostname"" ";
     put ",""SYSJOBID"" : ""&sysjobid"" ";
@@ -233,7 +233,7 @@ and %superq(SYSPROCESSNAME) ne %str(Compute Server)
     put ",""SYSSITE"" : ""&syssite"" ";
     sysvlong=quote(trim(symget('sysvlong')));
     put ',"SYSVLONG" : ' sysvlong;
-    syswarningtext=quote(trim(symget('syswarningtext')));
+    syswarningtext=cats('"',tranwrd(symget('syswarningtext'),'"','\"'),'"');
     put ",""SYSWARNINGTEXT"" : " syswarningtext;
     put ',"END_DTTM" : "' "%sysfunc(datetime(),E8601DT26.6)" '" ';
     put "}" ;

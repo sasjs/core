@@ -31,6 +31,7 @@
   @param [in] mode (CREATE) Valid values:
     @li CREATE - Create the file (even if it already exists)
     @li APPEND - Append to the file (don't overwrite)
+  @param iftrue= (1=1) Supply a condition for which the macro should be executed
 
   @returns nothing
 
@@ -44,8 +45,12 @@
     ,inref=____in   /* override default to use own filerefs */
     ,outref=____out /* override default to use own filerefs */
     ,mode=CREATE
+    ,iftrue=%str(1=1)
 )/*/STORE SOURCE*/;
   %local mod;
+
+  %if not(%eval(%unquote(&iftrue))) %then %return;
+
   %if &mode=APPEND %then %let mod=mod;
 
   /* these IN and OUT filerefs can point to anything */

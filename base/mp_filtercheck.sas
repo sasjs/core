@@ -92,7 +92,8 @@ data &outds;
   /*length GROUP_LOGIC SUBGROUP_LOGIC $3 SUBGROUP_ID 8 VARIABLE_NM $32
     OPERATOR_NM $10 RAW_VALUE $4000;*/
   set &inds;
-  length reason_cd $4032 vtype $1 vnum dsid 8;
+  length reason_cd $4032 vtype $1 vnum dsid 8 tmp $4000;
+  drop tmp;
 
   /* quick check to ensure column exists */
   if upcase(VARIABLE_NM) not in
@@ -168,18 +169,32 @@ data &outds;
   end;
 
   /* special logic */
-  if OPERATOR_NM='BETWEEN' then raw_value1=tranwrd(raw_value,' AND ','');
-  else if OPERATOR_NM in ('IN','NOT IN') then do;
-    if substr(raw_value,1,1) ne '('
-    or substr(cats(reverse(raw_value)),1,1) ne ')'
-    then do;
-      REASON_CD='Missing start/end bracket in RAW_VALUE';
-      putlog REASON_CD= OPERATOR_NM= raw_value= raw_value1= ;
-      call symputx('reason_cd',reason_cd,'l');
-      call symputx('nobs',_n_,'l');
-      output;
+  if OPERATOR_NM in ('IN','NOT IN','BETWEEN') then do;
+    if OPERATOR_NM='BETWEEN' then raw_value1=tranwrd(raw_value,' AND ',',');
+    else do;
+      if substr(raw_value,1,1) ne '('
+      or substr(cats(reverse(raw_value)),1,1) ne ')'
+      then do;
+        REASON_CD='Missing start/end bracket in RAW_VALUE';
+        putlog REASON_CD= OPERATOR_NM= raw_value= raw_value1= ;
+        call symputx('reason_cd',reason_cd,'l');
+        call symputx('nobs',_n_,'l');
+        output;
+      end;
+      else raw_value1=substr(raw_value,2,max(length(raw_value)-2,0));
     end;
-    else raw_value1=substr(raw_value,2,max(length(raw_value)-2,0));
+    /* we now have a comma seperated list of values */
+    if vtype='N' then do i=1 to countc(raw_value1, ',')+1;
+      tmp=scan(raw_value1,i,',');
+      if cats(tmp) ne '.' and input(tmp, ?? 8.) eq . then do;
+        REASON_CD='Non Numeric value provided';
+        putlog REASON_CD= OPERATOR_NM= raw_value= raw_value1= ;
+        call symputx('reason_cd',reason_cd,'l');
+        call symputx('nobs',_n_,'l');
+        output;
+      end;
+      return;
+    end;
   end;
   else raw_value1=raw_value;
 

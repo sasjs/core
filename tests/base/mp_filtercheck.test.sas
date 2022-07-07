@@ -38,7 +38,7 @@ William,M,15,66.5,112
 ;;;;
 run;
 
-/* valid filter conditions */
+/* VALID filter conditions */
 data work.inds;
   infile datalines4 dsd;
   input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
@@ -51,6 +51,7 @@ AND,OR,2,Weight,>=,77.7
 AND,OR,2,Weight,NE,77.7
 AND,AND,1,age,=,.A
 AND,AND,1,height,<,.B
+AND,AND,1,age,IN,"(.a,.b,.)"
 ;;;;
 run;
 
@@ -115,6 +116,28 @@ run;
   outds=work.test_results
 )
 
+/* invalid IN value */
+data work.inds;
+  infile datalines4 dsd;
+  input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
+datalines4;
+AND,OR,2,age,IN,"(.,.a,X)"
+;;;;
+run;
+
+%mp_filtercheck(work.inds,
+  targetds=work.class,
+  outds=work.badrecords,
+  abort=NO
+)
+%let syscc=0;
+%mp_assertdsobs(work.badrecords,
+  desc=Invalid IN value,
+  test=HASOBS,
+  outds=work.test_results
+)
+
 /* Code injection - column name */
 data work.inds;
   infile datalines4 dsd;
@@ -163,7 +186,7 @@ run;
 data work.inds;
   infile datalines4 dsd;
   input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
-    OPERATOR_NM:$10. RAW_VALUE:8;
+    OPERATOR_NM:$10. RAW_VALUE:8.;
 datalines4;
 AND,AND,1,age,=,0
 ;;;;

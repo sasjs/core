@@ -52,6 +52,8 @@ AND,OR,2,Weight,NE,77.7
 AND,AND,1,age,=,.A
 AND,AND,1,height,<,.B
 AND,AND,1,age,IN,"(.a,.b,.)"
+AND,AND,1,age,IN,"(.A)"
+
 ;;;;
 run;
 

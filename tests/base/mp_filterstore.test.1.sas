@@ -56,6 +56,9 @@ AND,AND,1,SEX,<=,"'M'"
 AND,OR,2,Name,NOT IN,"('Jane','Alfred')"
 AND,OR,2,Weight,>=,77.7
 AND,OR,2,Weight,NE,77.7
+AND,AND,3,age,NOT IN,"(.a,.b,.)"
+AND,AND,3,age,NOT IN,"(.A)"
+AND,AND,4,Name,=,"'Jeremiah'"
 ;;;;
 run;
 

@@ -11784,7 +11784,9 @@ run;
 %else %let vlist=%mf_getvarlist(&libds,dlm=%str(,),quote=DOUBLE);
 
 data &ds4;
-  length &inds_keep $41 tgtvar_nm $32;
+  length &inds_keep $41 tgtvar_nm $32 _label_ $256;
+  if _n_=1 then call missing(_label_);
+  drop _label_;
   set &ds2 &ds3 indsname=&inds_auto;
 
   tgtvar_nm=upcase(tgtvar_nm);

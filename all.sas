@@ -6665,8 +6665,11 @@ create table &outds as
 /**
   * We cannot apply this clause to the underlying dictionary table.  See:
   * https://communities.sas.com/t5/SAS-Programming/Unexpected-Where-Clause-behaviour-in-dictionary-TABLE/m-p/771554#M244867
+  * cannot use`where calculated libref="&lib"` either as it will STILL execute
+  * all the underlying constraint queries, causing exception errors in some
+  * cases: https://github.com/sasjs/core/issues/283
   */
-  where calculated libref="&lib"
+  where a.TABLE_CATALOG="&lib"
   %if "&ds" ne "" %then %do;
     and upcase(a.TABLE_NAME)="&ds"
     and upcase(b.TABLE_NAME)="&ds"

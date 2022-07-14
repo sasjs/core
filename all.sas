@@ -7178,13 +7178,13 @@ run;
 
 %local x curds;
 %if &flavour=SAS %then %do;
-  data _null_;
-    file &fref mod;
-    put "/* SAS Flavour DDL for %upcase(&libref).&curds */";
-    put "proc sql;";
-  run;
   %do x=1 %to %sysfunc(countw(&dsnlist));
     %let curds=%scan(&dsnlist,&x);
+    data _null_;
+      file &fref mod;
+      put "/* SAS Flavour DDL for %upcase(&libref).&curds */";
+      put "proc sql;";
+    run;
     data _null_;
       file &fref mod;
       length lab $1024 typ $20;

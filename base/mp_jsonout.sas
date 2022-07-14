@@ -126,7 +126,6 @@
       if format='' then fmt=cats('$',length,'.');
       else if formatl=0 then fmt=cats(format,'.');
       else fmt=cats(format,formatl,'.');
-      newlen=max(formatl,length);
     end;
     else do;
       typelong='num';
@@ -134,15 +133,12 @@
       else if formatl=0 then fmt=cats(format,'.');
       else if formatd=0 then fmt=cats(format,formatl,'.');
       else fmt=cats(format,formatl,'.',formatd);
-      /* needs to be wide, for datetimes etc */
-      newlen=max(length,formatl,24);
     end;
     /* 32 char unique name */
     newname='sasjs'!!substr(cats(put(md5(name),$hex32.)),1,27);
 
     call symputx(cats('name',_n_),name,'l');
     call symputx(cats('newname',_n_),newname,'l');
-    call symputx(cats('len',_n_),newlen,'l');
     call symputx(cats('length',_n_),length,'l');
     call symputx(cats('fmt',_n_),fmt,'l');
     call symputx(cats('type',_n_),type,'l');
@@ -195,7 +191,8 @@
       %end;
         ));
       %do i=1 %to &numcols;
-        length &&name&i $&&len&i;
+        /* formatted values can be up to length 32767 */
+        length &&name&i $32767;
         %if &&typelong&i=num %then %do;
           &&name&i=left(put(&&newname&i,&&fmt&i));
         %end;

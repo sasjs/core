@@ -357,7 +357,7 @@ data _null_;
   put '      %end; ';
   put '        )); ';
   put '      %do i=1 %to &numcols; ';
-  put '        /* all vars are now char, and labels could be up to 32767 */ ';
+  put '        /* formatted values can be up to length 32767 */ ';
   put '        length &&name&i $32767; ';
   put '        %if &&typelong&i=num %then %do; ';
   put '          &&name&i=left(put(&&newname&i,&&fmt&i)); ';

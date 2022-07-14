@@ -191,7 +191,7 @@
       %end;
         ));
       %do i=1 %to &numcols;
-        /* all vars are now char, and labels could be up to 32767 */
+        /* formatted values can be up to length 32767 */
         length &&name&i $32767;
         %if &&typelong&i=num %then %do;
           &&name&i=left(put(&&newname&i,&&fmt&i));

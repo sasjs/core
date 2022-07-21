@@ -3775,7 +3775,7 @@ run;
 
 %mend mp_chop;
 /**
-  @file mp_cleancsv.sas
+  @file
   @brief Fixes embedded cr / lf / crlf in CSV
   @details CSVs will sometimes contain lf or crlf within quotes (eg when
   saved by excel).  When the termstr is ALSO lf or crlf that can be tricky
@@ -3783,14 +3783,16 @@ run;
   This macro converts any csv to follow the convention of a windows excel file,
   applying CRLF line endings and converting embedded cr and crlf to lf.
 
-  usage:
+  Usage:
 
       fileref mycsv "/path/your/csv";
       %mp_cleancsv(in=mycsv,out=/path/new.csv)
 
-  @param in= provide path or fileref to input csv
-  @param out= output path or fileref to output csv
-  @param qchar= quote char - hex code 22 is the double quote.
+  @param in= (NOTPROVIDED) Provide path or fileref to input csv. If a period is
+    found, it is assumed to be a file.
+  @param out= (NOTPROVIDED) Output path or fileref to output csv.  If a period
+    is found, it is assumed to be a file.
+  @param qchar= ('22'x) Quote char - hex code 22 is the double quote.
 
   @version 9.2
   @author Allan Bowe
@@ -3832,9 +3834,14 @@ run;
     else do;
       /* outside a quote, change cr and lf to crlf */
       if inchar='0D'x then do;
+        crblank:
         put '0D0A'x;
         input inchar $char1.;
-        if inchar ne '0A'x then do;
+        if inchar='0D'x then do;
+          /* multiple CR indicates CR formatted file with blank lines */
+          goto crblank;
+        end;
+        else if inchar ne '0A'x then do;
           put inchar $char1.;
           if inchar=qchar then isq = mod(isq+1,2);
         end;

@@ -182,20 +182,28 @@
 
   /* close off json */
   data _null_;file &fref mod;
+    length SYSPROCESSNAME syserrortext syswarningtext autoexec $512;
+    put ",""_DEBUG"" : ""&_debug"" ";
     _PROGRAM=quote(trim(resolve(symget('_PROGRAM'))));
-    put ",""SYSUSERID"" : ""&sysuserid"" ";
+    put ',"_PROGRAM" : ' _PROGRAM ;
+    autoexec=quote(urlencode(trim(getoption('autoexec'))));
+    put ',"AUTOEXEC" : ' autoexec;
     put ",""MF_GETUSER"" : ""%mf_getuser()"" ";
     SYS_JES_JOB_URI=quote(trim(resolve(symget('SYS_JES_JOB_URI'))));
     put ',"SYS_JES_JOB_URI" : ' SYS_JES_JOB_URI ;
     put ",""SYSJOBID"" : ""&sysjobid"" ";
-    put ",""_DEBUG"" : ""&_debug"" ";
-    put ',"_PROGRAM" : ' _PROGRAM ;
     put ",""SYSCC"" : ""&syscc"" ";
     syserrortext=cats('"',tranwrd(symget('syserrortext'),'"','\"'),'"');
     put ',"SYSERRORTEXT" : ' syserrortext;
     put ",""SYSHOSTNAME"" : ""&syshostname"" ";
+    put ",""SYSPROCESSID"" : ""&SYSPROCESSID"" ";
+    put ",""SYSPROCESSMODE"" : ""&SYSPROCESSMODE"" ";
+    SYSPROCESSNAME=quote(urlencode(cats(SYSPROCESSNAME)));
+    put ",""SYSPROCESSNAME"" : " SYSPROCESSNAME;
+    put ",""SYSJOBID"" : ""&sysjobid"" ";
     put ",""SYSSCPL"" : ""&sysscpl"" ";
     put ",""SYSSITE"" : ""&syssite"" ";
+    put ",""SYSUSERID"" : ""&sysuserid"" ";
     sysvlong=quote(trim(symget('sysvlong')));
     put ',"SYSVLONG" : ' sysvlong;
     syswarningtext=cats('"',tranwrd(symget('syswarningtext'),'"','\"'),'"');

@@ -70,14 +70,13 @@
   @source https://github.com/sasjs/core
 
 **/
-
 %macro mp_jsonout(action,ds,jref=_webout,dslabel=,fmt=Y
   ,engine=DATASTEP
   ,missing=NULL
   ,showmeta=N
   ,maxobs=MAX
 )/*/STORE SOURCE*/;
-%local tempds colinfo fmtds i numcols stmt_obs;
+%local tempds colinfo fmtds i numcols stmt_obs tempvar lastobs optval;
 %let numcols=0;
 %if &maxobs ne MAX %then %let stmt_obs=%str(if _n_>&maxobs then stop;);
 
@@ -136,10 +135,14 @@
     end;
     /* 32 char unique name */
     newname='sasjs'!!substr(cats(put(md5(name),$hex32.)),1,27);
+    maxlenv='maxlen'!!substr(cats(put(md5(name),$hex32.)),1,26);
 
     call symputx(cats('name',_n_),name,'l');
     call symputx(cats('newname',_n_),newname,'l');
+    call symputx(cats('maxlenv',_n_),maxlenv,'l');
     call symputx(cats('length',_n_),length,'l');
+    /* overwritten when fmt=Y */
+    call symputx(cats('fmtlen',_n_),min(32767,ceil((length+3)*1.2)),'l');
     call symputx(cats('fmt',_n_),fmt,'l');
     call symputx(cats('type',_n_),type,'l');
     call symputx(cats('typelong',_n_),typelong,'l');
@@ -147,6 +150,9 @@
   run;
 
   %let tempds=%substr(_%sysfunc(compress(%sysfunc(uuidgen()),-)),1,32);
+  proc sql;
+  select count(*) into: lastobs from &ds;
+  %if &maxobs ne MAX %then %let lastobs=%sysfunc(min(&lastobs,&maxobs));
 
   %if &engine=PROCJSON %then %do;
     %if &missing=STRING %then %do;
@@ -183,24 +189,49 @@
     %end;
 
     %if &fmt=Y %then %do;
-      data _data_;
+      %let tempvar=%substr(_%sysfunc(compress(%sysfunc(uuidgen()),-)),1,32);
+      /* need to find max length of formatted values */
+      data _data_(compress=char);
         /* rename on entry */
         set &ds(rename=(
       %do i=1 %to &numcols;
         &&name&i=&&newname&i
       %end;
         ));
+      &stmt_obs;
+      /* formatted values can be up to length 32767 */
+      length
       %do i=1 %to &numcols;
-        /* formatted values can be up to length 32767 */
-        length &&name&i $32767;
+        &&name&i
+      %end;
+        $32767;
+      retain &tempvar
+      %do i=1 %to &numcols;
+        &&maxlenv&i
+      %end;
+        0;
+      drop &tempvar
+      %do i=1 %to &numcols;
+        &&newname&i &&maxlenv&i
+      %end;
+        ;
+      %do i=1 %to &numcols;
         %if &&typelong&i=num %then %do;
-          &&name&i=left(put(&&newname&i,&&fmt&i));
+          &&name&i=cats(put(&&newname&i,&&fmt&i));
         %end;
         %else %do;
           &&name&i=put(&&newname&i,&&fmt&i);
         %end;
-        drop &&newname&i;
+        /* grab max length of each value as we move down the data step */
+        &tempvar=length(&&name&i);
+        if &tempvar>&&maxlenv&i then &&maxlenv&i=&tempvar;
       %end;
+        if _n_=&lastobs then do;
+          /* add a 20% buffer in case of special chars that need to be escaped */
+      %do i=1 %to &numcols;
+          call symputx("fmtlen&i",min(32767,ceil((&&maxlenv&i+3)*1.2)),'l');
+      %end;
+        end;
         if _error_ then call symputx('syscc',1012);
       run;
       %let fmtds=&syslast;
@@ -218,12 +249,15 @@
     %end;
       other = [best.];
 
+    /* configure varlenchk - as we are explicitly shortening the variables */
+    %let optval=%sysfunc(getoption(varlenchk));
+    options varlenchk=NOWARN;
     data &tempds;
       attrib _all_ label='';
       %do i=1 %to &numcols;
         %if &&typelong&i=char or &fmt=Y %then %do;
-          length &&name&i $32767;
-          format &&name&i $32767.;
+          length &&name&i $&&fmtlen&i...;
+          format &&name&i $&&fmtlen&i...;
         %end;
       %end;
       %if &fmt=Y %then %do;
@@ -256,6 +290,7 @@
       %end;
     %end;
     run;
+    options varlenchk=&optval;
 
     filename _sjs3 temp lrecl=131068 ;
     data _null_;

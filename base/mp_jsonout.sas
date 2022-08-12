@@ -62,7 +62,7 @@
   @param [in] maxobs= (MAX) Provide an integer to limit the number of input rows
     that should be converted to JSON
 
-  <h4> Related Macros <h4>
+  <h4> Related Macros </h4>
   @li mp_ds2fmtds.sas
 
   @version 9.2

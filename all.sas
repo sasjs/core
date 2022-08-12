@@ -5340,7 +5340,7 @@ run;
   <h4> SAS Macros </h4>
   @li mf_existds.sas
 
-  <h4> Related Macros <h4>
+  <h4> Related Macros </h4>
   @li mp_jsonout.sas
 
   @version 9.2
@@ -8709,7 +8709,7 @@ options
   @param [in] maxobs= (MAX) Provide an integer to limit the number of input rows
     that should be converted to JSON
 
-  <h4> Related Macros <h4>
+  <h4> Related Macros </h4>
   @li mp_ds2fmtds.sas
 
   @version 9.2
@@ -9939,14 +9939,15 @@ put(md5(
 %mend mp_md5;
 /**
   @file
-  @brief Logs the time the macro was executed in a control dataset.
-  @details If the dataset does not exist, it is created.  Usage:
+  @brief Logs a message in a dataset every time it is invoked
+  @details If the dataset does not exist, it is created.
+  Usage:
 
-    %mp_perflog(started)
-    %mp_perflog()
-    %mp_perflog(startanew,libds=work.newdataset)
-    %mp_perflog(finished,libds=work.newdataset)
-    %mp_perflog(finished)
+      %mp_perflog(started)
+      %mp_perflog()
+      %mp_perflog(startanew,libds=work.newdataset)
+      %mp_perflog(finished,libds=work.newdataset)
+      %mp_perflog(finished)
 
 
   @param label Provide label to go into the control dataset
@@ -15409,7 +15410,7 @@ data _null_;
   put ' ';
   put '%mend mf_getuser; ';
   put '%macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y,missing=NULL ';
-  put '  ,showmeta=N ';
+  put '  ,showmeta=N,maxobs=MAX ';
   put '); ';
   put '%global _webin_file_count _webin_fileref1 _webin_name1 _program _debug ';
   put '  sasjs_tables; ';
@@ -15476,7 +15477,7 @@ data _null_;
   put ' ';
   put '%else %if &action=ARR or &action=OBJ %then %do; ';
   put '  %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt,jref=&fref ';
-  put '    ,engine=&jsonengine,missing=&missing,showmeta=&showmeta ';
+  put '    ,engine=&jsonengine,missing=&missing,showmeta=&showmeta,maxobs=&maxobs ';
   put '  ) ';
   put '%end; ';
   put '%else %if &action=CLOSE %then %do; ';
@@ -18968,7 +18969,8 @@ run;
     such as the column formats and types.  The metadata is contained inside an
     object with the same name as the table but prefixed with a dollar sign - ie,
     `,"$tablename":{"formats":{"col1":"$CHAR1"},"types":{"COL1":"C"}}`
-
+  @param [in] maxobs= (MAX) Provide an integer to limit the number of input rows
+    that should be converted to output JSON
 
   <h4> SAS Macros </h4>
   @li mp_jsonout.sas
@@ -18978,7 +18980,7 @@ run;
 
 **/
 %macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y,missing=NULL
-  ,showmeta=N
+  ,showmeta=N,maxobs=MAX
 );
 %global _webin_file_count _webin_fileref1 _webin_name1 _program _debug
   sasjs_tables;
@@ -19045,7 +19047,7 @@ run;
 
 %else %if &action=ARR or &action=OBJ %then %do;
   %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt,jref=&fref
-    ,engine=&jsonengine,missing=&missing,showmeta=&showmeta
+    ,engine=&jsonengine,missing=&missing,showmeta=&showmeta,maxobs=&maxobs
   )
 %end;
 %else %if &action=CLOSE %then %do;
@@ -20274,7 +20276,7 @@ data _null_;
   put '%mend mf_getuser; ';
   put ' ';
   put '%macro ms_webout(action,ds,dslabel=,fref=_webout,fmt=Y,missing=NULL ';
-  put '  ,showmeta=N ';
+  put '  ,showmeta=N,maxobs=MAX ';
   put '); ';
   put '%global _webin_file_count _webin_fileref1 _webin_name1 _program _debug ';
   put '  sasjs_tables; ';
@@ -20333,7 +20335,7 @@ data _null_;
   put '    %let missing=NULL; ';
   put '  %end; ';
   put '  %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt,jref=&fref ';
-  put '    ,engine=DATASTEP,missing=&missing,showmeta=&showmeta ';
+  put '    ,engine=DATASTEP,missing=&missing,showmeta=&showmeta,maxobs=&maxobs ';
   put '  ) ';
   put '%end; ';
   put '%else %if &action=CLOSE %then %do; ';
@@ -21248,6 +21250,8 @@ run;
     such as the column formats and types.  The metadata is contained inside an
     object with the same name as the table but prefixed with a dollar sign - ie,
     `,"$tablename":{"formats":{"col1":"$CHAR1"},"types":{"COL1":"C"}}`
+  @param [in] maxobs= (MAX) Provide an integer to limit the number of input rows
+    that should be converted to output JSON
 
   <h4> SAS Macros </h4>
   @li mf_getuser.sas
@@ -21264,7 +21268,7 @@ run;
 **/
 
 %macro ms_webout(action,ds,dslabel=,fref=_webout,fmt=Y,missing=NULL
-  ,showmeta=N
+  ,showmeta=N,maxobs=MAX
 );
 %global _webin_file_count _webin_fileref1 _webin_name1 _program _debug
   sasjs_tables;
@@ -21323,7 +21327,7 @@ run;
     %let missing=NULL;
   %end;
   %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt,jref=&fref
-    ,engine=DATASTEP,missing=&missing,showmeta=&showmeta
+    ,engine=DATASTEP,missing=&missing,showmeta=&showmeta,maxobs=&maxobs
   )
 %end;
 %else %if &action=CLOSE %then %do;
@@ -22649,7 +22653,7 @@ data _null_;
   put ' ';
   put '%mend mf_getuser; ';
   put '%macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=Y,stream=Y,missing=NULL ';
-  put '  ,showmeta=N ';
+  put '  ,showmeta=N,maxobs=MAX ';
   put '); ';
   put '%global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name ';
   put '  sasjs_tables SYS_JES_JOB_URI; ';
@@ -22751,8 +22755,8 @@ data _null_;
   put '  run; ';
   put '%end; ';
   put '%else %if &action=ARR or &action=OBJ %then %do; ';
-  put '    %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt ';
-  put '      ,jref=&fref,engine=DATASTEP,missing=&missing,showmeta=&showmeta ';
+  put '    %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt,jref=&fref ';
+  put '      ,engine=DATASTEP,missing=&missing,showmeta=&showmeta,maxobs=&maxobs ';
   put '    ) ';
   put '%end; ';
   put '%else %if &action=CLOSE %then %do; ';
@@ -26435,6 +26439,8 @@ filename &fref1 clear;
     such as the column formats and types.  The metadata is contained inside an
     object with the same name as the table but prefixed with a dollar sign - ie,
     `,"$tablename":{"formats":{"col1":"$CHAR1"},"types":{"COL1":"C"}}`
+  @param [in] maxobs= (MAX) Provide an integer to limit the number of input rows
+    that should be converted to output JSON
 
   <h4> SAS Macros </h4>
   @li mp_jsonout.sas
@@ -26445,7 +26451,7 @@ filename &fref1 clear;
 
 **/
 %macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=Y,stream=Y,missing=NULL
-  ,showmeta=N
+  ,showmeta=N,maxobs=MAX
 );
 %global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name
   sasjs_tables SYS_JES_JOB_URI;
@@ -26547,8 +26553,8 @@ filename &fref1 clear;
   run;
 %end;
 %else %if &action=ARR or &action=OBJ %then %do;
-    %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt
-      ,jref=&fref,engine=DATASTEP,missing=&missing,showmeta=&showmeta
+    %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt,jref=&fref
+      ,engine=DATASTEP,missing=&missing,showmeta=&showmeta,maxobs=&maxobs
     )
 %end;
 %else %if &action=CLOSE %then %do;

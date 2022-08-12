@@ -1,13 +1,14 @@
 /**
   @file
-  @brief Logs the time the macro was executed in a control dataset.
-  @details If the dataset does not exist, it is created.  Usage:
+  @brief Logs a message in a dataset every time it is invoked
+  @details If the dataset does not exist, it is created.
+  Usage:
 
-    %mp_perflog(started)
-    %mp_perflog()
-    %mp_perflog(startanew,libds=work.newdataset)
-    %mp_perflog(finished,libds=work.newdataset)
-    %mp_perflog(finished)
+      %mp_perflog(started)
+      %mp_perflog()
+      %mp_perflog(startanew,libds=work.newdataset)
+      %mp_perflog(finished,libds=work.newdataset)
+      %mp_perflog(finished)
 
 
   @param label Provide label to go into the control dataset

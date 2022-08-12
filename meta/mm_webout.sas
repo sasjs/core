@@ -34,7 +34,8 @@
     such as the column formats and types.  The metadata is contained inside an
     object with the same name as the table but prefixed with a dollar sign - ie,
     `,"$tablename":{"formats":{"col1":"$CHAR1"},"types":{"COL1":"C"}}`
-
+  @param [in] maxobs= (MAX) Provide an integer to limit the number of input rows
+    that should be converted to output JSON
 
   <h4> SAS Macros </h4>
   @li mp_jsonout.sas
@@ -44,7 +45,7 @@
 
 **/
 %macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y,missing=NULL
-  ,showmeta=N
+  ,showmeta=N,maxobs=MAX
 );
 %global _webin_file_count _webin_fileref1 _webin_name1 _program _debug
   sasjs_tables;
@@ -111,7 +112,7 @@
 
 %else %if &action=ARR or &action=OBJ %then %do;
   %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt,jref=&fref
-    ,engine=&jsonengine,missing=&missing,showmeta=&showmeta
+    ,engine=&jsonengine,missing=&missing,showmeta=&showmeta,maxobs=&maxobs
   )
 %end;
 %else %if &action=CLOSE %then %do;

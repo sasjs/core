@@ -17,7 +17,7 @@
   <h4> SAS Macros </h4>
   @li mf_existds.sas
 
-  <h4> Related Macros <h4>
+  <h4> Related Macros </h4>
   @li mp_jsonout.sas
 
   @version 9.2

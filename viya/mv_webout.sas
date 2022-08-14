@@ -25,7 +25,7 @@
   @param [in] _webout= fileref for returning the json
   @param [out] fref=(_mvwtemp) Temp fileref to which to write the output
   @param [out] dslabel= value to use instead of table name for sending to JSON
-  @param [in] fmt=(Y) change to N to strip formats from output
+  @param [in] fmt= (N) Setting Y converts all vars to their formatted values
   @param [in] stream=(Y) Change to N if not streaming to _webout
   @param [in] missing= (NULL) Special numeric missing values can be sent as NULL
     (eg `null`) or as STRING values (eg `".a"` or `".b"`)
@@ -40,11 +40,15 @@
   @li mp_jsonout.sas
   @li mf_getuser.sas
 
+  <h4> Related Macros </h4>
+  @li ms_webout.sas
+  @li mm_webout.sas
+
   @version Viya 3.3
   @author Allan Bowe, source: https://github.com/sasjs/core
 
 **/
-%macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=Y,stream=Y,missing=NULL
+%macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=N,stream=Y,missing=NULL
   ,showmeta=N,maxobs=MAX
 );
 %global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name

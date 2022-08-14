@@ -76,7 +76,8 @@
   ,showmeta=N
   ,maxobs=MAX
 )/*/STORE SOURCE*/;
-%local tempds colinfo fmtds i numcols stmt_obs tempvar lastobs optval;
+%local tempds colinfo fmtds i numcols numobs stmt_obs lastobs optval
+  tmpds1 tmpds2 tmpds3 tmpds4;
 %let numcols=0;
 %if &maxobs ne MAX %then %let stmt_obs=%str(if _n_>&maxobs then stop;);
 
@@ -114,7 +115,7 @@
     by varnum;
   run;
   /* move meta to mac vars */
-  data _null_;
+  data &colinfo;
     if _n_=1 then call symputx('numcols',nobs,'l');
     set &colinfo end=last nobs=nobs;
     name=upcase(name);
@@ -135,18 +136,17 @@
     end;
     /* 32 char unique name */
     newname='sasjs'!!substr(cats(put(md5(name),$hex32.)),1,27);
-    maxlenv='maxlen'!!substr(cats(put(md5(name),$hex32.)),1,26);
 
     call symputx(cats('name',_n_),name,'l');
     call symputx(cats('newname',_n_),newname,'l');
-    call symputx(cats('maxlenv',_n_),maxlenv,'l');
     call symputx(cats('length',_n_),length,'l');
-    /* overwritten when fmt=Y */
-    call symputx(cats('fmtlen',_n_),min(32767,ceil((length+3)*1.2)),'l');
     call symputx(cats('fmt',_n_),fmt,'l');
     call symputx(cats('type',_n_),type,'l');
     call symputx(cats('typelong',_n_),typelong,'l');
     call symputx(cats('label',_n_),coalescec(label,name),'l');
+    /* overwritten when fmt=Y and a custom format exists in catalog */
+    if typelong='num' then call symputx(cats('fmtlen',_n_),200,'l');
+    else call symputx(cats('fmtlen',_n_),min(32767,ceil((length+3)*1.5)),'l');
   run;
 
   %let tempds=%substr(_%sysfunc(compress(%sysfunc(uuidgen()),-)),1,32);
@@ -189,30 +189,82 @@
     %end;
 
     %if &fmt=Y %then %do;
-      %let tempvar=%substr(_%sysfunc(compress(%sysfunc(uuidgen()),-)),1,32);
-      /* need to find max length of formatted values */
+      /**
+        * Extract format definitions
+        * First, by getting library locations from dictionary.formats
+        * Then, by exporting the width using proc format
+        * Cannot use maxw from sashelp.vformat as not always populated
+        * Cannot use fmtinfo() as not supported in all flavours
+        */
+      %let tmpds1=%substr(fmtsum%sysfunc(compress(%sysfunc(uuidgen()),-)),1,32);
+      %let tmpds2=%substr(cntl%sysfunc(compress(%sysfunc(uuidgen()),-)),1,32);
+      %let tmpds3=%substr(cntl%sysfunc(compress(%sysfunc(uuidgen()),-)),1,32);
+      %let tmpds4=%substr(col%sysfunc(compress(%sysfunc(uuidgen()),-)),1,32);
+      proc sql noprint;
+      create table &tmpds1 as
+          select cats(libname,'.',memname) as fmtcat,
+          fmtname
+        from dictionary.formats
+        where fmttype='F' and libname is not null
+          and fmtname in (select format from &colinfo where format is not null)
+        order by 1;
+      create table &tmpds2(
+          FMTNAME char(32),
+          MAX num length=3
+      );
+      %local catlist cat fmtlist i;
+      select distinct fmtcat into: catlist separated by ' ' from &tmpds1;
+      %do i=1 %to %sysfunc(countw(&catlist,%str( )));
+        %let cat=%scan(&catlist,&i,%str( ));
+        proc sql;
+        select distinct fmtname into: fmtlist separated by ' '
+          from &tmpds1 where fmtcat="&cat";
+        proc format lib=&cat cntlout=&tmpds3(keep=fmtname max);
+          select &fmtlist;
+        run;
+        proc sql;
+        insert into &tmpds2 select distinct fmtname,max from &tmpds3;
+      %end;
+
+      proc sql;
+      create table &tmpds4 as
+        select a.*, b.max as maxw
+        from &colinfo a
+        left join &tmpds2 b
+        on cats(a.format)=cats(upcase(b.fmtname))
+        order by a.varnum;
+      data _null_;
+        set &tmpds4;
+        if not missing(maxw);
+        call symputx(
+          cats('fmtlen',_n_),
+          /* vars need extra padding due to JSON escaping of special chars */
+          min(32767,ceil((max(length,maxw)+3)*1.5))
+          ,'l'
+        );
+      run;
+
+      /* configure varlenchk - as we are explicitly shortening the variables */
+      %let optval=%sysfunc(getoption(varlenchk));
+      options varlenchk=NOWARN;
       data _data_(compress=char);
+        /* shorten the new vars */
+        length
+      %do i=1 %to &numcols;
+          &&name&i $&&fmtlen&i
+      %end;
+          ;
         /* rename on entry */
         set &ds(rename=(
       %do i=1 %to &numcols;
-        &&name&i=&&newname&i
+          &&name&i=&&newname&i
       %end;
         ));
       &stmt_obs;
-      /* formatted values can be up to length 32767 */
-      length
+
+      drop
       %do i=1 %to &numcols;
-        &&name&i
-      %end;
-        $32767;
-      retain &tempvar
-      %do i=1 %to &numcols;
-        &&maxlenv&i
-      %end;
-        0;
-      drop &tempvar
-      %do i=1 %to &numcols;
-        &&newname&i &&maxlenv&i
+        &&newname&i
       %end;
         ;
       %do i=1 %to &numcols;
@@ -222,19 +274,14 @@
         %else %do;
           &&name&i=put(&&newname&i,&&fmt&i);
         %end;
-        /* grab max length of each value as we move down the data step */
-        &tempvar=length(&&name&i);
-        if &tempvar>&&maxlenv&i then &&maxlenv&i=&tempvar;
       %end;
-        if _n_=&lastobs then do;
-          /* add a 20% buffer in case of special chars that need to be escaped */
-      %do i=1 %to &numcols;
-          call symputx("fmtlen&i",min(32767,ceil((&&maxlenv&i+3)*1.2)),'l');
-      %end;
+        if _error_ then do;
+          call symputx('syscc',1012);
+          stop;
         end;
-        if _error_ then call symputx('syscc',1012);
       run;
       %let fmtds=&syslast;
+      options varlenchk=&optval;
     %end;
 
     proc format; /* credit yabwon for special null removal */
@@ -249,9 +296,6 @@
     %end;
       other = [best.];
 
-    /* configure varlenchk - as we are explicitly shortening the variables */
-    %let optval=%sysfunc(getoption(varlenchk));
-    options varlenchk=NOWARN;
     data &tempds;
       attrib _all_ label='';
       %do i=1 %to &numcols;
@@ -290,7 +334,6 @@
       %end;
     %end;
     run;
-    options varlenchk=&optval;
 
     filename _sjs3 temp lrecl=131068 ;
     data _null_;

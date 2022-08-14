@@ -26,7 +26,7 @@
   @param [in] action Either FETCH, OPEN, ARR, OBJ or CLOSE
   @param [in] ds The dataset to send back to the frontend
   @param [out] dslabel= Value to use instead of table name for sending to JSON
-  @param [in] fmt=(Y) Set to N to send back unformatted values
+  @param [in] fmt= (N) Setting Y converts all vars to their formatted values
   @param [out] fref= (_webout) The fileref to which to write the JSON
   @param [in] missing= (NULL) Special numeric missing values can be sent as NULL
     (eg `null`) or as STRING values (eg `".a"` or `".b"`)
@@ -40,11 +40,15 @@
   <h4> SAS Macros </h4>
   @li mp_jsonout.sas
 
+  <h4> Related Macros </h4>
+  @li ms_webout.sas
+  @li mv_webout.sas
+
   @version 9.3
   @author Allan Bowe
 
 **/
-%macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=Y,missing=NULL
+%macro mm_webout(action,ds,dslabel=,fref=_webout,fmt=N,missing=NULL
   ,showmeta=N,maxobs=MAX
 );
 %global _webin_file_count _webin_fileref1 _webin_name1 _program _debug

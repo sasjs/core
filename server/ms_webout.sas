@@ -31,6 +31,9 @@
     such as the column formats and types.  The metadata is contained inside an
     object with the same name as the table but prefixed with a dollar sign - ie,
     `,"$tablename":{"formats":{"col1":"$CHAR1"},"types":{"COL1":"C"}}`
+  @param [in] workobs= (0) When set to a positive integer, will create a new
+    output object (WORK) which contains this number of observations from all
+    tables in the WORK library.
   @param [in] maxobs= (MAX) Provide an integer to limit the number of input rows
     that should be converted to output JSON
 
@@ -49,7 +52,7 @@
 **/
 
 %macro ms_webout(action,ds,dslabel=,fref=_webout,fmt=N,missing=NULL
-  ,showmeta=N,maxobs=MAX
+  ,showmeta=N,maxobs=MAX,workobs=0
 );
 %global _webin_file_count _webin_fileref1 _webin_name1 _program _debug
   sasjs_tables;
@@ -112,8 +115,8 @@
   )
 %end;
 %else %if &action=CLOSE %then %do;
-  %if %str(&_debug) ge 131 %then %do;
-    /* if debug mode, send back first 10 records of each work table also */
+  %if %str(&workobs) > 0 %then %do;
+    /* if debug mode, send back first XX records of each work table also */
     data;run;%let tempds=%scan(&syslast,2,.);
     ods output Members=&tempds;
     proc datasets library=WORK memtype=data;
@@ -138,7 +141,9 @@
         put " ""&wt"" : {";
         put '"nlobs":' nlobs;
         put ',"nvars":' nvars;
-      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=Y,maxobs=10)
+      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=Y,maxobs=10
+        ,maxobs=&workobs
+      )
       data _null_; file &fref mod encoding='utf-8' termstr=lf;
         put "}";
     %end;

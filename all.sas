@@ -15666,7 +15666,7 @@ data _null_;
   put '        put '',"nvars":'' nvars; ';
   put '      %mp_jsonout(OBJ,&wt,jref=_sjsref,dslabel=first10rows,showmeta=Y,maxobs=10 ';
   put '        ,maxobs=&workobs ';
-  put '      )) ';
+  put '      ) ';
   put '      data _null_; file _sjsref mod encoding=''utf-8''; ';
   put '        put "}"; ';
   put '    %end; ';
@@ -19245,7 +19245,7 @@ run;
         put ',"nvars":' nvars;
       %mp_jsonout(OBJ,&wt,jref=_sjsref,dslabel=first10rows,showmeta=Y,maxobs=10
         ,maxobs=&workobs
-      ))
+      )
       data _null_; file _sjsref mod encoding='utf-8';
         put "}";
     %end;

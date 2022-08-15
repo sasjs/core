@@ -152,7 +152,7 @@
         put ',"nvars":' nvars;
       %mp_jsonout(OBJ,&wt,jref=_sjsref,dslabel=first10rows,showmeta=Y,maxobs=10
         ,maxobs=&workobs
-      ))
+      )
       data _null_; file _sjsref mod encoding='utf-8';
         put "}";
     %end;

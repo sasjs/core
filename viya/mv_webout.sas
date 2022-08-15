@@ -35,6 +35,9 @@
     `,"$tablename":{"formats":{"col1":"$CHAR1"},"types":{"COL1":"C"}}`
   @param [in] maxobs= (MAX) Provide an integer to limit the number of input rows
     that should be converted to output JSON
+  @param [in] workobs= (0) When set to a positive integer, will create a new
+    output object (WORK) which contains this number of observations from all
+    tables in the WORK library.
 
   <h4> SAS Macros </h4>
   @li mp_jsonout.sas
@@ -49,7 +52,7 @@
 
 **/
 %macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=N,stream=Y,missing=NULL
-  ,showmeta=N,maxobs=MAX
+  ,showmeta=N,maxobs=MAX,workobs=0
 );
 %global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name
   sasjs_tables SYS_JES_JOB_URI;
@@ -156,8 +159,8 @@
     )
 %end;
 %else %if &action=CLOSE %then %do;
-  %if %str(&_debug) ge 131 %then %do;
-    /* send back first 10 records of each work table for debugging */
+  %if %str(&workobs) > 0 %then %do;
+    /* send back first XX records of each work table for debugging */
     data;run;%let tempds=%scan(&syslast,2,.);
     ods output Members=&tempds;
     proc datasets library=WORK memtype=data;
@@ -180,7 +183,9 @@
         put " ""&wt"" : {";
         put '"nlobs":' nlobs;
         put ',"nvars":' nvars;
-      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=Y,maxobs=10)
+      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=Y
+        ,maxobs=&workobs
+      )
       data _null_; file &fref mod;put "}";
     %end;
     data _null_; file &fref mod;put "}";run;

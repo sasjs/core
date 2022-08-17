@@ -8709,7 +8709,7 @@ options
   @param [in] maxobs= (MAX) Provide an integer to limit the number of input rows
     that should be converted to JSON
 
-  <h4> Related Macros </h4>
+  <h4> Related Files </h4>
   @li mp_ds2fmtds.sas
 
   @version 9.2
@@ -8857,7 +8857,7 @@ options
         order by 1;
       create table &tmpds2(
           FMTNAME char(32),
-          MAX num length=3
+          LENGTH num
       );
       %local catlist cat fmtlist i;
       select distinct fmtcat into: catlist separated by ' ' from &tmpds1;
@@ -8866,16 +8866,16 @@ options
         proc sql;
         select distinct fmtname into: fmtlist separated by ' '
           from &tmpds1 where fmtcat="&cat";
-        proc format lib=&cat cntlout=&tmpds3(keep=fmtname max);
+        proc format lib=&cat cntlout=&tmpds3(keep=fmtname length);
           select &fmtlist;
         run;
         proc sql;
-        insert into &tmpds2 select distinct fmtname,max from &tmpds3;
+        insert into &tmpds2 select distinct fmtname,length from &tmpds3;
       %end;
 
       proc sql;
       create table &tmpds4 as
-        select a.*, b.max as maxw
+        select a.*, b.length as maxw
         from &colinfo a
         left join &tmpds2 b
         on cats(a.format)=cats(upcase(b.fmtname))
@@ -15352,7 +15352,7 @@ data _null_;
   put '        order by 1; ';
   put '      create table &tmpds2( ';
   put '          FMTNAME char(32), ';
-  put '          MAX num length=3 ';
+  put '          LENGTH num ';
   put '      ); ';
   put '      %local catlist cat fmtlist i; ';
   put '      select distinct fmtcat into: catlist separated by '' '' from &tmpds1; ';
@@ -15361,16 +15361,16 @@ data _null_;
   put '        proc sql; ';
   put '        select distinct fmtname into: fmtlist separated by '' '' ';
   put '          from &tmpds1 where fmtcat="&cat"; ';
-  put '        proc format lib=&cat cntlout=&tmpds3(keep=fmtname max); ';
+  put '        proc format lib=&cat cntlout=&tmpds3(keep=fmtname length); ';
   put '          select &fmtlist; ';
   put '        run; ';
   put '        proc sql; ';
-  put '        insert into &tmpds2 select distinct fmtname,max from &tmpds3; ';
+  put '        insert into &tmpds2 select distinct fmtname,length from &tmpds3; ';
   put '      %end; ';
   put ' ';
   put '      proc sql; ';
   put '      create table &tmpds4 as ';
-  put '        select a.*, b.max as maxw ';
+  put '        select a.*, b.length as maxw ';
   put '        from &colinfo a ';
   put '        left join &tmpds2 b ';
   put '        on cats(a.format)=cats(upcase(b.fmtname)) ';
@@ -20306,7 +20306,7 @@ data _null_;
   put '        order by 1; ';
   put '      create table &tmpds2( ';
   put '          FMTNAME char(32), ';
-  put '          MAX num length=3 ';
+  put '          LENGTH num ';
   put '      ); ';
   put '      %local catlist cat fmtlist i; ';
   put '      select distinct fmtcat into: catlist separated by '' '' from &tmpds1; ';
@@ -20315,16 +20315,16 @@ data _null_;
   put '        proc sql; ';
   put '        select distinct fmtname into: fmtlist separated by '' '' ';
   put '          from &tmpds1 where fmtcat="&cat"; ';
-  put '        proc format lib=&cat cntlout=&tmpds3(keep=fmtname max); ';
+  put '        proc format lib=&cat cntlout=&tmpds3(keep=fmtname length); ';
   put '          select &fmtlist; ';
   put '        run; ';
   put '        proc sql; ';
-  put '        insert into &tmpds2 select distinct fmtname,max from &tmpds3; ';
+  put '        insert into &tmpds2 select distinct fmtname,length from &tmpds3; ';
   put '      %end; ';
   put ' ';
   put '      proc sql; ';
   put '      create table &tmpds4 as ';
-  put '        select a.*, b.max as maxw ';
+  put '        select a.*, b.length as maxw ';
   put '        from &colinfo a ';
   put '        left join &tmpds2 b ';
   put '        on cats(a.format)=cats(upcase(b.fmtname)) ';
@@ -22769,7 +22769,7 @@ data _null_;
   put '        order by 1; ';
   put '      create table &tmpds2( ';
   put '          FMTNAME char(32), ';
-  put '          MAX num length=3 ';
+  put '          LENGTH num ';
   put '      ); ';
   put '      %local catlist cat fmtlist i; ';
   put '      select distinct fmtcat into: catlist separated by '' '' from &tmpds1; ';
@@ -22778,16 +22778,16 @@ data _null_;
   put '        proc sql; ';
   put '        select distinct fmtname into: fmtlist separated by '' '' ';
   put '          from &tmpds1 where fmtcat="&cat"; ';
-  put '        proc format lib=&cat cntlout=&tmpds3(keep=fmtname max); ';
+  put '        proc format lib=&cat cntlout=&tmpds3(keep=fmtname length); ';
   put '          select &fmtlist; ';
   put '        run; ';
   put '        proc sql; ';
-  put '        insert into &tmpds2 select distinct fmtname,max from &tmpds3; ';
+  put '        insert into &tmpds2 select distinct fmtname,length from &tmpds3; ';
   put '      %end; ';
   put ' ';
   put '      proc sql; ';
   put '      create table &tmpds4 as ';
-  put '        select a.*, b.max as maxw ';
+  put '        select a.*, b.length as maxw ';
   put '        from &colinfo a ';
   put '        left join &tmpds2 b ';
   put '        on cats(a.format)=cats(upcase(b.fmtname)) ';

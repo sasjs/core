@@ -36,21 +36,21 @@ Documentation: https://core.sasjs.io
 - OS independent
 - Works on all SAS Platforms
 - No X command
-- Prefixes: _mf_, _mp_
+- Prefixes: `mf_`, `mp_`
 
 ### DDL folder (All Platforms)
 
 - OS independent
 - Works on all SAS Platforms
 - No X command
-- Prefixes: _mddl_(lib)_ -> where lib can be "SAS" (in relation to a SAS component) or "DC" (in relation to a Data Controller component)
+- Prefixes: `mddl_(lib)_` -> where lib can be "SAS" (in relation to a SAS component) or "DC" (in relation to a Data Controller component)
 
 This library will not be used for storing data entries (such as formats or datalines).  Where this becomes necessary in the future, a new repo will be created, in order to keep the NPM bundle size down (for the benefit of those looking to embed purely macros in their applications).
 
 ### FCMP folder (All Platforms)
 
 - Function and macro names are identical, except for special cases
-- Prefixes: _mcf_
+- Prefixes: `mcf_`
 
 The fcmp macros are used to generate fcmp functions, and can be used with or without the `proc fcmp` wrapper.
 
@@ -72,7 +72,7 @@ endsubmit;
 run;
 ```
 
-- Prefixes: _ml_
+- Prefixes: `ml_`
 
 ### META folder (SAS9 only)
 
@@ -81,14 +81,14 @@ Macros used in SAS EBI, which connect to the metadata server.
 - OS independent
 - Metadata aware
 - No X command
-- Prefixes: _mm_
+- Prefixes: `mm_`
 
 ### METAX folder (SAS9 only)
 
 - OS specific
 - Metadata aware
 - X command enabled
-- Prefixes: _mmw_,_mmu_,_mmx_
+- Prefixes: `mmx_`
 
 ### SERVER folder (@sasjs/server only)
 These macros are used for building applications using [@sasjs/server](https://server.sasjs.io) - an open source REST API for Desktop SAS.
@@ -96,7 +96,7 @@ These macros are used for building applications using [@sasjs/server](https://se
 - OS independent
 - @sasjs/server aware
 - No X command
-- Prefixes: _ms_
+- Prefixes: `ms_`
 
 ### VIYA folder (Viya only)
 
@@ -104,7 +104,7 @@ Macros used for interfacing with SAS Viya.
 
 - OS independent
 - No X command
-- Prefixes: _mv_, _mvf_
+- Prefixes: `mv_`, `mvf_`
 
 ### XPLATFORM folder (Viya, Meta, and Server)
 
@@ -112,7 +112,7 @@ Sometimes it is helpful to use a macro that can be used interchangeably regardle
 
 - OS independent
 - No X command
-- Prefixes: _mx_
+- Prefixes: `mx_`
 
 ## Installation
 

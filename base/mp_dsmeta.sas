@@ -67,7 +67,8 @@ run;
 
 /* load it into a single table */
 data &outds (keep=ods_table name value);
-  length ods_table $10 name label1 label $100 value cvalue1 cvalue $1000
+  length ods_table $10 name label2 label1 label $100
+    value cvalue cvalue1 cvalue2 $1000
     nvalue nvalue1 nvalue2 8;
   if _n_=1 then call missing (of _all_);
   * putlog (_all_)(=);

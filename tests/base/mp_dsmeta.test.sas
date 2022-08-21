@@ -18,7 +18,7 @@ run;
 %mp_assertscope(COMPARE)
 
 proc sql noprint;
-select count(*) into nobs from work.test;
+select count(*) into: nobs from work.test;
 select count(distinct ods_table) into: tnobs from work.test;
 
 %mp_assert(

@@ -54,6 +54,12 @@
 
   <h4> Related Files </h4>
   @li mp_dsmeta.test.sas
+  @li mp_getcols.sas
+  @li mp_getdbml.sas
+  @li mp_getddl.sas
+  @li mp_getformats.sas
+  @li mp_getpk.sas
+  @li mp_guesspk.sas
 
 **/
 

@@ -22163,14 +22163,25 @@ options noquotelenmax;
 
   @param path= The full path (on SAS Drive) where the job will be created
   @param name= The name of the job
-  @param desc= The description of the job
+  @param desc= (Created by the mv_createjob.sas macro) The job description
   @param precode= Space separated list of filerefs, pointing to the code that
     needs to be attached to the beginning of the job
-  @param code= Fileref(s) of the actual code to be added
-  @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= valid values are "password" or "authorization_code"
-    (unquoted). The default is authorization_code.
-  @param replace= select NO to avoid replacing any existing job in that location
+  @param code= (ft15f001) Fileref(s) of the actual code to be added
+  @param access_token_var= (ACCESS_TOKEN) Global macro variable containing the
+    access token
+  @param grant_type= (sas_services) Valid values:
+    @li sas_services
+    @li detect
+    @li authorization_code
+    @li password
+  @param replace= (YES) select NO to avoid replacing any existing job
+  @param addjesbeginendmacros= (false) Relates to the `_addjesbeginendmacros`
+    setting.  Normally this would always be false however due to a Viya bug
+    (https://github.com/sasjs/cli/issues/1229) this is now configurable.  Valid
+    values:
+    @li true
+    @li false
+    @li 0 - this will prevent the flag from being set (job will default to true)
   @param contextname= Choose a specific context on which to run the Job.  Leave
     blank to use the default context.  From Viya 3.5 it is possible to configure
     a shared context - see
@@ -22191,6 +22202,7 @@ https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5p
     ,replace=YES
     ,debug=0
     ,contextname=
+    ,addjesbeginendmacros=false
   );
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
@@ -22314,19 +22326,29 @@ run;
 %end;
 
 /* set up the body of the request to create the service */
-%local fname3;
+%local fname3 comma;
 %let fname3=%mf_getuniquefileref();
 data _null_;
   file &fname3 TERMSTR=' ';
   length string $32767;
   string=cats('{"version": 0,"name":"'
     ,"&name"
-    ,'","type":"Compute","parameters":[{"name":"_addjesbeginendmacros"'
-    ,',"type":"CHARACTER","defaultValue":"false"}');
+    ,'","type":"Compute","parameters":['
+%if &addjesbeginendmacros ne 0 %then %do;
+    ,'{"name":"_addjesbeginendmacros"'
+    ,',"type":"CHARACTER","defaultValue":"'
+    ,"&addjesbeginendmacros"
+    ,'"}'
+  %let comma=%str(,);
+%end;
+  );
   context=quote(cats(symget('contextname')));
   if context ne '""' then do;
-    string=cats(string,',{"version": 1,"name": "_contextName","defaultValue":'
-      ,context,',"type":"CHARACTER","label":"Context Name","required": false}');
+    string=cats(string
+      ,"&comma"
+      ,'{"version": 1,"name": "_contextName","defaultValue":'
+      ,context,',"type":"CHARACTER","label":"Context Name","required": false}'
+    );
   end;
   string=cats(string,'],"code":"');
   put string;

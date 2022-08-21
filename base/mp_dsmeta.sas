@@ -44,6 +44,11 @@
       proc print data=work.mymeta;
       run;
 
+  For more details on creating datasets from PROC CONTENTS check out this
+  excellent [paper](
+  https://support.sas.com/resources/papers/proceedings14/1549-2014.pdf) by
+  [Louise Hadden](https://www.linkedin.com/in/louisehadden/).
+
   @param libds The library.dataset to export the metadata for
   @param outds= (work.dsmeta) The output table to contain the metadata
 

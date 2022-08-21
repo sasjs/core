@@ -40,7 +40,7 @@
 
   Example usage:
 
-      %mp_dsmeta(work.sashelp,outds=work.mymeta)
+      %mp_dsmeta(sashelp.class,outds=work.mymeta)
       proc print data=work.mymeta;
       run;
 

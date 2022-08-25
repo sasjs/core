@@ -146,7 +146,7 @@
     call symputx(cats('label',_n_),coalescec(label,name),'l');
     /* overwritten when fmt=Y and a custom format exists in catalog */
     if typelong='num' then call symputx(cats('fmtlen',_n_),200,'l');
-    else call symputx(cats('fmtlen',_n_),min(32767,ceil((length+3)*1.5)),'l');
+    else call symputx(cats('fmtlen',_n_),min(32767,ceil((length+10)*1.5)),'l');
   run;
 
   %let tempds=%substr(_%sysfunc(compress(%sysfunc(uuidgen()),-)),1,32);
@@ -202,8 +202,8 @@
       %let tmpds4=%substr(col%sysfunc(compress(%sysfunc(uuidgen()),-)),1,32);
       proc sql noprint;
       create table &tmpds1 as
-          select cats(libname,'.',memname) as fmtcat,
-          fmtname
+          select cats(libname,'.',memname) as FMTCAT,
+          FMTNAME
         from dictionary.formats
         where fmttype='F' and libname is not null
           and fmtname in (select format from &colinfo where format is not null)
@@ -228,7 +228,7 @@
 
       proc sql;
       create table &tmpds4 as
-        select a.*, b.length as maxw
+        select a.*, b.length as MAXW
         from &colinfo a
         left join &tmpds2 b
         on cats(a.format)=cats(upcase(b.fmtname))
@@ -239,7 +239,7 @@
         call symputx(
           cats('fmtlen',_n_),
           /* vars need extra padding due to JSON escaping of special chars */
-          min(32767,ceil((max(length,maxw)+3)*1.5))
+          min(32767,ceil((max(length,maxw)+10)*1.5))
           ,'l'
         );
       run;
@@ -314,7 +314,7 @@
       format _numeric_ bart.;
     %do i=1 %to &numcols;
       %if &&typelong&i=char or &fmt=Y %then %do;
-        if findc(&&name&i,'"\'!!'0A0D09000E0F01021011'x) then do;
+        if findc(&&name&i,'"\'!!'0A0D09000E0F010210111A'x) then do;
           &&name&i='"'!!trim(
             prxchange('s/"/\\"/',-1,        /* double quote */
             prxchange('s/\x0A/\n/',-1,      /* new line */
@@ -327,8 +327,9 @@
             prxchange('s/\x02/\\u0002/',-1, /* STX */
             prxchange('s/\x10/\\u0010/',-1, /* DLE */
             prxchange('s/\x11/\\u0011/',-1, /* DC1 */
+            prxchange('s/\x1A/\\u001A/',-1, /* SUB */
             prxchange('s/\\/\\\\/',-1,&&name&i)
-          ))))))))))))!!'"';
+          )))))))))))))!!'"';
         end;
         else &&name&i=quote(cats(&&name&i));
       %end;

@@ -18,11 +18,14 @@
       %mp_deleteconstraints(inds=work.constraints,outds=dropped,execute=YES)
       %mp_createconstraints(inds=work.constraints,outds=created,execute=YES)
 
-  @param inds= The input table containing the constraint info
-  @param outds= a table containing the create statements (create_statement column)
-  @param execute= `YES|NO` - default is NO. To actually create, use YES.
+  @param inds= (work.mp_getconstraints) The input table containing the
+    constraint info
+  @param outds= (work.mp_createconstraints) A table containing the create
+    statements (create_statement column)
+  @param execute= (NO) To actually create, use YES.
 
-  <h4> SAS Macros </h4>
+  <h4> Related Files </h4>
+  @li mp_getconstraints.sas
 
   @version 9.2
   @author Allan Bowe
@@ -30,7 +33,7 @@
 **/
 
 %macro mp_createconstraints(inds=mp_getconstraints
-  ,outds=mp_createconstraints
+  ,outds=work.mp_createconstraints
   ,execute=NO
 )/*/STORE SOURCE*/;
 

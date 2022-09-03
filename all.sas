@@ -4112,11 +4112,14 @@ proc sql;
       %mp_deleteconstraints(inds=work.constraints,outds=dropped,execute=YES)
       %mp_createconstraints(inds=work.constraints,outds=created,execute=YES)
 
-  @param inds= The input table containing the constraint info
-  @param outds= a table containing the create statements (create_statement column)
-  @param execute= `YES|NO` - default is NO. To actually create, use YES.
+  @param inds= (work.mp_getconstraints) The input table containing the
+    constraint info
+  @param outds= (work.mp_createconstraints) A table containing the create
+    statements (create_statement column)
+  @param execute= (NO) To actually create, use YES.
 
-  <h4> SAS Macros </h4>
+  <h4> Related Files </h4>
+  @li mp_getconstraints.sas
 
   @version 9.2
   @author Allan Bowe
@@ -4124,7 +4127,7 @@ proc sql;
 **/
 
 %macro mp_createconstraints(inds=mp_getconstraints
-  ,outds=mp_createconstraints
+  ,outds=work.mp_createconstraints
   ,execute=NO
 )/*/STORE SOURCE*/;
 
@@ -4158,7 +4161,8 @@ data &outds;
   output;
 run;
 
-%mend mp_createconstraints;/**
+%mend mp_createconstraints;
+/**
   @file mp_createwebservice.sas
   @brief Create a web service in SAS 9, Viya or SASjs Server
   @details This is actually a wrapper for mx_createwebservice.sas, remaining
@@ -4450,6 +4454,56 @@ run;
   %end;
   %else %put &sysmacroname: &folder: is not a valid / accessible folder. ;
 %mend mp_deletefolder;/**
+  @file mp_dictionary.sas
+  @brief Creates a portal (libref) into the SQL Dictionary Views
+  @details Provide a libref and the macro will create a series of views against
+  each view in the special PROC SQL dictionary libref.
+
+  This is useful if you would like to visualise (navigate) the views in a SAS
+  client such as Base SAS, Enterprise Guide, or Studio (or [Data Controller](
+  https://datacontroller.io)).
+
+  It works by extracting the dictionary.dictionaries view into
+  YOURLIB.dictionaries, then uses that to create a YOURLIB.{viewName} for every
+  other dictionary.view, eg:
+
+      proc sql;
+      create view YOURLIB.columns as select * from dictionary.columns;
+
+  Usage:
+
+      libname demo "/lib/directory";
+      %mp_dictionary(lib=demo)
+
+  Or, to just create them in WORK:
+
+      %mp_dictionary()
+
+  If you'd just like to browse the dictionary data model, you can also check
+  out [this article](https://rawsas.com/dictionary-of-dictionaries/).
+
+  @param lib= (WORK) The libref in which to create the views
+
+  <h4> Related Files </h4>
+  @li mp_dictionary.test.sas
+
+  @version 9.2
+  @author Allan Bowe
+
+**/
+
+%macro mp_dictionary(lib=WORK)/*/STORE SOURCE*/;
+  %local list i mem;
+  proc sql noprint;
+  create view &lib..dictionaries as select * from dictionary.dictionaries;
+  select distinct memname into: list separated by ' '  from &lib..dictionaries;
+  %do i=1 %to %sysfunc(countw(&list,%str( )));
+    %let mem=%scan(&list,&i,%str( ));
+    create view &lib..&mem as select * from dictionary.&mem;
+  %end;
+  quit;
+%mend mp_dictionary;
+/**
   @file
   @brief Returns all files and subdirectories within a specified parent
   @details When used with getattrs=NO, is not OS specific (uses dopen / dread).

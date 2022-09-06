@@ -21,31 +21,6 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: Write VPN Files
-        run: |
-          echo "$CA_CRT" > .github/vpn/ca.crt
-          echo "$USER_CRT" > .github/vpn/user.crt
-          echo "$USER_KEY" > .github/vpn/user.key
-          echo "$TLS_KEY" > .github/vpn/tls.key
-        shell: bash
-        env:
-          CA_CRT: ${{ secrets.CA_CRT}}
-          USER_CRT: ${{ secrets.USER_CRT }}
-          USER_KEY: ${{ secrets.USER_KEY }}
-          TLS_KEY: ${{ secrets.TLS_KEY }}
-
-      - name: Install Open VPN
-        run: |
-          sudo apt install apt-transport-https
-          sudo wget https://swupdate.openvpn.net/repos/openvpn-repo-pkg-key.pub
-          sudo apt-key add openvpn-repo-pkg-key.pub
-          sudo wget -O /etc/apt/sources.list.d/openvpn3.list https://swupdate.openvpn.net/community/openvpn3/repos/openvpn3-focal.list
-          sudo apt update
-          sudo apt install openvpn3
-
-      - name: Start Open VPN 3
-        run: openvpn3 session-start --config .github/vpn/config.ovpn
-
       - name: Install Doxygen
         run: sudo apt-get install doxygen
 

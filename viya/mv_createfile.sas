@@ -24,7 +24,8 @@
   @param [in] contentdisp= (inline) Content Disposition. Example values:
     @li inline
     @li attachment
-
+  @param [in] ctype= (0) Set a default HTTP Content-Type header to be returned
+    with the file when the content is retrieved from the Files service.
   @param [in] access_token_var= The global macro variable to contain the access
     token, if using authorization_code grant type.
   @param [in] grant_type= (sas_services) Valid values are:
@@ -52,6 +53,7 @@
     ,inref=
     ,intype=BINARY
     ,contentdisp=inline
+    ,ctype=0
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
     ,mdebug=0
@@ -103,8 +105,10 @@ filename &fref filesrvc
   folderPath="&path"
   filename="&name"
   cdisp="&contentdisp"
+%if "&ctype" ne "0" %then %do;
+  ctype="&ctype"
+%end;
   lrecl=1048544;
-
 %if &intype=BINARY %then %do;
   %mp_binarycopy(inref=&inref, outref=&fref)
 %end;

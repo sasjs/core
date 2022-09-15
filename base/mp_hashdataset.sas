@@ -11,7 +11,7 @@
         put hashkey=;
       run;
 
-  ![sas md5 hash dataset log results](https://i.imgur.com/MqF98vk.png)
+  ![sas md5 hash dataset log results](https://i.4gl.io/1/KorUKoyE05.png/raw)
 
   <h4> SAS Macros </h4>
   @li mf_getattrn.sas
@@ -21,11 +21,12 @@
 
   <h4> Related Files </h4>
   @li mp_hashdataset.test.sas
+  @li mp_hashdirectory.sas
 
   @param [in] libds dataset to hash
   @param [in] salt= Provide a salt (could be, for instance, the dataset name)
-  @param [in] iftrue= A condition under which the macro should be executed.
-  @param [out] outds= (work.mf_hashdataset) The output dataset to create. This
+  @param [in] iftrue= (1=1) A condition under which the macro should be executed
+  @param [out] outds= (work._data_) The output dataset to create. This
   will contain one column (hashkey) with one observation (a $hex32.
   representation of the input hash)
   |hashkey:$32.|

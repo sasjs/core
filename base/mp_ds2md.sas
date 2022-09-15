@@ -92,7 +92,7 @@ data _null_;
 run;
 
 %if %upcase(&showlog)=YES %then %do;
-  options ps=max;
+  options ps=max lrecl=max;
   data _null_;
     infile &outref;
     input;

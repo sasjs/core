@@ -237,6 +237,7 @@ If you find this library useful, please leave a [star](https://github.com/sasjs/
 
 The following repositories are also worth checking out:
 
+* [xieliaing/SAS](https://github.com/xieliaing/SAS)
 * [SASJedi/sas-macros](https://github.com/SASJedi/sas-macros)
 * [chris-swenson/sasmacros](https://github.com/chris-swenson/sasmacros)
 * [greg-wotton/sas-programs](https://github.com/greg-wootton/sas-programs)

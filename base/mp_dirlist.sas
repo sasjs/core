@@ -27,6 +27,9 @@
   @param [in] maxdepth= (0) Set to a positive integer to indicate the level of
     subdirectory scan recursion - eg 3, to go `./3/levels/deep`.  For unlimited
     recursion, set to MAX.
+  @param [in] showparent= (NO) By default, the initial parent directory is not
+    part of the results.  Set to YES to include it.  For this record only,
+    directory=filepath.
   @param [out] outds= (work.mp_dirlist) The output dataset to create
   @param [out] getattrs= (NO)  If getattrs=YES then the doptname / foptname
     functions are used to scan all properties - any characters that are not
@@ -63,6 +66,7 @@
     , fref=0
     , outds=work.mp_dirlist
     , getattrs=NO
+    , showparent=NO
     , maxdepth=0
     , level=0 /* The level of recursion to perform.  For internal use only. */
 )/*/STORE SOURCE*/;
@@ -145,6 +149,15 @@ data &out_ds(compress=no
     output;
   end;
   rc = dclose(did);
+  %if &showparent=YES and &level=0 %then %do;
+    filepath=directory;
+    file_or_folder='folder';
+    ext='';
+    filename=scan(directory,-1,'/\');
+    msg='';
+    level=&level;
+    output;
+  %end;
   stop;
 run;
 
@@ -232,6 +245,9 @@ run;
   data _null_;
     set &out_ds;
     where file_or_folder='folder';
+  %if &showparent=YES and &level=0 %then %do;
+    if filepath ne directory;
+  %end;
     length code $10000;
     code=cats('%nrstr(%mp_dirlist(path=',filepath,",outds=&outds"
       ,",getattrs=&getattrs,level=%eval(&level+1),maxdepth=&maxdepth))");

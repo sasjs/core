@@ -9,9 +9,6 @@
 
       %put %sysfunc(hashing_file(md5,/path/to/file.blob,0));
 
-  An example of this logic being applied in JavaScript is available in the
-  @sasjs/utils library.
-
   Usage:
 
       %let fpath=/some/directory;

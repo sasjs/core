@@ -8659,7 +8659,7 @@ run;
 
       %put %sysfunc(hashing_file(md5,/path/to/file.blob,0));
 
-  Usage:
+  Actual usage:
 
       %let fpath=/some/directory;
 
@@ -8681,6 +8681,7 @@ run;
     the folder hashes cascade upwards so you know immediately if there is a
     change in a sub/sub directory
   @li If the folder has no content (empty) then it is ignored. No hash created.
+  @li If the file is empty, it is also ignored / no hash created.
 
   <h4> SAS Macros </h4>
   @li mp_dirlist.sas
@@ -8736,7 +8737,19 @@ data &outds;
 
   ts=datetime();
   if file_or_folder='file' then do;
-    file_hash=hashing_file("&method",cats(file_path),0);
+    /* if file is empty, hashing_file will break - so ignore / delete */
+    length fname val $8;
+    drop fname val fid is_empty;
+    rc=filename(fname,file_path);
+    fid=fopen(fname);
+    if fid > 0 then do;
+      rc=fread(fid);
+      is_empty=fget(fid,val);
+    end;
+    rc=fclose(fid);
+    rc=filename(fname);
+    if is_empty ne 0 then delete;
+    else file_hash=hashing_file("&method",cats(file_path),0);
   end;
   hash_duration=datetime()-ts;
 run;

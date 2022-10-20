@@ -15,9 +15,9 @@
 
       %mp_gitstatus(&dir,outds=work.gitstatus)
 
-  More info on these functions is in this [helpful paper](
-https://www.sas.com/content/dam/SAS/support/en/sas-global-forum-proceedings/2019/3057-2019.pdf
-  ) by Danny Zimmerman.
+  More info on these functions is in this [helpful paper]
+(https://www.sas.com/content/dam/SAS/support/en/sas-global-forum-proceedings/2019/3057-2019.pdf)
+  by Danny Zimmerman.
 
   @param [in] gitdir The directory containing the GIT repository
   @param [out] outds= (work.git_status) The output dataset to create.  Vars:

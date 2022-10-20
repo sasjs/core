@@ -19,3 +19,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: SAS Packages Release
+        run: |
+          sasjs compile job -s sasjs/utils/create_sas_package.sas -o sasjsbuild/makepak.sas
+          # this part depends on https://github.com/sasjs/server/issues/307
+          # sasjs run sasjsbuild/makepak.sas -t sas9
+
+

@@ -73,6 +73,10 @@
         "allowInsecureRequests": false
       },
       "appLoc": "/sasjs/core",
+      "deployConfig": {
+        "deployServicePack": true,
+        "deployScripts": []
+      },
       "macroFolders": [
         "server",
         "tests/serveronly"
@@ -105,6 +109,16 @@
         "deployServicePack": true
       },
       "contextName": "SAS Job Execution compute context"
+    },
+    {
+      "name": "sasjs9",
+      "serverUrl": "https://sas9.4gl.io",
+      "serverType": "SASJS",
+      "appLoc": "/Public/app/sasjs9",
+      "deployConfig": {
+        "deployServicePack": true,
+        "deployScripts": []
+      }
     }
   ]
 }

@@ -20,7 +20,7 @@
 %mp_gitreleaseinfo(GITHUB,sasjs/core,outlib=splib)
 data _null_;
   set splib.root;
-  call symputx('version',TAG_NAME);
+  call symputx('version',substr(TAG_NAME,2));
 run;
 
 /* clone the source repo */
@@ -36,7 +36,7 @@ options dlcreatedir;
 libname _ "&dirOut.";
 %let dirOut = %sysfunc(pathname(work))/package;
 %put tgt clone rc=%sysfunc(GITFN_CLONE(
-  git@github.com:allanbowe/sasjscore.git,
+  git@github.com:SASPAC/sasjscore.git,
   &dirOut,
   git,
   %str( ),

@@ -4,8 +4,7 @@
   @details Uses the output dataset from mp_gitstatus.sas to determine the files
   that should be staged.
 
-  If STAGED != `"TRUE"` then the file is staged (so you could provide an empty
-  char column if staging all observations).
+  If `STAGED ne "TRUE"` then the file is staged.
 
   Usage:
 

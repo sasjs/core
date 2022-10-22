@@ -2,8 +2,8 @@
   @file
   @brief Creates a dataset with the output from `GIT_STATUS()`
   @details Uses `git_status()` to fetch the number of changed files, then
-  iterates through with `git_status_get()` and `git_index_add()` for each
-  change - which is created in an output dataset.
+  iterates with `git_status_get()`, inserting all attributes into an output
+  dataset.
 
   Usage:
 

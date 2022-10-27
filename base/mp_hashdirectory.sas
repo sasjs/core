@@ -5,7 +5,7 @@
   create a hash for each directory also.
 
   This makes use of the new `hashing_file()` and `hashing` functions, available
-  since 9.4m6. Interestingly, these can even be used in pure macro, eg:
+  since 9.4m6. Interestingly, those functions can be used in pure macro, eg:
 
       %put %sysfunc(hashing_file(md5,/path/to/file.blob,0));
 
@@ -30,8 +30,9 @@
   @li If a folder contains other folders, start from the bottom of the tree -
     the folder hashes cascade upwards so you know immediately if there is a
     change in a sub/sub directory
-  @li If the folder has no content (empty) then it is ignored. No hash created.
+  @li If a subfolder has no content (empty) then it is ignored. No hash created.
   @li If the file is empty, it is also ignored / no hash created.
+  @li If the target directory (&inloc) is empty, &outds will also be empty
 
   <h4> SAS Macros </h4>
   @li mp_dirlist.sas
@@ -72,7 +73,7 @@
   iftrue=%str(1=1)
 )/*/STORE SOURCE*/;
 
-%local curlevel tempds ;
+%local curlevel tempds maxlevel;
 
 %if not(%eval(%unquote(&iftrue))) %then %return;
 
@@ -108,6 +109,7 @@ proc sort data=&outds ;
   by descending level directory file_path;
 run;
 
+%let maxlevel=0;
 data _null_;
   set &outds;
   call symputx('maxlevel',level,'l');

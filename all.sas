@@ -4608,8 +4608,7 @@ data &out_ds(compress=no
     if did=0 then do;
       putlog "NOTE: This directory is empty, or does not exist - &path";
       msg=sysmsg();
-      put msg;
-      put _all_;
+      put (_all_)(=);
       stop;
     end;
     /* attribute is OS-dependent - could be "Directory" or "Directory Name" */
@@ -8170,6 +8169,51 @@ create table &outds as
 %mend mp_getpk;
 /**
   @file
+  @brief Stages files in a GIT repo
+  @details Uses the output dataset from mp_gitstatus.sas to determine the files
+  that should be staged.
+
+  If `STAGED ne "TRUE"` then the file is staged.
+
+  Usage:
+
+      %let dir=%sysfunc(pathname(work))/core;
+      %let repo=https://github.com/sasjs/core;
+      %put source clone rc=%sysfunc(GITFN_CLONE(&repo,&dir));
+      %mf_writefile(&dir/somefile.txt,l1=some content)
+      %mf_deletefile(&dir/package.json)
+      %mp_gitstatus(&dir,outds=work.gitstatus)
+
+      %mp_gitadd(&dir,inds=work.gitstatus)
+
+  @param [in] gitdir The directory containing the GIT repository
+  @param [in] inds= (work.mp_gitadd) The input dataset with the list of files
+  to stage.  Will accept the output from mp_gitstatus(), else just use a table
+  with the following columns:
+    @li path $1024 - relative path to the file in the repo
+    @li staged $32 - whether the file is staged (TRUE or FALSE)
+    @li status $64 - either new, deleted, or modified
+
+  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
+
+  <h4> Related Files </h4>
+  @li mp_gitadd.test.sas
+  @li mp_gitstatus.sas
+
+**/
+
+%macro mp_gitadd(gitdir,inds=work.mp_gitadd,mdebug=0);
+
+data _null_;
+  set &inds;
+  if STAGED ne "TRUE";
+  rc=git_index_add("&gitdir",cats(path),status);
+  if rc ne 0 or &mdebug=1 then put rc=;
+run;
+
+%mend mp_gitadd;
+/**
+  @file
   @brief Pulls latest release info from a GIT repository
   @details Useful for grabbing the latest version number or other attributes
   from a GIT server.  Supported providers are GitLab and GitHub. Pull requests
@@ -8242,6 +8286,73 @@ libname &outlib JSON fileref=&fref;
 %end;
 
 %mend mp_gitreleaseinfo;
+/**
+  @file
+  @brief Creates a dataset with the output from `GIT_STATUS()`
+  @details Uses `git_status()` to fetch the number of changed files, then
+  iterates with `git_status_get()`, inserting all attributes into an output
+  dataset.
+
+  Usage:
+
+      %let dir=%sysfunc(pathname(work))/core;
+      %let repo=https://github.com/sasjs/core;
+      %put source clone rc=%sysfunc(GITFN_CLONE(&repo,&dir));
+      %mf_writefile(&dir/somefile.txt,l1=some content)
+      %mf_deletefile(&dir/package.json)
+
+      %mp_gitstatus(&dir,outds=work.gitstatus)
+
+  More info on these functions is in this [helpful paper]
+(https://www.sas.com/content/dam/SAS/support/en/sas-global-forum-proceedings/2019/3057-2019.pdf)
+  by Danny Zimmerman.
+
+  @param [in] gitdir The directory containing the GIT repository
+  @param [out] outds= (work.git_status) The output dataset to create.  Vars:
+    @li gitdir $1024 - directory of repo
+    @li path $1024 - relative path to the file in the repo
+    @li staged $32 - whether the file is staged (TRUE or FALSE)
+    @li status $64 - either new, deleted, or modified
+    @li cnt - number of files
+    @li n - the "nth" file in the list from git_status()
+
+  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
+
+  <h4> Related Files </h4>
+  @li mp_gitstatus.test.sas
+  @li mp_gitadd.sas
+
+**/
+
+%macro mp_gitstatus(gitdir,outds=work.mp_gitstatus,mdebug=0);
+
+data &outds;
+  LENGTH gitdir path $ 1024 STATUS $ 64 STAGED $ 32;
+  call missing (of _all_);
+  gitdir=symget('gitdir');
+  cnt=git_status(trim(gitdir));
+  if cnt=-1 then do;
+    put "The libgit2 library is unavailable and no Git operations can be used.";
+    put "See: https://stackoverflow.com/questions/74082874";
+  end;
+  else if cnt=-2 then do;
+    put "The libgit2 library is available, but the status function failed.";
+    put "See the log for details.";
+  end;
+  else do n=1 to cnt;
+    rc=GIT_STATUS_GET(n,gitdir,'PATH',path);
+    rc=GIT_STATUS_GET(n,gitdir,'STAGED',staged);
+    rc=GIT_STATUS_GET(n,gitdir,'STATUS',status);
+    output;
+  %if &mdebug=1 %then %do;
+    putlog (_all_)(=);
+  %end;
+  end;
+  rc=git_status_free(gitdir);
+  drop rc cnt;
+run;
+
+%mend mp_gitstatus;
 /**
   @file
   @brief Performs a text substitution on a file
@@ -8729,7 +8840,7 @@ run;
   create a hash for each directory also.
 
   This makes use of the new `hashing_file()` and `hashing` functions, available
-  since 9.4m6. Interestingly, these can even be used in pure macro, eg:
+  since 9.4m6. Interestingly, those functions can be used in pure macro, eg:
 
       %put %sysfunc(hashing_file(md5,/path/to/file.blob,0));
 
@@ -8754,8 +8865,9 @@ run;
   @li If a folder contains other folders, start from the bottom of the tree -
     the folder hashes cascade upwards so you know immediately if there is a
     change in a sub/sub directory
-  @li If the folder has no content (empty) then it is ignored. No hash created.
+  @li If a subfolder has no content (empty) then it is ignored. No hash created.
   @li If the file is empty, it is also ignored / no hash created.
+  @li If the target directory (&inloc) is empty, &outds will also be empty
 
   <h4> SAS Macros </h4>
   @li mp_dirlist.sas
@@ -8796,7 +8908,7 @@ run;
   iftrue=%str(1=1)
 )/*/STORE SOURCE*/;
 
-%local curlevel tempds ;
+%local curlevel tempds maxlevel;
 
 %if not(%eval(%unquote(&iftrue))) %then %return;
 
@@ -8832,6 +8944,7 @@ proc sort data=&outds ;
   by descending level directory file_path;
 run;
 
+%let maxlevel=0;
 data _null_;
   set &outds;
   call symputx('maxlevel',level,'l');

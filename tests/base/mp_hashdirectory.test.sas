@@ -131,3 +131,19 @@ data _null_;
   set work.hashes2;
   put file_hash file_path;
 run;
+
+/* check that it works when the target directory is missing */
+
+%mp_hashdirectory(&fpath/doesnotexist,outds=work.hashes3,maxdepth=MAX)
+
+%mp_assert(
+  iftrue=(&syscc=0),
+  desc=No errors when directory is missing,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=(%mf_nobs(work.hashes3)=0),
+  desc=no records created when directory is missing,
+  outds=work.test_results
+)

@@ -101,8 +101,7 @@ data &out_ds(compress=no
     if did=0 then do;
       putlog "NOTE: This directory is empty, or does not exist - &path";
       msg=sysmsg();
-      put msg;
-      put _all_;
+      put (_all_)(=);
       stop;
     end;
     /* attribute is OS-dependent - could be "Directory" or "Directory Name" */

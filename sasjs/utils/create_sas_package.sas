@@ -27,14 +27,14 @@ run;
 %let dir = %sysfunc(pathname(work))/core;
 %put source clone rc=%sysfunc(GITFN_CLONE(https://github.com/sasjs/core,&dir));
 
-
 /*
   clone the target repo.
   If you have issues, see: https://stackoverflow.com/questions/74082874
 */
 options dlcreatedir;
-libname _ "&dirOut.";
 %let dirOut = %sysfunc(pathname(work))/package;
+libname _ "&dirOut.";
+
 %put tgt clone rc=%sysfunc(GITFN_CLONE(
   git@github.com:SASPAC/sasjscore.git,
   &dirOut,

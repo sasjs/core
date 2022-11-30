@@ -4,7 +4,9 @@
 
   <h4> SAS Macros </h4>
   @li mf_readfile.sas
+  @li mf_writefile.sas
   @li mp_assert.sas
+  @li mp_assertscope.sas
 
 **/
 
@@ -22,8 +24,17 @@ run;
   desc=Check code ran without errors,
   outds=work.test_results
 )
+
+/* test for scope leakage */
+%global result;
+%mp_assertscope(SNAPSHOT)
+%put %mf_readfile(&f);
+%mp_assertscope(COMPARE)
+
+/* test result */
 %mp_assert(
-  iftrue=(&f=some content),
+  iftrue=(%mf_readfile(&f)=some content),
   desc=Checking first line was ingested successfully,
   outds=work.test_results
 )
+

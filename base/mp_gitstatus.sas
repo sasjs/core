@@ -60,7 +60,7 @@ data &outds;
     putlog (_all_)(=);
   %end;
   end;
-  rc=git_status_free(gitdir);
+  rc=git_status_free(trim(gitdir));
   drop rc cnt;
 run;
 

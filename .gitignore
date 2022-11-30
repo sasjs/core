@@ -11,3 +11,5 @@ mc_*
 
 # ignore .env files as they can contain sasjs access tokens
 *.env*
+
+~

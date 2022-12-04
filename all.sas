@@ -8352,6 +8352,8 @@ https://documentation.sas.com/doc/ko/pgmsascdc/v_033/lefunctionsref/n1qo5miyvry1
     @li commit_time_str the commit_time_num variable cast as string
 
   @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
+  @param [in] nobs= (0) Set to an integer greater than 0 to restrict the number
+  of rows returned
 
   <h4> SAS Macros </h4>
   @li mf_getgitbranch.sas
@@ -8363,7 +8365,7 @@ https://documentation.sas.com/doc/ko/pgmsascdc/v_033/lefunctionsref/n1qo5miyvry1
 
 **/
 
-%macro mp_gitlog(gitdir,outds=work.mp_gitlog,mdebug=0,filter=BRANCHONLY);
+%macro mp_gitlog(gitdir,outds=work.mp_gitlog,mdebug=0,filter=BRANCHONLY,nobs=0);
 
 %local varlist i var;
 %let varlist=author children_ids committer committer_email email id
@@ -8405,6 +8407,9 @@ data &outds;
       if cats(in_current_branch)='TRUE' then output;
     end;
     else output;
+  %if &nobs>0 %then %do;
+    if n ge &nobs then stop;
+  %end;
   end;
   rc=git_commit_free(trim(gitdir));
   keep gitdir branch &varlist message time commit_time_num commit_time_str;

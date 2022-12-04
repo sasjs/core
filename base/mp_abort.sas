@@ -225,15 +225,51 @@ and %superq(SYSPROCESSNAME) ne %str(Compute Server)
     _PROGRAM=quote(trim(resolve(symget('_PROGRAM'))));
     put ',"_PROGRAM" : ' _PROGRAM ;
     put ",""SYSCC"" : ""&syscc"" ";
-    syserrortext=cats('"',tranwrd(symget('syserrortext'),'"','\"'),'"');
-    put ",""SYSERRORTEXT"" : " syserrortext;
+    syserrortext=cats(symget('syserrortext'));
+    if findc(syserrortext,'"\'!!'0A0D09000E0F010210111A'x) then do;
+      syserrortext='"'!!trim(
+        prxchange('s/"/\\"/',-1,        /* double quote */
+        prxchange('s/\x0A/\n/',-1,      /* new line */
+        prxchange('s/\x0D/\r/',-1,      /* carriage return */
+        prxchange('s/\x09/\\t/',-1,     /* tab */
+        prxchange('s/\x00/\\u0000/',-1, /* NUL */
+        prxchange('s/\x0E/\\u000E/',-1, /* SS  */
+        prxchange('s/\x0F/\\u000F/',-1, /* SF  */
+        prxchange('s/\x01/\\u0001/',-1, /* SOH */
+        prxchange('s/\x02/\\u0002/',-1, /* STX */
+        prxchange('s/\x10/\\u0010/',-1, /* DLE */
+        prxchange('s/\x11/\\u0011/',-1, /* DC1 */
+        prxchange('s/\x1A/\\u001A/',-1, /* SUB */
+        prxchange('s/\\/\\\\/',-1,syserrortext)
+      )))))))))))))!!'"';
+    end;
+    else syserrortext=cats('"',syserrortext,'"');
+    put ',"SYSERRORTEXT" : ' syserrortext;
     put ",""SYSHOSTNAME"" : ""&syshostname"" ";
     put ",""SYSJOBID"" : ""&sysjobid"" ";
     put ",""SYSSCPL"" : ""&sysscpl"" ";
     put ",""SYSSITE"" : ""&syssite"" ";
     sysvlong=quote(trim(symget('sysvlong')));
     put ',"SYSVLONG" : ' sysvlong;
-    syswarningtext=cats('"',tranwrd(symget('syswarningtext'),'"','\"'),'"');
+    syswarningtext=cats(symget('syswarningtext'));
+    if findc(syswarningtext,'"\'!!'0A0D09000E0F010210111A'x) then do;
+      syswarningtext='"'!!trim(
+        prxchange('s/"/\\"/',-1,        /* double quote */
+        prxchange('s/\x0A/\n/',-1,      /* new line */
+        prxchange('s/\x0D/\r/',-1,      /* carriage return */
+        prxchange('s/\x09/\\t/',-1,     /* tab */
+        prxchange('s/\x00/\\u0000/',-1, /* NUL */
+        prxchange('s/\x0E/\\u000E/',-1, /* SS  */
+        prxchange('s/\x0F/\\u000F/',-1, /* SF  */
+        prxchange('s/\x01/\\u0001/',-1, /* SOH */
+        prxchange('s/\x02/\\u0002/',-1, /* STX */
+        prxchange('s/\x10/\\u0010/',-1, /* DLE */
+        prxchange('s/\x11/\\u0011/',-1, /* DC1 */
+        prxchange('s/\x1A/\\u001A/',-1, /* SUB */
+        prxchange('s/\\/\\\\/',-1,syswarningtext)
+      )))))))))))))!!'"';
+    end;
+    else syswarningtext=cats('"',syswarningtext,'"');
     put ",""SYSWARNINGTEXT"" : " syswarningtext;
     put ',"END_DTTM" : "' "%sysfunc(datetime(),E8601DT26.6)" '" ';
     put "}" ;

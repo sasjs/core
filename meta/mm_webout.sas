@@ -193,6 +193,7 @@
         prxchange('s/\\/\\\\/',-1,syserrortext)
       )))))))))))))!!'"';
     end;
+    else syserrortext=cats('"',syserrortext,'"');
     put ',"SYSERRORTEXT" : ' syserrortext;
     put ",""SYSHOSTNAME"" : ""&syshostname"" ";
     put ",""SYSPROCESSID"" : ""&SYSPROCESSID"" ";
@@ -223,6 +224,7 @@
         prxchange('s/\\/\\\\/',-1,syswarningtext)
       )))))))))))))!!'"';
     end;
+    else syswarningtext=cats('"',syswarningtext,'"');
     put ',"SYSWARNINGTEXT" : ' syswarningtext;
     put ',"END_DTTM" : "' "%sysfunc(datetime(),E8601DT26.6)" '" ';
     length memsize $32;

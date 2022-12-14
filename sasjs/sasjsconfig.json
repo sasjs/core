@@ -85,7 +85,7 @@
     {
       "name": "docsonly",
       "serverType": "SASJS",
-      "appLoc": "dummy",
+      "appLoc": "/dummy",
       "macroFolders": [
         "meta",
         "metax",

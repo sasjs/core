@@ -141,7 +141,7 @@
         put " ""&wt"" : {";
         put '"nlobs":' nlobs;
         put ',"nvars":' nvars;
-      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=Y,maxobs=10
+      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=Y
         ,maxobs=&workobs
       )
       data _null_; file &fref mod encoding='utf-8' termstr=lf;

@@ -6,5 +6,7 @@
   "editor.rulers": [
     80
   ],
-  "files.trimTrailingWhitespace": true
+  "files.trimTrailingWhitespace": true,
+  "sasjs-for-vscode.target": "docsonly",
+  "sasjs-for-vscode.isLocal": true
 }

@@ -1,13 +1,13 @@
 {
-    "noTrailingSpaces": true,
-    "noEncodedPasswords": true,
-    "hasDoxygenHeader": true,
-    "hasMacroNameInMend": true,
-    "hasMacroParentheses": true,
-    "noNestedMacros": false,
-    "noSpacesInFileNames": true,
-    "maxLineLength": 300,
-    "lowerCaseFileNames": true,
-    "noTabIndentation": true,
-    "indentationMultiple": 2
+  "noTrailingSpaces": true,
+  "noEncodedPasswords": true,
+  "hasDoxygenHeader": true,
+  "hasMacroNameInMend": true,
+  "hasMacroParentheses": true,
+  "noNestedMacros": false,
+  "noSpacesInFileNames": true,
+  "maxLineLength": 300,
+  "lowerCaseFileNames": true,
+  "noTabs": true,
+  "indentationMultiple": 2
 }

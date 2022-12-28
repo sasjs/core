@@ -539,7 +539,7 @@ data _null_;
   put '        put " ""&wt"" : {"; ';
   put '        put ''"nlobs":'' nlobs; ';
   put '        put '',"nvars":'' nvars; ';
-  put '      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=Y,maxobs=10 ';
+  put '      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=Y ';
   put '        ,maxobs=&workobs ';
   put '      ) ';
   put '      data _null_; file &fref mod encoding=''utf-8'' termstr=lf; ';

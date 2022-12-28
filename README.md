@@ -2,8 +2,6 @@
 [![npm package][npm-image]][npm-url]
 [![Github Workflow][githubworkflow-image]][githubworkflow-url]
 ![npm](https://img.shields.io/npm/dt/@sasjs/core)
-![Snyk Vulnerabilities for npm package](https://img.shields.io/snyk/vulnerabilities/npm/@sasjs/core)
-[![License](https://img.shields.io/apm/l/atomic-design-ui.svg)](/LICENSE)
 ![GitHub top language](https://img.shields.io/github/languages/top/sasjs/core)
 [![GitHub closed issues](https://img.shields.io/github/issues-closed-raw/sasjs/core)](https://github.com/sasjs/core/issues?q=is%3Aissue+is%3Aclosed)
 [![GitHub issues](https://img.shields.io/github/issues-raw/sasjs/core)](https://github.com/sasjs/core/issues)

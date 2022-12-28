@@ -22,7 +22,7 @@
   @param [in] uid= (0) Provide the userid on which to filter
   @param [out] outds= (work.ms_getgroups) This output dataset will contain the
     list of groups. Format:
-|NAME:$32.|DESCRIPTION:$64.|GROUPID:best.|
+|NAME:$32.|DESCRIPTION:$256.|GROUPID:best.|
 |---|---|---|
 |`SomeGroup `|`A group `|`1`|
 |`Another Group`|`this is a different group`|`2`|
@@ -58,7 +58,7 @@
 %if %sysget(MODE)=desktop %then %do;
   /* groups api does not exist in desktop mode */
   data &outds;
-    length NAME $32 DESCRIPTION $64. GROUPID 8;
+    length NAME $32 DESCRIPTION $256. GROUPID 8;
     name="&sysuserid";
     description="&sysuserid (group - desktop mode)";
     groupid=1;
@@ -114,7 +114,7 @@ libname &libref JSON fileref=&fref1;
 
 %if "&user"="0" and "&uid"="0" %then %do;
   data &outds;
-    length NAME $32 DESCRIPTION $64. GROUPID 8;
+    length NAME $32 DESCRIPTION $256. GROUPID 8;
     if _n_=1 then call missing(of _all_);
     set &libref..root;
     drop ordinal_root;
@@ -122,7 +122,7 @@ libname &libref JSON fileref=&fref1;
 %end;
 %else %do;
   data &outds;
-    length NAME $32 DESCRIPTION $64. GROUPID 8;
+    length NAME $32 DESCRIPTION $256. GROUPID 8;
     if _n_=1 then call missing(of _all_);
     set &libref..groups;
     drop ordinal_:;

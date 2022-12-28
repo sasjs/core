@@ -247,7 +247,8 @@ options noquotelenmax;
     0
   %end;
 
-%mend mf_existfileref;/**
+%mend mf_existfileref;
+/**
   @file
   @brief Checks if a function exists
   @details Returns 1 if the function exists, else 0.  Note that this function
@@ -16439,7 +16440,7 @@ data _null_;
   put '        put " ""&wt"" : {"; ';
   put '        put ''"nlobs":'' nlobs; ';
   put '        put '',"nvars":'' nvars; ';
-  put '      %mp_jsonout(OBJ,&wt,jref=_sjsref,dslabel=first10rows,showmeta=Y,maxobs=10 ';
+  put '      %mp_jsonout(OBJ,&wt,jref=_sjsref,dslabel=first10rows,showmeta=Y ';
   put '        ,maxobs=&workobs ';
   put '      ) ';
   put '      data _null_; file _sjsref mod encoding=''utf-8''; ';
@@ -20121,7 +20122,7 @@ run;
         put " ""&wt"" : {";
         put '"nlobs":' nlobs;
         put ',"nvars":' nvars;
-      %mp_jsonout(OBJ,&wt,jref=_sjsref,dslabel=first10rows,showmeta=Y,maxobs=10
+      %mp_jsonout(OBJ,&wt,jref=_sjsref,dslabel=first10rows,showmeta=Y
         ,maxobs=&workobs
       )
       data _null_; file _sjsref mod encoding='utf-8';
@@ -21525,7 +21526,7 @@ data _null_;
   put '        put " ""&wt"" : {"; ';
   put '        put ''"nlobs":'' nlobs; ';
   put '        put '',"nvars":'' nvars; ';
-  put '      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=Y,maxobs=10 ';
+  put '      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=Y ';
   put '        ,maxobs=&workobs ';
   put '      ) ';
   put '      data _null_; file &fref mod encoding=''utf-8'' termstr=lf; ';
@@ -21792,7 +21793,7 @@ filename &headref clear;
   @param [in] uid= (0) Provide the userid on which to filter
   @param [out] outds= (work.ms_getgroups) This output dataset will contain the
     list of groups. Format:
-|NAME:$32.|DESCRIPTION:$64.|GROUPID:best.|
+|NAME:$32.|DESCRIPTION:$256.|GROUPID:best.|
 |---|---|---|
 |`SomeGroup `|`A group `|`1`|
 |`Another Group`|`this is a different group`|`2`|
@@ -21828,7 +21829,7 @@ filename &headref clear;
 %if %sysget(MODE)=desktop %then %do;
   /* groups api does not exist in desktop mode */
   data &outds;
-    length NAME $32 DESCRIPTION $64. GROUPID 8;
+    length NAME $32 DESCRIPTION $256. GROUPID 8;
     name="&sysuserid";
     description="&sysuserid (group - desktop mode)";
     groupid=1;
@@ -21884,7 +21885,7 @@ libname &libref JSON fileref=&fref1;
 
 %if "&user"="0" and "&uid"="0" %then %do;
   data &outds;
-    length NAME $32 DESCRIPTION $64. GROUPID 8;
+    length NAME $32 DESCRIPTION $256. GROUPID 8;
     if _n_=1 then call missing(of _all_);
     set &libref..root;
     drop ordinal_root;
@@ -21892,7 +21893,7 @@ libname &libref JSON fileref=&fref1;
 %end;
 %else %do;
   data &outds;
-    length NAME $32 DESCRIPTION $64. GROUPID 8;
+    length NAME $32 DESCRIPTION $256. GROUPID 8;
     if _n_=1 then call missing(of _all_);
     set &libref..groups;
     drop ordinal_:;
@@ -22558,7 +22559,7 @@ run;
         put " ""&wt"" : {";
         put '"nlobs":' nlobs;
         put ',"nvars":' nvars;
-      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=Y,maxobs=10
+      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=Y
         ,maxobs=&workobs
       )
       data _null_; file &fref mod encoding='utf-8' termstr=lf;

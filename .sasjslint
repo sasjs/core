@@ -4,6 +4,7 @@
   "hasDoxygenHeader": true,
   "hasMacroNameInMend": true,
   "hasMacroParentheses": true,
+  "noGremlins": true,
   "noNestedMacros": false,
   "noSpacesInFileNames": true,
   "maxLineLength": 300,

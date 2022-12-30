@@ -1,10 +1,9 @@
 /**
-
   @file
   @brief Testing mv_registerclient.sas macro
   @details Tests for unsuccessful registration.  To do this, overrides are
   applied for the mf_loc.sas and mp_abort.sas macros.
-​
+
   <h4> SAS Macros </h4>
   @li mp_assert.sas
   @li mv_registerclient.sas

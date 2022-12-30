@@ -4,7 +4,7 @@
   @brief Testing mv_registerclient.sas macro
   @details Tests for successful registration.  For this to work, the test
   account must be an admin.
-​
+
   <h4> SAS Macros </h4>
   @li mf_getuniquename.sas
   @li mp_assertcolvals.sas

@@ -12,7 +12,7 @@
 **/
 
 %macro mf_abort(mac=mf_abort.sas, msg=, iftrue=%str(1=1)
-)/*/STORE SOURCE*/;
+)/des='ungraceful abort' /*STORE SOURCE*/;
 
   %if not(%eval(%unquote(&iftrue))) %then %return;
 

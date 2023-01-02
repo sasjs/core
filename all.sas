@@ -30,7 +30,7 @@ options noquotelenmax;
 **/
 
 %macro mf_abort(mac=mf_abort.sas, msg=, iftrue=%str(1=1)
-)/*/STORE SOURCE*/;
+)/des='ungraceful abort' /*STORE SOURCE*/;
 
   %if not(%eval(%unquote(&iftrue))) %then %return;
 
@@ -42,7 +42,8 @@ options noquotelenmax;
 
 %mend mf_abort;
 
-/** @endcond *//**
+/** @endcond */
+/**
   @file
   @brief de-duplicates a macro string
   @details Removes all duplicates from a string of words.  A delimeter can be

@@ -39,8 +39,9 @@
 
   <h4> SAS Macros </h4>
   @li mf_getuniquefileref.sas
-  @li mf_getuniquelibref.sas
+  @li mf_getuniquename.sas
   @li mp_abort.sas
+  @li mp_chop.sas
 
 **/
 
@@ -153,7 +154,10 @@ run;
   run;
 %end;
 
-filename &outref temp lrecl=32767;
+%local resp_path;
+%let resp_path=%sysfunc(pathname(work))/%mf_getuniquename();
+filename &outref "&resp_path" lrecl=32767;
+
 /* prepare request*/
 proc http method='POST' headerin=&authref in=&mainref out=&outref
   url="&_sasjs_apiserverurl.&_sasjs_apipath?_program=&pgm%str(&)_debug=131";
@@ -161,6 +165,7 @@ proc http method='POST' headerin=&authref in=&mainref out=&outref
   debug level=2;
 %end;
 run;
+
 %if (&SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201)
 or &mdebug=1
 %then %do;
@@ -176,11 +181,22 @@ or &mdebug=1
 options &optval;
 
 %if &outlogds ne _null_ or &mdebug=1 %then %do;
-  %local dumplib;
-  %let dumplib=%mf_getuniquelibref();
-  libname &dumplib json fileref=&outref;
+  %local matchstr chopout;
+  %let matchstr=SASJS_LOGS_SEPARATOR_163ee17b6ff24f028928972d80a26784;
+  %let chopout=%sysfunc(pathname(work))/%mf_getuniquename(prefix=chop);
+
+  %mp_chop("&resp_path"
+    ,matchvar=matchstr
+    ,keep=LAST
+    ,matchpoint=END
+    ,outfile="&chopout"
+    ,mdebug=&mdebug
+  )
+
   data &outlogds;
-    set &dumplib..log;
+    infile "&chopout" lrecl=2000;
+    length line $2000;
+    line=_infile_;
   %if &mdebug=1 %then %do;
     putlog line=;
   %end;

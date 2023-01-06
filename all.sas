@@ -22106,8 +22106,9 @@ options &optval;
 
   <h4> SAS Macros </h4>
   @li mf_getuniquefileref.sas
-  @li mf_getuniquelibref.sas
+  @li mf_getuniquename.sas
   @li mp_abort.sas
+  @li mp_chop.sas
 
 **/
 
@@ -22220,7 +22221,10 @@ run;
   run;
 %end;
 
-filename &outref temp lrecl=32767;
+%local resp_path;
+%let resp_path=%sysfunc(pathname(work))/%mf_getuniquename();
+filename &outref "&resp_path" lrecl=32767;
+
 /* prepare request*/
 proc http method='POST' headerin=&authref in=&mainref out=&outref
   url="&_sasjs_apiserverurl.&_sasjs_apipath?_program=&pgm%str(&)_debug=131";
@@ -22228,6 +22232,7 @@ proc http method='POST' headerin=&authref in=&mainref out=&outref
   debug level=2;
 %end;
 run;
+
 %if (&SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201)
 or &mdebug=1
 %then %do;
@@ -22243,11 +22248,22 @@ or &mdebug=1
 options &optval;
 
 %if &outlogds ne _null_ or &mdebug=1 %then %do;
-  %local dumplib;
-  %let dumplib=%mf_getuniquelibref();
-  libname &dumplib json fileref=&outref;
+  %local matchstr chopout;
+  %let matchstr=SASJS_LOGS_SEPARATOR_163ee17b6ff24f028928972d80a26784;
+  %let chopout=%sysfunc(pathname(work))/%mf_getuniquename(prefix=chop);
+
+  %mp_chop("&resp_path"
+    ,matchvar=matchstr
+    ,keep=LAST
+    ,matchpoint=END
+    ,outfile="&chopout"
+    ,mdebug=&mdebug
+  )
+
   data &outlogds;
-    set &dumplib..log;
+    infile "&chopout" lrecl=2000;
+    length line $2000;
+    line=_infile_;
   %if &mdebug=1 %then %do;
     putlog line=;
   %end;
@@ -22374,50 +22390,38 @@ run;
 )
 
 
-/* SASjs services have the _webout embedded in wrapper JSON */
-/* Files can also be very large - so use a dedicated macro to chop it out */
-%local matchstr1 matchstr2 ;
-%let matchstr1={"status":"success","_webout":{;
-%let matchstr2=},"log":[{;
-%let chopout1=%sysfunc(pathname(work))/%mf_getuniquename(prefix=chop1);
-%let chopout2=%sysfunc(pathname(work))/%mf_getuniquename(prefix=chop2);
+/* chop out JSON section */
+%local matchstr chopout;
+%let matchstr=SASJS_LOGS_SEPARATOR_163ee17b6ff24f028928972d80a26784;
+%let chopout=%sysfunc(pathname(work))/%mf_getuniquename(prefix=chop);
 
 %mp_chop("%sysfunc(pathname(&fref1,F))"
-  ,matchvar=matchstr1
-  ,keep=LAST
-  ,matchpoint=END
-  ,offset=-1
-  ,outfile="&chopout1"
-  ,mdebug=&mdebug
-)
-
-%mp_chop("&chopout1"
-  ,matchvar=matchstr2
+  ,matchvar=matchstr
   ,keep=FIRST
   ,matchpoint=START
-  ,offset=1
-  ,outfile="&chopout2"
+  ,offset=-1
+  ,outfile="&chopout"
   ,mdebug=&mdebug
 )
 
 %if &outlib ne 0 %then %do;
-  libname &outlib json "&chopout2";
+  libname &outlib json "&chopout";
 %end;
 %if &outref ne 0 %then %do;
-  filename &outref "&chopout2";
+  filename &outref "&chopout";
 %end;
 
 %if &mdebug=0 %then %do;
   filename &webref clear;
   filename &fref1 clear;
-  filename &fref2 clear;
 %end;
 %else %do;
   %put &sysmacroname exit vars:;
   %put _local_;
 %end;
 
-%mend ms_testservice;/**
+%mend ms_testservice;
+/**
   @file
   @brief Send data to/from sasjs/server
   @details This macro should be added to the start of each web service,

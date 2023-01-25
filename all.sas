@@ -14061,7 +14061,8 @@ run;
 filename __us2grp temp;
 
 proc metadata in= "<UpdateMetadata><Reposid>$METAREPOSITORY</Reposid><Metadata>
-    <Person Id='&uuri'><IdentityGroups><IdentityGroup ObjRef='&guri' />
+    <Person Id='%nrstr(&uuri)'>
+    <IdentityGroups><IdentityGroup ObjRef='%nrstr(&guri)' />
     </IdentityGroups></Person></Metadata>
     <NS>SAS</NS><Flags>268435456</Flags></UpdateMetadata>"
   out=__us2grp verbose;
@@ -14078,7 +14079,8 @@ run;
 
 filename __us2grp clear;
 
-%mend mm_adduser2group;/**
+%mend mm_adduser2group;
+/**
   @file
   @brief Assigns library directly using details from metadata
   @details Queries metadata to get the libname definition then allocates the

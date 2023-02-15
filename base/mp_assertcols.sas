@@ -41,7 +41,7 @@
   results.  If it does not exist, it will be created, with the following format:
   |TEST_DESCRIPTION:$256|TEST_RESULT:$4|TEST_COMMENTS:$256|
   |---|---|---|
-  |User Provided description|PASS|Column &inds contained ALL columns|
+  |User Provided description|PASS|Dataset &inds contained ALL columns|
 
 
   <h4> Related Macros </h4>

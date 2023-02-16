@@ -2914,7 +2914,7 @@ run;
   results.  If it does not exist, it will be created, with the following format:
   |TEST_DESCRIPTION:$256|TEST_RESULT:$4|TEST_COMMENTS:$256|
   |---|---|---|
-  |User Provided description|PASS|Column &inds contained ALL columns|
+  |User Provided description|PASS|Dataset &inds contained ALL columns|
 
   @version 9.2
   @author Allan Bowe
@@ -2988,7 +2988,7 @@ run;
   results.  If it does not exist, it will be created, with the following format:
   |TEST_DESCRIPTION:$256|TEST_RESULT:$4|TEST_COMMENTS:$256|
   |---|---|---|
-  |User Provided description|PASS|Column &inds contained ALL columns|
+  |User Provided description|PASS|Dataset &inds contained ALL columns|
 
 
   <h4> Related Macros </h4>
@@ -10484,7 +10484,10 @@ run;
     where LOCK_LIB ="&lib" and LOCK_DS="&ds";
   quit;
   %if &syscc>0 %then %put syscc=&syscc sqlrc=&sqlrc;
-  %if &status=LOCKED %then %do;
+  %if &sqlobs=0 %then %do;
+    %put %str(WAR)NING: &lib..&ds has never been locked!;
+  %end;
+  %else %if &status=LOCKED %then %do;
     data _null_;
       putlog "&sysmacroname: unlocking &lib..&ds:";
     run;

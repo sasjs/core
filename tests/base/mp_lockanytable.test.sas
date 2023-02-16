@@ -4,8 +4,10 @@
 
   <h4> SAS Macros </h4>
   @li mp_lockanytable.sas
+  @li mp_assert.sas
   @li mp_assertcols.sas
   @li mp_assertcolvals.sas
+  @li mp_assertscope.sas
   @li mp_coretable.sas
 
 **/
@@ -61,3 +63,18 @@ run;
   desc=Ref is captured in unlock,
   test=ANYVAL
 )
+
+/* attempt unlock of a table that was never locked */
+
+%mp_lockanytable(UNLOCK,lib=no,ds=doesnotexist,ref=bye, ctl_ds=work.controller)
+
+%mp_assert(
+  iftrue=(&syscc=0),
+  desc=Ability to unlock a table that was never locked,
+  outds=work.test_results
+)
+
+/* test for macro variable scope leakage */
+%mp_assertscope(SNAPSHOT)
+%mp_lockanytable(LOCK,lib=tmp,ds=testscope,ref=This Ref, ctl_ds=work.controller)
+%mp_assertscope(COMPARE)

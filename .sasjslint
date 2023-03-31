@@ -4,6 +4,7 @@
   "hasDoxygenHeader": true,
   "hasMacroNameInMend": true,
   "hasMacroParentheses": true,
+  "lineEndings": "lf",
   "noGremlins": true,
   "noNestedMacros": false,
   "noSpacesInFileNames": true,

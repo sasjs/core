@@ -167,7 +167,7 @@ run;
         data _null_;
           putlog 'NOTE-' / 'NOTE-';
           putlog "NOTE- &sysmacroname: table locked, waiting "@;
-          putlog "%sysfunc(sleep(&loop_inc)) seconds.. ";
+          putlog "%sysfunc(sleep(&loop_secs)) seconds.. ";
           putlog "NOTE- (iteration &x of &loops)";
           putlog 'NOTE-' / 'NOTE-';
         run;

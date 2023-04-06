@@ -54,16 +54,10 @@ jobs:
         run: npm run lint
 
       - name: Add client
-        run: echo "CLIENT=${{secrets.CLIENT}}"> .env.viya
-
-      - name: Add secret
-        run: echo "SECRET=${{secrets.SECRET}}" >> .env.viya
+        run: echo "CLIENT=${{secrets.SAS9_4GL_IO_CLIENT}}"> .env.server
 
       - name: Add access token
-        run: echo "ACCESS_TOKEN=${{secrets.ACCESS_TOKEN}}" >> .env.viya
-
-      - name: Add refresh token
-        run: echo "REFRESH_TOKEN=${{secrets.REFRESH_TOKEN}}" >> .env.viya
+        run: echo "ACCESS_TOKEN=${{secrets.SAS9_4GL_IO_ACCESS_TOKEN}}" >> .env.server
 
       - name: Build Project
         run: npm run build

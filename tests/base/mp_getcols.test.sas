@@ -7,23 +7,35 @@
   @li mp_assertcols.sas
   @li mp_assertcolvals.sas
   @li mp_assertdsobs.sas
+  @li mp_assertscope.sas
 
 **/
 
 
-/* valid filter */
-%mp_getcols(sashelp.airline,outds=work.info)
+/* make some data */
+proc sql;
+create table work.src(
+  SOME_DATETIME float format=datetime19.,
+  SOME_CHAR char(16),
+  SOME_NUM num,
+  SOME_TIME num format=time8.,
+  SOME_DATE num format=date9.
+);
 
+/* run macro, checking for scope leakage */
+%mp_assertscope(SNAPSHOT)
+%mp_getcols(work.src,outds=work.info)
+%mp_assertscope(COMPARE)
 
 %mp_assertdsobs(work.info,
-  desc=Has 3 records,
-  test=EQUALS 3,
+  desc=Has 5 records,
+  test=EQUALS 5,
   outds=work.test_results
 )
 
 data work.check;
   length val $10;
-  do val='NUMERIC','DATE','CHARACTER';
+  do val='NUMERIC','DATE','CHARACTER','DATETIME','TIME';
     output;
   end;
 run;

@@ -312,13 +312,17 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
   %local dsid rc;
   %let dsid=%sysfunc(open(&libds,is));
 
-  %if &dsid=0 or %length(&var)=0 %then %do;
+  %if &dsid=0 %then %do;
     %put %sysfunc(sysmsg());
-      0
+    0
+  %end;
+  %else %if %length(&var)=0 %then %do;
+    0
+    %let rc=%sysfunc(close(&dsid));
   %end;
   %else %do;
-      %sysfunc(varnum(&dsid,&var))
-      %let rc=%sysfunc(close(&dsid));
+    %sysfunc(varnum(&dsid,&var))
+    %let rc=%sysfunc(close(&dsid));
   %end;
 
 %mend mf_existvar;
@@ -10451,7 +10455,7 @@ run;
         data _null_;
           putlog 'NOTE-' / 'NOTE-';
           putlog "NOTE- &sysmacroname: table locked, waiting "@;
-          putlog "%sysfunc(sleep(&loop_inc)) seconds.. ";
+          putlog "%sysfunc(sleep(&loop_secs)) seconds.. ";
           putlog "NOTE- (iteration &x of &loops)";
           putlog 'NOTE-' / 'NOTE-';
         run;

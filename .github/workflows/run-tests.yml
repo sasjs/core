@@ -50,8 +50,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Check code style
-        run: npm run lint
+      - name: Check code style (aborts if errors found)
+        run: sasjs lint
 
       - name: Add client
         run: echo "CLIENT=${{secrets.SAS9_4GL_IO_CLIENT}}"> .env.server
@@ -59,11 +59,11 @@ jobs:
       - name: Add access token
         run: echo "ACCESS_TOKEN=${{secrets.SAS9_4GL_IO_ACCESS_TOKEN}}" >> .env.server
 
-      - name: Build Project
-        run: npm run build
+      - name: Build & Deploy Project to SAS server
+        run: sasjs cbd -t server
 
-      - name: Run SASjs  tests
-        run: npm run test
+      - name: Run all tests
+        run: sasjs test -t server
         env:
           CI: true
           CLIENT: ${{secrets.CLIENT}}

@@ -42,6 +42,7 @@
   @param [in] test= (ALLVALS) The test to apply.  Valid values are:
     @li ALLVALS - Test is a PASS if ALL values have a match in checkvals
     @li ANYVAL - Test is a PASS if at least 1 value has a match in checkvals
+    @li NOVAL - Test is a PASS if there are NO matches in checkvals
   @param [out] outds= (work.test_results) The output dataset to contain the
   results.  If it does not exist, it will be created, with the following format:
   |TEST_DESCRIPTION:$256|TEST_RESULT:$4|TEST_COMMENTS:$256|
@@ -97,7 +98,7 @@
 
   %let test=%upcase(&test);
 
-  %if &test ne ALLVALS and &test ne ANYVAL %then %do;
+  %if &test ne ALLVALS and &test ne ANYVAL and &test ne NOVAL %then %do;
     %mp_abort(
       mac=&sysmacroname,
       msg=%str(Invalid test - &test)
@@ -152,6 +153,9 @@
   %end;
   %else %if &test=ALLVALS %then %do;
     if &result=0 then test_result='PASS';
+  %end;
+  %else %if &test=NOVAL %then %do;
+    if &result=&orig then test_result='PASS';
   %end;
   %else %do;
     test_comments="&sysmacroname: Unsatisfied test condition - &test";

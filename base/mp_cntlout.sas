@@ -28,6 +28,7 @@
 
   <h4> Related Macros </h4>
   @li mf_getvarformat.sas
+  @li mp_aligndecimal.sas
   @li mp_getformats.sas
   @li mp_loadformat.sas
   @li mp_ds2fmtds.sas
@@ -69,13 +70,13 @@ run;
 data &cntlout;
   if 0 then set &ddlds;
   set &cntlds;
-  if type="N" then do;
-    start=cats(start);
-    end=cats(end);
+  if type in ("I","N") then do; /* numeric (in)format */
+    %mp_aligndecimal(start,width=16)
+    %mp_aligndecimal(end,width=16)
   end;
 run;
 proc sort;
-  by fmtname start;
+  by type fmtname start;
 run;
 
 proc sql;

@@ -109,12 +109,12 @@
   %let result=-1;
   %let orig=-1;
   proc sql noprint;
-  select count(*) into: result
+  select count(*) into: result trimmed
     from &lib..&ds
     where &col not in (
       select &ccol from &clib..&cds
     );
-  select count(*) into: orig from &lib..&ds;
+  select count(*) into: orig trimmed from &lib..&ds;
   quit;
 
   %local notfound tmp1 tmp2;
@@ -146,7 +146,7 @@
     length test_description $256 test_result $4 test_comments $256;
     test_description=symget('desc');
     test_result='FAIL';
-    test_comments="&sysmacroname: &lib..&ds..&col has &result values "
+    test_comments="&sysmacroname: &lib..&ds..&col has &result/&orig values "
       !!"not in &clib..&cds..&ccol.. First 10 vals:"!!symget('notfound');
   %if &test=ANYVAL %then %do;
     if &result < &orig then test_result='PASS';

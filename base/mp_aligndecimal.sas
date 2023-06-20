@@ -36,6 +36,7 @@
         aligndp4e49996=right(aligndp4e49996);
         myvar=aligndp4e49996;
       end;
+      drop aligndp4e49996;
 
   Results (myvar variable):
 
@@ -61,7 +62,7 @@
           7998580.8415
 
 
-  @param var The (data step) variable to create
+  @param var The (data step, character) variable to modify
   @param width= (8) The number of characters BEFORE the decimal point
 
   <h4> SAS Macros </h4>

@@ -25,10 +25,10 @@
   <h4> SAS Macros </h4>
   @li mddl_sas_cntlout.sas
   @li mf_getuniquename.sas
+  @li mp_aligndecimal.sas
 
   <h4> Related Macros </h4>
   @li mf_getvarformat.sas
-  @li mp_aligndecimal.sas
   @li mp_getformats.sas
   @li mp_loadformat.sas
   @li mp_ds2fmtds.sas

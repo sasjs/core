@@ -2660,6 +2660,100 @@ and %superq(SYSPROCESSNAME) ne %str(Compute Server)
 /** @endcond */
 /**
   @file
+  @brief Apply leading blanks to align numbers vertically in a char variable
+  @details This is particularly useful when storing numbers (as character) that
+  need to be sorted.
+
+  It works by splitting the number left and right of the decimal place, and
+  aligning it accordingly.  A temporary variable is created as part of this
+  process (which is automatically dropped)
+
+  The macro can be used only in data step, eg as follows:
+
+      data _null_;
+        length myvar $50;
+        do i=1 to 1000 by 50;
+          if mod(i,2)=0 then j=ranuni(0)*i*100;
+          else j=i*100;
+
+          %mp_aligndecimal(myvar,width=7)
+
+          leading_spaces=length(myvar)-length(cats(myvar));
+          putlog +leading_spaces myvar;
+        end;
+      run;
+
+  The generated code will look something like this:
+
+      length aligndp4e49996 $7;
+      if index(myvar,'.') then do;
+        aligndp4e49996=cats(scan(myvar,1,'.'));
+        aligndp4e49996=right(aligndp4e49996);
+        myvar=aligndp4e49996!!'.'!!cats(scan(myvar,2,'.'));
+      end;
+      else do;
+        aligndp4e49996=myvar;
+        aligndp4e49996=right(aligndp4e49996);
+        myvar=aligndp4e49996;
+      end;
+
+  Results (myvar variable):
+
+                0.7683559324
+              122.8232796
+            99419.50552
+            42938.5143414
+              763.3799189
+            15170.606073
+            15083.285773
+            85443.198707
+          2022999.2251
+            12038.658867
+          1350582.6734
+            52777.258221
+            11723.347628
+            33101.268376
+          6181622.8603
+          7390614.0669
+            73384.537893
+          1788362.1016
+          2774586.2219
+          7998580.8415
+
+
+  @param var The (data step) variable to create
+  @param width= (8) The number of characters BEFORE the decimal point
+
+  <h4> SAS Macros </h4>
+  @li mf_getuniquename.sas
+
+  <h4> Related Programs </h4>
+  @li mp_aligndecimal.test.sas
+
+  @version 9.2
+  @author Allan Bowe
+**/
+
+%macro mp_aligndecimal(var,width=8);
+
+  %local tmpvar;
+  %let tmpvar=%mf_getuniquename(prefix=aligndp);
+  length &tmpvar $&width;
+  if index(&var,'.') then do;
+    &tmpvar=cats(scan(&var,1,'.'));
+    &tmpvar=right(&tmpvar);
+    &var=&tmpvar!!'.'!!cats(scan(&var,2,'.'));
+  end;
+  else do;
+    &tmpvar=cats(&var);
+    &tmpvar=right(&tmpvar);
+    &var=&tmpvar;
+  end;
+  drop &tmpvar;
+
+%mend mp_aligndecimal;
+/**
+  @file
   @brief Append (concatenate) two or more files.
   @details Will append one more more `appendrefs` (filerefs) to a `baseref`.
   Uses a binary mechanism, so will work with any file type.  For that reason -
@@ -3137,6 +3231,7 @@ run;
   @param [in] test= (ALLVALS) The test to apply.  Valid values are:
     @li ALLVALS - Test is a PASS if ALL values have a match in checkvals
     @li ANYVAL - Test is a PASS if at least 1 value has a match in checkvals
+    @li NOVAL - Test is a PASS if there are NO matches in checkvals
   @param [out] outds= (work.test_results) The output dataset to contain the
   results.  If it does not exist, it will be created, with the following format:
   |TEST_DESCRIPTION:$256|TEST_RESULT:$4|TEST_COMMENTS:$256|
@@ -3192,7 +3287,7 @@ run;
 
   %let test=%upcase(&test);
 
-  %if &test ne ALLVALS and &test ne ANYVAL %then %do;
+  %if &test ne ALLVALS and &test ne ANYVAL and &test ne NOVAL %then %do;
     %mp_abort(
       mac=&sysmacroname,
       msg=%str(Invalid test - &test)
@@ -3203,12 +3298,12 @@ run;
   %let result=-1;
   %let orig=-1;
   proc sql noprint;
-  select count(*) into: result
+  select count(*) into: result trimmed
     from &lib..&ds
     where &col not in (
       select &ccol from &clib..&cds
     );
-  select count(*) into: orig from &lib..&ds;
+  select count(*) into: orig trimmed from &lib..&ds;
   quit;
 
   %local notfound tmp1 tmp2;
@@ -3240,13 +3335,16 @@ run;
     length test_description $256 test_result $4 test_comments $256;
     test_description=symget('desc');
     test_result='FAIL';
-    test_comments="&sysmacroname: &lib..&ds..&col has &result values "
+    test_comments="&sysmacroname: &lib..&ds..&col has &result/&orig values "
       !!"not in &clib..&cds..&ccol.. First 10 vals:"!!symget('notfound');
   %if &test=ANYVAL %then %do;
     if &result < &orig then test_result='PASS';
   %end;
   %else %if &test=ALLVALS %then %do;
     if &result=0 then test_result='PASS';
+  %end;
+  %else %if &test=NOVAL %then %do;
+    if &result=&orig then test_result='PASS';
   %end;
   %else %do;
     test_comments="&sysmacroname: Unsatisfied test condition - &test";
@@ -4023,6 +4121,7 @@ run;
 
   <h4> Related Macros </h4>
   @li mf_getvarformat.sas
+  @li mp_aligndecimal.sas
   @li mp_getformats.sas
   @li mp_loadformat.sas
   @li mp_ds2fmtds.sas
@@ -4064,13 +4163,13 @@ run;
 data &cntlout;
   if 0 then set &ddlds;
   set &cntlds;
-  if type="N" then do;
-    start=cats(start);
-    end=cats(end);
+  if type in ("I","N") then do; /* numeric (in)format */
+    %mp_aligndecimal(start,width=16)
+    %mp_aligndecimal(end,width=16)
   end;
 run;
 proc sort;
-  by fmtname start;
+  by type fmtname start;
 run;
 
 proc sql;
@@ -10030,6 +10129,7 @@ select distinct lowcase(memname)
   <h4> Related Macros </h4>
   @li mddl_dc_difftable.sas
   @li mddl_dc_locktable.sas
+  @li mp_aligndecimal.sas
   @li mp_loadformat.test.sas
   @li mp_lockanytable.sas
   @li mp_stackdiffs.sas
@@ -10119,7 +10219,16 @@ run;
   * First, extract only relevant formats from the catalog
   */
 proc sql noprint;
-select distinct upcase(fmtname) into: fmtlist separated by ' ' from &libds;
+select distinct
+  case
+    when type='N' then upcase(fmtname)
+    when type='C' then cats('$',upcase(fmtname))
+    when type='I' then cats('@',upcase(fmtname))
+    when type='J' then cats('@$',upcase(fmtname))
+    else "&sysmacroname:UNHANDLED"
+  end
+  into: fmtlist separated by ' '
+  from &libds;
 
 %mp_cntlout(libcat=&libcat,fmtlist=&fmtlist,cntlout=&base_fmts)
 
@@ -10131,16 +10240,24 @@ select distinct upcase(fmtname) into: fmtlist separated by ' ' from &libds;
 data &inlibds;
   length &delete_col $3;
   if 0 then set &template;
+  length start end $10000;
   set &libds;
   if &delete_col='' then &delete_col='No';
   fmtname=upcase(fmtname);
+  type=upcase(type);
   if missing(type) then do;
-    if substr(fmtname,1,1)='$' then type='C';
-    else type='N';
+    if substr(fmtname,1,1)='@' then do;
+      if substr(fmtname,2,1)='$' then type='J';
+      else type='I';
+    end;
+    else do;
+      if substr(fmtname,1,1)='$' then type='C';
+      else type='N';
+    end;
   end;
-  if type='N' then do;
-    start=cats(start);
-    end=cats(end);
+  if type in ('N','I') then do;
+    %mp_aligndecimal(start,width=16)
+    %mp_aligndecimal(end,width=16)
   end;
 run;
 
@@ -10154,9 +10271,10 @@ create table &outds_add(drop=&delete_col) as
   left join &base_fmts b
   on a.fmtname=b.fmtname
     and a.start=b.start
+    and a.type=b.type
   where b.fmtname is null
     and upcase(a.&delete_col) ne "YES"
-  order by fmtname, start;;
+  order by type, fmtname, start;
 
 /**
   * Identify deleted records
@@ -10167,8 +10285,9 @@ create table &outds_del(drop=&delete_col) as
   inner join &base_fmts b
   on a.fmtname=b.fmtname
     and a.start=b.start
+    and a.type=b.type
   where upcase(a.&delete_col)="YES"
-  order by fmtname, start;
+  order by type, fmtname, start;
 
 /**
   * Identify modified records
@@ -10179,8 +10298,9 @@ create table &outds_mod (drop=&delete_col) as
   inner join &base_fmts b
   on a.fmtname=b.fmtname
     and a.start=b.start
+    and a.type=b.type
   where upcase(a.&delete_col) ne "YES"
-  order by fmtname, start;
+  order by type, fmtname, start;
 
 options ibufsize=&ibufsize;
 
@@ -10197,13 +10317,13 @@ options ibufsize=&ibufsize;
       &outds_add(in=add)
       &outds_del(in=del);
     if not del and not mod;
-    by fmtname start;
+    by type fmtname start;
   run;
   data &stagedata;
     set &ds1 &outds_mod;
   run;
   proc sort;
-    by fmtname start;
+    by type fmtname start;
   run;
 %end;
 /* mp abort needs to run outside of conditional blocks */
@@ -10251,7 +10371,7 @@ options ibufsize=&ibufsize;
 
     %mp_storediffs(&libcat-FC
       ,&base_fmts
-      ,FMTNAME START
+      ,TYPE FMTNAME START
       ,delds=&outds_del
       ,modds=&outds_mod
       ,appds=&outds_add
@@ -13956,14 +14076,20 @@ ods package close;
 
 proc sql;
 create table &libds(
-    FMTNAME char(32)      label='Format name'
+    TYPE char(1)         label='Type of format'
+    ,FMTNAME char(32)      label='Format name'
     /*
       to accommodate larger START values, mp_loadformat.sas will need the
       SQL dependency removed (proc sql needs to accommodate 3 index values in
       a 32767 ibufsize limit)
     */
     ,START char(10000)    label='Starting value for format'
-    ,END char(32767)      label='Ending value for format'
+    /*
+      Keep lengths of START and END the same to avoid this err:
+      "Start is greater than end:  -<."
+      Similar usage note: https://support.sas.com/kb/69/330.html
+    */
+    ,END char(10000)      label='Ending value for format'
     ,LABEL char(32767)    label='Format value label'
     ,MIN num length=3     label='Minimum length'
     ,MAX num length=3     label='Maximum length'
@@ -13974,7 +14100,6 @@ create table &libds(
     ,MULT num             label='Multiplier'
     ,FILL char(1)         label='Fill character'
     ,NOEDIT num length=3  label='Is picture string noedit?'
-    ,TYPE char(1)         label='Type of format'
     ,SEXCL char(1)        label='Start exclusion'
     ,EEXCL char(1)        label='End exclusion'
     ,HLO char(13)         label='Additional information'

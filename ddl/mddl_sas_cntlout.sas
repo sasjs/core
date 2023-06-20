@@ -12,14 +12,20 @@
 
 proc sql;
 create table &libds(
-    FMTNAME char(32)      label='Format name'
+    TYPE char(1)         label='Type of format'
+    ,FMTNAME char(32)      label='Format name'
     /*
       to accommodate larger START values, mp_loadformat.sas will need the
       SQL dependency removed (proc sql needs to accommodate 3 index values in
       a 32767 ibufsize limit)
     */
     ,START char(10000)    label='Starting value for format'
-    ,END char(32767)      label='Ending value for format'
+    /*
+      Keep lengths of START and END the same to avoid this err:
+      "Start is greater than end:  -<."
+      Similar usage note: https://support.sas.com/kb/69/330.html
+    */
+    ,END char(10000)      label='Ending value for format'
     ,LABEL char(32767)    label='Format value label'
     ,MIN num length=3     label='Minimum length'
     ,MAX num length=3     label='Maximum length'
@@ -30,7 +36,6 @@ create table &libds(
     ,MULT num             label='Multiplier'
     ,FILL char(1)         label='Fill character'
     ,NOEDIT num length=3  label='Is picture string noedit?'
-    ,TYPE char(1)         label='Type of format'
     ,SEXCL char(1)        label='Start exclusion'
     ,EEXCL char(1)        label='End exclusion'
     ,HLO char(13)         label='Additional information'

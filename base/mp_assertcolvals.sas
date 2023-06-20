@@ -42,6 +42,7 @@
   @param [in] test= (ALLVALS) The test to apply.  Valid values are:
     @li ALLVALS - Test is a PASS if ALL values have a match in checkvals
     @li ANYVAL - Test is a PASS if at least 1 value has a match in checkvals
+    @li NOVAL - Test is a PASS if there are NO matches in checkvals
   @param [out] outds= (work.test_results) The output dataset to contain the
   results.  If it does not exist, it will be created, with the following format:
   |TEST_DESCRIPTION:$256|TEST_RESULT:$4|TEST_COMMENTS:$256|
@@ -97,7 +98,7 @@
 
   %let test=%upcase(&test);
 
-  %if &test ne ALLVALS and &test ne ANYVAL %then %do;
+  %if &test ne ALLVALS and &test ne ANYVAL and &test ne NOVAL %then %do;
     %mp_abort(
       mac=&sysmacroname,
       msg=%str(Invalid test - &test)
@@ -108,12 +109,12 @@
   %let result=-1;
   %let orig=-1;
   proc sql noprint;
-  select count(*) into: result
+  select count(*) into: result trimmed
     from &lib..&ds
     where &col not in (
       select &ccol from &clib..&cds
     );
-  select count(*) into: orig from &lib..&ds;
+  select count(*) into: orig trimmed from &lib..&ds;
   quit;
 
   %local notfound tmp1 tmp2;
@@ -145,13 +146,16 @@
     length test_description $256 test_result $4 test_comments $256;
     test_description=symget('desc');
     test_result='FAIL';
-    test_comments="&sysmacroname: &lib..&ds..&col has &result values "
+    test_comments="&sysmacroname: &lib..&ds..&col has &result/&orig values "
       !!"not in &clib..&cds..&ccol.. First 10 vals:"!!symget('notfound');
   %if &test=ANYVAL %then %do;
     if &result < &orig then test_result='PASS';
   %end;
   %else %if &test=ALLVALS %then %do;
     if &result=0 then test_result='PASS';
+  %end;
+  %else %if &test=NOVAL %then %do;
+    if &result=&orig then test_result='PASS';
   %end;
   %else %do;
     test_comments="&sysmacroname: Unsatisfied test condition - &test";

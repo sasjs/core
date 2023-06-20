@@ -45,6 +45,7 @@
   <h4> Related Macros </h4>
   @li mddl_dc_difftable.sas
   @li mddl_dc_locktable.sas
+  @li mp_aligndecimal.sas
   @li mp_loadformat.test.sas
   @li mp_lockanytable.sas
   @li mp_stackdiffs.sas
@@ -134,7 +135,16 @@ run;
   * First, extract only relevant formats from the catalog
   */
 proc sql noprint;
-select distinct upcase(fmtname) into: fmtlist separated by ' ' from &libds;
+select distinct
+  case
+    when type='N' then upcase(fmtname)
+    when type='C' then cats('$',upcase(fmtname))
+    when type='I' then cats('@',upcase(fmtname))
+    when type='J' then cats('@$',upcase(fmtname))
+    else "&sysmacroname:UNHANDLED"
+  end
+  into: fmtlist separated by ' '
+  from &libds;
 
 %mp_cntlout(libcat=&libcat,fmtlist=&fmtlist,cntlout=&base_fmts)
 
@@ -146,16 +156,24 @@ select distinct upcase(fmtname) into: fmtlist separated by ' ' from &libds;
 data &inlibds;
   length &delete_col $3;
   if 0 then set &template;
+  length start end $10000;
   set &libds;
   if &delete_col='' then &delete_col='No';
   fmtname=upcase(fmtname);
+  type=upcase(type);
   if missing(type) then do;
-    if substr(fmtname,1,1)='$' then type='C';
-    else type='N';
+    if substr(fmtname,1,1)='@' then do;
+      if substr(fmtname,2,1)='$' then type='J';
+      else type='I';
+    end;
+    else do;
+      if substr(fmtname,1,1)='$' then type='C';
+      else type='N';
+    end;
   end;
-  if type='N' then do;
-    start=cats(start);
-    end=cats(end);
+  if type in ('N','I') then do;
+    %mp_aligndecimal(start,width=16)
+    %mp_aligndecimal(end,width=16)
   end;
 run;
 
@@ -169,9 +187,10 @@ create table &outds_add(drop=&delete_col) as
   left join &base_fmts b
   on a.fmtname=b.fmtname
     and a.start=b.start
+    and a.type=b.type
   where b.fmtname is null
     and upcase(a.&delete_col) ne "YES"
-  order by fmtname, start;;
+  order by type, fmtname, start;
 
 /**
   * Identify deleted records
@@ -182,8 +201,9 @@ create table &outds_del(drop=&delete_col) as
   inner join &base_fmts b
   on a.fmtname=b.fmtname
     and a.start=b.start
+    and a.type=b.type
   where upcase(a.&delete_col)="YES"
-  order by fmtname, start;
+  order by type, fmtname, start;
 
 /**
   * Identify modified records
@@ -194,8 +214,9 @@ create table &outds_mod (drop=&delete_col) as
   inner join &base_fmts b
   on a.fmtname=b.fmtname
     and a.start=b.start
+    and a.type=b.type
   where upcase(a.&delete_col) ne "YES"
-  order by fmtname, start;
+  order by type, fmtname, start;
 
 options ibufsize=&ibufsize;
 
@@ -212,13 +233,13 @@ options ibufsize=&ibufsize;
       &outds_add(in=add)
       &outds_del(in=del);
     if not del and not mod;
-    by fmtname start;
+    by type fmtname start;
   run;
   data &stagedata;
     set &ds1 &outds_mod;
   run;
   proc sort;
-    by fmtname start;
+    by type fmtname start;
   run;
 %end;
 /* mp abort needs to run outside of conditional blocks */
@@ -266,7 +287,7 @@ options ibufsize=&ibufsize;
 
     %mp_storediffs(&libcat-FC
       ,&base_fmts
-      ,FMTNAME START
+      ,TYPE FMTNAME START
       ,delds=&outds_del
       ,modds=&outds_mod
       ,appds=&outds_add

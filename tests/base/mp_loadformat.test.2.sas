@@ -6,12 +6,9 @@
 
   The provided formats create a table as follows:
 
-|TYPE:$1.|FMTNAME:$32.|START:$10000.|END:$10000.|LABEL:$32767.|MIN:best.|
-MAX:best.|DEFAULT:best.|LENGTH:best.|FUZZ:best.|PREFIX:$2.|MULT:best.|FILL:$1.|
-NOEDIT:best.|SEXCL:$1.|EEXCL:$1.|HLO:$13.|DECSEP:$1.|DIG3SEP:$1.|DATATYPE:$8.|
-LANGUAGE:$8.|
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
----|---|
+
+|TYPE:$1.|FMTNAME:$32.|START:$10000.|END:$10000.|LABEL:$32767.|MIN:best.|MAX:best.|DEFAULT:best.|LENGTH:best.|FUZZ:best.|PREFIX:$2.|MULT:best.|FILL:$1.|NOEDIT:best.|SEXCL:$1.|EEXCL:$1.|HLO:$13.|DECSEP:$1.|DIG3SEP:$1.|DATATYPE:$8.|LANGUAGE:$8.|
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 |`C `|`GENDERML `|` `|` `|`Total people `|`1 `|`40 `|`12 `|`12 `|`0 `|` `|`0 `|` `|`0 `|`N `|`N `|`M `|` `|` `|` `|` `|
 |`C `|`GENDERML `|`1 `|`1 `|`Male `|`1 `|`40 `|`12 `|`12 `|`0 `|` `|`0 `|` `|`0 `|`N `|`N `|`M `|` `|` `|` `|` `|
 |`C `|`GENDERML `|`1 `|`1 `|`Total people `|`1 `|`40 `|`12 `|`12 `|`0 `|` `|`0 `|` `|`0 `|`N `|`N `|`M `|` `|` `|` `|` `|
@@ -28,6 +25,7 @@ LANGUAGE:$8.|
 |`N `|`AGEMLC `|`1 `|`18 `|`Children `|`1 `|`40 `|`9 `|`9 `|`1E-12 `|` `|`0 `|` `|`0 `|`N `|`N `|`SM `|` `|` `|` `|` `|
 |`N `|`AGEMLC `|`1 `|`4 `|`Preschool `|`1 `|`40 `|`9 `|`9 `|`1E-12 `|` `|`0 `|` `|`0 `|`N `|`N `|`SM `|` `|` `|` `|` `|
 |`N `|`AGEMLC `|`19 `|`120 `|`Adults `|`1 `|`40 `|`9 `|`9 `|`1E-12 `|` `|`0 `|` `|`0 `|`N `|`N `|`SM `|` `|` `|` `|` `|
+
 
   <h4> SAS Macros </h4>
   @li mf_nobs.sas

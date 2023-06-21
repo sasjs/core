@@ -67,16 +67,24 @@ proc format lib=&libcat cntlout=&cntlds;
 %end;
 run;
 
-data &cntlout;
+data &cntlout/nonote2err;
   if 0 then set &ddlds;
   set &cntlds;
-  if type in ("I","N") then do; /* numeric (in)format */
+  by type fmtname notsorted;
+
+  /* align the numeric values to avoid overlapping ranges */
+  if type in ("I","N") then do;
     %mp_aligndecimal(start,width=16)
     %mp_aligndecimal(end,width=16)
   end;
+
+  /* create row marker. Data cannot be sorted without it! */
+  if first.fmtname then fmtrow=0;
+  fmtrow+1;
+
 run;
 proc sort;
-  by type fmtname start;
+  by type fmtname fmtrow;
 run;
 
 proc sql;

@@ -34,19 +34,20 @@
   @param [in] mdebug= (0) Set to 1 to enable DEBUG messages and preserve outputs
 
   <h4> SAS Macros </h4>
-  @li mddl_sas_cntlout.sas
   @li mf_getuniquename.sas
   @li mf_nobs.sas
   @li mp_abort.sas
   @li mp_aligndecimal.sas
   @li mp_cntlout.sas
   @li mp_lockanytable.sas
+  @li mp_md5.sas
   @li mp_storediffs.sas
 
   <h4> Related Macros </h4>
   @li mddl_dc_difftable.sas
   @li mddl_dc_locktable.sas
-  @li mp_loadformat.test.sas
+  @li mp_loadformat.test.1.sas
+  @li mp_loadformat.test.2.sas
   @li mp_lockanytable.sas
   @li mp_stackdiffs.sas
 
@@ -78,13 +79,6 @@
   %local &var;
   %let &var=%upcase(&prefix._&var);
 %end;
-
-/*
-format values can be up to 32767 wide.  SQL joins on such a wide column can
-cause buffer issues.  Update ibufsize and reset at the end.
-*/
-%let ibufsize=%sysfunc(getoption(ibufsize));
-options ibufsize=32767 ;
 
 /* in DC, format catalogs maybe specified in the libds with a -FC extension */
 %let libcat=%scan(&libcat,1,-);
@@ -148,16 +142,24 @@ select distinct
 
 %mp_cntlout(libcat=&libcat,fmtlist=&fmtlist,cntlout=&base_fmts)
 
+/* get a hash of the row */
+%local cvars nvars;
+%let cvars=TYPE FMTNAME START END LABEL PREFIX FILL SEXCL EEXCL HLO DECSEP
+  DIG3SEP DATATYPE LANGUAGE;
+%let nvars=FMTROW MIN MAX DEFAULT LENGTH FUZZ MULT NOEDIT;
+data &base_fmts/note2err;
+  set &base_fmts;
+  fmthash=%mp_md5(cvars=&cvars, nvars=&nvars);
+run;
 
 /**
   * Ensure input table and base_formats have consistent lengths and types
   */
-%mddl_sas_cntlout(libds=&template)
-data &inlibds;
-  length &delete_col $3;
-  if 0 then set &template;
-  length start end $10000;
+data &inlibds/nonote2err;
+  length &delete_col $3 FMTROW 8 start end label $32767;
+  if 0 then set &base_fmts;
   set &libds;
+  by type fmtname notsorted;
   if &delete_col='' then &delete_col='No';
   fmtname=upcase(fmtname);
   type=upcase(type);
@@ -175,6 +177,14 @@ data &inlibds;
     %mp_aligndecimal(start,width=16)
     %mp_aligndecimal(end,width=16)
   end;
+
+  /* update row marker - retain new var as fmtrow may already be in libds */
+  if first.fmtname then row=1;
+  else row+1;
+  drop row;
+  fmtrow=row;
+
+  fmthash=%mp_md5(cvars=&cvars, nvars=&nvars);
 run;
 
 /**
@@ -185,12 +195,10 @@ create table &outds_add(drop=&delete_col) as
   select a.*
   from &inlibds a
   left join &base_fmts b
-  on a.fmtname=b.fmtname
-    and a.start=b.start
-    and a.type=b.type
+  on a.type=b.type and a.fmtname=b.fmtname and a.fmtrow=b.fmtrow
   where b.fmtname is null
     and upcase(a.&delete_col) ne "YES"
-  order by type, fmtname, start;
+  order by type, fmtname, fmtrow;
 
 /**
   * Identify deleted records
@@ -199,11 +207,9 @@ create table &outds_del(drop=&delete_col) as
   select a.*
   from &inlibds a
   inner join &base_fmts b
-  on a.fmtname=b.fmtname
-    and a.start=b.start
-    and a.type=b.type
+  on a.type=b.type and a.fmtname=b.fmtname and a.fmtrow=b.fmtrow
   where upcase(a.&delete_col)="YES"
-  order by type, fmtname, start;
+  order by type, fmtname, fmtrow;
 
 /**
   * Identify modified records
@@ -212,13 +218,10 @@ create table &outds_mod (drop=&delete_col) as
   select a.*
   from &inlibds a
   inner join &base_fmts b
-  on a.fmtname=b.fmtname
-    and a.start=b.start
-    and a.type=b.type
+  on a.type=b.type and a.fmtname=b.fmtname and a.fmtrow=b.fmtrow
   where upcase(a.&delete_col) ne "YES"
-  order by type, fmtname, start;
-
-options ibufsize=&ibufsize;
+    and a.fmthash ne b.fmthash
+  order by type, fmtname, fmtrow;
 
 %mp_abort(
   iftrue=(&syscc ne 0)
@@ -227,19 +230,21 @@ options ibufsize=&ibufsize;
 )
 
 %if &loadtarget=YES %then %do;
+  /* new records plus base records that are not deleted or modified */
   data &ds1;
     merge &base_fmts(in=base)
       &outds_mod(in=mod)
       &outds_add(in=add)
       &outds_del(in=del);
     if not del and not mod;
-    by type fmtname start;
+    by type fmtname fmtrow;
   run;
+  /* add back the modified records */
   data &stagedata;
     set &ds1 &outds_mod;
   run;
   proc sort;
-    by type fmtname start;
+    by type fmtname fmtrow;
   run;
 %end;
 /* mp abort needs to run outside of conditional blocks */
@@ -287,7 +292,7 @@ options ibufsize=&ibufsize;
 
     %mp_storediffs(&libcat-FC
       ,&base_fmts
-      ,TYPE FMTNAME START
+      ,TYPE FMTNAME FMTROW
       ,delds=&outds_del
       ,modds=&outds_mod
       ,appds=&outds_add

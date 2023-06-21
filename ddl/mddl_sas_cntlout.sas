@@ -11,22 +11,18 @@
 
 %macro mddl_sas_cntlout(libds=WORK.CNTLOUT);
 
-proc sql;
-create table &libds(
-    TYPE char(1)         label='Type of format'
-    ,FMTNAME char(32)      label='Format name'
-    /*
-      to accommodate larger START values, mp_loadformat.sas will need the
-      SQL dependency removed (proc sql needs to accommodate 3 index values in
-      a 32767 ibufsize limit)
-    */
-    ,START char(10000)    label='Starting value for format'
+  proc sql;
+  create table &libds(
+    TYPE char(1) label='Type of format - either N (num fmt), C (char fmt), I (num infmt) or J (char infmt)'
+    ,FMTNAME char(32)     label='Format name'
+    ,FMTROW num label='CALCULATED Position of record by FMTNAME (reqd for multilabel formats)'
+    ,START char(32767)    label='Starting value for format'
     /*
       Keep lengths of START and END the same to avoid this err:
       "Start is greater than end:  -<."
       Similar usage note: https://support.sas.com/kb/69/330.html
     */
-    ,END char(10000)      label='Ending value for format'
+    ,END char(32767)      label='Ending value for format'
     ,LABEL char(32767)    label='Format value label'
     ,MIN num length=3     label='Minimum length'
     ,MAX num length=3     label='Maximum length'
@@ -39,11 +35,23 @@ create table &libds(
     ,NOEDIT num length=3  label='Is picture string noedit?'
     ,SEXCL char(1)        label='Start exclusion'
     ,EEXCL char(1)        label='End exclusion'
-    ,HLO char(13)         label='Additional information'
+    ,HLO char(13)         label='Additional information. M=MultiLabel'
     ,DECSEP char(1)       label='Decimal separator'
     ,DIG3SEP char(1)      label='Three-digit separator'
     ,DATATYPE char(8)     label='Date/time/datetime?'
     ,LANGUAGE char(8)     label='Language for date strings'
-);
+  );
+
+  %local lib;
+  %let libds=%upcase(&libds);
+  %if %index(&libds,.)=0 %then %let lib=WORK;
+  %else %let lib=%scan(&libds,1,.);
+
+  proc datasets lib=&lib noprint;
+    modify %scan(&libds,-1,.);
+    index create
+      pk_cntlout=(type fmtname fmtrow)
+      /nomiss unique;
+  quit;
 
 %mend mddl_sas_cntlout;

@@ -33,7 +33,6 @@
   @li mp_loadformat.sas
   @li mp_assert.sas
   @li mp_assertdsobs.sas
-  @li mp_ds2md.sas
 
 **/
 
@@ -122,5 +121,3 @@ run;
   desc=Ensuring Farmale values retain their order,
   outds=work.test_results
 )
-
-%mp_ds2md(work.cntlout2)

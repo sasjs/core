@@ -95,6 +95,7 @@ run;
   options ps=max lrecl=max;
   data _null_;
     infile &outref;
+    if _n_=1 then putlog "# &libds" /;
     input;
     putlog _infile_;
   run;

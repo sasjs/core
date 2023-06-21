@@ -4161,16 +4161,24 @@ proc format lib=&libcat cntlout=&cntlds;
 %end;
 run;
 
-data &cntlout;
+data &cntlout/nonote2err;
   if 0 then set &ddlds;
   set &cntlds;
-  if type in ("I","N") then do; /* numeric (in)format */
+  by type fmtname notsorted;
+
+  /* align the numeric values to avoid overlapping ranges */
+  if type in ("I","N") then do;
     %mp_aligndecimal(start,width=16)
     %mp_aligndecimal(end,width=16)
   end;
+
+  /* create row marker. Data cannot be sorted without it! */
+  if first.fmtname then fmtrow=0;
+  fmtrow+1;
+
 run;
 proc sort;
-  by type fmtname start;
+  by type fmtname fmtrow;
 run;
 
 proc sql;
@@ -6014,6 +6022,7 @@ run;
   options ps=max lrecl=max;
   data _null_;
     infile &outref;
+    if _n_=1 then putlog "# &libds" /;
     input;
     putlog _infile_;
   run;
@@ -10119,7 +10128,6 @@ select distinct lowcase(memname)
   @param [in] mdebug= (0) Set to 1 to enable DEBUG messages and preserve outputs
 
   <h4> SAS Macros </h4>
-  @li mddl_sas_cntlout.sas
   @li mf_getuniquename.sas
   @li mf_nobs.sas
   @li mp_abort.sas
@@ -10131,7 +10139,8 @@ select distinct lowcase(memname)
   <h4> Related Macros </h4>
   @li mddl_dc_difftable.sas
   @li mddl_dc_locktable.sas
-  @li mp_loadformat.test.sas
+  @li mp_loadformat.test.1.sas
+  @li mp_loadformat.test.2.sas
   @li mp_lockanytable.sas
   @li mp_stackdiffs.sas
 
@@ -10163,13 +10172,6 @@ select distinct lowcase(memname)
   %local &var;
   %let &var=%upcase(&prefix._&var);
 %end;
-
-/*
-format values can be up to 32767 wide.  SQL joins on such a wide column can
-cause buffer issues.  Update ibufsize and reset at the end.
-*/
-%let ibufsize=%sysfunc(getoption(ibufsize));
-options ibufsize=32767 ;
 
 /* in DC, format catalogs maybe specified in the libds with a -FC extension */
 %let libcat=%scan(&libcat,1,-);
@@ -10233,16 +10235,24 @@ select distinct
 
 %mp_cntlout(libcat=&libcat,fmtlist=&fmtlist,cntlout=&base_fmts)
 
+/* get a hash of the row */
+%local cvars nvars;
+%let cvars=TYPE FMTNAME START END LABEL PREFIX FILL SEXCL EEXCL HLO DECSEP
+  DIG3SEP DATATYPE LANGUAGE;
+%let nvars=FMTROW MIN MAX DEFAULT LENGTH FUZZ MULT NOEDIT;
+data &base_fmts/note2err;
+  set &base_fmts;
+  fmthash=%mp_md5(cvars=&cvars, nvars=&nvars);
+run;
 
 /**
   * Ensure input table and base_formats have consistent lengths and types
   */
-%mddl_sas_cntlout(libds=&template)
-data &inlibds;
-  length &delete_col $3;
-  if 0 then set &template;
-  length start end $10000;
+data &inlibds/nonote2err;
+  length &delete_col $3 FMTROW 8 start end label $32767;
+  if 0 then set &base_fmts;
   set &libds;
+  by type fmtname notsorted;
   if &delete_col='' then &delete_col='No';
   fmtname=upcase(fmtname);
   type=upcase(type);
@@ -10260,6 +10270,14 @@ data &inlibds;
     %mp_aligndecimal(start,width=16)
     %mp_aligndecimal(end,width=16)
   end;
+
+  /* update row marker - retain new var as fmtrow may already be in libds */
+  if first.fmtname then row=1;
+  else row+1;
+  drop row;
+  fmtrow=row;
+
+  fmthash=%mp_md5(cvars=&cvars, nvars=&nvars);
 run;
 
 /**
@@ -10270,12 +10288,10 @@ create table &outds_add(drop=&delete_col) as
   select a.*
   from &inlibds a
   left join &base_fmts b
-  on a.fmtname=b.fmtname
-    and a.start=b.start
-    and a.type=b.type
+  on a.type=b.type and a.fmtname=b.fmtname and a.fmtrow=b.fmtrow
   where b.fmtname is null
     and upcase(a.&delete_col) ne "YES"
-  order by type, fmtname, start;
+  order by type, fmtname, fmtrow;
 
 /**
   * Identify deleted records
@@ -10284,11 +10300,9 @@ create table &outds_del(drop=&delete_col) as
   select a.*
   from &inlibds a
   inner join &base_fmts b
-  on a.fmtname=b.fmtname
-    and a.start=b.start
-    and a.type=b.type
+  on a.type=b.type and a.fmtname=b.fmtname and a.fmtrow=b.fmtrow
   where upcase(a.&delete_col)="YES"
-  order by type, fmtname, start;
+  order by type, fmtname, fmtrow;
 
 /**
   * Identify modified records
@@ -10297,13 +10311,10 @@ create table &outds_mod (drop=&delete_col) as
   select a.*
   from &inlibds a
   inner join &base_fmts b
-  on a.fmtname=b.fmtname
-    and a.start=b.start
-    and a.type=b.type
+  on a.type=b.type and a.fmtname=b.fmtname and a.fmtrow=b.fmtrow
   where upcase(a.&delete_col) ne "YES"
-  order by type, fmtname, start;
-
-options ibufsize=&ibufsize;
+    and a.fmthash ne b.fmthash
+  order by type, fmtname, fmtrow;
 
 %mp_abort(
   iftrue=(&syscc ne 0)
@@ -10312,19 +10323,21 @@ options ibufsize=&ibufsize;
 )
 
 %if &loadtarget=YES %then %do;
+  /* new records plus base records that are not deleted or modified */
   data &ds1;
     merge &base_fmts(in=base)
       &outds_mod(in=mod)
       &outds_add(in=add)
       &outds_del(in=del);
     if not del and not mod;
-    by type fmtname start;
+    by type fmtname fmtrow;
   run;
+  /* add back the modified records */
   data &stagedata;
     set &ds1 &outds_mod;
   run;
   proc sort;
-    by type fmtname start;
+    by type fmtname fmtrow;
   run;
 %end;
 /* mp abort needs to run outside of conditional blocks */
@@ -10372,7 +10385,7 @@ options ibufsize=&ibufsize;
 
     %mp_storediffs(&libcat-FC
       ,&base_fmts
-      ,TYPE FMTNAME START
+      ,TYPE FMTNAME FMTROW
       ,delds=&outds_del
       ,modds=&outds_mod
       ,appds=&outds_add
@@ -12796,9 +12809,9 @@ run;
 
 %if %index(&libds,-)>0 and %scan(&libds,2,-)=FC %then %do;
   /* this is a format catalog - cannot query cols directly */
-  %let vlist="FMTNAME","START","END","LABEL","MIN","MAX","DEFAULT","LENGTH"
-    ,"FUZZ","PREFIX","MULT","FILL","NOEDIT","TYPE","SEXCL","EEXCL","HLO"
-    ,"DECSEP","DIG3SEP","DATATYPE","LANGUAGE";
+  %let vlist="TYPE","FMTNAME","FMTROW","START","END","LABEL","MIN","MAX"
+    ,"DEFAULT","LENGTH","FUZZ","PREFIX","MULT","FILL","NOEDIT","SEXCL"
+    ,"EEXCL","HLO","DECSEP","DIG3SEP","DATATYPE","LANGUAGE";
 %end;
 %else %let vlist=%mf_getvarlist(&libds,dlm=%str(,),quote=DOUBLE);
 
@@ -14076,22 +14089,18 @@ ods package close;
 
 %macro mddl_sas_cntlout(libds=WORK.CNTLOUT);
 
-proc sql;
-create table &libds(
-    TYPE char(1)         label='Type of format'
-    ,FMTNAME char(32)      label='Format name'
-    /*
-      to accommodate larger START values, mp_loadformat.sas will need the
-      SQL dependency removed (proc sql needs to accommodate 3 index values in
-      a 32767 ibufsize limit)
-    */
-    ,START char(10000)    label='Starting value for format'
+  proc sql;
+  create table &libds(
+    TYPE char(1) label='Type of format - either N (num fmt), C (char fmt), I (num infmt) or J (char infmt)'
+    ,FMTNAME char(32)     label='Format name'
+    ,FMTROW num label='CALCULATED Position of record by FMTNAME (reqd for multilabel formats)'
+    ,START char(32767)    label='Starting value for format'
     /*
       Keep lengths of START and END the same to avoid this err:
       "Start is greater than end:  -<."
       Similar usage note: https://support.sas.com/kb/69/330.html
     */
-    ,END char(10000)      label='Ending value for format'
+    ,END char(32767)      label='Ending value for format'
     ,LABEL char(32767)    label='Format value label'
     ,MIN num length=3     label='Minimum length'
     ,MAX num length=3     label='Maximum length'
@@ -14104,12 +14113,24 @@ create table &libds(
     ,NOEDIT num length=3  label='Is picture string noedit?'
     ,SEXCL char(1)        label='Start exclusion'
     ,EEXCL char(1)        label='End exclusion'
-    ,HLO char(13)         label='Additional information'
+    ,HLO char(13)         label='Additional information. M=MultiLabel'
     ,DECSEP char(1)       label='Decimal separator'
     ,DIG3SEP char(1)      label='Three-digit separator'
     ,DATATYPE char(8)     label='Date/time/datetime?'
     ,LANGUAGE char(8)     label='Language for date strings'
-);
+  );
+
+  %local lib;
+  %let libds=%upcase(&libds);
+  %if %index(&libds,.)=0 %then %let lib=WORK;
+  %else %let lib=%scan(&libds,1,.);
+
+  proc datasets lib=&lib noprint;
+    modify %scan(&libds,-1,.);
+    index create
+      pk_cntlout=(type fmtname fmtrow)
+      /nomiss unique;
+  quit;
 
 %mend mddl_sas_cntlout;
 /**

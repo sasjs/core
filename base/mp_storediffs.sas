@@ -147,9 +147,9 @@ run;
 
 %if %index(&libds,-)>0 and %scan(&libds,2,-)=FC %then %do;
   /* this is a format catalog - cannot query cols directly */
-  %let vlist="FMTNAME","START","END","LABEL","MIN","MAX","DEFAULT","LENGTH"
-    ,"FUZZ","PREFIX","MULT","FILL","NOEDIT","TYPE","SEXCL","EEXCL","HLO"
-    ,"DECSEP","DIG3SEP","DATATYPE","LANGUAGE";
+  %let vlist="TYPE","FMTNAME","FMTROW","START","END","LABEL","MIN","MAX"
+    ,"DEFAULT","LENGTH","FUZZ","PREFIX","MULT","FILL","NOEDIT","SEXCL"
+    ,"EEXCL","HLO","DECSEP","DIG3SEP","DATATYPE","LANGUAGE";
 %end;
 %else %let vlist=%mf_getvarlist(&libds,dlm=%str(,),quote=DOUBLE);
 

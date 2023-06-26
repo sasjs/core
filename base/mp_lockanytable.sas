@@ -194,35 +194,39 @@ run;
   %end;
 %end;
 %else %if &ACTION=UNLOCK %then %do;
-  %local status;
+  %local status cnt;
+  %let cnt=0;
   proc sql noprint;
-  select LOCK_STATUS_CD into: status from &ctl_ds
-    where LOCK_LIB ="&lib" and LOCK_DS="&ds";
-  quit;
-  %if &syscc>0 %then %put syscc=&syscc sqlrc=&sqlrc;
-  %if &sqlobs=0 %then %do;
-    %put %str(WAR)NING: &lib..&ds has never been locked!;
-  %end;
-  %else %if &status=LOCKED %then %do;
-    data _null_;
-      putlog "&sysmacroname: unlocking &lib..&ds:";
-    run;
-    proc sql;
-    update &ctl_ds
-      set LOCK_STATUS_CD='UNLOCKED'
-        , LOCK_END_DTTM="%sysfunc(datetime(),%mf_fmtdttm())"dt
-        , LOCK_USER_NM="&user"
-        , LOCK_PID="&sysjobid"
-        , LOCK_REF="&ref"
-      where LOCK_LIB ="&lib" and LOCK_DS="&ds";
-    quit;
-  %end;
-  %else %if &status=UNLOCKED %then %do;
-    %put %str(WAR)NING: &lib..&ds is already unlocked!;
+  select count(*) into: cnt from &ctl_ds where LOCK_LIB ="&lib" & LOCK_DS="&ds";
+  %if &cnt=0 %then %do;
+    %put %str(WAR)NING: &lib..&ds was not previously locked in &ctl_ds!;
   %end;
   %else %do;
-    %put NOTE: Unrecognised STATUS_CD (&status) in &ctl_ds;
-    %let abortme=1;
+    select LOCK_STATUS_CD into: status from &ctl_ds
+      where LOCK_LIB ="&lib" and LOCK_DS="&ds";
+    quit;
+    %if &syscc>0 %then %put syscc=&syscc sqlrc=&sqlrc;
+    %if &status=LOCKED %then %do;
+      data _null_;
+        putlog "&sysmacroname: unlocking &lib..&ds:";
+      run;
+      proc sql;
+      update &ctl_ds
+        set LOCK_STATUS_CD='UNLOCKED'
+          , LOCK_END_DTTM="%sysfunc(datetime(),%mf_fmtdttm())"dt
+          , LOCK_USER_NM="&user"
+          , LOCK_PID="&sysjobid"
+          , LOCK_REF="&ref"
+        where LOCK_LIB ="&lib" and LOCK_DS="&ds";
+      quit;
+    %end;
+    %else %if &status=UNLOCKED %then %do;
+      %put %str(WAR)NING: &lib..&ds is already unlocked!;
+    %end;
+    %else %do;
+      %put NOTE: Unrecognised STATUS_CD (&status) in &ctl_ds;
+      %let abortme=1;
+    %end;
   %end;
 %end;
 %else %do;

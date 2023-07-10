@@ -33,13 +33,16 @@
   @li mp_loadformat.sas
   @li mp_assert.sas
   @li mp_assertdsobs.sas
+  @li mp_getformats.sas
+  @li mp_ds2md.sas
+
 
 **/
 
 /* prep format catalog */
 libname perm (work);
 
-/* create some multilable formats */
+/* create some multilabel formats */
 %let cat1=perm.test1;
 proc format library=&cat1;
   value $genderml (multilabel notsorted)
@@ -121,3 +124,111 @@ run;
   desc=Ensuring Farmale values retain their order,
   outds=work.test_results
 )
+
+/**
+  * completely delete a format and make sure it is removed
+  */
+
+/* first, make sure these three formats exist */
+options insert=(fmtsearch=(&cat1));
+%mp_getformats(fmtlist=AGEMLA AGEMLB AGEMLC $GENDERML,outsummary=work.fmtdels)
+
+%let fmtlist=NONE;
+proc sql;
+select distinct cats(fmtname) into: fmtlist separated by ' ' from work.fmtdels;
+
+%mp_assert(
+  iftrue=(%mf_nobs(fmtdels)=4),
+  desc=Deletion test 1 - ensure formats exist for deletion (&fmtlist found),
+  outds=work.test_results
+)
+
+/* deltest1 - deleting every record */
+%mp_cntlout(libcat=&cat1,cntlout=work.cntloutdel1)
+data work.stagedatadel1;
+  set work.cntloutdel1;
+  if fmtname='AGEMLA';
+  deleteme='Yes';
+run;
+%mp_loadformat(&cat1
+  ,work.stagedatadel1
+  ,loadtarget=YES
+  ,auditlibds=perm.audit
+  ,locklibds=0
+  ,delete_col=deleteme
+  ,outds_add=add_testdel1
+  ,outds_del=del_testdel1
+  ,outds_mod=mod_testdel1
+  ,mdebug=1
+)
+%mp_getformats(fmtlist=AGEMLA,outsummary=work.fmtdel1)
+%mp_assert(
+  iftrue=(%mf_nobs(fmtdel1)=0),
+  desc=Deletion test 1 - ensure AGEMLA format was fully deleted,
+  outds=work.test_results
+)
+
+/* deltest2 - deleting every record except 1 */
+data work.stagedatadel2;
+  set work.cntloutdel1;
+  if fmtname='AGEMLB';
+  x+1;
+  if x>1 then deleteme='Yes';
+run;
+%mp_loadformat(&cat1
+  ,work.stagedatadel2
+  ,loadtarget=YES
+  ,auditlibds=perm.audit
+  ,locklibds=0
+  ,delete_col=deleteme
+  ,outds_add=add_testdel2
+  ,outds_del=del_testdel2
+  ,outds_mod=mod_testdel2
+  ,mdebug=1
+)
+%mp_getformats(fmtlist=AGEMLB,outsummary=work.fmtdel2)
+%mp_assert(
+  iftrue=(%mf_nobs(fmtdel2)=1),
+  desc=Deletion test 2 - ensure AGEMLB format was not fully deleted,
+  outds=work.test_results
+)
+
+
+/* deltest3 - deleting every record, and adding a new one */
+data work.stagedatadel3;
+  set work.cntloutdel1;
+  if fmtname='GENDERML';
+  deleteme='Yes';
+run;
+data work.stagedatadel3;
+  set work.stagedatadel3 end=last;
+  output;
+  if last then do;
+    deleteme='No';
+    /* must be a new fmtrow (key value) if adding new row in same load! */
+    fmtrow=1000;
+    start='Mail';
+    end='Mail';
+    output;
+  end;
+run;
+
+%mp_loadformat(&cat1
+  ,work.stagedatadel3
+  ,loadtarget=YES
+  ,auditlibds=perm.audit
+  ,locklibds=0
+  ,delete_col=deleteme
+  ,outds_add=add_testdel2
+  ,outds_del=del_testdel2
+  ,outds_mod=mod_testdel2
+  ,mdebug=1
+)
+%mp_getformats(fmtlist=$GENDERML,outsummary=work.fmtdel3)
+%mp_assert(
+  iftrue=(%mf_nobs(fmtdel3)=1),
+  desc=Deletion test 3 - ensure GENDERML format was not fully deleted,
+  outds=work.test_results
+)
+
+%mp_ds2md(work.fmtdel3)

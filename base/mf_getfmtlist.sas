@@ -10,10 +10,9 @@
 
   returns:
 
-  > DOLLAR $CHAR W MONNAME
-  > $CHAR BEST DOLLAR
-  > BEST Z $CHAR COMMA PERCENTN
-
+      DOLLAR $CHAR W MONNAME
+      $CHAR BEST DOLLAR
+      BEST Z $CHAR COMMA PERCENTN
 
   @param [in] libds Two part library.dataset reference.
 

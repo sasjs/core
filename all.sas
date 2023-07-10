@@ -7894,7 +7894,7 @@ run;
   format list.
 
   Note - the source for this information is the dictionary.formats table. This
-  does NOT show formats that do not have
+  cannot show formats that are not already declared in the FMTSEARCH path.
 
   Example usage:
 

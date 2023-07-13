@@ -2,7 +2,7 @@
 
 # Ensure lint is passing
 LINT=`sasjs lint`
-if [[ "$LINT" != "✔ All matched files use @sasjs/lint code style!" ]]; then
+if [[ "$LINT" != *"✔ All matched files use @sasjs/lint code style!" ]]; then
   echo "$LINT"
   echo "To commit in spite of these warnings, use the -n parameter."
   exit 1

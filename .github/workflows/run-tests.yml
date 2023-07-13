@@ -62,9 +62,6 @@ jobs:
       - name: Add refresh token
         run: echo "REFRESH_TOKEN=${{secrets.SAS9_4GL_IO_REFRESH_TOKEN}}" >> .env.server
 
-      - name: show creds
-        run: cat .env.server
-
       - name: Build & Deploy Project to SAS server
         run: npx @sasjs/cli cbd -t server
 

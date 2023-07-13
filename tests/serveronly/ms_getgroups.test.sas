@@ -21,7 +21,7 @@
 %mp_assertscope(SNAPSHOT)
 %ms_getgroups(outds=work.test1,mdebug=&sasjs_mdebug)
 %mp_assertscope(COMPARE
-  ,ignorelist=MCLIB0_JADP1LEN MCLIB0_JADPNUM MCLIB0_JADVLEN
+  ,ignorelist=MCLIB2_JADP1LEN MCLIB2_JADPNUM MCLIB2_JADVLEN
 )
 
 /* check the group was created */

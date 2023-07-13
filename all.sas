@@ -695,10 +695,9 @@ or %index(&pgm,/tests/testteardown)
 
   returns:
 
-  > DOLLAR $CHAR W MONNAME
-  > $CHAR BEST DOLLAR
-  > BEST Z $CHAR COMMA PERCENTN
-
+      DOLLAR $CHAR W MONNAME
+      $CHAR BEST DOLLAR
+      BEST Z $CHAR COMMA PERCENTN
 
   @param [in] libds Two part library.dataset reference.
 
@@ -4152,9 +4151,9 @@ run;
 %end;
 
 proc format lib=&libcat cntlout=&cntlds;
-%if "&fmtlist" ne "0" %then %do;
+%if "&fmtlist" ne "0" and "&fmtlist" ne "" %then %do;
   select
-  %do i=1 %to %sysfunc(countw(&fmtlist));
+  %do i=1 %to %sysfunc(countw(&fmtlist,%str( )));
     %scan(&fmtlist,&i,%str( ))
   %end;
   ;
@@ -7894,9 +7893,14 @@ run;
   Formats are taken from the library / dataset reference and / or a static
   format list.
 
+  Note - the source for this information is the dictionary.formats table. This
+  cannot show formats that are not already declared in the FMTSEARCH path.
+
   Example usage:
 
       %mp_getformats(lib=sashelp,ds=prdsale,outsummary=work.dictable)
+
+      %mp_getformats(fmtlist=FORMAT1 $FORMAT2 @INFMT3,outsummary=work.table2)
 
   @param [in] lib= (0) The libref for which to return formats.
   @todo Enable exporting of formats for an entire library
@@ -7936,7 +7940,9 @@ https://support.sas.com/documentation/cdl/en/proc/61895/HTML/default/viewer.htm#
 
 
   <h4> Related Macros </h4>
+  @li mf_getfmtlist.sas
   @li mp_applyformats.sas
+  @li mp_cntlout.sas
   @li mp_getformats.test.sas
 
   @version 9.2
@@ -7953,7 +7959,7 @@ https://support.sas.com/documentation/cdl/en/proc/61895/HTML/default/viewer.htm#
 
 %local i fmt allfmts tempds fmtcnt;
 
-%if "&fmtlist" ne "0" %then %do i=1 %to %sysfunc(countw(&fmtlist,,%str( )));
+%if "&fmtlist" ne "0" %then %do i=1 %to %sysfunc(countw(&fmtlist,%str( )));
   /* ensure format list contains format _name_ only */
   %let fmt=%scan(&fmtlist,&i,%str( ));
   %let fmt=%mf_getfmtname(&fmt);
@@ -7977,8 +7983,7 @@ https://support.sas.com/documentation/cdl/en/proc/61895/HTML/default/viewer.htm#
 proc sql;
 create table &outsummary as
   select * from dictionary.formats
-  where fmtname in (%mf_getquotedstr(&allfmts,quote=D))
-    and fmttype='F';
+  where fmtname in (%mf_getquotedstr(&allfmts,quote=D));
 
 %if "&outdetail" ne "0" %then %do;
   /* ensure base table always exists */
@@ -8002,6 +8007,10 @@ create table &outsummary as
     data &tempds;
       if 0 then set &outdetail;
       set &tempds;
+      /* set fmtrow (position of record within the format) */
+      by type fmtname notsorted;
+      if first.fmtname then fmtrow=1;
+      else fmtrow+1;
     run;
     proc append base=&outdetail data=&tempds ;
     run;
@@ -10162,7 +10171,7 @@ select distinct lowcase(memname)
 );
 /* set up local macro variables and temporary tables (with a prefix) */
 %local err msg prefix dslist i var fmtlist ibufsize;
-%let dslist=base_fmts template inlibds ds1 stagedata storediffs;
+%let dslist=base_fmts template inlibds ds1 stagedata storediffs del1 del2;
 %if &outds_add=0 %then %let dslist=&dslist outds_add;
 %if &outds_del=0 %then %let dslist=&dslist outds_del;
 %if &outds_mod=0 %then %let dslist=&dslist outds_mod;
@@ -10294,6 +10303,18 @@ create table &outds_add(drop=&delete_col) as
   order by type, fmtname, fmtrow;
 
 /**
+  * Identify modified records
+  */
+create table &outds_mod (drop=&delete_col) as
+  select a.*
+  from &inlibds a
+  inner join &base_fmts b
+  on a.type=b.type and a.fmtname=b.fmtname and a.fmtrow=b.fmtrow
+  where upcase(a.&delete_col) ne "YES"
+    and a.fmthash ne b.fmthash
+  order by type, fmtname, fmtrow;
+
+/**
   * Identify deleted records
   */
 create table &outds_del(drop=&delete_col) as
@@ -10305,16 +10326,23 @@ create table &outds_del(drop=&delete_col) as
   order by type, fmtname, fmtrow;
 
 /**
-  * Identify modified records
+  * Identify fully deleted formats (where every record is removed)
+  * These require to be explicitly deleted in proc format
+  * del1 - identify _partial_ deletes
+  * del2 - exclude these, and also formats that come with _additions_
   */
-create table &outds_mod (drop=&delete_col) as
+create table &del1 as
   select a.*
-  from &inlibds a
-  inner join &base_fmts b
+  from &base_fmts a
+  left join &outds_del b
   on a.type=b.type and a.fmtname=b.fmtname and a.fmtrow=b.fmtrow
-  where upcase(a.&delete_col) ne "YES"
-    and a.fmthash ne b.fmthash
-  order by type, fmtname, fmtrow;
+  where b.fmtrow is null;
+
+create table &del2 as
+  select * from &outds_del
+  where cats(type,fmtname) not in (select cats(type,fmtname) from &outds_add)
+    and cats(type,fmtname) not in (select cats(type,fmtname) from &del1);
+
 
 %mp_abort(
   iftrue=(&syscc ne 0)
@@ -10347,7 +10375,7 @@ create table &outds_mod (drop=&delete_col) as
   ,msg=%str(SYSCC=&syscc prior to actual load)
 )
 %if &loadtarget=YES %then %do;
-  %if %mf_nobs(&stagedata)=0 %then %do;
+  %if %mf_nobs(&stagedata)=0 and %mf_nobs(&del2)=0 %then %do;
     %put There are no changes to load in &libcat!;
     %return;
   %end;
@@ -10363,6 +10391,22 @@ create table &outds_mod (drop=&delete_col) as
   /* do the actual load */
   proc format lib=&libcat cntlin=&stagedata;
   run;
+  /* apply any full deletes */
+  %if %mf_nobs(&del2)>0 %then %do;
+    %local delfmtlist;
+    proc sql noprint;
+    select distinct case when type='N' then cats(fmtname,'.FORMAT')
+        when type='C' then cats(fmtname,'.FORMATC')
+        when type='J' then cats(fmtname,'.INFMTC')
+        when type='I' then cats(fmtname,'.INFMT')
+        else cats(fmtname,'.BADENTRY!!!') end
+      into: delfmtlist
+      separated by ' '
+      from &del2;
+    proc catalog catalog=&libcat;
+      delete &delfmtlist;
+    quit;
+  %end;
   %if &locklibds ne 0 %then %do;
     /* unlock the table */
     %mp_lockanytable(UNLOCK
@@ -12831,7 +12875,7 @@ data &ds4;
   if upcase(&inds_auto)="&ds2" then tgtvar_type='N';
   else if upcase(&inds_auto)="&ds3" then tgtvar_type='C';
   else do;
-    putlog "%str(ERR)OR: unidentified vartype input!" &inds_auto;
+    putlog 'ERR' +(-1) "OR: unidentified vartype input!" &inds_auto;
     call symputx('syscc',98);
   end;
 
@@ -12840,7 +12884,7 @@ data &ds4;
   else if &inds_keep="&modds" then move_type='M';
   else if &inds_keep="&origds" then move_type='O';
   else do;
-    putlog "%str(ERR)OR: unidentified movetype input!" &inds_keep;
+    putlog 'ERR' +(-1) "OR: unidentified movetype input!" &inds_keep;
     call symputx('syscc',99);
   end;
   tgtvar_nm=upcase(tgtvar_nm);

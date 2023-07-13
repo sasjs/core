@@ -17,6 +17,7 @@ data _null_;
   file stpcode;
   put '%put hello world;';
   put '%put _all_;';
+  put 'data _null_; file _webout; put "runstptest";run;';
 run;
 
 options mprint;
@@ -34,25 +35,29 @@ options mprint;
 )
 %mp_assertscope(COMPARE)
 
-libname webeen json fileref=weboot;
-
+%let test1=0;
+%let test2=0;
 data _null_;
   infile weboot;
   input;
-  putlog _infile_;
+  if _n_=1 then call symputx('test1',_infile_);
+  if _n_=3 then do;
+    call symputx('test2',substr(_infile_,1,30));
+    putlog "SASJS_LOGS_SEPARATOR_xxx"; /* this marker affects the CLI parser */
+  end;
+  else putlog _infile_;
 run;
 
-%let test1=0;
-data work.log;
-  set webeen.log;
-  put (_all_)(=);
-  if _n_>10 then call symputx('test1',1);
-run;
+
 
 %mp_assert(
-  iftrue=("&test1"="1"),
-  desc=Checking log was returned,
+  iftrue=("&test1"="runstptest"),
+  desc=Checking webout was created,
   outds=work.test_results
 )
 
-
+%mp_assert(
+  iftrue=("&test2"="SASJS_LOGS_SEPARATOR_163ee17b6"),
+  desc=Checking debug was enabled,
+  outds=work.test_results
+)

@@ -68,7 +68,7 @@
 );
 /* set up local macro variables and temporary tables (with a prefix) */
 %local err msg prefix dslist i var fmtlist ibufsize;
-%let dslist=base_fmts template inlibds ds1 stagedata storediffs;
+%let dslist=base_fmts template inlibds ds1 stagedata storediffs del1 del2;
 %if &outds_add=0 %then %let dslist=&dslist outds_add;
 %if &outds_del=0 %then %let dslist=&dslist outds_del;
 %if &outds_mod=0 %then %let dslist=&dslist outds_mod;
@@ -200,6 +200,18 @@ create table &outds_add(drop=&delete_col) as
   order by type, fmtname, fmtrow;
 
 /**
+  * Identify modified records
+  */
+create table &outds_mod (drop=&delete_col) as
+  select a.*
+  from &inlibds a
+  inner join &base_fmts b
+  on a.type=b.type and a.fmtname=b.fmtname and a.fmtrow=b.fmtrow
+  where upcase(a.&delete_col) ne "YES"
+    and a.fmthash ne b.fmthash
+  order by type, fmtname, fmtrow;
+
+/**
   * Identify deleted records
   */
 create table &outds_del(drop=&delete_col) as
@@ -211,16 +223,23 @@ create table &outds_del(drop=&delete_col) as
   order by type, fmtname, fmtrow;
 
 /**
-  * Identify modified records
+  * Identify fully deleted formats (where every record is removed)
+  * These require to be explicitly deleted in proc format
+  * del1 - identify _partial_ deletes
+  * del2 - exclude these, and also formats that come with _additions_
   */
-create table &outds_mod (drop=&delete_col) as
+create table &del1 as
   select a.*
-  from &inlibds a
-  inner join &base_fmts b
+  from &base_fmts a
+  left join &outds_del b
   on a.type=b.type and a.fmtname=b.fmtname and a.fmtrow=b.fmtrow
-  where upcase(a.&delete_col) ne "YES"
-    and a.fmthash ne b.fmthash
-  order by type, fmtname, fmtrow;
+  where b.fmtrow is null;
+
+create table &del2 as
+  select * from &outds_del
+  where cats(type,fmtname) not in (select cats(type,fmtname) from &outds_add)
+    and cats(type,fmtname) not in (select cats(type,fmtname) from &del1);
+
 
 %mp_abort(
   iftrue=(&syscc ne 0)
@@ -253,7 +272,7 @@ create table &outds_mod (drop=&delete_col) as
   ,msg=%str(SYSCC=&syscc prior to actual load)
 )
 %if &loadtarget=YES %then %do;
-  %if %mf_nobs(&stagedata)=0 %then %do;
+  %if %mf_nobs(&stagedata)=0 and %mf_nobs(&del2)=0 %then %do;
     %put There are no changes to load in &libcat!;
     %return;
   %end;
@@ -269,6 +288,22 @@ create table &outds_mod (drop=&delete_col) as
   /* do the actual load */
   proc format lib=&libcat cntlin=&stagedata;
   run;
+  /* apply any full deletes */
+  %if %mf_nobs(&del2)>0 %then %do;
+    %local delfmtlist;
+    proc sql noprint;
+    select distinct case when type='N' then cats(fmtname,'.FORMAT')
+        when type='C' then cats(fmtname,'.FORMATC')
+        when type='J' then cats(fmtname,'.INFMTC')
+        when type='I' then cats(fmtname,'.INFMT')
+        else cats(fmtname,'.BADENTRY!!!') end
+      into: delfmtlist
+      separated by ' '
+      from &del2;
+    proc catalog catalog=&libcat;
+      delete &delfmtlist;
+    quit;
+  %end;
   %if &locklibds ne 0 %then %do;
     /* unlock the table */
     %mp_lockanytable(UNLOCK

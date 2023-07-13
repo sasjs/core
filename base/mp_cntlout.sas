@@ -58,9 +58,9 @@
 %end;
 
 proc format lib=&libcat cntlout=&cntlds;
-%if "&fmtlist" ne "0" %then %do;
+%if "&fmtlist" ne "0" and "&fmtlist" ne "" %then %do;
   select
-  %do i=1 %to %sysfunc(countw(&fmtlist));
+  %do i=1 %to %sysfunc(countw(&fmtlist,%str( )));
     %scan(&fmtlist,&i,%str( ))
   %end;
   ;

@@ -7,9 +7,14 @@
   Formats are taken from the library / dataset reference and / or a static
   format list.
 
+  Note - the source for this information is the dictionary.formats table. This
+  cannot show formats that are not already declared in the FMTSEARCH path.
+
   Example usage:
 
       %mp_getformats(lib=sashelp,ds=prdsale,outsummary=work.dictable)
+
+      %mp_getformats(fmtlist=FORMAT1 $FORMAT2 @INFMT3,outsummary=work.table2)
 
   @param [in] lib= (0) The libref for which to return formats.
   @todo Enable exporting of formats for an entire library
@@ -49,7 +54,9 @@ https://support.sas.com/documentation/cdl/en/proc/61895/HTML/default/viewer.htm#
 
 
   <h4> Related Macros </h4>
+  @li mf_getfmtlist.sas
   @li mp_applyformats.sas
+  @li mp_cntlout.sas
   @li mp_getformats.test.sas
 
   @version 9.2
@@ -66,7 +73,7 @@ https://support.sas.com/documentation/cdl/en/proc/61895/HTML/default/viewer.htm#
 
 %local i fmt allfmts tempds fmtcnt;
 
-%if "&fmtlist" ne "0" %then %do i=1 %to %sysfunc(countw(&fmtlist,,%str( )));
+%if "&fmtlist" ne "0" %then %do i=1 %to %sysfunc(countw(&fmtlist,%str( )));
   /* ensure format list contains format _name_ only */
   %let fmt=%scan(&fmtlist,&i,%str( ));
   %let fmt=%mf_getfmtname(&fmt);
@@ -90,8 +97,7 @@ https://support.sas.com/documentation/cdl/en/proc/61895/HTML/default/viewer.htm#
 proc sql;
 create table &outsummary as
   select * from dictionary.formats
-  where fmtname in (%mf_getquotedstr(&allfmts,quote=D))
-    and fmttype='F';
+  where fmtname in (%mf_getquotedstr(&allfmts,quote=D));
 
 %if "&outdetail" ne "0" %then %do;
   /* ensure base table always exists */
@@ -115,6 +121,10 @@ create table &outsummary as
     data &tempds;
       if 0 then set &outdetail;
       set &tempds;
+      /* set fmtrow (position of record within the format) */
+      by type fmtname notsorted;
+      if first.fmtname then fmtrow=1;
+      else fmtrow+1;
     run;
     proc append base=&outdetail data=&tempds ;
     run;

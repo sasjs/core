@@ -14,13 +14,51 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+
+      - name: Write VPN Files
+        run: |
+          echo "$CA_CRT" > .github/vpn/ca.crt
+          echo "$USER_CRT" > .github/vpn/user.crt
+          echo "$USER_KEY" > .github/vpn/user.key
+          echo "$TLS_KEY" > .github/vpn/tls.key
+        shell: bash
+        env:
+          CA_CRT: ${{ secrets.CA_CRT}}
+          USER_CRT: ${{ secrets.USER_CRT }}
+          USER_KEY: ${{ secrets.USER_KEY }}
+          TLS_KEY: ${{ secrets.TLS_KEY }}
+
+      - name: Install Open VPN
+        run: |
+          sudo apt install apt-transport-https
+          sudo wget https://swupdate.openvpn.net/repos/openvpn-repo-pkg-key.pub
+          sudo apt-key add openvpn-repo-pkg-key.pub
+          sudo wget -O /etc/apt/sources.list.d/openvpn3.list https://swupdate.openvpn.net/community/openvpn3/repos/openvpn3-jammy.list
+          sudo apt update
+          sudo apt install openvpn3=17~betaUb22042+jammy
+      - name: Start Open VPN 3
+        run: openvpn3 session-start --config .github/vpn/config.ovpn
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check code style (aborts if errors found)
+        run: npx @sasjs/cli lint
+
+      - name: Add credentials
+        run: |
+          echo "CLIENT=${{secrets.SAS9_4GL_IO_CLIENT}}"> .env.server
+          echo "ACCESS_TOKEN=${{secrets.SAS9_4GL_IO_ACCESS_TOKEN}}" >> .env.server
+          echo "REFRESH_TOKEN=${{secrets.SAS9_4GL_IO_REFRESH_TOKEN}}" >> .env.server
+
+      - name: SAS Packages Release
+        run: |
+          npx @sasjs/cli compile job -s sasjs/utils/create_sas_package.sas -o sasjsbuild -t server
+          # this part depends on https://github.com/sasjs/server/issues/307
+          npx @sasjs/cli run sasjsbuild/jobs/utils/create_sas_package.sas -t server
+
       - name: Semantic Release
         uses: cycjimmy/semantic-release-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: SAS Packages Release
-        run: |
-          npx @sasjs/cli compile job -s sasjs/utils/create_sas_package.sas -o sasjsbuild
-          # this part depends on https://github.com/sasjs/server/issues/307
-          npx @sasjs/cli run sasjsbuild/jobs/utils/create_sas_package.sas

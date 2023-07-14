@@ -23,4 +23,4 @@ jobs:
         run: |
           npx @sasjs/cli compile job -s sasjs/utils/create_sas_package.sas -o sasjsbuild
           # this part depends on https://github.com/sasjs/server/issues/307
-          sasjs run sasjsbuild/jobs/utils/create_sas_package.sas -t sas9
+          npx @sasjs/cli run sasjsbuild/jobs/utils/create_sas_package.sas -t sas9

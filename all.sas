@@ -4007,7 +4007,7 @@ run;
     infile &outfile lrecl=32767;
     input;
     list;
-    if _n_>50 then stop;
+    if _n_>200 then stop;
   run;
 %end;
 /* END */
@@ -10926,8 +10926,7 @@ drop table &ds1, &ds2;
   @file
   @brief Generates an md5 expression for hashing a set of variables
   @details This is the same algorithm used to hash records in
-  [Data Controller for SAS](https://datacontroller.io) (free for up
-  to 5 users).
+  [Data Controller for SAS](https://datacontroller.io).
 
   It is not designed to be efficient - it is designed to be effective,
   given the range of edge cases (large floating points, special missing
@@ -12716,8 +12715,7 @@ select distinct tgtvar_nm into: missvars separated by ' '
     data recovery, and change re-application.  This macro is one of many
     data management utilities used in [Data Controller for SAS](
     https:datacontroller.io) - a comprehensive data ingestion solution, which
-    works on any SAS platform (Viya, SAS 9, Foundation) and is free for up to 5
-    users.
+    works on any SAS platform (Viya, SAS 9, Foundation).
 
     NOTE - this macro does not validate the inputs. It is assumed that the
     datasets containing the new / changed / deleted rows are CORRECT, contain

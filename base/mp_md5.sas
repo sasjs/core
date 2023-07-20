@@ -2,8 +2,7 @@
   @file
   @brief Generates an md5 expression for hashing a set of variables
   @details This is the same algorithm used to hash records in
-  [Data Controller for SAS](https://datacontroller.io) (free for up
-  to 5 users).
+  [Data Controller for SAS](https://datacontroller.io).
 
   It is not designed to be efficient - it is designed to be effective,
   given the range of edge cases (large floating points, special missing

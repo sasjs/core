@@ -6,8 +6,7 @@
     data recovery, and change re-application.  This macro is one of many
     data management utilities used in [Data Controller for SAS](
     https:datacontroller.io) - a comprehensive data ingestion solution, which
-    works on any SAS platform (Viya, SAS 9, Foundation) and is free for up to 5
-    users.
+    works on any SAS platform (Viya, SAS 9, Foundation).
 
     NOTE - this macro does not validate the inputs. It is assumed that the
     datasets containing the new / changed / deleted rows are CORRECT, contain

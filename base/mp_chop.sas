@@ -185,7 +185,7 @@ run;
     infile &outfile lrecl=32767;
     input;
     list;
-    if _n_>50 then stop;
+    if _n_>200 then stop;
   run;
 %end;
 /* END */

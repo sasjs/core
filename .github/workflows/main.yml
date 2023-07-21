@@ -15,6 +15,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check code style (aborts if errors found)
+        run: npx @sasjs/cli lint
+
       - name: Write VPN Files
         run: |
           echo "$CA_CRT" > .github/vpn/ca.crt
@@ -38,12 +44,6 @@ jobs:
           sudo apt install openvpn3=17~betaUb22042+jammy
       - name: Start Open VPN 3
         run: openvpn3 session-start --config .github/vpn/config.ovpn
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Check code style (aborts if errors found)
-        run: npx @sasjs/cli lint
 
       - name: Add credentials
         run: |

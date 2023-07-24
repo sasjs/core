@@ -69,7 +69,7 @@
       rc2=filename(fref2,filepath2,'disk','recfm=n');
       if fcopy(fref1,fref2) ne 0 then do;
         msg=sysmsg();
-        putlog "%str(ERR)OR: Unable to copy " filepath " to " filepath2;
+        putlog 'ERR' +(-1) "OR: Unable to copy " filepath " to " filepath2;
         putlog msg=;
       end;
     end;

@@ -71,7 +71,7 @@
     retain &tempcol;
     &tempcol=prxparse('/^[_a-z]\w{0,7}\.[_a-z]\w{0,31}$/i');
     if missing(&tempcol) then do;
-      putlog "%str(ERR)OR: Invalid expression for LIBDS";
+      putlog 'ERR' +(-1) "OR: Invalid expression for LIBDS";
       stop;
     end;
     drop &tempcol;
@@ -85,7 +85,7 @@
     retain &tempcol;
     &tempcol=prxparse('/^[_a-z\$]\w{0,31}\.[0-9]*$/i');
     if missing(&tempcol) then do;
-      putlog "%str(ERR)OR: Invalid expression for FORMAT";
+      putlog 'ERR' +(-1) "OR: Invalid expression for FORMAT";
       stop;
     end;
     drop &tempcol;

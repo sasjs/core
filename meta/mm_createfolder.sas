@@ -51,12 +51,12 @@ data _null_;
 
   * name must not be blank;
   if ( folderPath = '' ) then do;
-    put "%str(ERR)OR: &sysmacroname PATH parameter value must be non-blank";
+    put 'ERR' +(-1) "OR: &sysmacroname PATH parameter value must be non-blank";
   end;
 
   * must have a starting slash ;
   if ( substr(folderPath,1,1) ne '/' ) then do;
-    put "%str(ERR)OR: &sysmacroname PATH param value must have starting slash";
+    put 'ERR' +(-1) "OR: &sysmacroname PATH param value must have starting slash";
     stop;
   end;
 
@@ -69,14 +69,14 @@ data _null_;
 
   * do not create a root (one level) folder ;
   if countc(folderPath,'/')=1 then do;
-    put "%str(ERR)OR: &sysmacroname will not create a new ROOT folder";
+    put 'ERR' +(-1) "OR: &sysmacroname will not create a new ROOT folder";
     stop;
   end;
 
   * check that root folder exists ;
   root=cats('/',scan(folderpath,1,'/'),"(Folder)");
   if metadata_pathobj('',root,"",objType,parentId)<1 then do;
-    put "%str(ERR)OR: " root " does not exist!";
+    put 'ERR' +(-1) "OR: " root " does not exist!";
     stop;
   end;
 
@@ -141,7 +141,7 @@ run;
       putlog "SUCCCESS!  &path created.";
     end;
     else do;
-      putlog "%str(ERR)OR: unsuccessful attempt to create &path";
+      putlog 'ERR' +(-1) "OR: unsuccessful attempt to create &path";
       call symputx('syscc',8);
     end;
   run;

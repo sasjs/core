@@ -652,9 +652,11 @@ data _null_;
   put ' ';
   put '%mend mfs_httpheader; ';
 /* WEBOUT END */
-  put '%macro webout(action,ds,dslabel=,fmt=,missing=NULL,showmeta=NO);';
+  put '%macro webout(action,ds,dslabel=,fmt=,missing=NULL,showmeta=NO';
+  put '    ,maxobs=MAX';
+  put ');';
   put '  %ms_webout(&action,ds=&ds,dslabel=&dslabel,fmt=&fmt,missing=&missing';
-  put '    ,showmeta=&showmeta';
+  put '    ,showmeta=&showmeta,maxobs=&maxobs';
   put '  )';
   put '%mend;';
 run;

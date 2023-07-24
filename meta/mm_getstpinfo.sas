@@ -58,7 +58,7 @@ data &outds;
     rc5=metadata_getattr(tsuri,"Name",servercontext);
   end;
   else do;
-    put "%str(ERR)OR: could not find " path;
+    put 'ERR' +(-1) "OR: could not find " path;
     put (_all_)(=);
   end;
   &md.put (_all_)(=);

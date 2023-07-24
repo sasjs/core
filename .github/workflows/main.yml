@@ -61,4 +61,4 @@ jobs:
         run: |
           npx @sasjs/cli compile job -s sasjs/utils/create_sas_package.sas -o sasjsbuild -t server
           # this part depends on https://github.com/sasjs/server/issues/307
-          npx @sasjs/cli run sasjsbuild/jobs/utils/create_sas_package.sas -t server
+          #npx @sasjs/cli run sasjsbuild/jobs/utils/create_sas_package.sas -t server

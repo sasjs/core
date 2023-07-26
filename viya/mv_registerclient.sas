@@ -25,11 +25,11 @@
         "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
       %inc mc;
 
+      %* generate random client details with openid scope;
+      %mv_registerclient(scopes=openid )
+
       %* generate random client using consul token as input parameter;
       %mv_registerclient(consul_token=12x34sa43v2345n234lasd)
-
-      %* generate random client details with all scopes;
-      %mv_registerclient(scopes=openid *)
 
       %* specific client with just openid scope;
       %mv_registerclient(client_id=YourClient
@@ -38,7 +38,7 @@
       )
 
       %* generate random client with 90/180 second access/refresh token expiry;
-      %mv_registerclient(scopes=openid *
+      %mv_registerclient(scopes=openid
         ,access_token_validity=90
         ,refresh_token_validity=180
       )

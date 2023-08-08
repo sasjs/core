@@ -190,7 +190,7 @@ data _null_;
   put "      - name: Make Release";
   put "        uses: alice-biometrics/release-creator/@v1.0.5";
   put "        with:";
-  put "          github_token: ${{ secrets.GH_TOKEN }}";
+  put "          github_token: ${{ secrets.GITHUB_TOKEN }}";
   put "          branch: main";
   put "          draft: false";
   put "          version: &version";

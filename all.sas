@@ -4478,11 +4478,12 @@ run;
       %mp_csv2ds(inref=mycsv,outds=myds,baseds=sashelp.class)
 
 
-  @param inref= (0) Fileref to the CSV
-  @param outds= (0) Output ds (lib.ds format)
-  @param view= (NO) Set to YES or NO to determine whether the output should be
-    a view or not.  Default is NO (not a view).
-  @param baseds= (0) Template dataset on which to create the input statement.
+  @param [in] inref= (0) Fileref to the CSV
+  @param [out] outds= (0) Output ds (lib.ds format)
+  @param [in] view= (NO) Set to YES or NO to determine whether the output
+    should be a view or not.  Default is NO (not a view).
+  @param [in] baseds= (0)
+    Template dataset on which to create the input statement.
     Is used to determine types, lengths, and any informats.
 
   @version 9.2
@@ -4615,10 +4616,11 @@ run;
       %mp_getconstraints(lib=work,ds=example,outds=work.constraints)
       %mp_deleteconstraints(inds=work.constraints,outds=dropped,execute=YES)
 
-  @param inds= (mp_getconstraints) The input table containing constraint info
-  @param outds= (mp_deleteconstraints) Table containing the drop statements
-    (drop_statement column)
-  @param execute= (NO) `YES|NO` - default is NO. To actually drop, use YES.
+  @param [in] inds= (mp_getconstraints)
+    The input table containing constraint info
+  @param [out] outds= (mp_deleteconstraints)
+    Table containing the drop statements (drop_statement column)
+  @param [in] execute= (NO) `YES|NO` - default is NO. To actually drop, use YES.
 
 
   @version 9.2

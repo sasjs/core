@@ -12,16 +12,14 @@
 
       %mp_getcols(sashelp.airline,outds=work.myds)
 
-  @param ds The dataset from which to obtain column metadata
-  @param outds= (work.cols) The output dataset to create. Sample data:
+  @param [in] ds The dataset from which to obtain column metadata
+  @param [out] outds= (work.cols) The output dataset to create. Sample data:
 |NAME:$32.|LENGTH:best.|VARNUM:best.|LABEL:$256.|FMTNAME:$32.|FORMAT:$49.|TYPE:$1.|DDTYPE:$9.|
 |---|---|---|---|---|---|---|---|
 |`AIR `|`8 `|`2 `|`international airline travel (thousands) `|` `|`8. `|`N `|`NUMERIC `|
 |`DATE `|`8 `|`1 `|`DATE `|`MONYY `|`MONYY. `|`N `|`DATE `|
 |`REGION `|`3 `|`3 `|`REGION `|` `|`$3. `|`C `|`CHARACTER `|
 
-  @param [in] ds The dataset to get the columns from
-  @param [out] outds= (work.cols) The dataset to create
 
   <h4> Related Macros </h4>
   @li mf_getvarlist.sas

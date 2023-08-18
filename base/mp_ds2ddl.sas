@@ -13,7 +13,7 @@
   @param [in]showlog= (NO) Set to YES to show the DDL in the log
   @param [in] schema= () Choose a preferred schema name (default is to use
     actual schema, else libref)
-  @param applydttm= (NO) For non SAS DDL, choose if columns are created with
+  @param [in] applydttm= (NO) For non SAS DDL, choose if columns are created with
     native datetime2 format or regular decimal type
 
   <h4> SAS Macros </h4>

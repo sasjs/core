@@ -38,7 +38,7 @@
   @param [in] record The relative (to current) position of the previous row
     to return.
   @param [in] history= (5) The number of records to retain in the hash table.
-  @param prefix= (mp_prevobs) The prefix to give to the variables used to
+  @param [in] prefix= (mp_prevobs) The prefix to give to the variables used to
     store the hash name and index.
 
   @version 9.2

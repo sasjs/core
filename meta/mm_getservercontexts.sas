@@ -6,7 +6,8 @@
 
     %mm_getservercontexts(outds=mm_getservercontexts)
 
-  @param outds= the dataset to create that contains the list
+  @param [out] outds= (work.mm_getrepos)
+    the dataset to create that contains the list
 
   @warning The following filenames are created and then de-assigned:
 

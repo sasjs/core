@@ -22,15 +22,15 @@
         list;
       run;
 
-  @param file= (0) The file to perform the substitution on
-  @param patternvar= A macro variable containing the Lua
+  @param [in] file= (0) The file to perform the substitution on
+  @param [in] patternvar= A macro variable containing the Lua
     [pattern](https://www.lua.org/pil/20.2.html) to search for.  Due to the use
     of special (magic) characters in Lua patterns, it is safer to pass the NAME
     of the macro variable containing the string, rather than the value itself.
-  @param replacevar= The name of the macro variable containing the replacement
-    _string_.
-  @param outfile= (0) The file to write the output to. If zero, then the file
-    is overwritten in-place.
+  @param [in] replacevar= ()
+    The name of the macro variable containing the replacement _string_.
+  @param [out] outfile= (0) The file to write the output to.
+    If zero, then the file is overwritten in-place.
 
   <h4> SAS Macros </h4>
   @li ml_gsubfile.sas

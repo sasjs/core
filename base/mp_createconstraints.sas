@@ -18,11 +18,11 @@
       %mp_deleteconstraints(inds=work.constraints,outds=dropped,execute=YES)
       %mp_createconstraints(inds=work.constraints,outds=created,execute=YES)
 
-  @param inds= (work.mp_getconstraints) The input table containing the
+  @param [in] inds= (work.mp_getconstraints) The input table containing the
     constraint info
-  @param outds= (work.mp_createconstraints) A table containing the create
+  @param [out] outds= (work.mp_createconstraints) A table containing the create
     statements (create_statement column)
-  @param execute= (NO) To actually create, use YES.
+  @param [in] execute= (NO) To actually create, use YES.
 
   <h4> Related Files </h4>
   @li mp_getconstraints.sas

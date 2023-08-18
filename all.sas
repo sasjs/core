@@ -1161,7 +1161,7 @@ or %index(&pgm,/tests/testteardown)
 
 > MCc59c750610321d4c8bf75faadbcd22
 
-  @param prefix= (MC) Sets a prefix for the new name
+  @param [in] prefix= (MC) Sets a prefix for the new name
 
   @version 9.3
   @author Allan Bowe
@@ -3788,7 +3788,8 @@ run;
   @param [in] mode= (CREATE) Valid values:
     @li CREATE - Create the file (even if it already exists)
     @li APPEND - Append to the file (don't overwrite)
-  @param iftrue= (1=1) Supply a condition for which the macro should be executed
+  @param [in] iftrue= (1=1)
+    Supply a condition for which the macro should be executed
 
   @returns nothing
 
@@ -3890,7 +3891,8 @@ run;
     @li FIRST - keep the section of the file before the chop
     @li LAST - keep the section of the file after the chop
   @param [in] mdebug= (0) Set to 1 to provide macro debugging
-  @param outfile= (0) Optional QUOTED path to the adjusted output file (avoids
+  @param [out] outfile= (0)
+    Optional QUOTED path to the adjusted output file (avoids
     overwriting the first file).
 
   <h4> SAS Macros </h4>
@@ -4042,11 +4044,12 @@ run;
       fileref mycsv "/path/your/csv";
       %mp_cleancsv(in=mycsv,out=/path/new.csv)
 
-  @param in= (NOTPROVIDED) Provide path or fileref to input csv. If a period is
+  @param [in] in= (NOTPROVIDED)
+    Provide path or fileref to input csv. If a period is
     found, it is assumed to be a file.
-  @param out= (NOTPROVIDED) Output path or fileref to output csv.  If a period
-    is found, it is assumed to be a file.
-  @param qchar= ('22'x) Quote char - hex code 22 is the double quote.
+  @param [in] out= (NOTPROVIDED) Output path or fileref to output csv.
+    If a period is found, it is assumed to be a file.
+  @param [in] qchar= ('22'x) Quote char - hex code 22 is the double quote.
 
   @version 9.2
   @author Allan Bowe
@@ -4375,11 +4378,11 @@ proc sql;
       %mp_deleteconstraints(inds=work.constraints,outds=dropped,execute=YES)
       %mp_createconstraints(inds=work.constraints,outds=created,execute=YES)
 
-  @param inds= (work.mp_getconstraints) The input table containing the
+  @param [in] inds= (work.mp_getconstraints) The input table containing the
     constraint info
-  @param outds= (work.mp_createconstraints) A table containing the create
+  @param [out] outds= (work.mp_createconstraints) A table containing the create
     statements (create_statement column)
-  @param execute= (NO) To actually create, use YES.
+  @param [in] execute= (NO) To actually create, use YES.
 
   <h4> Related Files </h4>
   @li mp_getconstraints.sas
@@ -5644,7 +5647,7 @@ run;
   @param [in]showlog= (NO) Set to YES to show the DDL in the log
   @param [in] schema= () Choose a preferred schema name (default is to use
     actual schema, else libref)
-  @param applydttm= (NO) For non SAS DDL, choose if columns are created with
+  @param [in] applydttm= (NO) For non SAS DDL, choose if columns are created with
     native datetime2 format or regular decimal type
 
   <h4> SAS Macros </h4>
@@ -7017,16 +7020,14 @@ filename &fref1 clear;
 
       %mp_getcols(sashelp.airline,outds=work.myds)
 
-  @param ds The dataset from which to obtain column metadata
-  @param outds= (work.cols) The output dataset to create. Sample data:
+  @param [in] ds The dataset from which to obtain column metadata
+  @param [out] outds= (work.cols) The output dataset to create. Sample data:
 |NAME:$32.|LENGTH:best.|VARNUM:best.|LABEL:$256.|FMTNAME:$32.|FORMAT:$49.|TYPE:$1.|DDTYPE:$9.|
 |---|---|---|---|---|---|---|---|
 |`AIR `|`8 `|`2 `|`international airline travel (thousands) `|` `|`8. `|`N `|`NUMERIC `|
 |`DATE `|`8 `|`1 `|`DATE `|`MONYY `|`MONYY. `|`N `|`DATE `|
 |`REGION `|`3 `|`3 `|`REGION `|` `|`$3. `|`C `|`CHARACTER `|
 
-  @param [in] ds The dataset to get the columns from
-  @param [out] outds= (work.cols) The dataset to create
 
   <h4> Related Macros </h4>
   @li mf_getvarlist.sas
@@ -7556,8 +7557,8 @@ run;
   @param [in]showlog= (NO) Set to YES to show the DDL in the log
   @param [in] schema= () Choose a preferred schema name (default is to use
     actual schema, else libref)
-  @param applydttm= (NO) For non SAS DDL, choose if columns are created with
-    native datetime2 format or regular decimal type
+  @param [in] applydttm= (NO) For non SAS DDL, choose if columns are created
+    with native datetime2 format or regular decimal type
 
   @version 9.3
   @author Allan Bowe
@@ -8781,15 +8782,15 @@ run;
         list;
       run;
 
-  @param file= (0) The file to perform the substitution on
-  @param patternvar= A macro variable containing the Lua
+  @param [in] file= (0) The file to perform the substitution on
+  @param [in] patternvar= A macro variable containing the Lua
     [pattern](https://www.lua.org/pil/20.2.html) to search for.  Due to the use
     of special (magic) characters in Lua patterns, it is safer to pass the NAME
     of the macro variable containing the string, rather than the value itself.
-  @param replacevar= The name of the macro variable containing the replacement
-    _string_.
-  @param outfile= (0) The file to write the output to. If zero, then the file
-    is overwritten in-place.
+  @param [in] replacevar= ()
+    The name of the macro variable containing the replacement _string_.
+  @param [out] outfile= (0) The file to write the output to.
+    If zero, then the file is overwritten in-place.
 
   <h4> SAS Macros </h4>
   @li ml_gsubfile.sas
@@ -10992,8 +10993,8 @@ drop table &ds1, &ds2;
   @li Global option:  `options dsoptions=nonote2err;`
   @li Data step option: `data YOURLIB.YOURDATASET /nonote2err;`
 
-  @param cvars= () Space seperated list of character variables
-  @param nvars= () Space seperated list of numeric variables
+  @param [in] cvars= () Space seperated list of character variables
+  @param [in] nvars= () Space seperated list of numeric variables
 
   <h4> Related Programs </h4>
   @li mp_init.sas
@@ -11101,7 +11102,7 @@ put(md5(
   @param [in] record The relative (to current) position of the previous row
     to return.
   @param [in] history= (5) The number of records to retain in the hash table.
-  @param prefix= (mp_prevobs) The prefix to give to the variables used to
+  @param [in] prefix= (mp_prevobs) The prefix to give to the variables used to
     store the hash name and index.
 
   @version 9.2
@@ -11761,12 +11762,13 @@ run;
 
       %mp_searchcols(libs=sashelp work, cols=name sex age)
 
-  @param libs= (SASHELP) Space separated list of libraries to search for columns
-  @param cols= Space separated list of column names to search for (not case
-    sensitive)
-  @param outds= (mp_searchcols) the table to create with the results.  Will have
-    one line per table match.
-  @param match= (ANY) The match type. Valid values:
+  @param [in] libs= (SASHELP)
+    Space separated list of libraries to search for columns
+  @param [in] cols=
+    Space separated list of column names to search for (not case sensitive)
+  @param [out] outds= (mp_searchcols)
+    The table to create with the results.  Will have one line per table match.
+  @param [in] match= (ANY) The match type. Valid values:
     @li ANY - The table contains at least one of the columns
     @li WILD - The table contains a column with a name that partially matches
 
@@ -14906,21 +14908,24 @@ run;
   @li mp_abort.sas
   @li mf_verifymacvars.sas
 
-  @param tree= The metadata folder uri, or the metadata path, in which to
+  @param [in] tree= The metadata folder uri, or the metadata path, in which to
     create the object.  This must exist.
-  @param name= Application object name.  Avoid spaces.
-  @param ClassIdentifier= the class of applications to which this app belongs
-  @param params= name=value pairs which will become public properties of the
+  @param [in] name= Application object name.  Avoid spaces.
+  @param [in] ClassIdentifier=
+    The class of applications to which this app belongs
+  @param [in] params=
+    name=value pairs which will become public properties of the
     application object. These are delimited using &#x0a; (newline character)
 
-  @param desc= Application description (optional).  Avoid ampersands as these
+  @param [in] desc= Application description (optional).
+    Avoid ampersands as these
     are illegal characters (unless they are escapted- eg &amp;)
-  @param version= version number of application
-  @param frefin= fileref to use (enables change if there is a conflict).  The
-    filerefs are left open, to enable inspection after running the
+  @param [in] version= version number of application
+  @param [in] frefin= fileref to use (enables change if there is a conflict).
+    The filerefs are left open, to enable inspection after running the
     macro (or importing into an xmlmap if needed).
-  @param frefout= fileref to use (enables change if there is a conflict)
-  @param mDebug= set to 1 to show debug messages in the log
+  @param [out] frefout= fileref to use (enables change if there is a conflict)
+  @param [in] mDebug= set to 1 to show debug messages in the log
 
   @author Allan Bowe
 
@@ -18483,7 +18488,8 @@ libname _XML_ clear;
 
     %mm_getservercontexts(outds=mm_getservercontexts)
 
-  @param outds= the dataset to create that contains the list
+  @param [out] outds= (work.mm_getrepos)
+    the dataset to create that contains the list
 
   @warning The following filenames are created and then de-assigned:
 
@@ -19257,8 +19263,8 @@ libname _XML_ clear;
     - uri
     - name
 
-  @param user= (0) Set to a metadata user to filter on that user
-  @param outds= (work.mm_getusers) The output table to create
+  @param [in] user= (0) Set to a metadata user to filter on that user
+  @param [out] outds= (work.mm_getusers) The output table to create
 
   @version 9.3
   @author Allan Bowe

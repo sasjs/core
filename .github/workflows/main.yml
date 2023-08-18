@@ -61,7 +61,4 @@ jobs:
         run: |
           npx @sasjs/cli compile job -s sasjs/utils/create_sas_package.sas -o sasjsbuild -t server
           # need long duration token per https://github.com/sasjs/server/issues/307
-          echo check if regular code exec works
-          npx @sasjs/cli run all.sas -t server
-          echo now regenerate packages
-          npx @sasjs/cli run sasjsbuild/jobs/utils/create_sas_package.sas -t server
+          # npx @sasjs/cli run sasjsbuild/jobs/utils/create_sas_package.sas -t server

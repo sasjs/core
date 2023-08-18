@@ -14,8 +14,8 @@
   @li mp_abort.sas
 
   @param [in] libref The libref (not name) of the metadata library
-  @param [in] mAbort= If not assigned, HARD will call %mp_abort(), SOFT will
-    silently return
+  @param [in] mAbort= (HARD) If not assigned, HARD will call %mp_abort(), SOFT
+    will silently return
 
   @returns libname statement
 

@@ -17,15 +17,15 @@
   @li mf_verifymacvars.sas
 
 
-  @param tree= The metadata folder uri, or the metadata path, in which to
+  @param [in] tree= The metadata folder uri, or the metadata path, in which to
     create the document.  This must exist.
-  @param name= Document object name.  Avoid spaces.
+  @param [in] name= Document object name.  Avoid spaces.
 
-  @param desc= Document description (optional)
-  @param textrole= TextRole property (optional)
-  @param frefin= fileref to use (enables change if there is a conflict)
-  @param frefout= fileref to use (enables change if there is a conflict)
-  @param mDebug= set to 1 to show debug messages in the log
+  @param [in] desc= Document description (optional)
+  @param [in] textrole= TextRole property (optional)
+  @param [in] frefin= fileref to use (enables change if there is a conflict)
+  @param [out] frefout= fileref to use (enables change if there is a conflict)
+  @param [in] mDebug= set to 1 to show debug messages in the log
 
   @author Allan Bowe
 

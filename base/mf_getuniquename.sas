@@ -10,7 +10,7 @@
 
 > MCc59c750610321d4c8bf75faadbcd22
 
-  @param prefix= set a prefix for the new name
+  @param prefix= (MC) Sets a prefix for the new name
 
   @version 9.3
   @author Allan Bowe

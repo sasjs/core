@@ -23,12 +23,13 @@
         ,childvar=c
         )
 
-  @param base_ds= base table containing hierarchy (not modified)
-  @param outds= the output dataset to create with the generated hierarchy
-  @param matchval= the ultimate parent from which to filter
-  @param parentvar= name of the parent variable
-  @param childvar= name of the child variable (should be same type as parent)
-  @param mdebug= set to 1 to prevent temp tables being dropped
+  @param [in] base_ds= base table containing hierarchy (not modified)
+  @param [out] outds= the output dataset to create with the generated hierarchy
+  @param [in] matchval= the ultimate parent from which to filter
+  @param [in] parentvar= name of the parent variable
+  @param [in] childvar= () name of the child variable (should be same type as
+    parent)
+  @param [in] mdebug= set to 1 to prevent temp tables being dropped
 
 
   @returns outds contains the following variables:

@@ -2,8 +2,8 @@
   @file
   @brief Creates a dataset with all metadata objects for a particular type
 
-  @param type= the metadata type for which to return all objects
-  @param outds= the dataset to create that contains the list of types
+  @param [in] type= the metadata type for which to return all objects
+  @param [out] outds= the dataset to create that contains the list of types
 
   @returns outds  dataset containing all objects
 

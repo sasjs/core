@@ -13,11 +13,12 @@
 
       %mp_unzip(ziploc="/some/file.zip",outdir=/some/folder)
 
-  More info:  https://blogs.sas.com/content/sasdummy/2015/05/11/using-filename-zip-to-unzip-and-read-data-files-in-sas/
+  More info:
+  https://blogs.sas.com/content/sasdummy/2015/05/11/using-filename-zip-to-unzip-and-read-data-files-in-sas/
 
-  @param ziploc= Fileref or quoted full path to zip file ("/path/to/file.zip")
-  @param outdir= (%sysfunc(pathname(work))) Directory in which to write the
-    outputs (created if non existant)
+  @param [in] ziploc= Fileref or quoted full path, eg: "/path/to/file.zip"
+  @param [out] outdir= (%sysfunc(pathname(work))) Directory in which to write
+    the outputs (created if needed)
 
   <h4> SAS Macros </h4>
   @li mf_mkdir.sas

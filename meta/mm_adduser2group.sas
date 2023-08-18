@@ -13,9 +13,9 @@
         ,group=someGroup)
 
 
-  @param user= the user name (not displayname)
-  @param group= the group to which to add the user
-  @param mdebug= (0) set to 1 to show debug info in log
+  @param [in] user= the user name (not displayname)
+  @param [in] group= the group to which to add the user
+  @param [in] mdebug= (0) set to 1 to show debug info in log
 
   <h4> Related Files </h4>
   @li ms_adduser2group.sas

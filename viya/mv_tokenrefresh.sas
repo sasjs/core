@@ -28,17 +28,18 @@
 
   https://blogs.sas.com/content/sgf/2019/01/25/authentication-to-sas-viya/
 
-  @param inds= A dataset containing client_id and client_secret
-  @param outds= A dataset containing access_token and refresh_token
-  @param client_id= The client name (alternative to inds)
-  @param client_secret= client secret (alternative to inds)
-  @param grant_type= valid values are "password" or "authorization_code"
+  @param [in] inds= A dataset containing client_id and client_secret
+  @param [in] outds= A dataset containing access_token and refresh_token
+  @param [in] client_id= The client name (alternative to inds)
+  @param [in] client_secret= client secret (alternative to inds)
+  @param [in] grant_type= valid values are "password" or "authorization_code"
     (unquoted).  The default is authorization_code.
-  @param user= If grant_type=password then provide the username here
-  @param pass= If grant_type=password then provide the password here
-  @param access_token_var= The global macro variable to contain the access token
-  @param refresh_token_var= The global macro variable containing the refresh
-    token
+  @param [in] user= If grant_type=password then provide the username here
+  @param [in] pass= If grant_type=password then provide the password here
+  @param [in] access_token_var= (ACCESS_TOKEN)
+    The global macro variable to contain the access token
+  @param [in] refresh_token_var= (REFRESH_TOKEN)
+    The global macro variable containing the refresh token
 
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core

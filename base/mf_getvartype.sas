@@ -13,8 +13,8 @@ Usage:
 
 
 
-  @param libds Two part dataset (or view) reference.
-  @param var the variable name to be checked
+  @param [in] libds Two part dataset (or view) reference.
+  @param [in] var the variable name to be checked
   @return output returns C or N depending on variable type.  If variable
     does not exist then a blank is returned and a note is written to the log.
 

@@ -4,8 +4,8 @@
   @details Will only show the libraries to which a user has the requisite
     metadata access.
 
-  @param outds the dataset to create that contains the list of libraries
-  @param mDebug set to anything but * or 0 to show debug messages in the log
+  @param [out] outds= (work.mm_getlibs)
+    The library.dataset to create that contains the list of libraries
 
   @returns outds  dataset containing all groups in a column named "metagroup"
     (defaults to work.mm_getlibs). The following columns are provided:

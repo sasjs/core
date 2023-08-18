@@ -7,8 +7,8 @@
 
     %mm_getcols(tableuri=A5X8AHW1.B40001S5)
 
-  @param outds the dataset to create that contains the list of columns
-  @param uri the uri of the table for which to return columns
+  @param [out] outds the dataset to create that contains the list of columns
+  @param [in] uri the uri of the table for which to return columns
 
   @returns outds  dataset containing all columns, specifically:
     - colname

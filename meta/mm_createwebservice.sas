@@ -29,22 +29,23 @@ Usage:
   For more examples of using these web services with the SASjs Adapter, see:
   https://github.com/sasjs/adapter#readme
 
-  @param path= The full path (in SAS Metadata) where the service will be created
-  @param name= Stored Process name.  Avoid spaces - testing has shown that
+  @param [in] path= () The full path (in SAS Metadata) where the service
+    will be created
+  @param [in] name= Stored Process name.  Avoid spaces - testing has shown that
     the check to avoid creating multiple STPs in the same folder with the same
     name does not work when the name contains spaces.
-  @param desc= The description of the service (optional)
-  @param precode= Space separated list of filerefs, pointing to the code that
-    needs to be attached to the beginning of the service (optional)
-  @param code= (ft15f001) Space seperated fileref(s) of the actual code to be
-    added
-  @param server= (SASApp) The server which will run the STP.  Server name or uri
-    is fine.
-  @param mDebug= (0) set to 1 to show debug messages in the log
-  @param replace= (YES) select NO to avoid replacing an existing service in that
-    location
-  @param adapter= (sasjs) the macro uses the sasjs adapter by default.  To use
-    another adapter, add a (different) fileref here.
+  @param [in] desc= The description of the service (optional)
+  @param [in] precode= () Space separated list of filerefs, pointing to the
+    code that needs to be attached to the beginning of the service (optional)
+  @param [in] code= (ft15f001) Space seperated fileref(s) of the actual code
+    to be added
+  @param [in] server= (SASApp) The server which will run the STP.  Server
+    name or uri is fine.
+  @param [in] mDebug= (0) set to 1 to show debug messages in the log
+  @param [in] replace= (YES) select NO to avoid replacing an existing service
+    in that location
+  @param [in] adapter= (sasjs) the macro uses the sasjs adapter by default.
+    To use another adapter, add a (different) fileref here.
 
   <h4> SAS Macros </h4>
   @li mm_createstp.sas

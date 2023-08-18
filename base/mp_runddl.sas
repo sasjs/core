@@ -31,9 +31,9 @@
     %mp_runddl(/some/rootlib, exc=LIBREF3) * same as above ;
 
 
-  @param path location of the DDL folder structure
-  @param inc= list of librefs to include
-  @param exc= list of librefs to exclude (takes precedence over inc=)
+  @param [in] path location of the DDL folder structure
+  @param [in] inc= list of librefs to include
+  @param [in] exc= list of librefs to exclude (takes precedence over inc=)
 
   @version 9.3
   @author Allan Bowe

@@ -2,7 +2,8 @@
   @file
   @brief Creates a dataset with all available repositories
 
-  @param outds= the dataset to create that contains the list of repos
+  @param [out] outds= (work.mm_getrepos)
+    The dataset to create that contains the list of repos
 
   @returns outds  dataset containing all repositories
 

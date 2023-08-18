@@ -12,9 +12,9 @@
   <h4> SAS Macros </h4>
   @li mf_loc.sas
 
-  @param loc= the metadata folder to delete
-  @param user= username
-  @param pass= password
+  @param [in] loc= the metadata folder to delete
+  @param [in] user= username
+  @param [in] pass= password
 
   @version 9.4
   @author Allan Bowe

@@ -50,7 +50,8 @@
 
       %mv_getjobstate(uri=&uri,outds=results)
 
-  You can run this macro as part of a loop to await the final 'completed' status.
+  You can run this macro as part of a loop to await the final 'completed'
+  status.
   The full list of status values is:
 
   @li idle
@@ -63,12 +64,13 @@
   If you have one or more jobs that you'd like to wait for completion you can
   also use the [mv_jobwaitfor](/mv__jobwaitfor_8sas.html) macro.
 
-  @param [in] access_token_var= The global macro variable to contain the access token
+  @param [in] access_token_var= (ACCESS_TOKEN)
+    The global macro variable to contain the access token
   @param [in] grant_type= valid values:
     @li password
     @li authorization_code
-    @li detect - will check if access_token exists, if not will use sas_services if
-        a SASStudioV session else authorization_code.  Default option.
+    @li detect - will check if access_token exists, if not will use sas_services
+        if a SASStudioV session else authorization_code.
     @li sas_services - will use oauth_bearer=sas_services.
   @param [in] uri= The uri of the running job for which to fetch the status,
     in the format `/jobExecution/jobs/$UUID/state` (unquoted).

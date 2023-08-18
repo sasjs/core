@@ -15,7 +15,7 @@
 
       %mp_deletefolder(&rootdir)
 
-  @param path Unquoted path to the folder to delete.
+  @param [in] folder Unquoted path to the folder to delete.
 
   <h4> SAS Macros </h4>
   @li mf_getuniquename.sas

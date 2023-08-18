@@ -44,7 +44,7 @@
   For more examples, see mp_chop.test.sas
 
   @param [in] infile The QUOTED path to the file on which to perform the chop
-  @param [in] matchvar= Macro variable NAME containing the string to split by
+  @param [in] matchvar= () Macro variable NAME containing the string to split by
   @param [in] matchpoint= (START) Valid values:
     @li START - chop at the beginning of the string in `matchvar`.
     @li END - chop at the end of the string in `matchvar`.

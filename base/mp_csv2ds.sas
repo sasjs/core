@@ -19,11 +19,11 @@
       %mp_csv2ds(inref=mycsv,outds=myds,baseds=sashelp.class)
 
 
-  @param inref= fileref to the CSV
-  @param outds= output ds (lib.ds format)
-  @param view= Set to YES or NO to determine whether the output should be
+  @param inref= (0) Fileref to the CSV
+  @param outds= (0) Output ds (lib.ds format)
+  @param view= (NO) Set to YES or NO to determine whether the output should be
     a view or not.  Default is NO (not a view).
-  @param baseds= Template dataset on which to create the input statement.
+  @param baseds= (0) Template dataset on which to create the input statement.
     Is used to determine types, lengths, and any informats.
 
   @version 9.2

@@ -17,14 +17,14 @@
       ,paramdesc=some description)
 
 
-  @param app= the BIP Tree folder path plus Application Name
-  @param paramname= Parameter name
-  @param paramvalue= Parameter value
-  @param paramdesc= Parameter description
+  @param [in] app= the BIP Tree folder path plus Application Name
+  @param [in] paramname= Parameter name
+  @param [in] paramvalue= Parameter value
+  @param [in] paramdesc= Parameter description
 
-  @param frefin= change default inref if it clashes with an existing one
-  @param frefout= change default outref if it clashes with an existing one
-  @param mDebug= set to 1 to show debug messages in the log
+  @param [in] frefin= change default inref if it clashes with an existing one
+  @param [out] frefout= change default outref if it clashes with an existing one
+  @param [in] mDebug= set to 1 to show debug messages in the log
 
   @version 9.4
   @author Allan Bowe

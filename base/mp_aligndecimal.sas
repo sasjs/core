@@ -62,8 +62,8 @@
           7998580.8415
 
 
-  @param var The (data step, character) variable to modify
-  @param width= (8) The number of characters BEFORE the decimal point
+  @param [in] var The (data step, character) variable to modify
+  @param [in] width= (8) The number of characters BEFORE the decimal point
 
   <h4> SAS Macros </h4>
   @li mf_getuniquename.sas

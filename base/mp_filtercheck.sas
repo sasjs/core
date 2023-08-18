@@ -37,10 +37,12 @@
   @param [in] targetds= The target dataset against which to verify VARIABLE_NM.
     This must be available (ie, the library must be assigned).
   @param [out] abort= (YES) If YES will call mp_abort.sas on any exceptions
-  @param [out] outds= The output table, which is a copy of the &inds. table
-    plus a REASON_CD column, containing only bad records.  If bad records found,
-    the SYSCC value will be set to 1008 (general data problem).  Downstream
-    processes should check this table (and return code) before continuing.
+  @param [out] outds= (work.badrecords) The output table, which is a copy of the
+    &inds. table plus a REASON_CD column, containing only bad records.
+    If bad records are found, the SYSCC value will be set to 1008
+    (a general data problem).
+    Downstream processes should check this table (and return code) before
+    continuing.
 
   <h4> SAS Macros </h4>
   @li mp_abort.sas

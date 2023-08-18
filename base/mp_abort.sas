@@ -27,14 +27,15 @@
     currently investigating approaches to deal with this.
 
 
-  @param mac= (mp_abort.sas) To contain the name of the calling macro. Do not
-    use &sysmacroname as this will always resolve to MP_ABORT.
-  @param msg= message to be returned
-  @param iftrue= (1=1) Supply a condition for which the macro should be executed
-  @param errds= (work.mp_abort_errds) There is no clean way to end a process
-    within a %include called within a macro.  Furthermore, there is no way to
-    test if a macro is called within a %include.  To handle this particular
-    scenario, the %include should be switched for the mp_include.sas macro.
+  @param [in] mac= (mp_abort.sas) To contain the name of the calling macro. Do
+    not use &sysmacroname as this will always resolve to MP_ABORT.
+  @param [out] msg= message to be returned
+  @param [in] iftrue= (1=1) Condition under which the macro should be executed
+  @param [in] errds= (work.mp_abort_errds) There is no clean way to end a
+    process within a %include called within a macro.  Furthermore, there is no
+    way to test if a macro is called within a %include.  To handle this
+    particular scenario, the %include should be switched for the mp_include.sas
+    macro.
     This provides an indicator that we are running a macro within a \%include
     (`_SYSINCLUDEFILEDEVICE`) and allows us to provide a dataset with the abort
     values (msg, mac).
@@ -45,8 +46,8 @@
     @li msg (the message)
     @li mac (the mac param)
 
-  @param mode= (REGULAR) If mode=INCLUDE then the &errds dataset is checked for
-    an abort status.
+  @param [in] mode= (REGULAR) If mode=INCLUDE then the &errds dataset is checked
+    for an abort status.
     Valid values:
     @li REGULAR (default)
     @li INCLUDE

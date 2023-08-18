@@ -36,7 +36,7 @@
 
 
   @param [in] indscol The input library.dataset.column to test for values
-  @param [in] checkvals= A library.dataset.column value containing a UNIQUE
+  @param [in] checkvals= (0) A library.dataset.column value containing a UNIQUE
     list of values to be compared against the source (indscol).
   @param [in] desc= (Testing observations) The user provided test description
   @param [in] test= (ALLVALS) The test to apply.  Valid values are:

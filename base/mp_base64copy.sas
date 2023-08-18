@@ -28,8 +28,8 @@
           put _infile_;
         run;
 
-  @param [in] inref= Fileref of the input file (should exist)
-  @param [out] outref= Output fileref. If it does not exist, it is created.
+  @param [in] inref= (0) Fileref of the input file (should exist)
+  @param [out] outref= (0) Output fileref. If it does not exist, it is created.
   @param [in] action= (ENCODE) The action to take. Valid values:
     @li ENCODE - Convert the file to base64 format
     @li DECODE - Decode the file from base64 format

@@ -17,9 +17,10 @@
       %mp_getconstraints(lib=work,ds=example,outds=work.constraints)
       %mp_deleteconstraints(inds=work.constraints,outds=dropped,execute=YES)
 
-  @param inds= The input table containing the constraint info
-  @param outds= a table containing the drop statements (drop_statement column)
-  @param execute= `YES|NO` - default is NO. To actually drop, use YES.
+  @param inds= (mp_getconstraints) The input table containing constraint info
+  @param outds= (mp_deleteconstraints) Table containing the drop statements
+    (drop_statement column)
+  @param execute= (NO) `YES|NO` - default is NO. To actually drop, use YES.
 
 
   @version 9.2

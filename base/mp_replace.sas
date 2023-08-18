@@ -32,10 +32,11 @@
   Note - if you are running a version of SAS that will allow the io package in
   LUA, you can also use this macro: mp_gsubfile.sas
 
-  @param infile The QUOTED path to the file on which to perform the substitution
-  @param findvar= Macro variable NAME containing the string to search for
-  @param replacevar= Macro variable NAME containing the replacement string
-  @param outfile= (0) Optional QUOTED path to the adjusted output file (to
+  @param [in] infile The QUOTED path to the file on which to perform the
+    substitution
+  @param [in] findvar= Macro variable NAME containing the string to search for
+  @param [in] replacevar= Macro variable NAME containing the replacement string
+  @param [out] outfile= (0) Optional QUOTED path to the adjusted output file (to
     avoid overwriting the first file).
 
   <h4> SAS Macros </h4>

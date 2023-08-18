@@ -10,13 +10,13 @@
       ,text="/file/system/some.txt")
 
 
-  @param path= the BIP Tree folder path
-  @param name=Document Name
-  @param text=a source file containing the text to be added
+  @param [in] path= the BIP Tree folder path
+  @param [in] name=Document Name
+  @param [in] text=a source file containing the text to be added
 
-  @param frefin= change default inref if it clashes with an existing one
-  @param frefout= change default outref if it clashes with an existing one
-  @param mDebug= set to 1 to show debug messages in the log
+  @param [in] frefin= change default inref if it clashes with an existing one
+  @param [out] frefout= change default outref if it clashes with an existing one
+  @param [in] mDebug= set to 1 to show debug messages in the log
 
   @version 9.3
   @author Allan Bowe

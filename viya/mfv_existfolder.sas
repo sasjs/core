@@ -12,7 +12,7 @@
       %put %mfv_existfolder(/does/exist);
       %put %mfv_existfolder(/does/not/exist);
 
-  @param path The path to the folder on SAS drive
+  @param [in] path The path to the folder on SAS drive
 
   <h4> SAS Macros </h4>
   @li mf_abort.sas

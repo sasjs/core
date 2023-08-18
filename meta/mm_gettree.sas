@@ -10,10 +10,10 @@
       %mm_getTree(tree=/User Folders/sasdemo)
 
 
-  @param tree= the BIP Tree folder path or uri
-  @param outds= the dataset to create that contains the tree path & uri
-  @param inds= an optional input dataset to augment with treepath & treeuri
-  @param mDebug= set to 1 to show debug messages in the log
+  @param [in] tree= the BIP Tree folder path or uri
+  @param [out] outds= the dataset to create that contains the tree path & uri
+  @param [in] inds= an optional input dataset to augment with treepath & treeuri
+  @param [in] mDebug= set to 1 to show debug messages in the log
 
   @returns outds  dataset containing the following columns:
       - treeuri

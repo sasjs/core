@@ -9,10 +9,10 @@
       - get a table id
       %mm_gettableid(libref=METALIB,ds=SOMETABLE,outds=iwant)
 
-  @param libref= The libref to search
-  @param ds= The input dataset to check
-  @param outds= the dataset to create that contains the `tableuri`
-  @param mDebug= set to 1 to show debug messages in the log
+  @param [in] libref= The libref to search
+  @param [in] ds= The input dataset to check
+  @param [out] outds= the dataset to create that contains the `tableuri`
+  @param [in] mDebug= set to 1 to show debug messages in the log
 
   @returns outds  dataset containing `tableuri` and `tablename`
 

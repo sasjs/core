@@ -22,10 +22,8 @@
 
       %mv_getclients()
 
-  @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= valid values are "password" or "authorization_code" (unquoted).
-    The default is authorization_code.
-  @param outds= The library.dataset to be created that contains the list of groups
+  @param [out] outds= (work.mv_getclients)
+    The library.dataset to be created that contains the list of clients
 
 
   @version VIYA V.03.04

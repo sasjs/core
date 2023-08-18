@@ -7,8 +7,9 @@
       %put %mf_getkeyvalue(someindex)
 
 
-  @param key Provide a key on which to perform the lookup
-  @param libds= define the target table which holds the parameters
+  @param [in] key Provide a key on which to perform the lookup
+  @param [in] libds= (work.mp_setkeyvalue) The library.dataset which holds the
+    parameters
 
   @version 9.2
   @author Allan Bowe

@@ -11,8 +11,8 @@
       %put Now we have run %mf_increment(cnt) lines;
       %put There are %mf_increment(cnt) lines in total;
 
-  @param [in] MACRO_NAME the name of the macro variable to increment
-  @param [in] ITER= The amount to add or subtract to the macro
+  @param [in] macro_name The name of the macro variable to increment
+  @param [in] incr= (1) The amount to add or subtract to the macro
 
   <h4> Related Files </h4>
   @li mf_increment.test.sas

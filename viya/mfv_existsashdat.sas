@@ -13,10 +13,10 @@
   To force a rescan, just use a new `&outprefix` value, or delete the table(s)
   before running the function.
 
-  @param libds library.dataset
-  @param outprefix= (work.mfv_existsashdat) Used to store the current HDATA
-    tables to improve subsequent query performance.  This reference is a prefix
-    and is converted to `&prefix._{libref}`
+  @param [in] libds library.dataset
+  @param [out] outprefix= (work.mfv_existsashdat)
+    Used to store current HDATA tables to improve subsequent query performance.
+    This reference is a prefix and is converted to `&prefix._{libref}`
 
   @return output returns 1 or 0
 

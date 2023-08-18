@@ -3,6 +3,11 @@
   @brief Abort, ungracefully
   @details Will abort with a straightforward %abort if the condition is true.
 
+  @param [in] mac= (mf_abort.sas) Name of calling macro (is printed to the log)
+  @param [in] msg= ( ) Additional string to print to the log
+  @param [in] iftrue= (%str(1=1)) Conditional logic under which to perform the
+    abort
+
   <h4> Related Macros </h4>
   @li mp_abort.sas
 

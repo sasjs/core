@@ -7,7 +7,8 @@
 
       %mm_getroles()
 
-  @param [out] outds the dataset to create that contains the list of roles
+  @param [out] outds= (work.mm_getroles)
+    The dataset to create that contains the list of roles
 
   @returns outds  dataset containing all roles, with the following columns:
     - uri

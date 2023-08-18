@@ -22,16 +22,21 @@
   @li mf_getvarcount.sas
   @li mp_getconstraints.sas
 
-  @param lib libref of the library to create DDL for.  Should be assigned.
-  @param ds dataset to create ddl for (optional)
-  @param fref= the fileref to which to _append_ the DDL.  If it does not exist,
-    it will be created.
-  @param flavour= The type of DDL to create (default=SAS). Supported=TSQL
-  @param showlog= Set to YES to show the DDL in the log
-  @param schema= Choose a preferred schema name (default is to use actual schema
-    ,else libref)
-  @param applydttm= for non SAS DDL, choose if columns are created with native
-    datetime2 format or regular decimal type
+  @param [in] libref Libref of the library to create DDL for. Should already
+    be assigned.
+  @param [in] ds dataset to create ddl for (optional)
+  @param [in] fref= (getddl) the fileref to which to _append_ the DDL.  If it
+    does not exist, it will be created.
+  @param [in] flavour= (SAS) The type of DDL to create. Options:
+    @li SAS
+    @li TSQL
+
+  @param [in]showlog= (NO) Set to YES to show the DDL in the log
+  @param [in] schema= () Choose a preferred schema name (default is to use
+    actual schema, else libref)
+  @param applydttm= (NO) For non SAS DDL, choose if columns are created with
+    native datetime2 format or regular decimal type
+
   @version 9.3
   @author Allan Bowe
 **/

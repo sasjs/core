@@ -24,7 +24,7 @@
   @li mp_hashdirectory.sas
 
   @param [in] libds dataset to hash
-  @param [in] salt= Provide a salt (could be, for instance, the dataset name)
+  @param [in] salt= () Provide a salt (could be, for instance, the dataset name)
   @param [in] iftrue= (1=1) A condition under which the macro should be executed
   @param [out] outds= (work._data_) The output dataset to create. This
   will contain one column (hashkey) with one observation (a $hex32.

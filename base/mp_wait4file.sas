@@ -11,7 +11,7 @@
   @param [in] file The file to wait for.  Must be provided.
   @param [in] maxwait= (0) Number of seconds to wait.  If set to zero, will
     loop indefinitely (to a maximum of 46 days, per SAS [documentation](
-      https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a001418809.htm
+    https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a001418809.htm
     )).  Otherwise, execution will proceed upon sleep expiry.
   @param [in] interval= (1) The wait period between sleeps, in seconds
 

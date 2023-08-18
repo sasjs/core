@@ -12,7 +12,7 @@
   inspiration:
   https://support.sas.com/resources/papers/proceedings09/022-2009.pdf
 
-  @param param VALUE to be checked
+  @param [in] Param VALUE to be checked
 
   @return output returns 1 (if blank) else 0
 

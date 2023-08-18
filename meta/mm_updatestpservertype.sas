@@ -9,8 +9,8 @@
         ,type=WKS)
 
 
-  @param target= full path to the STP being deleted
-  @param type= Either WKS or STP depending on whether Workspace or
+  @param [in] target= full path to the STP being deleted
+  @param [in] type= Either WKS or STP depending on whether Workspace or
     Stored Process type required
 
   @version 9.4

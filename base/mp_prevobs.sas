@@ -34,12 +34,12 @@
   Credit is made to `data _null_` for authoring this very helpful paper:
   https://www.lexjansen.com/pharmasug/2008/cc/CC08.pdf
 
-  @param action Either FETCH a current or previous record, or INITialise.
-  @param record The relative (to current) position of the previous observation
+  @param [in] action Either FETCH a current or previous record, or INITialise.
+  @param [in] record The relative (to current) position of the previous row
     to return.
-  @param history= The number of records to retain in the hash table. Default=5
-  @param prefix= the prefix to give to the variables used to store the hash name
-    and index. Default=mp_prevobs
+  @param [in] history= (5) The number of records to retain in the hash table.
+  @param prefix= (mp_prevobs) The prefix to give to the variables used to
+    store the hash name and index.
 
   @version 9.2
   @author Allan Bowe

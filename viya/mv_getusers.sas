@@ -1,7 +1,7 @@
 /**
   @file mv_getusers.sas
   @brief Creates a dataset with a list of users
-  @details First, be sure you have an access token (which requires an app token).
+  @details First, be sure you have an access token (which requires an app token)
 
   Using the macros here:
 
@@ -35,15 +35,17 @@
       modifiedTimeStamp char(24),
       state char(6)
 
-  @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= valid values:
+  @param [in] access_token_var= (ACCESS_TOKEN)
+    The global macro variable to contain the access token
+  @param [in] grant_type= (sas_services) Valid values:
     * password
     * authorization_code
-    * detect - will check if access_token exists, if not will use sas_services if
-      a SASStudioV session else authorization_code.  Default option.
+    * detect - will check if access_token exists, if not will use sas_services
+      if a SASStudioV session else authorization_code.
     * sas_services - will use oauth_bearer=sas_services
 
-  @param outds= The library.dataset to be created that contains the list of groups
+  @param [out] outds= (work.mv_getusers)
+    The library.dataset to be created that contains the list of groups
 
 
   @version VIYA V.03.04

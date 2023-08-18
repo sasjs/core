@@ -10,7 +10,7 @@
     expected results (depending on whether you 'expect' the result to be
     case insensitive in this context!)
 
-  @param libds library.dataset
+  @param [in] libds library.dataset
   @return output returns 1 or 0
 
   <h4> Related Macros </h4>

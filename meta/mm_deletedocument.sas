@@ -10,7 +10,7 @@
 
   <h4> SAS Macros </h4>
 
-  @param target= full path to the document being deleted
+  @param [in] target= full path to the document being deleted
 
   @version 9.4
   @author Allan Bowe

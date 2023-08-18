@@ -2,9 +2,12 @@
   @file mm_getdetails.sas
   @brief extracts metadata attributes and associations for a particular uri
 
-  @param uri the metadata object for which to return attributes / associations
-  @param outattrs= the dataset to create that contains the list of attributes
-  @param outassocs= the dataset to contain the list of associations
+  @param [in] uri the metadata object for which to return
+    attributes / associations
+  @param [out] outattrs= (work.attributes)
+    The dataset to create that contains the list of attributes
+  @param [out] outassocs= (work.associations)
+    The dataset to contain the list of associations
 
   @version 9.2
   @author Allan Bowe

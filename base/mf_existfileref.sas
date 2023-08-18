@@ -4,7 +4,7 @@
   @details You can probably do without this macro as it is just a one liner.
   Mainly it is here as a convenient way to remember the syntax!
 
-  @param fref the fileref to detect
+  @param [in] fref the fileref to detect
 
   @return output Returns 1 if found and 0 if not found.  Note - it is possible
   that the fileref is found, but the file does not (yet) exist. If you need

@@ -22,12 +22,12 @@
   @li mm_gettables.sas
   @li mm_getcols.sas
 
-  @param libds= library.dataset metadata source.  Note - table names in metadata
+  @param [in] libds= library.dataset metadata source.  Note - table names in metadata
     can be longer than 32 chars (just fyi, not an issue here)
-  @param tableuri= Metadata URI of the table to be created
-  @param outds= (work.mm_createdataset) The dataset to create.  The table name
-    needs to be 32 chars or less as per SAS naming rules.
-  @param mdebug= (0) Set to 1 to enable DEBUG messages
+  @param [in] tableuri= Metadata URI of the table to be created
+  @param [out] outds= (work.mm_createdataset) The dataset to create.  The table
+    name needs to be 32 chars or less as per SAS naming rules.
+  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
 
   @version 9.4
   @author Allan Bowe

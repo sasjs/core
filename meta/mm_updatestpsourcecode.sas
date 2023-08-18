@@ -10,10 +10,12 @@
         ,stpcode="/file/system/source.sas")
 
   @param [in] stp= the BIP Tree folder path plus Stored Process Name
-  @param [in] stpcode= the source file (or fileref) containing the SAS code to load
-    into the stp.  For multiple files, they should simply be concatenated first.
-  @param [in] minify= set to YES in order to strip comments, blank lines, and CRLFs.
-  @param mDebug= set to 1 to show debug messages in the log
+  @param [in] stpcode= () The source file (or fileref) containing the SAS
+    code to load into the stp.
+    For multiple files, they should simply be concatenated first.
+  @param [in] minify= (NO) Set to YES in order to strip comments, blank lines,
+    and CRLFs.
+  @param [in] mDebug= set to 1 to show debug messages in the log
 
   @version 9.3
   @author Allan Bowe

@@ -15,8 +15,8 @@ https://communities.sas.com/t5/SAS-Programming/listing-all-files-within-a-direct
 https://communities.sas.com/t5/SAS-Programming/listing-all-files-of-all-types-from-all-subdirectories/m-p/334113/highlight/true#M75419
 
 
-  @param dir= Directory to be scanned (default=/tmp)
-  @param outds= Dataset to create (default=work.mp_tree)
+  @param [in] dir= (/tmp) Directory to be scanned
+  @param [out] outds= (work.mp_tree) Dataset to create
 
   @returns outds contains the following variables:
 

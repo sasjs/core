@@ -40,28 +40,32 @@
         ,Server=SASApp
         ,stptype=2)
 
-  @param stpname= Stored Process name.  Avoid spaces - testing has shown that
+  @param [in] stpname= (SASjs Default STP) Stored Process name.
+    Avoid spaces - testing has shown that
     the check to avoid creating multiple STPs in the same folder with the same
     name does not work when the name contains spaces.
-  @param stpdesc= Stored Process description (optional)
-  @param filename= the name of the .sas program to run
-  @param directory= The directory uri, or the actual path to the sas program
-    (no trailing slash).  If more than uri is found with that path, then the
-    first one will be used.
-  @param tree= The metadata folder uri, or the metadata path, in which to
+  @param [in] stpdesc= Stored Process description (optional)
+  @param [in] filename= the name of the .sas program to run
+  @param [in] directory= (SASEnvironment/sascode)
+    The directory uri or the actual path to the sas program (no trailing slash).
+    If more than uri is found with that path, then the first one will be used.
+  @param [in] tree= The metadata folder uri, or the metadata path, in which to
     create the STP.
-  @param server= The server which will run the STP.  Server name or uri is fine.
-  @param outds= The two level name of the output dataset.  Will contain all the
-    meta uris. Defaults to work.mm_createstp.
-  @param mDebug= set to 1 to show debug messages in the log
-  @param stptype= Default is 1 (STP code saved on filesystem).  Set to 2 if
+  @param [in] server= (SASApp) The server which will run the STP.
+    Server name or uri is fine.
+  @param [out] outds= (work.mm_createstp)
+    The two level name of the output dataset.  Will contain all the meta uris.
+  @param [in] mDebug= set to 1 to show debug messages in the log
+  @param [in] stptype= Default is 1 (STP code saved on filesystem).  Set to 2 if
     source code is to be saved in metadata (9.3 and above feature).
-  @param minify= set to YES to strip comments / blank lines etc
-  @param frefin= fileref to use (enables change if there is a conflict).  The
-    filerefs are left open, to enable inspection after running the
+  @param [in] minify= set to YES to strip comments / blank lines etc
+  @param [in] frefin= (mm_in) fileref to use (enables change if there is
+    a conflict).
+    The filerefs are left open, to enable inspection after running the
     macro (or importing into an xmlmap if needed).
-  @param frefout= fileref to use (enables change if there is a conflict)
-  @param repo= ServerContext is tied to a repo, if you are not using the
+  @param [out] frefout= (mm_out) fileref to use (enables change if there is
+    a conflict)
+  @param [in] repo= ServerContext is tied to a repo, if you are not using the
     foundation repo then select a different one here
 
   @returns outds  dataset containing the following columns:
@@ -88,7 +92,7 @@
 **/
 
 %macro mm_createstp(
-    stpname=Macro People STP
+    stpname=SASjs Default STP
     ,stpdesc=This stp was created automatically by the mm_createstp macro
     ,filename=mm_createstp.sas
     ,directory=SASEnvironment/SASCode

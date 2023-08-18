@@ -11,8 +11,8 @@
   <h4> SAS Macros </h4>
 
 
-  @param basestr The string to be modified
-  @param trimstr The string to be removed from the end of `basestr`, if it
+  @param [in] basestr The string to be modified
+  @param [in] trimstr The string to be removed from the end of `basestr`, if it
     exists
 
   @return output returns result with the value of `trimstr` removed from the end

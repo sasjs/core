@@ -13,10 +13,13 @@
 
       %mv_getusergroups(&sysuserid,outds=users)
 
-  @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= valid values are "password" or "authorization_code" (unquoted).
-    The default is authorization_code.
-  @param outds= The library.dataset to be created that contains the list of groups
+  @param [in] user The username for which to return the list of groups
+  @param [in] access_token_var= (ACCESS_TOKEN)
+    The global macro variable to contain the access token
+  @param [in] grant_type= (sas_services)
+    Valid values are "password" or "authorization_code" (unquoted).
+  @param [out] outds= (work.mv_getusergroups)
+    The library.dataset to be created that contains the list of groups
 
 
   @version VIYA V.03.04

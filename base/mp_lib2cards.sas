@@ -24,19 +24,19 @@
   @li mf_trimstr.sas
   @li mp_ds2cards.sas
 
-  @param [in] lib= Library in which to convert all datasets
-  @param [out] outloc= Location in which to store output.  Defaults to WORK
-    library. No quotes.
-  @param [out] outfile= Optional output file NAME - if provided, then will create
-  a single output file instead of one file per input table.
-  @param [in] maxobs= limit output to the first <code>maxobs</code> observations
+  @param [in] lib= () Library in which to convert all datasets
+  @param [out] outloc= (%sysfunc(pathname(work))) Location in which to store
+    output. No quotes.
+  @param [out] outfile= (0) Optional output file NAME - if provided, then
+    will create a single output file instead of one file per input table.
+  @param [in] maxobs= (max) limit output to the first <code>maxobs</code> rows
 
   @version 9.2
   @author Allan Bowe
 **/
 
 %macro mp_lib2cards(lib=
-    ,outloc=%sysfunc(pathname(work)) /* without trailing slash */
+    ,outloc=%sysfunc(pathname(work))
     ,maxobs=max
     ,random_sample=NO
     ,outfile=0

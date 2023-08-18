@@ -5,7 +5,8 @@
 
     %mm_gettypes(outds=types)
 
-  @param outds the dataset to create that contains the list of types
+  @param [in] outds= (work.mm_gettypes)
+    The dataset to create that contains the list of types
   @returns outds  dataset containing all types
   @warning The following filenames are created and then de-assigned:
 

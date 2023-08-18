@@ -9,6 +9,8 @@
         * dataset will contain one column - publictype ($64);
         %mm_getpublictypes(outds=types)
 
+  @param [out] outds= (work.mm_getpublictypes) The library.dataset to create
+
   @returns outds= dataset containing all types
 
   @version 9.3

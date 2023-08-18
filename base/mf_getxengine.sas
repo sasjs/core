@@ -10,7 +10,7 @@
   returns:
   > TEMP
 
-  @param fref The fileref to check
+  @param [in] fref The fileref to check
 
   @returns The XENGINE value in sashelp.vextfl or 0 if not found.
 

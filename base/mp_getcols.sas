@@ -20,6 +20,9 @@
 |`DATE `|`8 `|`1 `|`DATE `|`MONYY `|`MONYY. `|`N `|`DATE `|
 |`REGION `|`3 `|`3 `|`REGION `|` `|`$3. `|`C `|`CHARACTER `|
 
+  @param [in] ds The dataset to get the columns from
+  @param [out] outds= (work.cols) The dataset to create
+
   <h4> Related Macros </h4>
   @li mf_getvarlist.sas
   @li mm_getcols.sas

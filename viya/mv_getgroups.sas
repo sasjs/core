@@ -11,10 +11,12 @@
 
       %mv_getgroups(outds=work.groups)
 
-  @param [in] access_token_var= The global macro variable to contain the access token
-  @param [in] grant_type= valid values are "password" or "authorization_code" (unquoted).
-    The default is authorization_code.
-  @param [out] outds= The library.dataset to be created that contains the list of groups
+  @param [in] access_token_var= (ACCESS_TOKEN)
+    The global macro variable to contain the access token
+  @param [in] grant_type= (sas_services)
+    valid values are "password" or "authorization_code" (unquoted).
+  @param [out] outds= (work.viyagroups)
+    The library.dataset to be created that contains the list of groups
 
 
   @version VIYA V.03.04

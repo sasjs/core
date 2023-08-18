@@ -18,12 +18,13 @@
   @li mf_getengine.sas
   @li mp_abort.sas
 
-  @param libref the libref (not name) of the metadata library
-  @param open_passthrough= provide an alias to produce the CONNECT TO statement
-    for the relevant external database
-  @param sql_options= an override default output fileref to avoid naming clash
-  @param mDebug= set to 1 to show debug messages in the log
-  @param mAbort= set to 1 to call %mp_abort().
+  @param [in] libref the libref (not name) of the metadata library
+  @param [in] open_passthrough= () Provide an alias to produce the CONNECT TO
+    statement for the relevant external database
+  @param [in] sql_options= () Add any options to add to proc sql statement,
+    eg outobs= (only valid for pass through)
+  @param [in] mDebug= (0) set to 1 to show debug messages in the log
+  @param [in] mAbort= (0) set to 1 to call %mp_abort().
 
   @returns libname statement
 
@@ -33,12 +34,9 @@
 **/
 
 %macro mm_assigndirectlib(
-    libref /* libref to assign from metadata */
-    ,open_passthrough= /* provide an alias to produce the
-                          CONNECT TO statement for the
-                          relevant external database */
-    ,sql_options= /* add any options to add to proc sql statement eg outobs=
-                      (only valid for pass through) */
+    libref
+    ,open_passthrough=
+    ,sql_options=
     ,mDebug=0
     ,mAbort=0
 )/*/STORE SOURCE*/;

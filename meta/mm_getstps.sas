@@ -17,15 +17,16 @@
   <h4> SAS Macros </h4>
   @li mm_gettree.sas
 
-  @param tree= the metadata folder location in which to search.  Leave blank
-    for all folders.  Does not search subdirectories.
-  @param name= Provide the name of an STP to search for just that one.  Can
+  @param [in] tree= () the metadata folder location in which to search.
+      Leave blank for all folders.  Does not search subdirectories.
+  @param [in] name= Provide the name of an STP to search for just that one.  Can
     combine with the <code>tree=</code> parameter.
-  @param outds= the dataset to create that contains the list of stps.
-  @param mDebug= set to 1 to show debug messages in the log
-  @param showDesc= provide a non blank value to return stored process
+  @param [out] outds= the dataset to create that contains the list of stps.
+  @param [in] mDebug= set to 1 to show debug messages in the log
+  @param [in] showDesc= provide a non blank value to return stored process
     descriptions
-  @param showUsageVersion= provide a non blank value to return the UsageVersion.
+  @param [in] showUsageVersion= ()
+    Provide a non blank value to return the UsageVersion.
     This is either 1000000 (type 1, 9.2) or 2000000 (type2, 9.3 onwards).
 
   @returns outds  dataset containing the following columns

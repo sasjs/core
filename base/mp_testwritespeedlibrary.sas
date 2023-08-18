@@ -11,9 +11,9 @@
         ,outds=work.results
       )
 
-  @param lib= (WORK) The library in which to create the table
-  @param size= (0.1) The size in GB of the table to create
-  @param outds= (WORK.RESULTS) The output dataset to be created.
+  @param [in] lib= (WORK) The library in which to create the table
+  @param [in] size= (0.1) The size in GB of the table to create
+  @param [out] outds= (WORK.RESULTS) The output dataset to be created.
 
   <h4> SAS Macros </h4>
   @li mf_getuniquename.sas

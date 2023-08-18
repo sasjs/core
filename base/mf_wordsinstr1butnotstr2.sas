@@ -16,8 +16,8 @@
   returns:
   > sss bram boo
 
-  @param [in] str1= string containing words to extract
-  @param [in] str2= used to compare with the extract string
+  @param [in] str1= () String containing words to extract
+  @param [in] str2= () Used to compare with the extract string
 
   @version 9.2
   @author Allan Bowe

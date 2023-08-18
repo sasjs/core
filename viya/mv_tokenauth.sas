@@ -28,20 +28,21 @@
 
     https://blogs.sas.com/content/sgf/2019/01/25/authentication-to-sas-viya/
 
-  @param inds= A dataset containing client_id, client_secret, and auth_code
-  @param outds= A dataset containing access_token and refresh_token
-  @param client_id= The client name
-  @param client_secret= client secret
-  @param grant_type= valid values are "password" or "authorization_code"
+  @param [in] inds= A dataset containing client_id, client_secret, and auth_code
+  @param [in] outds= A dataset containing access_token and refresh_token
+  @param [in] client_id= The client name
+  @param [in] client_secret= client secret
+  @param [in] grant_type= valid values are "password" or "authorization_code"
     (unquoted). The default is authorization_code.
-  @param code= If grant_type=authorization_code then provide the necessary code
-    here
-  @param user= If grant_type=password then provide the username here
-  @param pass= If grant_type=password then provide the password here
-  @param access_token_var= The global macro variable to contain the access token
-  @param refresh_token_var= The global macro variable to contain the refresh
-    token
-  @param base_uri= The Viya API server location
+  @param [in] code= ()
+    If grant_type=authorization_code then provide the necessary code here
+  @param [in] user= If grant_type=password then provide the username here
+  @param [in] pass= If grant_type=password then provide the password here
+  @param [in] access_token_var= (ACCESS_TOKEN)
+    The global macro variable to contain the access token
+  @param [in] refresh_token_var= (REFRESH_TOKEN)
+    The global macro variable to contain the refresh token
+  @param [in] base_uri= The Viya API server location
 
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core

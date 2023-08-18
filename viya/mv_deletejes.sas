@@ -11,11 +11,13 @@
       %mv_deletejes(path=/Public/test, name=blah)
 
 
-  @param path= The full path of the folder containing the Job Execution Service
-  @param name= The name of the Job Execution Service to be deleted
-  @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= valid values are "password" or "authorization_code" (unquoted).
-    The default is "detect" (which will run in Studio 5+ without a token).
+  @param [in] path= ()
+    The full path of the folder containing the Job Execution Service
+  @param [in] name= The name of the Job Execution Service to be deleted
+  @param [in] access_token_var= (ACCESS_TOKEN)
+    The global macro variable to contain the access token
+  @param [in] grant_type= (sas_services)
+    Valid values are "password" or "authorization_code" (unquoted).
 
 
   @version VIYA V.03.04

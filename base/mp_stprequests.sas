@@ -21,9 +21,10 @@
     %mp_stprequests(status_cd=INIT, libds=YOURLIB.DATASET )
 
 
-  @param status_cd= Use INIT for INIT and TERM for TERM events
-  @param libds= Location of base table (library.dataset).  To minimise risk
-    of table locks, we HIGHLY recommend using a database (NOT a SAS dataset).
+  @param [in] status_cd= Use INIT for INIT and TERM for TERM events
+  @param [in] libds= (somelib.stp_requests) Location of base table
+    (library.dataset).  To minimise risk of table locks, we HIGHLY recommend
+    using a database (NOT a SAS dataset).
     THE LIBRARY SHOULD BE ASSIGNED ALREADY - eg in autoexec or earlier in the
     init program proper.
 

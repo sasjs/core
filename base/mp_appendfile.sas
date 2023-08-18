@@ -17,8 +17,8 @@
         %mp_appendfile(baseref=tmp1, appendrefs=tmp2 tmp3)
 
 
-  @param [in] baseref= Fileref of the base file (should exist)
-  @param [in] appendrefs= One or more filerefs to be appended to the base
+  @param [in] baseref= (0) Fileref of the base file (should exist)
+  @param [in] appendrefs= (0) One or more filerefs to be appended to the base
     fileref.  Space separated.
 
   @version 9.2

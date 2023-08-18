@@ -9,7 +9,7 @@
   With thanks and full credit to Andrea Defronzo -
   https://www.linkedin.com/in/andrea-defronzo-b1a47460/
 
-  @param path full path of the file/directory to be checked
+  @param [in] path Full path of the file/directory to be checked
 
   @return output returns 1 if path is a directory, 0 if it is not
 

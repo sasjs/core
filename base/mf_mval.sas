@@ -8,6 +8,8 @@
 
       %if %mf_mval(maynotexist)=itdid %then %do;
 
+  @param [in] var The macro variable NAME to return the (possible) value for
+
   @version 9.2
   @author Allan Bowe
 **/

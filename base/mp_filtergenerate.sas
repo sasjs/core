@@ -51,8 +51,8 @@
   > )
 
   @param [in] inds The input table with query values
-  @param [out] outref= The output fileref to contain the filter clause.  Will
-    be created (or replaced).
+  @param [out] outref= (filter) The output fileref to contain the filter clause.
+    Will be created (or replaced).
 
   <h4> Related Macros </h4>
   @li mp_filtercheck.sas

@@ -32,11 +32,12 @@ Usage:
   @li mf_getuniquefileref.sas
   @li mp_abort.sas
 
-  @param metaloc= the metadata folder to export
-  @param secureref= fileref containing the username / password (should point to
-    a file in a secure location)
-  @param outspkname= name of the spk to be created (default is mmxport).
-  @param outspkpath= directory in which to create the SPK.  Default is WORK.
+  @param [in] metaloc= the metadata folder to export
+  @param [in] secureref= () fileref containing the username / password
+    (should point to a file in a secure location)
+  @param [in] outspkname= name of the spk to be created (default is mmxport).
+  @param [in] outspkpath= ((%sysfunc(pathname(WORK)))
+    directory in which to create the SPK.
 
   @version 9.4
   @author Allan Bowe

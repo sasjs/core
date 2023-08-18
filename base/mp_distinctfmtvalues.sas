@@ -7,11 +7,11 @@
 
         %mp_distinctfmtvalues(libds=sashelp.class,var=age,outvar=age,outds=test)
 
-  @param libds input dataset
-  @param var variable to get distinct values for
-  @param outvar variable to create.  Default:  `formatted_value`
-  @param outds dataset to create.  Default:  work.mp_distinctfmtvalues
-  @param varlen length of variable to create (default 200)
+  @param [in] libds= () input dataset
+  @param [in] var= (0) variable to get distinct values for
+  @param [out] outvar= (formatteed_value) variable to create.
+  @param [out] outds= (work.mp_distinctfmtvalues) dataset to create.
+  @param [in] varlen= (2000) length of variable to create
 
   @version 9.2
   @author Allan Bowe

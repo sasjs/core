@@ -14,10 +14,10 @@
   <h4> SAS Macros </h4>
   @li mp_abort.sas
 
-  @param tree= The metadata path of the document
-  @param name= Document object name.
-  @param outref= full and unquoted path to the desired text file.  This will be
-    overwritten if it already exists.
+  @param [in] tree= The metadata path of the document
+  @param [in] name= Document object name.
+  @param [out] outref= full and unquoted path to the desired text file.
+    This will be overwritten if it already exists.
 
   @author Allan Bowe
 

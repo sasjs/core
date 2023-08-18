@@ -31,8 +31,8 @@
 
 
   @param [in] inds The input library.dataset to test for values
-  @param [in] cols= The list of columns to check for
-  @param [in] desc= (Testing observations) The user provided test description
+  @param [in] cols= (0) The list of columns to check for
+  @param [in] desc= (0) The user provided test description
   @param [in] test= (ALL) The test to apply.  Valid values are:
     @li ALL - Test is a PASS if ALL columns exist in &inds
     @li ANY - Test is a PASS if ANY of the columns exist in &inds

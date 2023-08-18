@@ -11,9 +11,9 @@
       %mp_perflog(finished)
 
 
-  @param label Provide label to go into the control dataset
-  @param libds= Provide a dataset in which to store performance stats.  Default
-              name is <code>work.mp_perflog</code>;
+  @param [in] label Provide label to go into the control dataset
+  @param [in] libds= (work.mp_perflog) Provide a dataset in which to store
+    performance stats.  Default name is <code>work.mp_perflog</code>;
 
   @version 9.2
   @author Allan Bowe

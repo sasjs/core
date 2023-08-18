@@ -10,7 +10,7 @@
       %mf_deletefile(&sasjswork/myfile.txt)
 
 
-  @param filepath Full path to the target file
+  @param [in] file Full path to the target file
 
   @returns The return code from the fdelete() invocation
 

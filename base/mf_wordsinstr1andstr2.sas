@@ -13,8 +13,8 @@
   returns:
   > blah blaaah brah
 
-  @param str1= string containing words to extract
-  @param str2= used to compare with the extract string
+  @param [in] str1= () string containing words to extract
+  @param [in] str2= () used to compare with the extract string
 
   @warning CASE SENSITIVE!
 

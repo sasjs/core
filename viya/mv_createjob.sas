@@ -32,30 +32,32 @@
   @li mf_isblank.sas
   @li mv_deletejes.sas
 
-  @param path= The full path (on SAS Drive) where the job will be created
-  @param name= The name of the job
-  @param desc= (Created by the mv_createjob.sas macro) The job description
-  @param precode= Space separated list of filerefs, pointing to the code that
+  @param [in] path= The full path (on SAS Drive) where the job will be created
+  @param [in] name= The name of the job
+  @param [in] desc= (Created by the mv_createjob.sas macro) The job description
+  @param [in] precode= ()
+    Space separated list of filerefs, pointing to the code that
     needs to be attached to the beginning of the job
-  @param code= (ft15f001) Fileref(s) of the actual code to be added
-  @param access_token_var= (ACCESS_TOKEN) Global macro variable containing the
-    access token
-  @param grant_type= (sas_services) Valid values:
+  @param [in] code= (ft15f001) Fileref(s) of the actual code to be added
+  @param [in] access_token_var= (ACCESS_TOKEN)
+    Global macro variable containing the access token
+  @param [in] grant_type= (sas_services) Valid values:
     @li sas_services
     @li detect
     @li authorization_code
     @li password
-  @param replace= (YES) select NO to avoid replacing any existing job
-  @param addjesbeginendmacros= (false) Relates to the `_addjesbeginendmacros`
-    setting.  Normally this would always be false however due to a Viya bug
+  @param [in] replace= (YES) select NO to avoid replacing any existing job
+  @param [in] addjesbeginendmacros= (false)
+    Relates to the `_addjesbeginendmacros` setting.
+    Normally this would always be false however due to a Viya bug
     (https://github.com/sasjs/cli/issues/1229) this is now configurable.  Valid
     values:
     @li true
     @li false
     @li 0 - this will prevent the flag from being set (job will default to true)
-  @param contextname= Choose a specific context on which to run the Job.  Leave
-    blank to use the default context.  From Viya 3.5 it is possible to configure
-    a shared context - see
+  @param [in] contextname= () Choose a specific context on which to run the Job.
+    Leave blank to use the default context.
+    From Viya 3.5 it is possible to configure a shared context - see
 https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5pyhn1wg3ja0drdl6h.htm&docsetVersion=3.5&locale=en
 
   @version VIYA V.03.04

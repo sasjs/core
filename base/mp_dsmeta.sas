@@ -49,8 +49,8 @@
   https://support.sas.com/resources/papers/proceedings14/1549-2014.pdf) by
   [Louise Hadden](https://www.linkedin.com/in/louisehadden/).
 
-  @param libds The library.dataset to export the metadata for
-  @param outds= (work.dsmeta) The output table to contain the metadata
+  @param [in] libds The library.dataset to export the metadata for
+  @param [out] outds= (work.dsmeta) The output table to contain the metadata
 
   <h4> Related Files </h4>
   @li mp_dsmeta.test.sas

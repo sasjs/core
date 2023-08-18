@@ -11,12 +11,14 @@
       %mv_deletejes(path=/Public/test, name=blah)
 
 
-  @param path= The full path of the folder containing the item to be deleted
-  @param name= The name of the item to be deleted
-  @param contenttype= The contenttype of the item, eg: file, jobDefinition
-  @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= valid values are "password" or "authorization_code" (unquoted).
-    The default is "detect" (which will run in Studio 5+ without a token).
+  @param [in] path= ()
+    The full path of the folder containing the item to be deleted
+  @param [in] name= The name of the item to be deleted
+  @param [in] contenttype= The contenttype of the item, eg: file, jobDefinition
+  @param [in] access_token_var= (ACCESS_TOKEN)
+    The global macro variable to contain the access token
+  @param [in] grant_type= (sas_services)
+    valid values are "password" or "authorization_code" (unquoted).
 
 
   @version VIYA V.03.04

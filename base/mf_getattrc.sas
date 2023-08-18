@@ -6,8 +6,8 @@
       %put Dataset label = %mf_getattrc(sashelp.class,LABEL);
       %put Member Type = %mf_getattrc(sashelp.class,MTYPE);
 
-  @param libds library.dataset
-  @param attr full list in [documentation](
+  @param [in] libds library.dataset
+  @param [in] attr full list in [documentation](
     https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000147794.htm)
   @return output returns result of the attrc value supplied, or -1 and log
     message if err.

@@ -21,8 +21,8 @@ returns:
 
   > NOTE: Variable renegade does not exist in test
 
-  @param libds Two part dataset (or view) reference.
-  @param var Variable name for which a position should be returned
+  @param [in] libds Two part dataset (or view) reference.
+  @param [in] var Variable name for which a position should be returned
 
   @author Allan Bowe
   @version 9.2

@@ -25,7 +25,8 @@
 
   @param [in] libds Two part dataset (or view) reference.
   @param [in] var Variable name for which a format should be returned
-  @param [in] force=(0) Set to 1 to supply a default if the variable has no format
+  @param [in] force= (0) Set to 1 to supply a default if the variable has no
+    format
   @returns outputs format
 
   @author Allan Bowe

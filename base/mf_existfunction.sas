@@ -16,7 +16,7 @@
 https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionexists-macro
   ).
 
-  @param [in] name (positional) - function name
+  @param [in] name function name
 
   @author Allan Bowe
 **/

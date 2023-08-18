@@ -13,8 +13,6 @@
         %let user= %mf_getUser();
         %put &user;
 
-  @param type - do not use, may be deprecated in a future release
-
   @return SYSUSERID (if workspace server)
   @return _METAPERSON (if stored process server)
   @return SYS_COMPUTE_SESSION_OWNER (if Viya compute session)

@@ -18,7 +18,7 @@
       %mp_guesspk(sashelp.class,outds=classpks)
 
   @param [in] baseds The dataset to analyse
-  @param [out] outds= The output dataset to contain the possible PKs
+  @param [out] outds= (mp_guesspk) Output dataset to contain the possible PKs
   @param [in] max_guesses= (3) The total number of possible primary keys to
     generate. A table may have multiple (unlikely) PKs, so no need to list them
     all.

@@ -44,9 +44,10 @@
     mp_coretable.sas as follows:  `mp_coretable(LOCKTABLE)`.
   @param [in] maxkeytable= (0) Optional permanent reference table used for
     retained key tracking.  Described in mp_retainedkey.sas.
-  @param [in] mdebug= set to 1 to enable DEBUG messages
-  @param [out] outresult= The result table with the FILTER_RK
-  @param [out] outquery= The original query, taken as extract after table load
+  @param [in] mdebug= (1) set to 1 to enable DEBUG messages
+  @param [out] outresult= (work.result) The result table with the FILTER_RK
+  @param [out] outquery= (work.query) The original query, taken as extract
+    after table load
 
 
   <h4> SAS Macros </h4>

@@ -10,7 +10,7 @@
         put value=;
       run;
 
-  @param outds the dataset to create that contains the list of properties
+  @param [out] outds= the dataset to create that contains the list of properties
 
   @returns outds  dataset containing all properties
 

@@ -6,8 +6,8 @@
 
       %put %mf_existVarList(sashelp.class, age sex name dummyvar);
 
-  @param libds 2 part dataset or view reference
-  @param varlist space separated variable names
+  @param [in] libds 2 part dataset or view reference
+  @param [in] varlist space separated variable names
 
   @version 9.2
   @author Allan Bowe

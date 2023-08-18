@@ -9,7 +9,7 @@
   <h4> SAS Macros </h4>
   @li mf_getattrn.sas
 
-  @param libds library.dataset
+  @param [in] libds library.dataset
 
   @return output returns result of the attrn value supplied, or log message
     if err.

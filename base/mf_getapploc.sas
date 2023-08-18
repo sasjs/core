@@ -31,6 +31,7 @@
       %put %mf_getapploc(/some/location/jobs/extract/somejob/);
       %put %mf_getapploc(/some/location/tests/jobs/somejob/);
 
+  @param [in] pgm The _program value from which to extract the appLoc
 
   @author Allan Bowe
 **/

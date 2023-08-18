@@ -15,14 +15,14 @@
   <h4> SAS Macros </h4>
   @li mp_dirlist.sas
 
-  @param in= unquoted filepath, dataset of files or directory to zip
-  @param type= (FILE) Valid values:
+  @param [in] in= unquoted filepath, dataset of files or directory to zip
+  @param [in] type= (FILE) Valid values:
     @li FILE - /full/path/and/filename.extension to a particular file
     @li DATASET - a dataset containing a list of files to zip (see `incol`)
     @li DIRECTORY - a directory to zip
-  @param outname= (FILE) Output file to create, _without_ .zip extension
-  @param outpath= (%sysfunc(pathname(WORK))) Parent folder for output zip file
-  @param incol= if DATASET input, say which column contains the filepath
+  @param [out] outname= (FILE) Output file to create, _without_ .zip extension
+  @param [out] outpath= (%sysfunc(pathname(WORK))) Parent folder for zip file
+  @param [in] incol= () If DATASET input, say which column contains the filepath
 
   <h4> Related Macros </h4>
   @li mp_unzip.sas

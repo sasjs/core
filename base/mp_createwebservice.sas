@@ -1,6 +1,6 @@
 /**
   @file mp_createwebservice.sas
-  @brief Create a web service in SAS 9, Viya or SASjs Server
+  @brief Create a web service in SAS 9, Viya or SASjs Server (legacy)
   @details This is actually a wrapper for mx_createwebservice.sas, remaining
   for legacy purposes.  For new apps, use mx_createwebservice.sas.
 

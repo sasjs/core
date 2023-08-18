@@ -13,9 +13,9 @@
   <h4> Related Macros </h4>
   @li mp_setkeyvalue.sas
 
-  @param libds dataset to query
-  @param variable the variable which contains the value to return.
-  @param filter contents of where clause
+  @param [in] libds dataset to query
+  @param [in] variable the variable which contains the value to return.
+  @param [in] filter= (1) contents of where clause
 
   @version 9.2
   @author Allan Bowe

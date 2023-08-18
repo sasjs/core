@@ -12,7 +12,8 @@
       %put %mfv_existfile(/does/exist.txt);
       %put %mfv_existfile(/does/not/exist.txt);
 
-  @param filepath The full path to the file on SAS drive (eg /Public/myfile.txt)
+  @param [in] filepath The full path to the file on SAS drive
+    (eg /Public/myfile.txt)
 
   <h4> SAS Macros </h4>
   @li mf_abort.sas

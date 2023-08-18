@@ -8,7 +8,7 @@
   returns:
   > dbo
 
-  @param libref Library reference (also accepts a 2 level libds ref).
+  @param [in] libref Library reference (also accepts a 2 level libds ref).
 
   @return output returns the library schema for the FIRST library encountered
 

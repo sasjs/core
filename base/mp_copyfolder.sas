@@ -18,7 +18,7 @@
 
   @param [in] source Unquoted path to the folder to copy from.
   @param [out] target Unquoted path to the folder to copy to.
-  @param [in] copymax=(MAX) Set to a positive integer to indicate the level of
+  @param [in] copymax= (MAX) Set to a positive integer to indicate the level of
     subdirectory copy recursion - eg 3, to go `./3/levels/deep`.  For unlimited
     recursion, set to MAX.
 

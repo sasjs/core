@@ -8,8 +8,8 @@
         duration=60*5
       )
 
-  @param [in] duration= the time in seconds which the job should run for. Actual
-  time may vary, as the check is done in between steps.  Default = 30 (seconds).
+  @param [in] duration= (30) The time in seconds which the job should run for.
+    Actual time may vary, as the check is done in between steps.
 
   <h4> SAS Macros </h4>
   @li mf_getuniquelibref.sas

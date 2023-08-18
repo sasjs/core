@@ -5,9 +5,10 @@
     blank to return all directories.  The Directory object is used to reference
     a physical filepath (eg when registering a .sas program in a Stored process)
 
-  @param path= the physical path for which to return a meta Directory object
-  @param outds= the dataset to create that contains the list of directories
-  @param mDebug= set to 1 to show debug messages in the log
+  @param [in] path= Physical path for which to return a meta Directory object
+  @param [out] outds= (work.mm_getdirectories)
+    the dataset to create that contains the list of directories
+  @param [in] mDebug= (0) set to 1 to show debug messages in the log
 
   @returns outds  dataset containing the following columns:
     - directoryuri

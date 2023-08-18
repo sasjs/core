@@ -7,7 +7,7 @@ Usage:
     %mf_mkdir(/some/path/name)
 
 
-  @param dir relative or absolute pathname.  Unquoted.
+  @param [in] dir Relative or absolute pathname.  Unquoted.
   @version 9.2
 
 **/

@@ -29,7 +29,7 @@
 
   ![](https://user-images.githubusercontent.com/4420615/188278365-2987db97-0594-4a39-ac81-dbacdef5cdc8.png)
 
-  @param lib= (WORK) The libref in which to create the views
+  @param [in] lib= (WORK) The libref in which to create the views
 
   <h4> Related Files </h4>
   @li mp_dictionary.test.sas

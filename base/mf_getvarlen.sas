@@ -18,8 +18,8 @@
       8
       NOTE: Variable renegade does not exist in test
 
-  @param libds Two part dataset (or view) reference.
-  @param var Variable name for which a length should be returned
+  @param [in] libds Two part dataset (or view) reference.
+  @param [in] var Variable name for which a length should be returned
   @returns outputs length
 
   @author Allan Bowe

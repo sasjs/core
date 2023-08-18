@@ -18,7 +18,7 @@
 
   Usage:
 
-    %mp_webin()
+      %mp_webin()
 
   This was created as a macro procedure (over a macro function) as it will also
   use the filename statement in Viya environments (where `_webin_fileuri` is

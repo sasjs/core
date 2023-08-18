@@ -6,8 +6,8 @@
       %put Number of observations=%mf_getattrn(sashelp.class,NLOBS);
       %put Number of variables = %mf_getattrn(sashelp.class,NVARS);
 
-  @param libds library.dataset
-  @param attr Common values are NLOBS and NVARS, full list in [documentation](
+  @param [in] libds library.dataset
+  @param [in] attr Common values are NLOBS and NVARS, full list in [documentation](
   http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000212040.htm)
   @return output returns result of the attrn value supplied, or -1 and log
     message if err.

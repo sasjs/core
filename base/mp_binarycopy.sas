@@ -22,13 +22,13 @@
       %mp_binarycopy(inref=tmp1, outref=tmp2, mode=APPEND)
 
 
-  @param [in] inloc quoted "path/and/filename.ext" of the file to be copied
-  @param [out] outloc quoted "path/and/filename.ext" of the file to be created
-  @param [in] inref (____in) If provided, this fileref will take precedence over
+  @param [in] inloc= () quoted "path/and/filename.ext" of the file to be copied
+  @param [out] outloc= () quoted "path/and/filename.ext" of the file to create
+  @param [in] inref= (____in) If provided, this fileref takes precedence over
     the `inloc` parameter
-  @param [out] outref (____in) If provided, this fileref will take precedence
+  @param [out] outref= (____in) If provided, this fileref takes precedence
     over the `outloc` parameter.  It must already exist!
-  @param [in] mode (CREATE) Valid values:
+  @param [in] mode= (CREATE) Valid values:
     @li CREATE - Create the file (even if it already exists)
     @li APPEND - Append to the file (don't overwrite)
   @param iftrue= (1=1) Supply a condition for which the macro should be executed

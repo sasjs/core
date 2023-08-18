@@ -21,6 +21,11 @@ options noquotelenmax;
   @brief Abort, ungracefully
   @details Will abort with a straightforward %abort if the condition is true.
 
+  @param [in] mac= (mf_abort.sas) Name of calling macro (is printed to the log)
+  @param [in] msg= ( ) Additional string to print to the log
+  @param [in] iftrue= (%str(1=1)) Conditional logic under which to perform the
+    abort
+
   <h4> Related Macros </h4>
   @li mp_abort.sas
 
@@ -108,7 +113,7 @@ options noquotelenmax;
       %mf_deletefile(&sasjswork/myfile.txt)
 
 
-  @param filepath Full path to the target file
+  @param [in] file Full path to the target file
 
   @returns The return code from the fdelete() invocation
 
@@ -139,7 +144,7 @@ options noquotelenmax;
     expected results (depending on whether you 'expect' the result to be
     case insensitive in this context!)
 
-  @param libds library.dataset
+  @param [in] libds library.dataset
   @return output returns 1 or 0
 
   <h4> Related Macros </h4>
@@ -222,7 +227,7 @@ options noquotelenmax;
   @details You can probably do without this macro as it is just a one liner.
   Mainly it is here as a convenient way to remember the syntax!
 
-  @param fref the fileref to detect
+  @param [in] fref the fileref to detect
 
   @return output Returns 1 if found and 0 if not found.  Note - it is possible
   that the fileref is found, but the file does not (yet) exist. If you need
@@ -267,7 +272,7 @@ options noquotelenmax;
 https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionexists-macro
   ).
 
-  @param [in] name (positional) - function name
+  @param [in] name function name
 
   @author Allan Bowe
 **/
@@ -335,8 +340,8 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
 
       %put %mf_existVarList(sashelp.class, age sex name dummyvar);
 
-  @param libds 2 part dataset or view reference
-  @param varlist space separated variable names
+  @param [in] libds 2 part dataset or view reference
+  @param [in] varlist space separated variable names
 
   @version 9.2
   @author Allan Bowe
@@ -457,6 +462,7 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
       %put %mf_getapploc(/some/location/jobs/extract/somejob/);
       %put %mf_getapploc(/some/location/tests/jobs/somejob/);
 
+  @param [in] pgm The _program value from which to extract the appLoc
 
   @author Allan Bowe
 **/
@@ -509,8 +515,8 @@ or %index(&pgm,/tests/testteardown)
       %put Dataset label = %mf_getattrc(sashelp.class,LABEL);
       %put Member Type = %mf_getattrc(sashelp.class,MTYPE);
 
-  @param libds library.dataset
-  @param attr full list in [documentation](
+  @param [in] libds library.dataset
+  @param [in] attr full list in [documentation](
     https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000147794.htm)
   @return output returns result of the attrc value supplied, or -1 and log
     message if err.
@@ -542,8 +548,8 @@ or %index(&pgm,/tests/testteardown)
       %put Number of observations=%mf_getattrn(sashelp.class,NLOBS);
       %put Number of variables = %mf_getattrn(sashelp.class,NVARS);
 
-  @param libds library.dataset
-  @param attr Common values are NLOBS and NVARS, full list in [documentation](
+  @param [in] libds library.dataset
+  @param [in] attr Common values are NLOBS and NVARS, full list in [documentation](
   http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000212040.htm)
   @return output returns result of the attrn value supplied, or -1 and log
     message if err.
@@ -831,8 +837,9 @@ or %index(&pgm,/tests/testteardown)
       %put %mf_getkeyvalue(someindex)
 
 
-  @param key Provide a key on which to perform the lookup
-  @param libds= define the target table which holds the parameters
+  @param [in] key Provide a key on which to perform the lookup
+  @param [in] libds= (work.mp_setkeyvalue) The library.dataset which holds the
+    parameters
 
   @version 9.2
   @author Allan Bowe
@@ -867,7 +874,7 @@ or %index(&pgm,/tests/testteardown)
   @li SASJS
   @li BASESAS
 
-  @param switch the param for which to return a platform specific variable
+  @param [in] switch the param for which to return a platform specific variable
 
   <h4> SAS Macros </h4>
   @li mf_mval.sas
@@ -994,7 +1001,7 @@ or %index(&pgm,/tests/testteardown)
   returns:
   > dbo
 
-  @param libref Library reference (also accepts a 2 level libds ref).
+  @param [in] libref Library reference (also accepts a 2 level libds ref).
 
   @return output returns the library schema for the FIRST library encountered
 
@@ -1107,7 +1114,7 @@ or %index(&pgm,/tests/testteardown)
   @param [in] prefix= (mclib) first part of the returned libref. As librefs can
     be as long as 8 characters, a maximum length of 7 characters is premitted
     for this prefix.
-  @param [in] maxtries= Deprecated parameter. Remains here to ensure a
+  @param [in] maxtries= (1000) Deprecated parameter. Remains here to ensure a
     non-breaking change.  Will be removed in v5.
 
   @version 9.2
@@ -1154,7 +1161,7 @@ or %index(&pgm,/tests/testteardown)
 
 > MCc59c750610321d4c8bf75faadbcd22
 
-  @param prefix= set a prefix for the new name
+  @param prefix= (MC) Sets a prefix for the new name
 
   @version 9.3
   @author Allan Bowe
@@ -1177,8 +1184,6 @@ or %index(&pgm,/tests/testteardown)
 
         %let user= %mf_getUser();
         %put &user;
-
-  @param type - do not use, may be deprecated in a future release
 
   @return SYSUSERID (if workspace server)
   @return _METAPERSON (if stored process server)
@@ -1222,9 +1227,9 @@ or %index(&pgm,/tests/testteardown)
   <h4> Related Macros </h4>
   @li mp_setkeyvalue.sas
 
-  @param libds dataset to query
-  @param variable the variable which contains the value to return.
-  @param filter contents of where clause
+  @param [in] libds dataset to query
+  @param [in] variable the variable which contains the value to return.
+  @param [in] filter= (1) contents of where clause
 
   @version 9.2
   @author Allan Bowe
@@ -1317,7 +1322,8 @@ or %index(&pgm,/tests/testteardown)
 
   @param [in] libds Two part dataset (or view) reference.
   @param [in] var Variable name for which a format should be returned
-  @param [in] force=(0) Set to 1 to supply a default if the variable has no format
+  @param [in] force= (0) Set to 1 to supply a default if the variable has no
+    format
   @returns outputs format
 
   @author Allan Bowe
@@ -1381,8 +1387,8 @@ or %index(&pgm,/tests/testteardown)
       8
       NOTE: Variable renegade does not exist in test
 
-  @param libds Two part dataset (or view) reference.
-  @param var Variable name for which a length should be returned
+  @param [in] libds Two part dataset (or view) reference.
+  @param [in] var Variable name for which a length should be returned
   @returns outputs length
 
   @author Allan Bowe
@@ -1512,8 +1518,8 @@ returns:
 
   > NOTE: Variable renegade does not exist in test
 
-  @param libds Two part dataset (or view) reference.
-  @param var Variable name for which a position should be returned
+  @param [in] libds Two part dataset (or view) reference.
+  @param [in] var Variable name for which a position should be returned
 
   @author Allan Bowe
   @version 9.2
@@ -1561,8 +1567,8 @@ Usage:
 
 
 
-  @param libds Two part dataset (or view) reference.
-  @param var the variable name to be checked
+  @param [in] libds Two part dataset (or view) reference.
+  @param [in] var the variable name to be checked
   @return output returns C or N depending on variable type.  If variable
     does not exist then a blank is returned and a note is written to the log.
 
@@ -1609,7 +1615,7 @@ Usage:
   returns:
   > TEMP
 
-  @param fref The fileref to check
+  @param [in] fref The fileref to check
 
   @returns The XENGINE value in sashelp.vextfl or 0 if not found.
 
@@ -1653,8 +1659,8 @@ Usage:
       %put Now we have run %mf_increment(cnt) lines;
       %put There are %mf_increment(cnt) lines in total;
 
-  @param [in] MACRO_NAME the name of the macro variable to increment
-  @param [in] ITER= The amount to add or subtract to the macro
+  @param [in] macro_name The name of the macro variable to increment
+  @param [in] incr= (1) The amount to add or subtract to the macro
 
   <h4> Related Files </h4>
   @li mf_increment.test.sas
@@ -1683,7 +1689,7 @@ Usage:
   inspiration:
   https://support.sas.com/resources/papers/proceedings09/022-2009.pdf
 
-  @param param VALUE to be checked
+  @param [in] Param VALUE to be checked
 
   @return output returns 1 (if blank) else 0
 
@@ -1706,7 +1712,7 @@ Usage:
   With thanks and full credit to Andrea Defronzo -
   https://www.linkedin.com/in/andrea-defronzo-b1a47460/
 
-  @param path full path of the file/directory to be checked
+  @param [in] path Full path of the file/directory to be checked
 
   @return output returns 1 if path is a directory, 0 if it is not
 
@@ -1811,6 +1817,10 @@ Usage:
 
       %put %mf_loc(POF); %*location of PlatformObjectFramework tools;
 
+  @param [in] loc The item to locate, eg:
+    @li PLAATFORMOBJECTFRAMEWORK (or POF)
+    @li VIYACONFG
+
   @version 9.2
   @author Allan Bowe
 **/
@@ -1820,7 +1830,8 @@ Usage:
 %local root;
 
 %if &loc=POF or &loc=PLATFORMOBJECTFRAMEWORK %then %do;
-  %let root=%substr(%sysget(SASROOT),1,%index(%sysget(SASROOT),SASFoundation)-2);
+  %let root=%sysget(SASROOT);
+  %let root=%substr(&root,1,%index(&root,SASFoundation)-2);
   %let root=&root/SASPlatformObjectFramework/&sysver;
   %put Batch tools located at: &root;
   &root
@@ -1841,7 +1852,7 @@ Usage:
     %mf_mkdir(/some/path/name)
 
 
-  @param dir relative or absolute pathname.  Unquoted.
+  @param [in] dir Relative or absolute pathname.  Unquoted.
   @version 9.2
 
 **/
@@ -1909,6 +1920,8 @@ Usage:
 
       %if %mf_mval(maynotexist)=itdid %then %do;
 
+  @param [in] var The macro variable NAME to return the (possible) value for
+
   @version 9.2
   @author Allan Bowe
 **/
@@ -1929,7 +1942,7 @@ Usage:
   <h4> SAS Macros </h4>
   @li mf_getattrn.sas
 
-  @param libds library.dataset
+  @param [in] libds library.dataset
 
   @return output returns result of the attrn value supplied, or log message
     if err.
@@ -2019,8 +2032,8 @@ Usage:
   <h4> SAS Macros </h4>
 
 
-  @param basestr The string to be modified
-  @param trimstr The string to be removed from the end of `basestr`, if it
+  @param [in] basestr The string to be modified
+  @param [in] trimstr The string to be removed from the end of `basestr`, if it
     exists
 
   @return output returns result with the value of `trimstr` removed from the end
@@ -2162,8 +2175,8 @@ Usage:
   returns:
   > blah blaaah brah
 
-  @param str1= string containing words to extract
-  @param str2= used to compare with the extract string
+  @param [in] str1= () string containing words to extract
+  @param [in] str2= () used to compare with the extract string
 
   @warning CASE SENSITIVE!
 
@@ -2218,8 +2231,8 @@ Usage:
   returns:
   > sss bram boo
 
-  @param [in] str1= string containing words to extract
-  @param [in] str2= used to compare with the extract string
+  @param [in] str1= () String containing words to extract
+  @param [in] str2= () Used to compare with the extract string
 
   @version 9.2
   @author Allan Bowe
@@ -2277,8 +2290,8 @@ Usage:
   @param [in] mode= (O) Available options are A or O as follows:
     @li A APPEND mode, writes new records after the current end of the file.
     @li O OUTPUT mode, writes new records from the beginning of the file.
-  @param [in] l1= First line
-  @param [in] l2= Second line (etc through to l10)
+  @param [in] l1= () First line
+  @param [in] l2= () Second line (etc through to l10)
 
   <h4> Related Macros </h4>
   @li mf_writefile.test.sas
@@ -2349,14 +2362,15 @@ Usage:
     currently investigating approaches to deal with this.
 
 
-  @param mac= (mp_abort.sas) To contain the name of the calling macro. Do not
-    use &sysmacroname as this will always resolve to MP_ABORT.
-  @param msg= message to be returned
-  @param iftrue= (1=1) Supply a condition for which the macro should be executed
-  @param errds= (work.mp_abort_errds) There is no clean way to end a process
-    within a %include called within a macro.  Furthermore, there is no way to
-    test if a macro is called within a %include.  To handle this particular
-    scenario, the %include should be switched for the mp_include.sas macro.
+  @param [in] mac= (mp_abort.sas) To contain the name of the calling macro. Do
+    not use &sysmacroname as this will always resolve to MP_ABORT.
+  @param [out] msg= message to be returned
+  @param [in] iftrue= (1=1) Condition under which the macro should be executed
+  @param [in] errds= (work.mp_abort_errds) There is no clean way to end a
+    process within a %include called within a macro.  Furthermore, there is no
+    way to test if a macro is called within a %include.  To handle this
+    particular scenario, the %include should be switched for the mp_include.sas
+    macro.
     This provides an indicator that we are running a macro within a \%include
     (`_SYSINCLUDEFILEDEVICE`) and allows us to provide a dataset with the abort
     values (msg, mac).
@@ -2367,8 +2381,8 @@ Usage:
     @li msg (the message)
     @li mac (the mac param)
 
-  @param mode= (REGULAR) If mode=INCLUDE then the &errds dataset is checked for
-    an abort status.
+  @param [in] mode= (REGULAR) If mode=INCLUDE then the &errds dataset is checked
+    for an abort status.
     Valid values:
     @li REGULAR (default)
     @li INCLUDE
@@ -2721,8 +2735,8 @@ and %superq(SYSPROCESSNAME) ne %str(Compute Server)
           7998580.8415
 
 
-  @param var The (data step, character) variable to modify
-  @param width= (8) The number of characters BEFORE the decimal point
+  @param [in] var The (data step, character) variable to modify
+  @param [in] width= (8) The number of characters BEFORE the decimal point
 
   <h4> SAS Macros </h4>
   @li mf_getuniquename.sas
@@ -2771,8 +2785,8 @@ and %superq(SYSPROCESSNAME) ne %str(Compute Server)
         %mp_appendfile(baseref=tmp1, appendrefs=tmp2 tmp3)
 
 
-  @param [in] baseref= Fileref of the base file (should exist)
-  @param [in] appendrefs= One or more filerefs to be appended to the base
+  @param [in] baseref= (0) Fileref of the base file (should exist)
+  @param [in] appendrefs= (0) One or more filerefs to be appended to the base
     fileref.  Space separated.
 
   @version 9.2
@@ -3076,8 +3090,8 @@ run;
 
 
   @param [in] inds The input library.dataset to test for values
-  @param [in] cols= The list of columns to check for
-  @param [in] desc= (Testing observations) The user provided test description
+  @param [in] cols= (0) The list of columns to check for
+  @param [in] desc= (0) The user provided test description
   @param [in] test= (ALL) The test to apply.  Valid values are:
     @li ALL - Test is a PASS if ALL columns exist in &inds
     @li ANY - Test is a PASS if ANY of the columns exist in &inds
@@ -3225,7 +3239,7 @@ run;
 
 
   @param [in] indscol The input library.dataset.column to test for values
-  @param [in] checkvals= A library.dataset.column value containing a UNIQUE
+  @param [in] checkvals= (0) A library.dataset.column value containing a UNIQUE
     list of values to be compared against the source (indscol).
   @param [in] desc= (Testing observations) The user provided test description
   @param [in] test= (ALLVALS) The test to apply.  Valid values are:
@@ -3655,8 +3669,8 @@ run;
           put _infile_;
         run;
 
-  @param [in] inref= Fileref of the input file (should exist)
-  @param [out] outref= Output fileref. If it does not exist, it is created.
+  @param [in] inref= (0) Fileref of the input file (should exist)
+  @param [out] outref= (0) Output fileref. If it does not exist, it is created.
   @param [in] action= (ENCODE) The action to take. Valid values:
     @li ENCODE - Convert the file to base64 format
     @li DECODE - Decode the file from base64 format
@@ -3765,13 +3779,13 @@ run;
       %mp_binarycopy(inref=tmp1, outref=tmp2, mode=APPEND)
 
 
-  @param [in] inloc quoted "path/and/filename.ext" of the file to be copied
-  @param [out] outloc quoted "path/and/filename.ext" of the file to be created
-  @param [in] inref (____in) If provided, this fileref will take precedence over
+  @param [in] inloc= () quoted "path/and/filename.ext" of the file to be copied
+  @param [out] outloc= () quoted "path/and/filename.ext" of the file to create
+  @param [in] inref= (____in) If provided, this fileref takes precedence over
     the `inloc` parameter
-  @param [out] outref (____in) If provided, this fileref will take precedence
+  @param [out] outref= (____in) If provided, this fileref takes precedence
     over the `outloc` parameter.  It must already exist!
-  @param [in] mode (CREATE) Valid values:
+  @param [in] mode= (CREATE) Valid values:
     @li CREATE - Create the file (even if it already exists)
     @li APPEND - Append to the file (don't overwrite)
   @param iftrue= (1=1) Supply a condition for which the macro should be executed
@@ -3866,7 +3880,7 @@ run;
   For more examples, see mp_chop.test.sas
 
   @param [in] infile The QUOTED path to the file on which to perform the chop
-  @param [in] matchvar= Macro variable NAME containing the string to split by
+  @param [in] matchvar= () Macro variable NAME containing the string to split by
   @param [in] matchpoint= (START) Valid values:
     @li START - chop at the beginning of the string in `matchvar`.
     @li END - chop at the end of the string in `matchvar`.
@@ -4204,7 +4218,7 @@ drop table &ddlds,&cntlds;
 
   @param [in] source Unquoted path to the folder to copy from.
   @param [out] target Unquoted path to the folder to copy to.
-  @param [in] copymax=(MAX) Set to a positive integer to indicate the level of
+  @param [in] copymax= (MAX) Set to a positive integer to indicate the level of
     subdirectory copy recursion - eg 3, to go `./3/levels/deep`.  For unlimited
     recursion, set to MAX.
 
@@ -4413,7 +4427,7 @@ run;
 %mend mp_createconstraints;
 /**
   @file mp_createwebservice.sas
-  @brief Create a web service in SAS 9, Viya or SASjs Server
+  @brief Create a web service in SAS 9, Viya or SASjs Server (legacy)
   @details This is actually a wrapper for mx_createwebservice.sas, remaining
   for legacy purposes.  For new apps, use mx_createwebservice.sas.
 
@@ -4464,11 +4478,12 @@ run;
       %mp_csv2ds(inref=mycsv,outds=myds,baseds=sashelp.class)
 
 
-  @param inref= fileref to the CSV
-  @param outds= output ds (lib.ds format)
-  @param view= Set to YES or NO to determine whether the output should be
-    a view or not.  Default is NO (not a view).
-  @param baseds= Template dataset on which to create the input statement.
+  @param [in] inref= (0) Fileref to the CSV
+  @param [out] outds= (0) Output ds (lib.ds format)
+  @param [in] view= (NO) Set to YES or NO to determine whether the output
+    should be a view or not.  Default is NO (not a view).
+  @param [in] baseds= (0)
+    Template dataset on which to create the input statement.
     Is used to determine types, lengths, and any informats.
 
   @version 9.2
@@ -4601,9 +4616,11 @@ run;
       %mp_getconstraints(lib=work,ds=example,outds=work.constraints)
       %mp_deleteconstraints(inds=work.constraints,outds=dropped,execute=YES)
 
-  @param inds= The input table containing the constraint info
-  @param outds= a table containing the drop statements (drop_statement column)
-  @param execute= `YES|NO` - default is NO. To actually drop, use YES.
+  @param [in] inds= (mp_getconstraints)
+    The input table containing constraint info
+  @param [out] outds= (mp_deleteconstraints)
+    Table containing the drop statements (drop_statement column)
+  @param [in] execute= (NO) `YES|NO` - default is NO. To actually drop, use YES.
 
 
   @version 9.2
@@ -4650,7 +4667,7 @@ run;
 
       %mp_deletefolder(&rootdir)
 
-  @param path Unquoted path to the folder to delete.
+  @param [in] folder Unquoted path to the folder to delete.
 
   <h4> SAS Macros </h4>
   @li mf_getuniquename.sas
@@ -4733,7 +4750,7 @@ run;
 
   ![](https://user-images.githubusercontent.com/4420615/188278365-2987db97-0594-4a39-ac81-dbacdef5cdc8.png)
 
-  @param lib= (WORK) The libref in which to create the views
+  @param [in] lib= (WORK) The libref in which to create the views
 
   <h4> Related Files </h4>
   @li mp_dictionary.test.sas
@@ -5025,11 +5042,11 @@ drop table &out_ds;
 
         %mp_distinctfmtvalues(libds=sashelp.class,var=age,outvar=age,outds=test)
 
-  @param libds input dataset
-  @param var variable to get distinct values for
-  @param outvar variable to create.  Default:  `formatted_value`
-  @param outds dataset to create.  Default:  work.mp_distinctfmtvalues
-  @param varlen length of variable to create (default 200)
+  @param [in] libds= () input dataset
+  @param [in] var= (0) variable to get distinct values for
+  @param [out] outvar= (formatteed_value) variable to create.
+  @param [out] outds= (work.mp_distinctfmtvalues) dataset to create.
+  @param [in] varlen= (2000) length of variable to create
 
   @version 9.2
   @author Allan Bowe
@@ -5614,9 +5631,21 @@ run;
 
 %mend mp_ds2csv;/**
   @file
-  @brief A wrapper for mp_getddl.sas
-  @details In the next release, this will be the main version.
+  @brief Fetches DDL for a specific table
+  @details Uses mp_getddl under the hood
 
+  @param [in] libds library.dataset to create ddl for
+  @param [in] fref= (getddl) the fileref to which to _append_ the DDL.  If it
+    does not exist, it will be created.
+  @param [in] flavour= (SAS) The type of DDL to create. Options:
+    @li SAS
+    @li TSQL
+
+  @param [in]showlog= (NO) Set to YES to show the DDL in the log
+  @param [in] schema= () Choose a preferred schema name (default is to use
+    actual schema, else libref)
+  @param applydttm= (NO) For non SAS DDL, choose if columns are created with
+    native datetime2 format or regular decimal type
 
   <h4> SAS Macros </h4>
   @li mp_getddl.sas
@@ -6198,8 +6227,8 @@ options varlenchk=&optval;
   https://support.sas.com/resources/papers/proceedings14/1549-2014.pdf) by
   [Louise Hadden](https://www.linkedin.com/in/louisehadden/).
 
-  @param libds The library.dataset to export the metadata for
-  @param outds= (work.dsmeta) The output table to contain the metadata
+  @param [in] libds The library.dataset to export the metadata for
+  @param [out] outds= (work.dsmeta) The output table to contain the metadata
 
   <h4> Related Files </h4>
   @li mp_dsmeta.test.sas
@@ -6296,10 +6325,12 @@ drop table &ds1, &ds2;
   @param [in] targetds= The target dataset against which to verify VARIABLE_NM.
     This must be available (ie, the library must be assigned).
   @param [out] abort= (YES) If YES will call mp_abort.sas on any exceptions
-  @param [out] outds= The output table, which is a copy of the &inds. table
-    plus a REASON_CD column, containing only bad records.  If bad records found,
-    the SYSCC value will be set to 1008 (general data problem).  Downstream
-    processes should check this table (and return code) before continuing.
+  @param [out] outds= (work.badrecords) The output table, which is a copy of the
+    &inds. table plus a REASON_CD column, containing only bad records.
+    If bad records are found, the SYSCC value will be set to 1008
+    (a general data problem).
+    Downstream processes should check this table (and return code) before
+    continuing.
 
   <h4> SAS Macros </h4>
   @li mp_abort.sas
@@ -6561,8 +6592,8 @@ run;
   > )
 
   @param [in] inds The input table with query values
-  @param [out] outref= The output fileref to contain the filter clause.  Will
-    be created (or replaced).
+  @param [out] outref= (filter) The output fileref to contain the filter clause.
+    Will be created (or replaced).
 
   <h4> Related Macros </h4>
   @li mp_filtercheck.sas
@@ -6659,9 +6690,10 @@ filename &outref temp;
     mp_coretable.sas as follows:  `mp_coretable(LOCKTABLE)`.
   @param [in] maxkeytable= (0) Optional permanent reference table used for
     retained key tracking.  Described in mp_retainedkey.sas.
-  @param [in] mdebug= set to 1 to enable DEBUG messages
-  @param [out] outresult= The result table with the FILTER_RK
-  @param [out] outquery= The original query, taken as extract after table load
+  @param [in] mdebug= (1) set to 1 to enable DEBUG messages
+  @param [out] outresult= (work.result) The result table with the FILTER_RK
+  @param [out] outquery= (work.query) The original query, taken as extract
+    after table load
 
 
   <h4> SAS Macros </h4>
@@ -6993,6 +7025,9 @@ filename &fref1 clear;
 |`DATE `|`8 `|`1 `|`DATE `|`MONYY `|`MONYY. `|`N `|`DATE `|
 |`REGION `|`3 `|`3 `|`REGION `|` `|`$3. `|`C `|`CHARACTER `|
 
+  @param [in] ds The dataset to get the columns from
+  @param [out] outds= (work.cols) The dataset to create
+
   <h4> Related Macros </h4>
   @li mf_getvarlist.sas
   @li mm_getcols.sas
@@ -7176,10 +7211,10 @@ create table &outds as
   @li mf_getquotedstr.sas
   @li mp_getconstraints.sas
 
-  @param liblist= Space seperated list of librefs to take as
-    input (Default=SASHELP)
-  @param outref= Fileref to contain the DBML (Default=getdbml)
-  @param showlog= set to YES to show the DBML in the log (Default is NO)
+  @param [in] liblist= (SASHELP) Space seperated list of librefs to take as
+    input
+  @param [out] outref= (getdbml) Fileref to contain the DBML
+  @param [in] showlog= (NO) set to YES to show the DBML in the log
 
   @version 9.3
   @author Allan Bowe
@@ -7509,16 +7544,21 @@ run;
   @li mf_getvarcount.sas
   @li mp_getconstraints.sas
 
-  @param lib libref of the library to create DDL for.  Should be assigned.
-  @param ds dataset to create ddl for (optional)
-  @param fref= the fileref to which to _append_ the DDL.  If it does not exist,
-    it will be created.
-  @param flavour= The type of DDL to create (default=SAS). Supported=TSQL
-  @param showlog= Set to YES to show the DDL in the log
-  @param schema= Choose a preferred schema name (default is to use actual schema
-    ,else libref)
-  @param applydttm= for non SAS DDL, choose if columns are created with native
-    datetime2 format or regular decimal type
+  @param [in] libref Libref of the library to create DDL for. Should already
+    be assigned.
+  @param [in] ds dataset to create ddl for (optional)
+  @param [in] fref= (getddl) the fileref to which to _append_ the DDL.  If it
+    does not exist, it will be created.
+  @param [in] flavour= (SAS) The type of DDL to create. Options:
+    @li SAS
+    @li TSQL
+
+  @param [in]showlog= (NO) Set to YES to show the DDL in the log
+  @param [in] schema= () Choose a preferred schema name (default is to use
+    actual schema, else libref)
+  @param applydttm= (NO) For non SAS DDL, choose if columns are created with
+    native datetime2 format or regular decimal type
+
   @version 9.3
   @author Allan Bowe
 **/
@@ -8795,7 +8835,7 @@ run;
       %mp_guesspk(sashelp.class,outds=classpks)
 
   @param [in] baseds The dataset to analyse
-  @param [out] outds= The output dataset to contain the possible PKs
+  @param [out] outds= (mp_guesspk) Output dataset to contain the possible PKs
   @param [in] max_guesses= (3) The total number of possible primary keys to
     generate. A table may have multiple (unlikely) PKs, so no need to list them
     all.
@@ -9132,7 +9172,7 @@ run;
   @li mp_hashdirectory.sas
 
   @param [in] libds dataset to hash
-  @param [in] salt= Provide a salt (could be, for instance, the dataset name)
+  @param [in] salt= () Provide a salt (could be, for instance, the dataset name)
   @param [in] iftrue= (1=1) A condition under which the macro should be executed
   @param [out] outds= (work._data_) The output dataset to create. This
   will contain one column (hashkey) with one observation (a $hex32.
@@ -9974,19 +10014,19 @@ options
   @li mf_trimstr.sas
   @li mp_ds2cards.sas
 
-  @param [in] lib= Library in which to convert all datasets
-  @param [out] outloc= Location in which to store output.  Defaults to WORK
-    library. No quotes.
-  @param [out] outfile= Optional output file NAME - if provided, then will create
-  a single output file instead of one file per input table.
-  @param [in] maxobs= limit output to the first <code>maxobs</code> observations
+  @param [in] lib= () Library in which to convert all datasets
+  @param [out] outloc= (%sysfunc(pathname(work))) Location in which to store
+    output. No quotes.
+  @param [out] outfile= (0) Optional output file NAME - if provided, then
+    will create a single output file instead of one file per input table.
+  @param [in] maxobs= (max) limit output to the first <code>maxobs</code> rows
 
   @version 9.2
   @author Allan Bowe
 **/
 
 %macro mp_lib2cards(lib=
-    ,outloc=%sysfunc(pathname(work)) /* without trailing slash */
+    ,outloc=%sysfunc(pathname(work))
     ,maxobs=max
     ,random_sample=NO
     ,outfile=0
@@ -10952,8 +10992,8 @@ drop table &ds1, &ds2;
   @li Global option:  `options dsoptions=nonote2err;`
   @li Data step option: `data YOURLIB.YOURDATASET /nonote2err;`
 
-  @param cvars= Space seperated list of character variables
-  @param nvars= Space seperated list of numeric variables
+  @param cvars= () Space seperated list of character variables
+  @param nvars= () Space seperated list of numeric variables
 
   <h4> Related Programs </h4>
   @li mp_init.sas
@@ -10992,9 +11032,9 @@ put(md5(
       %mp_perflog(finished)
 
 
-  @param label Provide label to go into the control dataset
-  @param libds= Provide a dataset in which to store performance stats.  Default
-              name is <code>work.mp_perflog</code>;
+  @param [in] label Provide label to go into the control dataset
+  @param [in] libds= (work.mp_perflog) Provide a dataset in which to store
+    performance stats.  Default name is <code>work.mp_perflog</code>;
 
   @version 9.2
   @author Allan Bowe
@@ -11057,12 +11097,12 @@ put(md5(
   Credit is made to `data _null_` for authoring this very helpful paper:
   https://www.lexjansen.com/pharmasug/2008/cc/CC08.pdf
 
-  @param action Either FETCH a current or previous record, or INITialise.
-  @param record The relative (to current) position of the previous observation
+  @param [in] action Either FETCH a current or previous record, or INITialise.
+  @param [in] record The relative (to current) position of the previous row
     to return.
-  @param history= The number of records to retain in the hash table. Default=5
-  @param prefix= the prefix to give to the variables used to store the hash name
-    and index. Default=mp_prevobs
+  @param [in] history= (5) The number of records to retain in the hash table.
+  @param prefix= (mp_prevobs) The prefix to give to the variables used to
+    store the hash name and index.
 
   @version 9.2
   @author Allan Bowe
@@ -11133,12 +11173,13 @@ put(md5(
         ,childvar=c
         )
 
-  @param base_ds= base table containing hierarchy (not modified)
-  @param outds= the output dataset to create with the generated hierarchy
-  @param matchval= the ultimate parent from which to filter
-  @param parentvar= name of the parent variable
-  @param childvar= name of the child variable (should be same type as parent)
-  @param mdebug= set to 1 to prevent temp tables being dropped
+  @param [in] base_ds= base table containing hierarchy (not modified)
+  @param [out] outds= the output dataset to create with the generated hierarchy
+  @param [in] matchval= the ultimate parent from which to filter
+  @param [in] parentvar= name of the parent variable
+  @param [in] childvar= () name of the child variable (should be same type as
+    parent)
+  @param [in] mdebug= set to 1 to prevent temp tables being dropped
 
 
   @returns outds contains the following variables:
@@ -11232,10 +11273,11 @@ insert into &outds select distinct * from &append_ds;
   Note - if you are running a version of SAS that will allow the io package in
   LUA, you can also use this macro: mp_gsubfile.sas
 
-  @param infile The QUOTED path to the file on which to perform the substitution
-  @param findvar= Macro variable NAME containing the string to search for
-  @param replacevar= Macro variable NAME containing the replacement string
-  @param outfile= (0) Optional QUOTED path to the adjusted output file (to
+  @param [in] infile The QUOTED path to the file on which to perform the
+    substitution
+  @param [in] findvar= Macro variable NAME containing the string to search for
+  @param [in] replacevar= Macro variable NAME containing the replacement string
+  @param [out] outfile= (0) Optional QUOTED path to the adjusted output file (to
     avoid overwriting the first file).
 
   <h4> SAS Macros </h4>
@@ -11693,9 +11735,9 @@ run;
     %mp_runddl(/some/rootlib, exc=LIBREF3) * same as above ;
 
 
-  @param path location of the DDL folder structure
-  @param inc= list of librefs to include
-  @param exc= list of librefs to exclude (takes precedence over inc=)
+  @param [in] path location of the DDL folder structure
+  @param [in] inc= list of librefs to include
+  @param [in] exc= list of librefs to exclude (takes precedence over inc=)
 
   @version 9.3
   @author Allan Bowe
@@ -11719,12 +11761,12 @@ run;
 
       %mp_searchcols(libs=sashelp work, cols=name sex age)
 
-  @param libs=(SASHELP) Space separated list of libraries to search for columns
+  @param libs= (SASHELP) Space separated list of libraries to search for columns
   @param cols= Space separated list of column names to search for (not case
     sensitive)
-  @param outds=(mp_searchcols) the table to create with the results.  Will have
+  @param outds= (mp_searchcols) the table to create with the results.  Will have
     one line per table match.
-  @param match=(ANY) The match type. Valid values:
+  @param match= (ANY) The match type. Valid values:
     @li ANY - The table contains at least one of the columns
     @li WILD - The table contains a column with a name that partially matches
 
@@ -12958,9 +13000,10 @@ create table &outds as
     %mp_stprequests(status_cd=INIT, libds=YOURLIB.DATASET )
 
 
-  @param status_cd= Use INIT for INIT and TERM for TERM events
-  @param libds= Location of base table (library.dataset).  To minimise risk
-    of table locks, we HIGHLY recommend using a database (NOT a SAS dataset).
+  @param [in] status_cd= Use INIT for INIT and TERM for TERM events
+  @param [in] libds= (somelib.stp_requests) Location of base table
+    (library.dataset).  To minimise risk of table locks, we HIGHLY recommend
+    using a database (NOT a SAS dataset).
     THE LIBRARY SHOULD BE ASSIGNED ALREADY - eg in autoexec or earlier in the
     init program proper.
 
@@ -13230,8 +13273,8 @@ run;
         duration=60*5
       )
 
-  @param [in] duration= the time in seconds which the job should run for. Actual
-  time may vary, as the check is done in between steps.  Default = 30 (seconds).
+  @param [in] duration= (30) The time in seconds which the job should run for.
+    Actual time may vary, as the check is done in between steps.
 
   <h4> SAS Macros </h4>
   @li mf_getuniquelibref.sas
@@ -13363,9 +13406,9 @@ libname &lib clear;
         ,outds=work.results
       )
 
-  @param lib= (WORK) The library in which to create the table
-  @param size= (0.1) The size in GB of the table to create
-  @param outds= (WORK.RESULTS) The output dataset to be created.
+  @param [in] lib= (WORK) The library in which to create the table
+  @param [in] size= (0.1) The size in GB of the table to create
+  @param [out] outds= (WORK.RESULTS) The output dataset to be created.
 
   <h4> SAS Macros </h4>
   @li mf_getuniquename.sas
@@ -13425,8 +13468,8 @@ https://communities.sas.com/t5/SAS-Programming/listing-all-files-within-a-direct
 https://communities.sas.com/t5/SAS-Programming/listing-all-files-of-all-types-from-all-subdirectories/m-p/334113/highlight/true#M75419
 
 
-  @param dir= Directory to be scanned (default=/tmp)
-  @param outds= Dataset to create (default=work.mp_tree)
+  @param [in] dir= (/tmp) Directory to be scanned
+  @param [out] outds= (work.mp_tree) Dataset to create
 
   @returns outds contains the following variables:
 
@@ -13493,11 +13536,12 @@ run;
 
       %mp_unzip(ziploc="/some/file.zip",outdir=/some/folder)
 
-  More info:  https://blogs.sas.com/content/sasdummy/2015/05/11/using-filename-zip-to-unzip-and-read-data-files-in-sas/
+  More info:
+  https://blogs.sas.com/content/sasdummy/2015/05/11/using-filename-zip-to-unzip-and-read-data-files-in-sas/
 
-  @param ziploc= Fileref or quoted full path to zip file ("/path/to/file.zip")
-  @param outdir= (%sysfunc(pathname(work))) Directory in which to write the
-    outputs (created if non existant)
+  @param [in] ziploc= Fileref or quoted full path, eg: "/path/to/file.zip"
+  @param [out] outdir= (%sysfunc(pathname(work))) Directory in which to write
+    the outputs (created if needed)
 
   <h4> SAS Macros </h4>
   @li mf_mkdir.sas
@@ -13584,9 +13628,9 @@ filename &f2 clear;
         proc sql;
         describe table example;
 
-  @param libds the library.dataset to be modified
-  @param var The variable to modify
-  @param len The new length to apply
+  @param [in] libds the library.dataset to be modified
+  @param [in] var The variable to modify
+  @param [in] len The new length to apply
 
   <h4> SAS Macros </h4>
   @li mf_existds.sas
@@ -13771,7 +13815,7 @@ alter table &libds modify &var char(&len);
   @param [in] file The file to wait for.  Must be provided.
   @param [in] maxwait= (0) Number of seconds to wait.  If set to zero, will
     loop indefinitely (to a maximum of 46 days, per SAS [documentation](
-      https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a001418809.htm
+    https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a001418809.htm
     )).  Otherwise, execution will proceed upon sleep expiry.
   @param [in] interval= (1) The wait period between sleeps, in seconds
 
@@ -13812,7 +13856,7 @@ run;
 
   Usage:
 
-    %mp_webin()
+      %mp_webin()
 
   This was created as a macro procedure (over a macro function) as it will also
   use the filename statement in Viya environments (where `_webin_fileuri` is
@@ -13867,14 +13911,14 @@ run;
   <h4> SAS Macros </h4>
   @li mp_dirlist.sas
 
-  @param in= unquoted filepath, dataset of files or directory to zip
-  @param type= (FILE) Valid values:
+  @param [in] in= unquoted filepath, dataset of files or directory to zip
+  @param [in] type= (FILE) Valid values:
     @li FILE - /full/path/and/filename.extension to a particular file
     @li DATASET - a dataset containing a list of files to zip (see `incol`)
     @li DIRECTORY - a directory to zip
-  @param outname= (FILE) Output file to create, _without_ .zip extension
-  @param outpath= (%sysfunc(pathname(WORK))) Parent folder for output zip file
-  @param incol= if DATASET input, say which column contains the filepath
+  @param [out] outname= (FILE) Output file to create, _without_ .zip extension
+  @param [out] outpath= (%sysfunc(pathname(WORK))) Parent folder for zip file
+  @param [in] incol= () If DATASET input, say which column contains the filepath
 
   <h4> Related Macros </h4>
   @li mp_unzip.sas
@@ -14194,9 +14238,9 @@ ods package close;
         ,group=someGroup)
 
 
-  @param user= the user name (not displayname)
-  @param group= the group to which to add the user
-  @param mdebug= (0) set to 1 to show debug info in log
+  @param [in] user= the user name (not displayname)
+  @param [in] group= the group to which to add the user
+  @param [in] mdebug= (0) set to 1 to show debug info in log
 
   <h4> Related Files </h4>
   @li ms_adduser2group.sas
@@ -14301,12 +14345,13 @@ filename __us2grp clear;
   @li mf_getengine.sas
   @li mp_abort.sas
 
-  @param libref the libref (not name) of the metadata library
-  @param open_passthrough= provide an alias to produce the CONNECT TO statement
-    for the relevant external database
-  @param sql_options= an override default output fileref to avoid naming clash
-  @param mDebug= set to 1 to show debug messages in the log
-  @param mAbort= set to 1 to call %mp_abort().
+  @param [in] libref the libref (not name) of the metadata library
+  @param [in] open_passthrough= () Provide an alias to produce the CONNECT TO
+    statement for the relevant external database
+  @param [in] sql_options= () Add any options to add to proc sql statement,
+    eg outobs= (only valid for pass through)
+  @param [in] mDebug= (0) set to 1 to show debug messages in the log
+  @param [in] mAbort= (0) set to 1 to call %mp_abort().
 
   @returns libname statement
 
@@ -14316,12 +14361,9 @@ filename __us2grp clear;
 **/
 
 %macro mm_assigndirectlib(
-    libref /* libref to assign from metadata */
-    ,open_passthrough= /* provide an alias to produce the
-                          CONNECT TO statement for the
-                          relevant external database */
-    ,sql_options= /* add any options to add to proc sql statement eg outobs=
-                      (only valid for pass through) */
+    libref
+    ,open_passthrough=
+    ,sql_options=
     ,mDebug=0
     ,mAbort=0
 )/*/STORE SOURCE*/;
@@ -14760,8 +14802,8 @@ run;
   @li mp_abort.sas
 
   @param [in] libref The libref (not name) of the metadata library
-  @param [in] mAbort= If not assigned, HARD will call %mp_abort(), SOFT will
-    silently return
+  @param [in] mAbort= (HARD) If not assigned, HARD will call %mp_abort(), SOFT
+    will silently return
 
   @returns libname statement
 
@@ -15022,12 +15064,12 @@ run;
   @li mm_gettables.sas
   @li mm_getcols.sas
 
-  @param libds= library.dataset metadata source.  Note - table names in metadata
+  @param [in] libds= library.dataset metadata source.  Note - table names in metadata
     can be longer than 32 chars (just fyi, not an issue here)
-  @param tableuri= Metadata URI of the table to be created
-  @param outds= (work.mm_createdataset) The dataset to create.  The table name
-    needs to be 32 chars or less as per SAS naming rules.
-  @param mdebug= (0) Set to 1 to enable DEBUG messages
+  @param [in] tableuri= Metadata URI of the table to be created
+  @param [out] outds= (work.mm_createdataset) The dataset to create.  The table
+    name needs to be 32 chars or less as per SAS naming rules.
+  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
 
   @version 9.4
   @author Allan Bowe
@@ -15107,15 +15149,15 @@ run;
   @li mf_verifymacvars.sas
 
 
-  @param tree= The metadata folder uri, or the metadata path, in which to
+  @param [in] tree= The metadata folder uri, or the metadata path, in which to
     create the document.  This must exist.
-  @param name= Document object name.  Avoid spaces.
+  @param [in] name= Document object name.  Avoid spaces.
 
-  @param desc= Document description (optional)
-  @param textrole= TextRole property (optional)
-  @param frefin= fileref to use (enables change if there is a conflict)
-  @param frefout= fileref to use (enables change if there is a conflict)
-  @param mDebug= set to 1 to show debug messages in the log
+  @param [in] desc= Document description (optional)
+  @param [in] textrole= TextRole property (optional)
+  @param [in] frefin= fileref to use (enables change if there is a conflict)
+  @param [out] frefout= fileref to use (enables change if there is a conflict)
+  @param [in] mDebug= set to 1 to show debug messages in the log
 
   @author Allan Bowe
 
@@ -15401,30 +15443,33 @@ run;
   @li mm_createfolder.sas
 
 
-  @param libname= Library name (as displayed to user, 256 chars). Duplicates
-    are not created (case sensitive).
-  @param libref= Library libref (8 chars).  Duplicate librefs are not created,
-    HOWEVER- the check is not case sensitive - if *libref* exists, *LIBREF*
-    will still be created.   Librefs created will always be uppercased.
-  @param engine= Library engine (currently only BASE supported)
-  @param tree= The metadata folder uri, or the metadata path, in which to
+  @param [in] libname= (My New Library) Library name (as displayed to user,
+    256 chars). Duplicates are not created (case sensitive).
+  @param [in] libref= (mynewlib) Library libref (8 chars).  Duplicate
+    librefs are not created, HOWEVER- the check is not case sensitive - if
+    *libref* exists, *LIBREF* will still be created.
+    Librefs created will always be uppercased.
+  @param [in] engine= Library engine (currently only BASE supported)
+  @param [in] tree= The metadata folder uri, or the metadata path, in which to
     create the library.
-  @param servercontext= The SAS server against which the library is registered.
-  @param IsPreassigned= set to 1 if the library should be pre-assigned.
+  @param [in] servercontext= (SASApp) The SAS server against which
+    the library is registered.
+  @param [in] IsPreassigned= set to 1 if the library should be pre-assigned.
 
-  @param libdesc= Library description (optional)
-  @param directory= Required for the BASE engine. The metadata directory objects
-    are searched to find an existing one with a matching physical path.
+  @param [in] libdesc= Library description (optional)
+  @param [in] directory= (/tmp/somelib) Required for the BASE engine.
+    The metadata directory objects are searched to find an existing
+    one with a matching physical path.
     If more than one uri found with that path, then the first one will be used.
     If no URI is found, a new directory object will be created.  The physical
     path will also be created, if it doesn't exist.
 
 
-  @param mDebug= set to 1 to show debug messages in the log
-  @param frefin= fileref to use (enables change if there is a conflict).  The
-    filerefs are left open, to enable inspection after running the
+  @param [in] mDebug= set to 1 to show debug messages in the log
+  @param [in] frefin= fileref to use (enables change if there is a conflict).
+    The filerefs are left open, to enable inspection after running the
     macro (or importing into an xmlmap if needed).
-  @param frefout= fileref to use (enables change if there is a conflict)
+  @param [out] frefout= fileref to use (enables change if there is a conflict)
 
 
   @version 9.3
@@ -15740,28 +15785,32 @@ filename &frefout temp;
         ,Server=SASApp
         ,stptype=2)
 
-  @param stpname= Stored Process name.  Avoid spaces - testing has shown that
+  @param [in] stpname= (SASjs Default STP) Stored Process name.
+    Avoid spaces - testing has shown that
     the check to avoid creating multiple STPs in the same folder with the same
     name does not work when the name contains spaces.
-  @param stpdesc= Stored Process description (optional)
-  @param filename= the name of the .sas program to run
-  @param directory= The directory uri, or the actual path to the sas program
-    (no trailing slash).  If more than uri is found with that path, then the
-    first one will be used.
-  @param tree= The metadata folder uri, or the metadata path, in which to
+  @param [in] stpdesc= Stored Process description (optional)
+  @param [in] filename= the name of the .sas program to run
+  @param [in] directory= (SASEnvironment/sascode)
+    The directory uri or the actual path to the sas program (no trailing slash).
+    If more than uri is found with that path, then the first one will be used.
+  @param [in] tree= The metadata folder uri, or the metadata path, in which to
     create the STP.
-  @param server= The server which will run the STP.  Server name or uri is fine.
-  @param outds= The two level name of the output dataset.  Will contain all the
-    meta uris. Defaults to work.mm_createstp.
-  @param mDebug= set to 1 to show debug messages in the log
-  @param stptype= Default is 1 (STP code saved on filesystem).  Set to 2 if
+  @param [in] server= (SASApp) The server which will run the STP.
+    Server name or uri is fine.
+  @param [out] outds= (work.mm_createstp)
+    The two level name of the output dataset.  Will contain all the meta uris.
+  @param [in] mDebug= set to 1 to show debug messages in the log
+  @param [in] stptype= Default is 1 (STP code saved on filesystem).  Set to 2 if
     source code is to be saved in metadata (9.3 and above feature).
-  @param minify= set to YES to strip comments / blank lines etc
-  @param frefin= fileref to use (enables change if there is a conflict).  The
-    filerefs are left open, to enable inspection after running the
+  @param [in] minify= set to YES to strip comments / blank lines etc
+  @param [in] frefin= (mm_in) fileref to use (enables change if there is
+    a conflict).
+    The filerefs are left open, to enable inspection after running the
     macro (or importing into an xmlmap if needed).
-  @param frefout= fileref to use (enables change if there is a conflict)
-  @param repo= ServerContext is tied to a repo, if you are not using the
+  @param [out] frefout= (mm_out) fileref to use (enables change if there is
+    a conflict)
+  @param [in] repo= ServerContext is tied to a repo, if you are not using the
     foundation repo then select a different one here
 
   @returns outds  dataset containing the following columns:
@@ -15788,7 +15837,7 @@ filename &frefout temp;
 **/
 
 %macro mm_createstp(
-    stpname=Macro People STP
+    stpname=SASjs Default STP
     ,stpdesc=This stp was created automatically by the mm_createstp macro
     ,filename=mm_createstp.sas
     ,directory=SASEnvironment/SASCode
@@ -16127,22 +16176,23 @@ Usage:
   For more examples of using these web services with the SASjs Adapter, see:
   https://github.com/sasjs/adapter#readme
 
-  @param path= The full path (in SAS Metadata) where the service will be created
-  @param name= Stored Process name.  Avoid spaces - testing has shown that
+  @param [in] path= () The full path (in SAS Metadata) where the service
+    will be created
+  @param [in] name= Stored Process name.  Avoid spaces - testing has shown that
     the check to avoid creating multiple STPs in the same folder with the same
     name does not work when the name contains spaces.
-  @param desc= The description of the service (optional)
-  @param precode= Space separated list of filerefs, pointing to the code that
-    needs to be attached to the beginning of the service (optional)
-  @param code= (ft15f001) Space seperated fileref(s) of the actual code to be
-    added
-  @param server= (SASApp) The server which will run the STP.  Server name or uri
-    is fine.
-  @param mDebug= (0) set to 1 to show debug messages in the log
-  @param replace= (YES) select NO to avoid replacing an existing service in that
-    location
-  @param adapter= (sasjs) the macro uses the sasjs adapter by default.  To use
-    another adapter, add a (different) fileref here.
+  @param [in] desc= The description of the service (optional)
+  @param [in] precode= () Space separated list of filerefs, pointing to the
+    code that needs to be attached to the beginning of the service (optional)
+  @param [in] code= (ft15f001) Space seperated fileref(s) of the actual code
+    to be added
+  @param [in] server= (SASApp) The server which will run the STP.  Server
+    name or uri is fine.
+  @param [in] mDebug= (0) set to 1 to show debug messages in the log
+  @param [in] replace= (YES) select NO to avoid replacing an existing service
+    in that location
+  @param [in] adapter= (sasjs) the macro uses the sasjs adapter by default.
+    To use another adapter, add a (different) fileref here.
 
   <h4> SAS Macros </h4>
   @li mm_createstp.sas
@@ -16818,7 +16868,7 @@ run;
 
   <h4> SAS Macros </h4>
 
-  @param target= full path to the document being deleted
+  @param [in] target= full path to the document being deleted
 
   @version 9.4
   @author Allan Bowe
@@ -16899,7 +16949,7 @@ run;
 
   ![](https://i.imgur.com/Y4Tog24.png)
 
-  @param [in] name= the name (not libref) of the library to be deleted
+  @param [in] name= () the name (not libref) of the library to be deleted
 
   <h4> SAS Macros </h4>
   @li mf_getuniquefileref.sas
@@ -16981,7 +17031,7 @@ run;
 
   <h4> SAS Macros </h4>
 
-  @param target= full path to the STP being deleted
+  @param [in] target= full path to the STP being deleted
 
   @version 9.4
   @author Allan Bowe
@@ -17167,8 +17217,8 @@ create table &outds as
 
     %mm_getcols(tableuri=A5X8AHW1.B40001S5)
 
-  @param outds the dataset to create that contains the list of columns
-  @param uri the uri of the table for which to return columns
+  @param [out] outds the dataset to create that contains the list of columns
+  @param [in] uri the uri of the table for which to return columns
 
   @returns outds  dataset containing all columns, specifically:
     - colname
@@ -17214,9 +17264,12 @@ run;
   @file mm_getdetails.sas
   @brief extracts metadata attributes and associations for a particular uri
 
-  @param uri the metadata object for which to return attributes / associations
-  @param outattrs= the dataset to create that contains the list of attributes
-  @param outassocs= the dataset to contain the list of associations
+  @param [in] uri the metadata object for which to return
+    attributes / associations
+  @param [out] outattrs= (work.attributes)
+    The dataset to create that contains the list of attributes
+  @param [out] outassocs= (work.associations)
+    The dataset to contain the list of associations
 
   @version 9.2
   @author Allan Bowe
@@ -17281,9 +17334,10 @@ run;
     blank to return all directories.  The Directory object is used to reference
     a physical filepath (eg when registering a .sas program in a Stored process)
 
-  @param path= the physical path for which to return a meta Directory object
-  @param outds= the dataset to create that contains the list of directories
-  @param mDebug= set to 1 to show debug messages in the log
+  @param [in] path= Physical path for which to return a meta Directory object
+  @param [out] outds= (work.mm_getdirectories)
+    the dataset to create that contains the list of directories
+  @param [in] mDebug= (0) set to 1 to show debug messages in the log
 
   @returns outds  dataset containing the following columns:
     - directoryuri
@@ -17347,10 +17401,10 @@ run;
   <h4> SAS Macros </h4>
   @li mp_abort.sas
 
-  @param tree= The metadata path of the document
-  @param name= Document object name.
-  @param outref= full and unquoted path to the desired text file.  This will be
-    overwritten if it already exists.
+  @param [in] tree= The metadata path of the document
+  @param [in] name= Document object name.
+  @param [out] outref= full and unquoted path to the desired text file.
+    This will be overwritten if it already exists.
 
   @author Allan Bowe
 
@@ -17675,11 +17729,11 @@ run;
         ,emails=YES
       )
 
-  @param group metadata group for which to bring back members
-  @param outds= (work.mm_getgroupmembers) The dataset to create that contains
-    the list of members
-  @param emails= (NO) Set to YES to bring back email addresses
-  @param id= (NO) Set to yes if passing an ID rather than a group name
+  @param [in] group metadata group for which to bring back members
+  @param [out] outds= (work.mm_getgroupmembers)
+    The dataset to create that contains the list of members
+  @param [in] emails= (NO) Set to YES to bring back email addresses
+  @param [in] id= (NO) Set to yes if passing an ID rather than a group name
 
   @returns outds  dataset containing all members of the metadata group
 
@@ -17969,8 +18023,8 @@ run;
   @details Will only show the libraries to which a user has the requisite
     metadata access.
 
-  @param outds the dataset to create that contains the list of libraries
-  @param mDebug set to anything but * or 0 to show debug messages in the log
+  @param [out] outds= (work.mm_getlibs)
+    The library.dataset to create that contains the list of libraries
 
   @returns outds  dataset containing all groups in a column named "metagroup"
     (defaults to work.mm_getlibs). The following columns are provided:
@@ -18063,8 +18117,8 @@ libname _XML_ clear;
   @file
   @brief Creates a dataset with all metadata objects for a particular type
 
-  @param type= the metadata type for which to return all objects
-  @param outds= the dataset to create that contains the list of types
+  @param [in] type= the metadata type for which to return all objects
+  @param [out] outds= the dataset to create that contains the list of types
 
   @returns outds  dataset containing all objects
 
@@ -18138,6 +18192,8 @@ libname _XML_ clear;
 
         * dataset will contain one column - publictype ($64);
         %mm_getpublictypes(outds=types)
+
+  @param [out] outds= (work.mm_getpublictypes) The library.dataset to create
 
   @returns outds= dataset containing all types
 
@@ -18217,7 +18273,8 @@ quit;
   @file
   @brief Creates a dataset with all available repositories
 
-  @param outds= the dataset to create that contains the list of repos
+  @param [out] outds= (work.mm_getrepos)
+    The dataset to create that contains the list of repos
 
   @returns outds  dataset containing all repositories
 
@@ -18353,7 +18410,8 @@ libname _XML_ clear;
 
       %mm_getroles()
 
-  @param [out] outds the dataset to create that contains the list of roles
+  @param [out] outds= (work.mm_getroles)
+    The dataset to create that contains the list of roles
 
   @returns outds  dataset containing all roles, with the following columns:
     - uri
@@ -18763,15 +18821,16 @@ run;
   <h4> SAS Macros </h4>
   @li mm_gettree.sas
 
-  @param tree= the metadata folder location in which to search.  Leave blank
-    for all folders.  Does not search subdirectories.
-  @param name= Provide the name of an STP to search for just that one.  Can
+  @param [in] tree= () the metadata folder location in which to search.
+      Leave blank for all folders.  Does not search subdirectories.
+  @param [in] name= Provide the name of an STP to search for just that one.  Can
     combine with the <code>tree=</code> parameter.
-  @param outds= the dataset to create that contains the list of stps.
-  @param mDebug= set to 1 to show debug messages in the log
-  @param showDesc= provide a non blank value to return stored process
+  @param [out] outds= the dataset to create that contains the list of stps.
+  @param [in] mDebug= set to 1 to show debug messages in the log
+  @param [in] showDesc= provide a non blank value to return stored process
     descriptions
-  @param showUsageVersion= provide a non blank value to return the UsageVersion.
+  @param [in] showUsageVersion= ()
+    Provide a non blank value to return the UsageVersion.
     This is either 1000000 (type 1, 9.2) or 2000000 (type2, 9.3 onwards).
 
   @returns outds  dataset containing the following columns
@@ -18864,10 +18923,10 @@ run;
       - get a table id
       %mm_gettableid(libref=METALIB,ds=SOMETABLE,outds=iwant)
 
-  @param libref= The libref to search
-  @param ds= The input dataset to check
-  @param outds= the dataset to create that contains the `tableuri`
-  @param mDebug= set to 1 to show debug messages in the log
+  @param [in] libref= The libref to search
+  @param [in] ds= The input dataset to check
+  @param [out] outds= the dataset to create that contains the `tableuri`
+  @param [in] mDebug= set to 1 to show debug messages in the log
 
   @returns outds  dataset containing `tableuri` and `tablename`
 
@@ -19050,10 +19109,10 @@ run;
       %mm_getTree(tree=/User Folders/sasdemo)
 
 
-  @param tree= the BIP Tree folder path or uri
-  @param outds= the dataset to create that contains the tree path & uri
-  @param inds= an optional input dataset to augment with treepath & treeuri
-  @param mDebug= set to 1 to show debug messages in the log
+  @param [in] tree= the BIP Tree folder path or uri
+  @param [out] outds= the dataset to create that contains the tree path & uri
+  @param [in] inds= an optional input dataset to augment with treepath & treeuri
+  @param [in] mDebug= set to 1 to show debug messages in the log
 
   @returns outds  dataset containing the following columns:
       - treeuri
@@ -19112,7 +19171,8 @@ run;
 
     %mm_gettypes(outds=types)
 
-  @param outds the dataset to create that contains the list of types
+  @param [in] outds= (work.mm_gettypes)
+    The dataset to create that contains the list of types
   @returns outds  dataset containing all types
   @warning The following filenames are created and then de-assigned:
 
@@ -19192,8 +19252,6 @@ libname _XML_ clear;
   Optionally, filter for a user (useful to get the uri):
 
       %mm_getusers(user=&_metaperson)
-
-  @param outds the dataset to create that contains the list of libraries
 
   @returns outds  dataset containing all users, with the following columns:
     - uri
@@ -19289,7 +19347,7 @@ libname _XML_ clear;
         put value=;
       run;
 
-  @param outds the dataset to create that contains the list of properties
+  @param [out] outds= the dataset to create that contains the list of properties
 
   @returns outds  dataset containing all properties
 
@@ -19611,9 +19669,9 @@ run;
   @li mm_getpublictypes.sas
   @li mf_isblank.sas
 
-  @param root= the parent folder under which to return all contents
-  @param outds= the dataset to create that contains the list of directories
-  @param types= Space-seperated, unquoted list of types for filtering the
+  @param [in] root= the parent folder under which to return all contents
+  @param [in] outds= the dataset to create that contains the list of directories
+  @param [in] types= Space-seperated, unquoted list of types for filtering the
     output.  Special types:
 
     * ALl - return all types (the default)
@@ -19749,14 +19807,14 @@ libname _XML_ clear;
       ,paramdesc=some description)
 
 
-  @param app= the BIP Tree folder path plus Application Name
-  @param paramname= Parameter name
-  @param paramvalue= Parameter value
-  @param paramdesc= Parameter description
+  @param [in] app= the BIP Tree folder path plus Application Name
+  @param [in] paramname= Parameter name
+  @param [in] paramvalue= Parameter value
+  @param [in] paramdesc= Parameter description
 
-  @param frefin= change default inref if it clashes with an existing one
-  @param frefout= change default outref if it clashes with an existing one
-  @param mDebug= set to 1 to show debug messages in the log
+  @param [in] frefin= change default inref if it clashes with an existing one
+  @param [out] frefout= change default outref if it clashes with an existing one
+  @param [in] mDebug= set to 1 to show debug messages in the log
 
   @version 9.4
   @author Allan Bowe
@@ -19875,13 +19933,13 @@ run;
       ,text="/file/system/some.txt")
 
 
-  @param path= the BIP Tree folder path
-  @param name=Document Name
-  @param text=a source file containing the text to be added
+  @param [in] path= the BIP Tree folder path
+  @param [in] name=Document Name
+  @param [in] text=a source file containing the text to be added
 
-  @param frefin= change default inref if it clashes with an existing one
-  @param frefout= change default outref if it clashes with an existing one
-  @param mDebug= set to 1 to show debug messages in the log
+  @param [in] frefin= change default inref if it clashes with an existing one
+  @param [out] frefout= change default outref if it clashes with an existing one
+  @param [in] mDebug= set to 1 to show debug messages in the log
 
   @version 9.3
   @author Allan Bowe
@@ -19989,8 +20047,8 @@ run;
         ,type=WKS)
 
 
-  @param target= full path to the STP being deleted
-  @param type= Either WKS or STP depending on whether Workspace or
+  @param [in] target= full path to the STP being deleted
+  @param [in] type= Either WKS or STP depending on whether Workspace or
     Stored Process type required
 
   @version 9.4
@@ -20057,10 +20115,12 @@ run;
         ,stpcode="/file/system/source.sas")
 
   @param [in] stp= the BIP Tree folder path plus Stored Process Name
-  @param [in] stpcode= the source file (or fileref) containing the SAS code to load
-    into the stp.  For multiple files, they should simply be concatenated first.
-  @param [in] minify= set to YES in order to strip comments, blank lines, and CRLFs.
-  @param mDebug= set to 1 to show debug messages in the log
+  @param [in] stpcode= () The source file (or fileref) containing the SAS
+    code to load into the stp.
+    For multiple files, they should simply be concatenated first.
+  @param [in] minify= (NO) Set to YES in order to strip comments, blank lines,
+    and CRLFs.
+  @param [in] mDebug= set to 1 to show debug messages in the log
 
   @version 9.3
   @author Allan Bowe
@@ -20440,9 +20500,9 @@ run;
   @li mf_loc.sas
   @li mp_abort.sas
 
-  @param loc= the metadata folder to delete
-  @param user= username
-  @param pass= password
+  @param [in] loc= the metadata folder to delete
+  @param [in] user= username
+  @param [in] pass= password
 
   @version 9.4
   @author Allan Bowe
@@ -20491,9 +20551,9 @@ run;
   <h4> SAS Macros </h4>
   @li mf_loc.sas
 
-  @param loc= the metadata folder to delete
-  @param user= username
-  @param pass= password
+  @param [in] loc= the metadata folder to delete
+  @param [in] user= username
+  @param [in] pass= password
 
   @version 9.4
   @author Allan Bowe
@@ -20551,11 +20611,12 @@ Usage:
   @li mf_getuniquefileref.sas
   @li mp_abort.sas
 
-  @param metaloc= the metadata folder to export
-  @param secureref= fileref containing the username / password (should point to
-    a file in a secure location)
-  @param outspkname= name of the spk to be created (default is mmxport).
-  @param outspkpath= directory in which to create the SPK.  Default is WORK.
+  @param [in] metaloc= the metadata folder to export
+  @param [in] secureref= () fileref containing the username / password
+    (should point to a file in a secure location)
+  @param [in] outspkname= name of the spk to be created (default is mmxport).
+  @param [in] outspkpath= ((%sysfunc(pathname(WORK)))
+    directory in which to create the SPK.
 
   @version 9.4
   @author Allan Bowe
@@ -22870,7 +22931,8 @@ run;
       %put %mfv_existfile(/does/exist.txt);
       %put %mfv_existfile(/does/not/exist.txt);
 
-  @param filepath The full path to the file on SAS drive (eg /Public/myfile.txt)
+  @param [in] filepath The full path to the file on SAS drive
+    (eg /Public/myfile.txt)
 
   <h4> SAS Macros </h4>
   @li mf_abort.sas
@@ -22920,7 +22982,7 @@ run;
       %put %mfv_existfolder(/does/exist);
       %put %mfv_existfolder(/does/not/exist);
 
-  @param path The path to the folder on SAS drive
+  @param [in] path The path to the folder on SAS drive
 
   <h4> SAS Macros </h4>
   @li mf_abort.sas
@@ -22968,10 +23030,10 @@ run;
   To force a rescan, just use a new `&outprefix` value, or delete the table(s)
   before running the function.
 
-  @param libds library.dataset
-  @param outprefix= (work.mfv_existsashdat) Used to store the current HDATA
-    tables to improve subsequent query performance.  This reference is a prefix
-    and is converted to `&prefix._{libref}`
+  @param [in] libds library.dataset
+  @param [out] outprefix= (work.mfv_existsashdat)
+    Used to store current HDATA tables to improve subsequent query performance.
+    This reference is a prefix and is converted to `&prefix._{libref}`
 
   @return output returns 1 or 0
 
@@ -23358,30 +23420,32 @@ options noquotelenmax;
   @li mf_isblank.sas
   @li mv_deletejes.sas
 
-  @param path= The full path (on SAS Drive) where the job will be created
-  @param name= The name of the job
-  @param desc= (Created by the mv_createjob.sas macro) The job description
-  @param precode= Space separated list of filerefs, pointing to the code that
+  @param [in] path= The full path (on SAS Drive) where the job will be created
+  @param [in] name= The name of the job
+  @param [in] desc= (Created by the mv_createjob.sas macro) The job description
+  @param [in] precode= ()
+    Space separated list of filerefs, pointing to the code that
     needs to be attached to the beginning of the job
-  @param code= (ft15f001) Fileref(s) of the actual code to be added
-  @param access_token_var= (ACCESS_TOKEN) Global macro variable containing the
-    access token
-  @param grant_type= (sas_services) Valid values:
+  @param [in] code= (ft15f001) Fileref(s) of the actual code to be added
+  @param [in] access_token_var= (ACCESS_TOKEN)
+    Global macro variable containing the access token
+  @param [in] grant_type= (sas_services) Valid values:
     @li sas_services
     @li detect
     @li authorization_code
     @li password
-  @param replace= (YES) select NO to avoid replacing any existing job
-  @param addjesbeginendmacros= (false) Relates to the `_addjesbeginendmacros`
-    setting.  Normally this would always be false however due to a Viya bug
+  @param [in] replace= (YES) select NO to avoid replacing any existing job
+  @param [in] addjesbeginendmacros= (false)
+    Relates to the `_addjesbeginendmacros` setting.
+    Normally this would always be false however due to a Viya bug
     (https://github.com/sasjs/cli/issues/1229) this is now configurable.  Valid
     values:
     @li true
     @li false
     @li 0 - this will prevent the flag from being set (job will default to true)
-  @param contextname= Choose a specific context on which to run the Job.  Leave
-    blank to use the default context.  From Viya 3.5 it is possible to configure
-    a shared context - see
+  @param [in] contextname= () Choose a specific context on which to run the Job.
+    Leave blank to use the default context.
+    From Viya 3.5 it is possible to configure a shared context - see
 https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5pyhn1wg3ja0drdl6h.htm&docsetVersion=3.5&locale=en
 
   @version VIYA V.03.04
@@ -24656,12 +24720,14 @@ run;
       %mv_deletejes(path=/Public/test, name=blah)
 
 
-  @param path= The full path of the folder containing the item to be deleted
-  @param name= The name of the item to be deleted
-  @param contenttype= The contenttype of the item, eg: file, jobDefinition
-  @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= valid values are "password" or "authorization_code" (unquoted).
-    The default is "detect" (which will run in Studio 5+ without a token).
+  @param [in] path= ()
+    The full path of the folder containing the item to be deleted
+  @param [in] name= The name of the item to be deleted
+  @param [in] contenttype= The contenttype of the item, eg: file, jobDefinition
+  @param [in] access_token_var= (ACCESS_TOKEN)
+    The global macro variable to contain the access token
+  @param [in] grant_type= (sas_services)
+    valid values are "password" or "authorization_code" (unquoted).
 
 
   @version VIYA V.03.04
@@ -24807,11 +24873,13 @@ libname &libref1a clear;
       %mv_deletejes(path=/Public/test, name=blah)
 
 
-  @param path= The full path of the folder containing the Job Execution Service
-  @param name= The name of the Job Execution Service to be deleted
-  @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= valid values are "password" or "authorization_code" (unquoted).
-    The default is "detect" (which will run in Studio 5+ without a token).
+  @param [in] path= ()
+    The full path of the folder containing the Job Execution Service
+  @param [in] name= The name of the Job Execution Service to be deleted
+  @param [in] access_token_var= (ACCESS_TOKEN)
+    The global macro variable to contain the access token
+  @param [in] grant_type= (sas_services)
+    Valid values are "password" or "authorization_code" (unquoted).
 
 
   @version VIYA V.03.04
@@ -25120,10 +25188,8 @@ run;
 
       %mv_getclients()
 
-  @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= valid values are "password" or "authorization_code" (unquoted).
-    The default is authorization_code.
-  @param outds= The library.dataset to be created that contains the list of groups
+  @param [out] outds= (work.mv_getclients)
+    The library.dataset to be created that contains the list of clients
 
 
   @version VIYA V.03.04
@@ -25338,7 +25404,7 @@ libname &libref1 clear;
 %mend mv_getfoldermembers;/**
   @file mv_getgroupmembers.sas
   @brief Creates a dataset with a list of group members
-  @details First, be sure you have an access token (which requires an app token).
+  @details First, be sure you have an access token (which requires an app token)
 
   Using the macros here:
 
@@ -25360,10 +25426,13 @@ libname &libref1 clear;
       providerId char(5),
       implicit num
 
-  @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= valid values are "password" or "authorization_code" (unquoted).
-    The default is authorization_code.
-  @param outds= The library.dataset to be created that contains the list of groups
+  @param [in] group Group id for which to return group members
+  @param [in] access_token_var= (ACCESS_TOKEN)
+    The global macro variable to contain the access token
+  @param [in] grant_type= (sas_services)
+    valid values are "password" or "authorization_code" (unquoted).
+  @param [out] outds= (work.viyagroupmembers)
+    The library.dataset to be created that contains the list of group members
 
 
   @version VIYA V.03.04
@@ -25453,10 +25522,12 @@ filename &fname1 clear;
 
       %mv_getgroups(outds=work.groups)
 
-  @param [in] access_token_var= The global macro variable to contain the access token
-  @param [in] grant_type= valid values are "password" or "authorization_code" (unquoted).
-    The default is authorization_code.
-  @param [out] outds= The library.dataset to be created that contains the list of groups
+  @param [in] access_token_var= (ACCESS_TOKEN)
+    The global macro variable to contain the access token
+  @param [in] grant_type= (sas_services)
+    valid values are "password" or "authorization_code" (unquoted).
+  @param [out] outds= (work.viyagroups)
+    The library.dataset to be created that contains the list of groups
 
 
   @version VIYA V.03.04
@@ -26328,7 +26399,8 @@ run;
 
       %mv_getjobstate(uri=&uri,outds=results)
 
-  You can run this macro as part of a loop to await the final 'completed' status.
+  You can run this macro as part of a loop to await the final 'completed'
+  status.
   The full list of status values is:
 
   @li idle
@@ -26341,12 +26413,13 @@ run;
   If you have one or more jobs that you'd like to wait for completion you can
   also use the [mv_jobwaitfor](/mv__jobwaitfor_8sas.html) macro.
 
-  @param [in] access_token_var= The global macro variable to contain the access token
+  @param [in] access_token_var= (ACCESS_TOKEN)
+    The global macro variable to contain the access token
   @param [in] grant_type= valid values:
     @li password
     @li authorization_code
-    @li detect - will check if access_token exists, if not will use sas_services if
-        a SASStudioV session else authorization_code.  Default option.
+    @li detect - will check if access_token exists, if not will use sas_services
+        if a SASStudioV session else authorization_code.
     @li sas_services - will use oauth_bearer=sas_services.
   @param [in] uri= The uri of the running job for which to fetch the status,
     in the format `/jobExecution/jobs/$UUID/state` (unquoted).
@@ -26460,10 +26533,13 @@ filename &fname0 clear;
 
       %mv_getusergroups(&sysuserid,outds=users)
 
-  @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= valid values are "password" or "authorization_code" (unquoted).
-    The default is authorization_code.
-  @param outds= The library.dataset to be created that contains the list of groups
+  @param [in] user The username for which to return the list of groups
+  @param [in] access_token_var= (ACCESS_TOKEN)
+    The global macro variable to contain the access token
+  @param [in] grant_type= (sas_services)
+    Valid values are "password" or "authorization_code" (unquoted).
+  @param [out] outds= (work.mv_getusergroups)
+    The library.dataset to be created that contains the list of groups
 
 
   @version VIYA V.03.04
@@ -26539,7 +26615,7 @@ libname &libref1 clear;
 %mend mv_getusergroups;/**
   @file mv_getusers.sas
   @brief Creates a dataset with a list of users
-  @details First, be sure you have an access token (which requires an app token).
+  @details First, be sure you have an access token (which requires an app token)
 
   Using the macros here:
 
@@ -26573,15 +26649,17 @@ libname &libref1 clear;
       modifiedTimeStamp char(24),
       state char(6)
 
-  @param access_token_var= The global macro variable to contain the access token
-  @param grant_type= valid values:
+  @param [in] access_token_var= (ACCESS_TOKEN)
+    The global macro variable to contain the access token
+  @param [in] grant_type= (sas_services) Valid values:
     * password
     * authorization_code
-    * detect - will check if access_token exists, if not will use sas_services if
-      a SASStudioV session else authorization_code.  Default option.
+    * detect - will check if access_token exists, if not will use sas_services
+      if a SASStudioV session else authorization_code.
     * sas_services - will use oauth_bearer=sas_services
 
-  @param outds= The library.dataset to be created that contains the list of groups
+  @param [out] outds= (work.mv_getusers)
+    The library.dataset to be created that contains the list of groups
 
 
   @version VIYA V.03.04
@@ -27812,20 +27890,21 @@ libname &libref clear;
 
     https://blogs.sas.com/content/sgf/2019/01/25/authentication-to-sas-viya/
 
-  @param inds= A dataset containing client_id, client_secret, and auth_code
-  @param outds= A dataset containing access_token and refresh_token
-  @param client_id= The client name
-  @param client_secret= client secret
-  @param grant_type= valid values are "password" or "authorization_code"
+  @param [in] inds= A dataset containing client_id, client_secret, and auth_code
+  @param [in] outds= A dataset containing access_token and refresh_token
+  @param [in] client_id= The client name
+  @param [in] client_secret= client secret
+  @param [in] grant_type= valid values are "password" or "authorization_code"
     (unquoted). The default is authorization_code.
-  @param code= If grant_type=authorization_code then provide the necessary code
-    here
-  @param user= If grant_type=password then provide the username here
-  @param pass= If grant_type=password then provide the password here
-  @param access_token_var= The global macro variable to contain the access token
-  @param refresh_token_var= The global macro variable to contain the refresh
-    token
-  @param base_uri= The Viya API server location
+  @param [in] code= ()
+    If grant_type=authorization_code then provide the necessary code here
+  @param [in] user= If grant_type=password then provide the username here
+  @param [in] pass= If grant_type=password then provide the password here
+  @param [in] access_token_var= (ACCESS_TOKEN)
+    The global macro variable to contain the access token
+  @param [in] refresh_token_var= (REFRESH_TOKEN)
+    The global macro variable to contain the refresh token
+  @param [in] base_uri= The Viya API server location
 
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
@@ -27959,17 +28038,18 @@ filename &fref2 clear;
 
   https://blogs.sas.com/content/sgf/2019/01/25/authentication-to-sas-viya/
 
-  @param inds= A dataset containing client_id and client_secret
-  @param outds= A dataset containing access_token and refresh_token
-  @param client_id= The client name (alternative to inds)
-  @param client_secret= client secret (alternative to inds)
-  @param grant_type= valid values are "password" or "authorization_code"
+  @param [in] inds= A dataset containing client_id and client_secret
+  @param [in] outds= A dataset containing access_token and refresh_token
+  @param [in] client_id= The client name (alternative to inds)
+  @param [in] client_secret= client secret (alternative to inds)
+  @param [in] grant_type= valid values are "password" or "authorization_code"
     (unquoted).  The default is authorization_code.
-  @param user= If grant_type=password then provide the username here
-  @param pass= If grant_type=password then provide the password here
-  @param access_token_var= The global macro variable to contain the access token
-  @param refresh_token_var= The global macro variable containing the refresh
-    token
+  @param [in] user= If grant_type=password then provide the username here
+  @param [in] pass= If grant_type=password then provide the password here
+  @param [in] access_token_var= (ACCESS_TOKEN)
+    The global macro variable to contain the access token
+  @param [in] refresh_token_var= (REFRESH_TOKEN)
+    The global macro variable containing the refresh token
 
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core

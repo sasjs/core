@@ -12,7 +12,7 @@
   @li SASJS
   @li BASESAS
 
-  @param switch the param for which to return a platform specific variable
+  @param [in] switch the param for which to return a platform specific variable
 
   <h4> SAS Macros </h4>
   @li mf_mval.sas

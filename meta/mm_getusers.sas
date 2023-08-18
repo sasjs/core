@@ -12,8 +12,6 @@
 
       %mm_getusers(user=&_metaperson)
 
-  @param outds the dataset to create that contains the list of libraries
-
   @returns outds  dataset containing all users, with the following columns:
     - uri
     - name

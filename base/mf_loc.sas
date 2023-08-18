@@ -6,6 +6,10 @@
 
       %put %mf_loc(POF); %*location of PlatformObjectFramework tools;
 
+  @param [in] loc The item to locate, eg:
+    @li PLAATFORMOBJECTFRAMEWORK (or POF)
+    @li VIYACONFG
+
   @version 9.2
   @author Allan Bowe
 **/
@@ -15,7 +19,8 @@
 %local root;
 
 %if &loc=POF or &loc=PLATFORMOBJECTFRAMEWORK %then %do;
-  %let root=%substr(%sysget(SASROOT),1,%index(%sysget(SASROOT),SASFoundation)-2);
+  %let root=%sysget(SASROOT);
+  %let root=%substr(&root,1,%index(&root,SASFoundation)-2);
   %let root=&root/SASPlatformObjectFramework/&sysver;
   %put Batch tools located at: &root;
   &root

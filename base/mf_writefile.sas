@@ -21,8 +21,8 @@
   @param [in] mode= (O) Available options are A or O as follows:
     @li A APPEND mode, writes new records after the current end of the file.
     @li O OUTPUT mode, writes new records from the beginning of the file.
-  @param [in] l1= First line
-  @param [in] l2= Second line (etc through to l10)
+  @param [in] l1= () First line
+  @param [in] l2= () Second line (etc through to l10)
 
   <h4> Related Macros </h4>
   @li mf_writefile.test.sas

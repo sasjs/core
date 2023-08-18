@@ -20,7 +20,7 @@
 
   ![](https://i.imgur.com/Y4Tog24.png)
 
-  @param [in] name= the name (not libref) of the library to be deleted
+  @param [in] name= () the name (not libref) of the library to be deleted
 
   <h4> SAS Macros </h4>
   @li mf_getuniquefileref.sas

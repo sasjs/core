@@ -24,30 +24,33 @@
   @li mm_createfolder.sas
 
 
-  @param libname= Library name (as displayed to user, 256 chars). Duplicates
-    are not created (case sensitive).
-  @param libref= Library libref (8 chars).  Duplicate librefs are not created,
-    HOWEVER- the check is not case sensitive - if *libref* exists, *LIBREF*
-    will still be created.   Librefs created will always be uppercased.
-  @param engine= Library engine (currently only BASE supported)
-  @param tree= The metadata folder uri, or the metadata path, in which to
+  @param [in] libname= (My New Library) Library name (as displayed to user,
+    256 chars). Duplicates are not created (case sensitive).
+  @param [in] libref= (mynewlib) Library libref (8 chars).  Duplicate
+    librefs are not created, HOWEVER- the check is not case sensitive - if
+    *libref* exists, *LIBREF* will still be created.
+    Librefs created will always be uppercased.
+  @param [in] engine= Library engine (currently only BASE supported)
+  @param [in] tree= The metadata folder uri, or the metadata path, in which to
     create the library.
-  @param servercontext= The SAS server against which the library is registered.
-  @param IsPreassigned= set to 1 if the library should be pre-assigned.
+  @param [in] servercontext= (SASApp) The SAS server against which
+    the library is registered.
+  @param [in] IsPreassigned= set to 1 if the library should be pre-assigned.
 
-  @param libdesc= Library description (optional)
-  @param directory= Required for the BASE engine. The metadata directory objects
-    are searched to find an existing one with a matching physical path.
+  @param [in] libdesc= Library description (optional)
+  @param [in] directory= (/tmp/somelib) Required for the BASE engine.
+    The metadata directory objects are searched to find an existing
+    one with a matching physical path.
     If more than one uri found with that path, then the first one will be used.
     If no URI is found, a new directory object will be created.  The physical
     path will also be created, if it doesn't exist.
 
 
-  @param mDebug= set to 1 to show debug messages in the log
-  @param frefin= fileref to use (enables change if there is a conflict).  The
-    filerefs are left open, to enable inspection after running the
+  @param [in] mDebug= set to 1 to show debug messages in the log
+  @param [in] frefin= fileref to use (enables change if there is a conflict).
+    The filerefs are left open, to enable inspection after running the
     macro (or importing into an xmlmap if needed).
-  @param frefout= fileref to use (enables change if there is a conflict)
+  @param [out] frefout= fileref to use (enables change if there is a conflict)
 
 
   @version 9.3

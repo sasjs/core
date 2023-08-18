@@ -52,9 +52,9 @@
   @li mm_getpublictypes.sas
   @li mf_isblank.sas
 
-  @param root= the parent folder under which to return all contents
-  @param outds= the dataset to create that contains the list of directories
-  @param types= Space-seperated, unquoted list of types for filtering the
+  @param [in] root= the parent folder under which to return all contents
+  @param [in] outds= the dataset to create that contains the list of directories
+  @param [in] types= Space-seperated, unquoted list of types for filtering the
     output.  Special types:
 
     * ALl - return all types (the default)

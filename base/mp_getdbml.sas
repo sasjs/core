@@ -23,10 +23,10 @@
   @li mf_getquotedstr.sas
   @li mp_getconstraints.sas
 
-  @param liblist= Space seperated list of librefs to take as
-    input (Default=SASHELP)
-  @param outref= Fileref to contain the DBML (Default=getdbml)
-  @param showlog= set to YES to show the DBML in the log (Default is NO)
+  @param [in] liblist= (SASHELP) Space seperated list of librefs to take as
+    input
+  @param [out] outref= (getdbml) Fileref to contain the DBML
+  @param [in] showlog= (NO) set to YES to show the DBML in the log
 
   @version 9.3
   @author Allan Bowe

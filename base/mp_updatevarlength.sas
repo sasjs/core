@@ -14,9 +14,9 @@
         proc sql;
         describe table example;
 
-  @param libds the library.dataset to be modified
-  @param var The variable to modify
-  @param len The new length to apply
+  @param [in] libds the library.dataset to be modified
+  @param [in] var The variable to modify
+  @param [in] len The new length to apply
 
   <h4> SAS Macros </h4>
   @li mf_existds.sas

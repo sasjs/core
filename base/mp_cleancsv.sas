@@ -12,11 +12,12 @@
       fileref mycsv "/path/your/csv";
       %mp_cleancsv(in=mycsv,out=/path/new.csv)
 
-  @param in= (NOTPROVIDED) Provide path or fileref to input csv. If a period is
+  @param [in] in= (NOTPROVIDED)
+    Provide path or fileref to input csv. If a period is
     found, it is assumed to be a file.
-  @param out= (NOTPROVIDED) Output path or fileref to output csv.  If a period
-    is found, it is assumed to be a file.
-  @param qchar= ('22'x) Quote char - hex code 22 is the double quote.
+  @param [in] out= (NOTPROVIDED) Output path or fileref to output csv.
+    If a period is found, it is assumed to be a file.
+  @param [in] qchar= ('22'x) Quote char - hex code 22 is the double quote.
 
   @version 9.2
   @author Allan Bowe

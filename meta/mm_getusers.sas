@@ -16,8 +16,8 @@
     - uri
     - name
 
-  @param user= (0) Set to a metadata user to filter on that user
-  @param outds= (work.mm_getusers) The output table to create
+  @param [in] user= (0) Set to a metadata user to filter on that user
+  @param [out] outds= (work.mm_getusers) The output table to create
 
   @version 9.3
   @author Allan Bowe

@@ -9,12 +9,13 @@
 
       %mp_searchcols(libs=sashelp work, cols=name sex age)
 
-  @param libs= (SASHELP) Space separated list of libraries to search for columns
-  @param cols= Space separated list of column names to search for (not case
-    sensitive)
-  @param outds= (mp_searchcols) the table to create with the results.  Will have
-    one line per table match.
-  @param match= (ANY) The match type. Valid values:
+  @param [in] libs= (SASHELP)
+    Space separated list of libraries to search for columns
+  @param [in] cols=
+    Space separated list of column names to search for (not case sensitive)
+  @param [out] outds= (mp_searchcols)
+    The table to create with the results.  Will have one line per table match.
+  @param [in] match= (ANY) The match type. Valid values:
     @li ANY - The table contains at least one of the columns
     @li WILD - The table contains a column with a name that partially matches
 

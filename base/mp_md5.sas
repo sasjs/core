@@ -28,8 +28,8 @@
   @li Global option:  `options dsoptions=nonote2err;`
   @li Data step option: `data YOURLIB.YOURDATASET /nonote2err;`
 
-  @param cvars= () Space seperated list of character variables
-  @param nvars= () Space seperated list of numeric variables
+  @param [in] cvars= () Space seperated list of character variables
+  @param [in] nvars= () Space seperated list of numeric variables
 
   <h4> Related Programs </h4>
   @li mp_init.sas

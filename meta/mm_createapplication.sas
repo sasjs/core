@@ -21,21 +21,24 @@
   @li mp_abort.sas
   @li mf_verifymacvars.sas
 
-  @param tree= The metadata folder uri, or the metadata path, in which to
+  @param [in] tree= The metadata folder uri, or the metadata path, in which to
     create the object.  This must exist.
-  @param name= Application object name.  Avoid spaces.
-  @param ClassIdentifier= the class of applications to which this app belongs
-  @param params= name=value pairs which will become public properties of the
+  @param [in] name= Application object name.  Avoid spaces.
+  @param [in] ClassIdentifier=
+    The class of applications to which this app belongs
+  @param [in] params=
+    name=value pairs which will become public properties of the
     application object. These are delimited using &#x0a; (newline character)
 
-  @param desc= Application description (optional).  Avoid ampersands as these
+  @param [in] desc= Application description (optional).
+    Avoid ampersands as these
     are illegal characters (unless they are escapted- eg &amp;)
-  @param version= version number of application
-  @param frefin= fileref to use (enables change if there is a conflict).  The
-    filerefs are left open, to enable inspection after running the
+  @param [in] version= version number of application
+  @param [in] frefin= fileref to use (enables change if there is a conflict).
+    The filerefs are left open, to enable inspection after running the
     macro (or importing into an xmlmap if needed).
-  @param frefout= fileref to use (enables change if there is a conflict)
-  @param mDebug= set to 1 to show debug messages in the log
+  @param [out] frefout= fileref to use (enables change if there is a conflict)
+  @param [in] mDebug= set to 1 to show debug messages in the log
 
   @author Allan Bowe
 

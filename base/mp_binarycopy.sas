@@ -31,7 +31,8 @@
   @param [in] mode= (CREATE) Valid values:
     @li CREATE - Create the file (even if it already exists)
     @li APPEND - Append to the file (don't overwrite)
-  @param iftrue= (1=1) Supply a condition for which the macro should be executed
+  @param [in] iftrue= (1=1)
+    Supply a condition for which the macro should be executed
 
   @returns nothing
 

@@ -35,7 +35,18 @@
     ,NOEDIT num length=3  label='Is picture string noedit?'
     ,SEXCL char(1)        label='Start exclusion'
     ,EEXCL char(1)        label='End exclusion'
-    ,HLO char(13)         label='Additional information. M=MultiLabel'
+    ,HLO char(13)         label='Additional information.
+F=Standard format/informat.
+H=Range ending value is HIGH.
+I=Numeric informat.
+J=Justification for an informat.
+L=Range starting value is LOW.
+M=MultiLabel.
+N=Format or informat has no ranges, including no OTHER= range.
+O=Range is OTHER.
+R=ROUND option is in effect.
+S=Specifies that NOTSORTED is in effect.
+U=Specifies that the UPCASE option for an informat be used.'
     ,DECSEP char(1)       label='Decimal separator'
     ,DIG3SEP char(1)      label='Three-digit separator'
     ,DATATYPE char(8)     label='Date/time/datetime?'

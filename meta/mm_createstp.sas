@@ -67,6 +67,11 @@
     a conflict)
   @param [in] repo= ServerContext is tied to a repo, if you are not using the
     foundation repo then select a different one here
+  @param [in] LogicalServerType= (Sps) Server Type to use. Valid options:
+    @li Any - Uses the default server.
+    @li Sps - Stored Process Server, best choice for web app development. Runs
+      under a system account identity (eg sassrv).
+    @li Wks - Workspace Server.  Runs under the end user identity.
 
   @returns outds  dataset containing the following columns:
     - stpuri
@@ -106,6 +111,7 @@
     ,minify=NO
     ,frefin=mm_in
     ,frefout=mm_out
+    ,LogicalServerType=Sps
 )/*/STORE SOURCE*/;
 
 %local mD;
@@ -121,6 +127,17 @@
 )
 
 %mp_dropmembers(%scan(&outds,2,.))
+
+/* check LogicalServerType validity */
+%mp_abort(
+  iftrue=(
+    &LogicalServerType ne Sps
+    and &LogicalServerType ne Wks
+    and &LogicalServerType ne Any
+  )
+  ,mac=&sysmacroname
+  ,msg=%str(Invalid value for LogicalServerType (&LogicalServerType))
+)
 
 /**
   * check tree exists
@@ -354,8 +371,9 @@ run;
     '  <TextStore IsHidden="0" Name="Stored Process" UsageVersion="0" '/
     '    TextRole="StoredProcessConfiguration" TextType="XML" '/
     '    StoredText="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&qu'@@
-    'ot;?&gt;&lt;StoredProcess&gt;&lt;ServerContext LogicalServerType=&quot;S'@@
-    'ps&quot; OtherAllowed=&quot;false&quot;/&gt;&lt;ResultCapabilities Packa'@@
+    'ot;?&gt;&lt;StoredProcess&gt;&lt;ServerContext LogicalServerType=&quot;'@@
+    "&LogicalServerType"@@
+    '&quot; OtherAllowed=&quot;false&quot;/&gt;&lt;ResultCapabilities Packa'@@
     'ge=&quot;' @@ "&package" @@ '&quot; Streaming=&quot;' @@ "&streaming" @@
     '&quot;/&gt;&lt;OutputParameters/&gt;&lt;/StoredProcess&gt;" />' /
     "  </Notes> "/

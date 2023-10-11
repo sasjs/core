@@ -212,7 +212,8 @@ When contributing to this library, it is therefore important to ensure that all 
 
 ## General Notes
 
-- All macros should be compatible with SAS versions from support level B and above (so currently 9.2 and later). If an earlier version is not supported, then the macro should say as such in the header documentation, and exit gracefully (eg `%if %sysevalf(&sysver<9.3) %then %return`).
+- All macros should be compatible with SAS versions from support level B and above (so currently 9.3 and later). If an earlier version is not supported, then the macro should say as such in the header documentation, and exit gracefully.
+- It's [best to avoid](https://git.datacontroller.io/dc/dc/issues/50) special / non-ASCII characters for compatibility with the widest variety of SAS installations.
 
 ## Breaking Changes
 

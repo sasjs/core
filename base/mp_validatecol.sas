@@ -57,7 +57,7 @@
 %end;
 %else %if &rule=ISNUM %then %do;
   /*
-    credit SØREN LASSEN
+    credit SOREN LASSEN
     https://sasmacro.blogspot.com/2009/06/welcome-isnum-macro.html
   */
   &tempcol=input(&incol,?? best32.);

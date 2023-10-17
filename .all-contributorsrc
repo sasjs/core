@@ -144,8 +144,18 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "rudvfaden",
+      "name": "Rud Faden",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2445577?v=4",
+      "profile": "http://rudvfaden.github.io/",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
-  "skipCi": true
+  "skipCi": true,
+  "commitType": "docs"
 }

@@ -37,12 +37,12 @@ jobs:
 
       - name: Install Open VPN
         run: |
-          sudo apt install apt-transport-https
-          sudo wget https://swupdate.openvpn.net/repos/openvpn-repo-pkg-key.pub
-          sudo apt-key add openvpn-repo-pkg-key.pub
-          sudo wget -O /etc/apt/sources.list.d/openvpn3.list https://swupdate.openvpn.net/community/openvpn3/repos/openvpn3-jammy.list
-          sudo apt update
-          sudo apt install openvpn3=17~betaUb22042+jammy
+          #sudo apt install apt-transport-https
+          #sudo wget https://swupdate.openvpn.net/repos/openvpn-repo-pkg-key.pub
+          #sudo apt-key add openvpn-repo-pkg-key.pub
+          #sudo wget -O /etc/apt/sources.list.d/openvpn3.list https://swupdate.openvpn.net/community/openvpn3/repos/openvpn3-jammy.list
+          #sudo apt update
+          #sudo apt install openvpn3=17~betaUb22042+jammy
       - name: Start Open VPN 3
         run: openvpn3 session-start --config .github/vpn/config.ovpn
 

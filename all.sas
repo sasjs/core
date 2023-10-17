@@ -14552,7 +14552,7 @@ run;
 %else %if &engine=ODBC %then %do;
   &mD.%put NOTE: Retrieving ODBC connection details;
   data _null_;
-    length connx_uri conprop_uri value datasource up_uri schema $256.;
+    length connx_uri conprop_uri value datasource up_uri schema domprop_uri authdomain $256.;
     call missing (of _all_);
     /* get source connection ID */
     rc=metadata_getnasn("&liburi",'LibraryConnection',1,connx_uri);
@@ -14567,6 +14567,13 @@ run;
         rc2=-1;
       end;
     end;
+
+    /* get auth domain */
+    autrc=metadata_getnasn(connx_uri,"Domain",1,domprop_uri);
+    arc=metadata_getattr(domprop_uri,"Name",authdomain);
+    if not missing(authdomain) then authdomain=cats('AUTHDOMAIN=',authdomain);
+    call symputx('authdomain',authdomain,'l');
+
     /* get SCHEMA */
     rc6=metadata_getnasn("&liburi",'UsingPackages',1,up_uri);
     rc7=metadata_getattr(up_uri,'SchemaName',schema);
@@ -14583,7 +14590,7 @@ run;
       (INSERT_SQL=YES DATASRC=&sql_dsn. CONNECTION=global);
   %end;
   %else %do;
-    libname &libref ODBC DATASRC=&sql_dsn SCHEMA=&sql_schema;
+    libname &libref ODBC DATASRC=&sql_dsn SCHEMA=&sql_schema &authdomain;
   %end;
 %end;
 %else %if &engine=POSTGRES %then %do;

@@ -16,7 +16,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm ci
+          npm i @sasjs/cli@latest
 
       - name: Check code style (aborts if errors found)
         run: npx @sasjs/cli lint

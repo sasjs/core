@@ -44,7 +44,8 @@ jobs:
           #sudo apt update
           #sudo apt install openvpn3=17~betaUb22042+jammy
       - name: Start Open VPN 3
-        run: openvpn3 session-start --config .github/vpn/config.ovpn
+        run: |
+          # openvpn3 session-start --config .github/vpn/config.ovpn
 
       - name: Add credentials
         run: |

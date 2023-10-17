@@ -231,6 +231,7 @@ run;
     /* get auth domain */
     autrc=metadata_getnasn(connx_uri,"Domain",1,domprop_uri);
     arc=metadata_getattr(domprop_uri,"Name",authdomain);
+    if not missing(authdomain) then authdomain=cats('AUTHDOMAIN=',authdomain);
     call symputx('authdomain',authdomain,'l');
 
     /* get SCHEMA */
@@ -249,7 +250,7 @@ run;
       (INSERT_SQL=YES DATASRC=&sql_dsn. CONNECTION=global);
   %end;
   %else %do;
-    libname &libref ODBC DATASRC=&sql_dsn SCHEMA=&sql_schema AUTHDOMAIN=&authdomain;
+    libname &libref ODBC DATASRC=&sql_dsn SCHEMA=&sql_schema &authdomain;
   %end;
 %end;
 %else %if &engine=POSTGRES %then %do;

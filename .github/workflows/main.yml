@@ -13,13 +13,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Install dependencies
         run: npm ci
 
       - name: Check code style (aborts if errors found)
         run: npx @sasjs/cli lint
+
+      - name: Ensure all.sas is always up to date
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          python3 build.py
+          git add all.sas
+          git commit -m "chore: updating all.sas"
+          git push
 
       - name: Write VPN Files
         run: |
@@ -52,7 +61,7 @@ jobs:
           echo "REFRESH_TOKEN=${{secrets.SAS9_4GL_IO_REFRESH_TOKEN}}" >> .env.server
 
       - name: Semantic Release
-        uses: cycjimmy/semantic-release-action@v3
+        uses: cycjimmy/semantic-release-action@v4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

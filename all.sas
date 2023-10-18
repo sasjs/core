@@ -14550,7 +14550,7 @@ run;
   %end;
 %end;
 %else %if &engine=ODBC %then %do;
-  &mD.%put NOTE: Retrieving ODBC connection details;
+  %&mD.put NOTE: Retrieving ODBC connection details;
   data _null_;
     length connx_uri conprop_uri value datasource up_uri schema domprop_uri authdomain $256.;
     call missing (of _all_);

@@ -6,6 +6,22 @@
   (given various practical restrictions) are described here to enable
   consistency when dealing with format data.
 
+  The HLO variable may have a number of values, documented here due to the
+  256 char label description length limit:
+
+    F=Standard format/informat.
+    H=Range ending value is HIGH.
+    I=Numeric informat.
+    J=Justification for an informat.
+    L=Range starting value is LOW.
+    M=MultiLabel.
+    N=Format or informat has no ranges, including no OTHER= range.
+    O=Range is OTHER.
+    R=ROUND option is in effect.
+    S=Specifies that NOTSORTED is in effect.
+    U=Specifies that the UPCASE option for an informat be used.
+
+
 **/
 
 
@@ -13,9 +29,11 @@
 
   proc sql;
   create table &libds(
-    TYPE char(1) label='Type of format - either N (num fmt), C (char fmt), I (num infmt) or J (char infmt)'
+    TYPE char(1) label=
+'Format Type: either N (num fmt), C (char fmt), I (num infmt) or J (char infmt)'
     ,FMTNAME char(32)     label='Format name'
-    ,FMTROW num label='CALCULATED Position of record by FMTNAME (reqd for multilabel formats)'
+    ,FMTROW num label=
+'CALCULATED Position of record by FMTNAME (reqd for multilabel formats)'
     ,START char(32767)    label='Starting value for format'
     /*
       Keep lengths of START and END the same to avoid this err:
@@ -35,18 +53,8 @@
     ,NOEDIT num length=3  label='Is picture string noedit?'
     ,SEXCL char(1)        label='Start exclusion'
     ,EEXCL char(1)        label='End exclusion'
-    ,HLO char(13)         label='Additional information.
-F=Standard format/informat.
-H=Range ending value is HIGH.
-I=Numeric informat.
-J=Justification for an informat.
-L=Range starting value is LOW.
-M=MultiLabel.
-N=Format or informat has no ranges, including no OTHER= range.
-O=Range is OTHER.
-R=ROUND option is in effect.
-S=Specifies that NOTSORTED is in effect.
-U=Specifies that the UPCASE option for an informat be used.'
+    ,HLO char(13) label=
+'More info: https://core.sasjs.io/mddl__sas__cntlout_8sas_source.html'
     ,DECSEP char(1)       label='Decimal separator'
     ,DIG3SEP char(1)      label='Three-digit separator'
     ,DATATYPE char(8)     label='Date/time/datetime?'

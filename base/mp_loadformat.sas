@@ -40,6 +40,7 @@
   @li mp_aligndecimal.sas
   @li mp_cntlout.sas
   @li mp_lockanytable.sas
+  @li mp_md5.sas
   @li mp_storediffs.sas
 
   <h4> Related Macros </h4>

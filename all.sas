@@ -1684,7 +1684,7 @@ Usage:
 
   Usage:
 
-      %put mf_isblank(&var);
+      %put %mf_isblank(&var);
 
   inspiration:
   https://support.sas.com/resources/papers/proceedings09/022-2009.pdf

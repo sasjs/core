@@ -153,6 +153,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "andyjessen",
+      "name": "andyjessen",
+      "avatar_url": "https://avatars.githubusercontent.com/u/62343929?v=4",
+      "profile": "https://github.com/andyjessen",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,

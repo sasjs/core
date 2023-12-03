@@ -9,6 +9,9 @@
   format, to prevent loss of data - UNLESS the input dataset contains a marker
   column, specifying that a particular row needs to be deleted (`delete_col=`).
 
+  Positions of formats are made using the FMTROW variable - this must be present
+  and unique (on TYPE / FMTNAME / FMTROW).
+
   This macro can also be used to identify which records would be (or were)
   considered new, modified or deleted (`loadtarget=`) by creating the following
   tables:
@@ -17,7 +20,7 @@
   @li work.outds_del
   @li work.outds_mod
 
-  For example usage, see mp_loadformat.test.sas
+  For example usage, see test (under Related Macros)
 
   @param [in] libcat The format catalog to be loaded
   @param [in] libds The staging table to load
@@ -34,6 +37,8 @@
   @param [in] mdebug= (0) Set to 1 to enable DEBUG messages and preserve outputs
 
   <h4> SAS Macros </h4>
+  @li mf_existds.sas
+  @li mf_existvar.sas
   @li mf_getuniquename.sas
   @li mf_nobs.sas
   @li mp_abort.sas
@@ -84,6 +89,16 @@
 %let libcat=%scan(&libcat,1,-);
 
 /* perform input validations */
+%mp_abort(
+  iftrue=(%mf_existds(&libds)=0)
+  ,mac=&sysmacroname
+  ,msg=%str(&libds could not be found)
+)
+%mp_abort(
+  iftrue=(%mf_existvar(&libds,FMTROW)=0)
+  ,mac=&sysmacroname
+  ,msg=%str(FMTROW not found in &libds)
+)
 %let err=0;
 %let msg=0;
 data _null_;
@@ -104,16 +119,17 @@ data _null_;
       stop;
     end;
   end;
-  else if name='LIBDS' then do;
-    if exist(value) le 0 then do;
-      call symputx('msg',"Unable to open staging table: "!!value);
-      call symputx('err',1);
-      stop;
-    end;
-  end;
   else if (name=:'OUTDS' or name in ('DELETE_COL','LOCKLIBDS','AUDITLIBDS'))
   and missing(value) then do;
     call symputx('msg',"missing value in var: "!!name);
+    call symputx('err',1);
+    stop;
+  end;
+run;
+data _null_;
+  set &libds;
+  if missing(fmtrow) then do;
+    call symputx('msg',"missing fmtrow in format: "!!FMTNAME);
     call symputx('err',1);
     stop;
   end;
@@ -123,6 +139,15 @@ run;
   iftrue=(&err ne 0)
   ,mac=&sysmacroname
   ,msg=%str(&msg)
+)
+
+%local cnt;
+proc sql noprint;
+select count(distinct catx('|',type,fmtname,fmtrow)) into: cnt from &libds;
+%mp_abort(
+  iftrue=(&cnt ne %mf_nobs(&libds))
+  ,mac=&sysmacroname
+  ,msg=%str(Non-unique primary key on &libds)
 )
 
 /**
@@ -177,12 +202,6 @@ data &inlibds/nonote2err;
     %mp_aligndecimal(start,width=16)
     %mp_aligndecimal(end,width=16)
   end;
-
-  /* update row marker - retain new var as fmtrow may already be in libds */
-  if first.fmtname then row=1;
-  else row+1;
-  drop row;
-  fmtrow=row;
 
   fmthash=%mp_md5(cvars=&cvars, nvars=&nvars);
 run;

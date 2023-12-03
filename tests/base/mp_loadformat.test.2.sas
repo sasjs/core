@@ -58,6 +58,9 @@ proc format library=&cat1;
   value agemlb (multilabel)
     19-120='Adults'
     1-18='Children'
+    0-1='Preschool'
+    1-2='Preschool'
+    2-3='Preschool'
     1-4='Preschool';
   value agemlc (multilabel notsorted)
     19-120='Adults'
@@ -67,16 +70,19 @@ run;
 
 %mp_cntlout(libcat=&cat1,cntlout=work.cntlout1)
 %mp_assertdsobs(work.cntlout1,
-  desc=Has 16 records,
-  test=EQUALS 16
+  desc=Has 19 records,
+  test=EQUALS 19
 )
 
 data work.stagedata3;
   set work.cntlout1;
   if fmtname='AGEMLA' and label ne 'Preschool' then deleteme='Yes';
   if fmtname='AGEMLB' and label = 'Preschool' then label='Kids';
-  if fmtname='GENDERML' and label='Farmale' then output;
-  output;
+  if fmtname='GENDERML' and label='Farmale' then do;
+    output;
+    fmtrow=101; output;
+  end;
+  else output;
 run;
 
 
@@ -113,14 +119,17 @@ run;
 
 %let check1=0;
 %let check2=0;
+%let check3=0;
 data test;
   set work.cntlout2;
   where fmtname='GENDERML';
+  putlog fmtrow= label=;
   if _n_=4 and label='Farmale' then call symputx('check1',1);
-  if _n_=5 and label='Farmale' then call symputx('check2',1);
+  if _n_=5 and label ne 'Farmale' then call symputx('check2',1);
+  if _n_=8 and label = 'Farmale' then call symputx('check3',1);
 run;
 %mp_assert(
-  iftrue=(&check1=1 and &check2=1),
+  iftrue=(&check1=1 and &check2=1 and &check3=1),
   desc=Ensuring Farmale values retain their order,
   outds=work.test_results
 )

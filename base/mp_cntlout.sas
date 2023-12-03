@@ -79,8 +79,8 @@ data &cntlout/nonote2err;
   end;
 
   /* create row marker. Data cannot be sorted without it! */
-  if first.fmtname then fmtrow=0;
-  fmtrow+1;
+  if first.fmtname then fmtrow=1;
+  else fmtrow+1;
 
 run;
 proc sort;

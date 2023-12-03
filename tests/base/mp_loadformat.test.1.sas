@@ -189,8 +189,10 @@ data work.stagedata3;
     if last.fmtname then do;
       output; /* 6 new records */
       x=_n_;
-      x+1;start=cats("mod",x);end=start;label='newlabel1';output;
-      x+1;start=cats("mod",x);end=start;label='newlabel2';output;
+      x+1;start=cats("mod",x);end=start;label='newlabel1';fmtrow=fmtrow+1;
+      output;
+      x+1;start=cats("mod",x);end=start;label='newlabel2';fmtrow=fmtrow+2;
+      output;
     end;
     else if fmtrow le 3 then do; /* 9 more changed values */
       start= cats("mod",_n_);

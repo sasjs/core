@@ -272,9 +272,35 @@ data &outds;
 
   /* output records that contain values other than digits and spaces */
   if notdigit(compress(raw_value3,' '))>0 then do;
+    if vtype='C' and subpad(upcase(raw_value),1,1) in (
+      'A','B','C','D','E','F','G','H','I','J','K','L','M','N'
+      'N','O','P','Q','R','S','T','U','V','W','X','Y','Z','_'
+    )
+    then do;
+      /* check if the raw_value contains a valid variable NAME */
+      vnum=varnum(dsid,subpad(raw_value,1,32));
+      if vnum>0 then do;
+        /* now we can get the type */
+        vtype2=vartype(dsid,vnum);
+        /* check type matches */
+        if vtype2=vtype then do;
+          /* valid target var - exit loop */
+          return;
+        end;
+        else do;
+          REASON_CD=cats("Compared Char Type (",vtype2,") is not (",vtype,")");
+          putlog REASON_CD= dsid=;
+          call symputx('reason_cd',reason_cd,'l');
+          call symputx('nobs',_n_,'l');
+          output;
+          goto endstep;
+        end;
+      end;
+    end;
+
     putlog raw_value3= $hex32.;
     REASON_CD=cats('Invalid RAW_VALUE:',raw_value);
-    putlog REASON_CD= raw_value= raw_value1= raw_value2= raw_value3=;
+    putlog (_all_)(=);
     call symputx('reason_cd',reason_cd,'l');
     call symputx('nobs',_n_,'l');
     output;

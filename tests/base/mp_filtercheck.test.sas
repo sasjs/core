@@ -56,6 +56,7 @@ AND,AND,1,age,IN,"(.A)"
 AND,AND,1,AGE,=,AGE
 AND,AND,1,AGE,<,Weight
 AND,AND,1,AGE,BETWEEN,"HEIGHT AND WEIGHT"
+AND,OR,2,Name,=,name
 ;;;;
 run;
 

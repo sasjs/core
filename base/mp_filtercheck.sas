@@ -86,15 +86,14 @@
 /**
   * Sanitise the values based on valid value lists, then strip out
   * quotes, commas, periods and spaces.
-  * Only numeric values should remain
   */
 %local reason_cd nobs;
 %let nobs=0;
 data &outds;
   /*length GROUP_LOGIC SUBGROUP_LOGIC $3 SUBGROUP_ID 8 VARIABLE_NM $32
     OPERATOR_NM $10 RAW_VALUE $4000;*/
-  set &inds;
-  length reason_cd $4032 vtype $1 vnum dsid 8 tmp $4000;
+  set &inds end=last;
+  length reason_cd $4032 vtype vtype2 $1 vnum dsid 8 tmp $4000;
   drop tmp;
 
   /* quick check to ensure column exists */
@@ -110,7 +109,8 @@ data &outds;
   end;
 
   /* need to open the dataset to get the column type */
-  dsid=open("&targetds","i");
+  retain dsid;
+  if _n_=1 then dsid=open("&targetds","i");
   if dsid>0 then do;
     vnum=varnum(dsid,VARIABLE_NM);
     if vnum<1 then do;
@@ -120,10 +120,18 @@ data &outds;
       call symputx('reason_cd',reason_cd,'l');
       call symputx('nobs',_n_,'l');
       output;
-      return;
+      goto endstep;
     end;
     /* now we can get the type */
     else vtype=vartype(dsid,vnum);
+  end;
+  else do;
+      REASON_CD=cats("Could not open &targetds");
+      putlog REASON_CD= dsid=;
+      call symputx('reason_cd',reason_cd,'l');
+      call symputx('nobs',_n_,'l');
+      output;
+      stop;
   end;
 
   /* closed list checks */
@@ -159,15 +167,40 @@ data &outds;
   end;
 
   /* special missing logic */
-  if vtype='N'
-    and OPERATOR_NM in ('=','>','<','<=','>=','NE','GE','LE')
-    and cats(upcase(raw_value)) in (
+  if vtype='N' & OPERATOR_NM in ('=','>','<','<=','>=','NE','GE','LE') then do;
+    if cats(upcase(raw_value)) in (
       '.','.A','.B','.C','.D','.E','.F','.G','.H','.I','.J','.K','.L','.M','.N'
       '.N','.O','.P','.Q','.R','.S','.T','.U','.V','.W','.X','.Y','.Z','._'
     )
-  then do;
-    /* valid numeric - exit data step loop */
-    return;
+    then do;
+      /* valid numeric - exit data step loop */
+      return;
+    end;
+    else if subpad(upcase(raw_value),1,1) in (
+      'A','B','C','D','E','F','G','H','I','J','K','L','M','N'
+      'N','O','P','Q','R','S','T','U','V','W','X','Y','Z','_'
+    )
+    then do;
+      /* check if the raw_value contains a valid variable NAME */
+      vnum=varnum(dsid,subpad(raw_value,1,32));
+      if vnum>0 then do;
+        /* now we can get the type */
+        vtype2=vartype(dsid,vnum);
+        /* check type matches */
+        if vtype2=vtype then do;
+          /* valid target var - exit loop */
+          return;
+        end;
+        else do;
+          REASON_CD=cats("Compared Type (",vtype2,") is not (",vtype,")");
+          putlog REASON_CD= dsid=;
+          call symputx('reason_cd',reason_cd,'l');
+          call symputx('nobs',_n_,'l');
+          output;
+          goto endstep;
+        end;
+      end;
+    end;
   end;
 
   /* special logic */
@@ -189,6 +222,32 @@ data &outds;
     if vtype='N' then do i=1 to countc(raw_value1, ',')+1;
       tmp=scan(raw_value1,i,',');
       if cats(tmp) ne '.' and input(tmp, ?? 8.) eq . then do;
+        if OPERATOR_NM ='BETWEEN' and subpad(upcase(tmp),1,1) in (
+          'A','B','C','D','E','F','G','H','I','J','K','L','M','N'
+          'N','O','P','Q','R','S','T','U','V','W','X','Y','Z','_'
+        )
+        then do;
+          /* check if the raw_value contains a valid variable NAME */
+          /* is not valid syntax for IN or NOT IN */
+          vnum=varnum(dsid,subpad(tmp,1,32));
+          if vnum>0 then do;
+            /* now we can get the type */
+            vtype2=vartype(dsid,vnum);
+            /* check type matches */
+            if vtype2=vtype then do;
+              /* valid target var - exit loop */
+              return;
+            end;
+            else do;
+              REASON_CD=cats("Compared Type (",vtype2,") is not (",vtype,")");
+              putlog REASON_CD= dsid=;
+              call symputx('reason_cd',reason_cd,'l');
+              call symputx('nobs',_n_,'l');
+              output;
+              goto endstep;
+            end;
+          end;
+        end;
         REASON_CD='Non Numeric value provided';
         putlog REASON_CD= OPERATOR_NM= raw_value= raw_value1= ;
         call symputx('reason_cd',reason_cd,'l');
@@ -221,6 +280,8 @@ data &outds;
     output;
   end;
 
+  endstep:
+  if last then rc=close(dsid);
 run;
 
 

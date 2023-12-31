@@ -53,7 +53,10 @@ AND,AND,1,age,=,.A
 AND,AND,1,height,<,.B
 AND,AND,1,age,IN,"(.a,.b,.)"
 AND,AND,1,age,IN,"(.A)"
-
+AND,AND,1,AGE,=,AGE
+AND,AND,1,AGE,<,Weight
+AND,AND,1,AGE,BETWEEN,"HEIGHT AND WEIGHT"
+AND,OR,2,Name,=,name
 ;;;;
 run;
 
@@ -204,3 +207,26 @@ run;
   outds=work.test_results
 )
 %let syscc=0;
+
+
+/* invalid IN value (cannot use var names) */
+data work.inds;
+  infile datalines4 dsd;
+  input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
+datalines4;
+AND,AND,1,AGE,NOT IN,"(height, age)"
+;;;;
+run;
+
+%mp_filtercheck(work.inds,
+  targetds=work.class,
+  outds=work.badrecords,
+  abort=NO
+)
+%let syscc=0;
+%mp_assertdsobs(work.badrecords,
+  desc=Invalid IN syntax,
+  test=HASOBS,
+  outds=work.test_results
+)

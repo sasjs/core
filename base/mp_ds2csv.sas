@@ -118,13 +118,21 @@ data _null_;
     header = cats(coalescec(varlabel(dsid,i),varnm),dlm);
   %end;
   %else %if &headerformat=SASJS %then %do;
-    if vartype(dsid,i)='C' then header=cats(varnm,':$char',varlen(dsid,i),'.');
+    vlen=varlen(dsid,i);
+    if vartype(dsid,i)='C' then header=cats(varnm,':$char',vlen,'.');
     else do;
       vfmt=coalescec(varfmt(dsid,i),'0');
       fmttype=mcf_getfmttype(vfmt);
       if fmttype='DATE' then header=cats(varnm,':date9.');
       else if fmttype='DATETIME' then header=cats(varnm,':E8601DT26.6');
       else if fmttype='TIME' then header=cats(varnm,':TIME12.');
+      /**
+        * there is not much point importing a short length numeric like this,
+        * eg with best4., as the resulting variable will still be stored as
+        * length 8.  We need a length or format statement to ensure variable
+        * is creatd with the smaller length...
+        **/
+      else if vlen<8 then header=cats(varnm,':best',vlen,'.');
       else header=cats(varnm,':best.');
     end;
   %end;
@@ -151,6 +159,7 @@ data _null_;
   set &ds end=last;
 %do i=1 %to &vcnt;
   %let var=%scan(&varlist,&i);
+  %local vlen&i;
   %if %mf_getvartype(&ds,&var)=C %then %do;
     %let dsv1=%mf_getuniquename(prefix=csvcol1_);
     %let dsv2=%mf_getuniquename(prefix=csvcol2_);

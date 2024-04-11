@@ -20,7 +20,7 @@
     Valid values are "password" or "authorization_code" (unquoted).
   @param [out] outds= (work.mx_getgroups) This output dataset will contain the
     list of groups. Format:
-|NAME:$32.|DESCRIPTION:$256.|GROUPID:best.|
+|GROUPNAME:$32.|GROUPDESC:$256.|GROUPURI:best.|
 |---|---|---|
 |`SomeGroup `|`A group `|`1`|
 |`Another Group`|`this is a different group`|`2`|
@@ -54,6 +54,15 @@
     outds=&outds,
     mdebug=&mdebug
   )
+  data &outds;
+    length groupuri groupname $32 groupdesc $128 ;
+    set &outds;
+    keep groupuri groupname groupdesc;
+    groupuri=cats(groupid);
+    groupname=name;
+    groupdesc=description;
+  run;
+  proc sort; by groupname; run;
 %end;
 %else %if &platform=SAS9 or &platform=SASMETA %then %do;
   %if &user=0 %then %let user=;
@@ -63,6 +72,7 @@
     ,repo=&repo
     ,mDebug=&mdebug
   )
+  proc sort data=&outds; by groupname; run;
 %end;
 %else %if &platform=SASVIYA %then %do;
   %if &user=0 %then %do;
@@ -78,6 +88,11 @@
       ,grant_type=&grant_type
     )
   %end;
+  proc sort
+      data=&outds(rename=(id=groupuri name=groupname description=groupdesc))
+      out=&outds (keep=groupuri groupname groupdesc);
+    by groupname;
+  run;
 %end;
 
 %mend mx_getgroups;

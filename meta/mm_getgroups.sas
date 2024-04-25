@@ -11,10 +11,11 @@
 
   @param [in] user= the metadata user to return groups for.  Leave blank for all
     groups.
-  @param [in] repo= the metadata repository that contains the user/group
-    information
-  @param [in] mDebug= set to 1 to show debug messages in the log
-  @param [out] outds= the dataset to create that contains the list of groups
+  @param [in] repo= (foundation) the metadata repository that contains the
+    user/group information
+  @param [in] mDebug= (0) set to 1 to show debug messages in the log
+  @param [out] outds= (work.mm_getgroups) The dataset to create that contains
+    the list of groups
 
   @returns outds  dataset containing all groups in a column named "metagroup"
     - groupuri

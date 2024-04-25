@@ -197,6 +197,7 @@
   @li mp_coretable.sas
   @li mp_stackdiffs.test.sas
   @li mp_storediffs.sas
+  @li mp_stripdiffs.sas
 
   @todo The current approach assumes that a variable called KEY_HASH is not on
     the base table.  This part will need to be refactored (eg using

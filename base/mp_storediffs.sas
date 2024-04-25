@@ -64,6 +64,7 @@
   <h4> Related Macros </h4>
   @li mp_stackdiffs.sas
   @li mp_storediffs.test.sas
+  @li mp_stripdiffs.sas
 
   @version 9.2
   @author Allan Bowe
@@ -183,7 +184,7 @@ data &ds4;
 run;
 
 %if "&loadref"="0" %then %let loadref=%sysfunc(uuidgen());
-%if &processed_dttm=0 %then %let processed_dttm=%sysfunc(datetime());
+%if &processed_dttm=0 %then %let processed_dttm=%sysfunc(datetime(),8.6);
 %let libds=%upcase(&libds);
 
 /* join orig vals for modified & deleted */

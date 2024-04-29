@@ -13393,7 +13393,7 @@ run;
 
     @li deleted rows - these are re-inserted
     @li changed rows - differences are reverted
-    @li added rows - these are marked with `_____DELETE_THIS_RECORD_____="YES"`
+    @li added rows - marked with `_____DELETE__THIS__RECORD_____="YES"`
 
     These changes are NOT applied to the base table - a staging dataset is
     simply prepared for an ETL process to action.  In Data Controller, this
@@ -13409,7 +13409,7 @@ run;
     in mddl_dc_difftable.sas
   @param [out] outds= (work.mp_stripdiffs) Output table containing the diffs.
     Has the same format as the base datset, plus a
-    `_____DELETE_THIS_RECORD_____` variable.
+    `_____DELETE__THIS__RECORD_____` variable.
   @param [in] mdebug= set to 1 to enable DEBUG messages and preserve outputs
 
   <h4> SAS Macros </h4>
@@ -13531,7 +13531,7 @@ run;
 
 /* join to base table for preliminary stage DS */
 proc sql;
-create table &outds as select "No " as _____DELETE_THIS_RECORD_____,
+create table &outds as select "No " as _____DELETE__THIS__RECORD_____,
     b.*
   from &ds5 a
   inner join &libds b
@@ -13568,7 +13568,7 @@ data _null_;
   end;
   else if move_type='A' then do;
     if first.key_hash then do;
-      put "update &outds set _____DELETE_THIS_RECORD_____='Yes'  where 1=1 " @@;
+      put "update &outds set _____DELETE__THIS__RECORD_____='Yes' where 1=1 "@@;
     end;
     /* gating if - as only need PK now */
     if is_pk=1;
@@ -13579,7 +13579,7 @@ data _null_;
   end;
   else if move_type='D' then do;
     if first.key_hash then do;
-      put "insert into &outds set _____DELETE_THIS_RECORD_____='No' " @@;
+      put "insert into &outds set _____DELETE__THIS__RECORD_____='No' " @@;
     end;
     put "  ," tgtvar_nm '=' @@;
     charval=quote(cats(oldval_char));

@@ -82,10 +82,10 @@ run;
 %let addpass=0;
 data _null_;
   set work.mp_stripdiffs;
-  if upcase(_____DELETE_THIS_RECORD_____)='NO' and name="&delname"
+  if upcase(_____DELETE__THIS__RECORD_____)='NO' and name="&delname"
   then call symputx('delpass',1);
   if name="&modname" and age=&modval then call symputx('modpass',1);
-  if upcase(_____DELETE_THIS_RECORD_____)='YES' and name="Newbie"
+  if upcase(_____DELETE__THIS__RECORD_____)='YES' and name="Newbie"
   then call symputx('addpass',1);
 run;
 

@@ -138,6 +138,7 @@ run;
 
 %let ds5=%upcase(work.%mf_getuniquename(prefix=mpsd_merged));
 data &ds5;
+  length key_hash $32;
   merge &ds3 &ds4;
   by key_hash;
   if not missing(key_hash);

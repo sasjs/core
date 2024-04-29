@@ -120,7 +120,7 @@ run;
 %let ds3=%upcase(work.%mf_getuniquename(prefix=mpsd_keychar));
 proc transpose data=&ds2(where=(tgtvar_type='C'))
     out=&ds3(drop=_name_);
-  by KEY_HASH;
+  by KEY_HASH PROCESSED_DTTM;
   id TGTVAR_NM;
   var charval;
 run;
@@ -128,7 +128,7 @@ run;
 %let ds4=%upcase(work.%mf_getuniquename(prefix=mpsd_keynum));
 proc transpose data=&ds2(where=(tgtvar_type='N'))
     out=&ds4(drop=_name_);
-  by KEY_HASH;
+  by KEY_HASH PROCESSED_DTTM;
   id TGTVAR_NM;
   var numval;
 run;
@@ -138,7 +138,7 @@ run;
 
 %let ds5=%upcase(work.%mf_getuniquename(prefix=mpsd_merged));
 data &ds5;
-  length key_hash $32;
+  length key_hash $32 processed_dttm 8;
   merge &ds3 &ds4;
   by key_hash;
   if not missing(key_hash);

@@ -98,7 +98,7 @@ create table &ds1 (drop=libref dsn) as
 /* extract key values only */
 %let ds2=%upcase(work.%mf_getuniquename(prefix=mpsd_pks));
 create table &ds2 as
-  select key_hash,
+  select distinct key_hash,
     tgtvar_nm,
     tgtvar_type,
     coalescec(oldval_char,newval_char) as charval,
@@ -112,9 +112,9 @@ create table &ds2 as
 %local pk;
 data _null_;
   set &ds2;
-  by key_hash;
+  by key_hash processed_dttm;
   call symputx('pk',catx(' ',symget('pk'),tgtvar_nm),'l');
-  if last.key_hash then stop;
+  if last.processed_dttm then stop;
 run;
 
 %let ds3=%upcase(work.%mf_getuniquename(prefix=mpsd_keychar));
@@ -136,12 +136,16 @@ run;
 %mp_ds2squeeze(&ds3,outds=&ds3)
 %mp_ds2squeeze(&ds4,outds=&ds4)
 
+/* now merge to get all key values and de-dup */
 %let ds5=%upcase(work.%mf_getuniquename(prefix=mpsd_merged));
 data &ds5;
   length key_hash $32 processed_dttm 8;
   merge &ds3 &ds4;
   by key_hash;
   if not missing(key_hash);
+run;
+proc sort data=&ds5 nodupkey;
+  by &pk;
 run;
 
 /* join to base table for preliminary stage DS */

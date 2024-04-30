@@ -13544,7 +13544,8 @@ create table &outds as select "No " as _____DELETE__THIS__RECORD_____,
 /* create SAS code to apply to stage_ds */
 data _null_;
   set &ds1;
-  file &fref1;
+  file &fref1 lrecl=33000;
+  length charval $32767;
   if _n_=1 then put 'proc sql noprint;';
   by descending processed_dttm key_hash is_pk;
   if move_type='M' then do;
@@ -13553,7 +13554,8 @@ data _null_;
     end;
     if IS_PK=0 then do;
       put "  " tgtvar_nm '=' @@;
-      charval=quote(cats(oldval_char));
+      cnt=count(oldval_char,'"');
+      charval=quote(trim(substr(oldval_char,1,32765-cnt)));
       if tgtvar_type='C' then put charval @@;
       else put oldval_num @@;
       if not last.is_pk then put ',';
@@ -13561,7 +13563,8 @@ data _null_;
     else do;
       if first.is_pk then put "  where 1=1 " @@;
       put "  and " tgtvar_nm '=' @@;
-      charval=quote(cats(oldval_char));
+      cnt=count(oldval_char,'"');
+      charval=quote(trim(substr(oldval_char,1,32765-cnt)));
       if tgtvar_type='C' then put charval @@;
       else put oldval_num @@;
     end;
@@ -13573,7 +13576,8 @@ data _null_;
     /* gating if - as only need PK now */
     if is_pk=1;
     put '  AND ' tgtvar_nm '=' @@;
-    charval=quote(cats(newval_char));
+    cnt=count(newval_char,'"');
+    charval=quote(trim(substr(newval_char,1,32765-cnt)));
     if tgtvar_type='C' then put charval @@;
     else put newval_num @@;
   end;
@@ -13582,7 +13586,8 @@ data _null_;
       put "insert into &outds set _____DELETE__THIS__RECORD_____='No' " @@;
     end;
     put "  ," tgtvar_nm '=' @@;
-    charval=quote(cats(oldval_char));
+    cnt=count(oldval_char,'"');
+    charval=quote(trim(substr(oldval_char,1,32765-cnt)));
     if tgtvar_type='C' then put charval @@;
     else put oldval_num @@;
   end;
@@ -13590,7 +13595,7 @@ data _null_;
 run;
 
 /* apply the modification statements */
-%inc &fref1/source2;
+%inc &fref1/source2 lrecl=33000;
 
 %if &mdebug=0 %then %do;
   proc sql;

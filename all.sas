@@ -13407,6 +13407,8 @@ run;
     change, plus ALL SUBSEQUENT CHANGES, will be reverted in the output table.
   @param [in] difftable The dataset containing the diffs.  Definition available
     in mddl_dc_difftable.sas
+  @param [in] filtervar= (0) If provided, the contents of this macro variable
+    will be applied as an additional filter against &libds
   @param [out] outds= (work.mp_stripdiffs) Output table containing the diffs.
     Has the same format as the base datset, plus a
     `_____DELETE__THIS__RECORD_____` variable.
@@ -13434,6 +13436,7 @@ run;
 %macro mp_stripdiffs(libds
   ,loadref
   ,difftable
+  ,filtervar=0
   ,outds=work.mp_stripdiffs
   ,mdebug=0
 )/*/STORE SOURCE*/;
@@ -13457,11 +13460,11 @@ run;
   ,msg=%str(Invalid library.dataset reference - %superq(libds))
 )
 
-
-
 /* set up unique and temporary vars */
-%local ds1 ds2 ds3 ds4 ds5 fref1;
+%local ds1 ds2 ds3 ds4 ds5 fref1 filterstr;
 %let fref1=%mf_getuniquefileref();
+%if &filtervar ne 0 %then %let filterstr=%superq(&filtervar);
+%else %let filterstr=%str(1=1);
 
 /* get timestamp of the diff to be reverted */
 %local ts;
@@ -13546,7 +13549,7 @@ create table &outds as select "No " as _____DELETE__THIS__RECORD_____
     ,b.%scan(&notpkcols,&x,%str( ))
   %end;
   from &ds5 a
-  left join &libds b
+  left join &libds (where=(&filterstr)) b
   on 1=1
 %do x=1 %to %sysfunc(countw(&pk,%str( )));
   and a.%scan(&pk,&x,%str( ))=b.%scan(&pk,&x,%str( ))

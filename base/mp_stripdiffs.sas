@@ -30,7 +30,9 @@
   <h4> SAS Macros </h4>
   @li mf_getuniquefileref.sas
   @li mf_getuniquename.sas
+  @li mf_getvarlist.sas
   @li mf_islibds.sas
+  @li mf_wordsinstr1butnotstr2.sas
   @li mp_abort.sas
 
   <h4> Related Macros </h4>
@@ -97,30 +99,28 @@ create table &ds1 (drop=libref dsn) as
 
 /* extract key values only */
 %let ds2=%upcase(work.%mf_getuniquename(prefix=mpsd_pks));
+%local keyhash processed;
+%let keyhash=%upcase(%mf_getuniquename(prefix=mpsdvar_keyhash));
+%let processed=%upcase(%mf_getuniquename(prefix=mpsdvar_processed));
 create table &ds2 as
-  select distinct key_hash,
+  select key_hash as &keyhash,
     tgtvar_nm,
     tgtvar_type,
     coalescec(oldval_char,newval_char) as charval,
     coalesce(oldval_num, newval_num) as numval,
-    processed_dttm
+    processed_dttm as &processed
   from &ds1
   where is_pk=1
-  order by key_hash, processed_dttm;
+  order by &keyhash, &processed;
 
 /* grab pk values */
 %local pk;
-data _null_;
-  set &ds2;
-  by key_hash processed_dttm;
-  call symputx('pk',catx(' ',symget('pk'),tgtvar_nm),'l');
-  if last.processed_dttm then stop;
-run;
+select distinct upcase(tgtvar_nm) into: pk separated by ' ' from &ds2;
 
 %let ds3=%upcase(work.%mf_getuniquename(prefix=mpsd_keychar));
 proc transpose data=&ds2(where=(tgtvar_type='C'))
     out=&ds3(drop=_name_);
-  by KEY_HASH PROCESSED_DTTM;
+  by &keyhash &processed;
   id TGTVAR_NM;
   var charval;
 run;
@@ -128,7 +128,7 @@ run;
 %let ds4=%upcase(work.%mf_getuniquename(prefix=mpsd_keynum));
 proc transpose data=&ds2(where=(tgtvar_type='N'))
     out=&ds4(drop=_name_);
-  by KEY_HASH PROCESSED_DTTM;
+  by &keyhash &processed;
   id TGTVAR_NM;
   var numval;
 run;
@@ -139,10 +139,10 @@ run;
 /* now merge to get all key values and de-dup */
 %let ds5=%upcase(work.%mf_getuniquename(prefix=mpsd_merged));
 data &ds5;
-  length key_hash $32 processed_dttm 8;
+  length &keyhash $32 &processed 8;
   merge &ds3 &ds4;
-  by key_hash;
-  if not missing(key_hash);
+  by &keyhash &processed;
+  if not missing(&keyhash);
 run;
 proc sort data=&ds5 nodupkey;
   by &pk;
@@ -150,10 +150,18 @@ run;
 
 /* join to base table for preliminary stage DS */
 proc sql;
-create table &outds as select "No " as _____DELETE__THIS__RECORD_____,
-    b.*
+create table &outds as select "No " as _____DELETE__THIS__RECORD_____
+  %do x=1 %to %sysfunc(countw(&pk,%str( )));
+    ,a.%scan(&pk,&x,%str( ))
+  %end;
+  %local notpkcols;
+  %let notpkcols=%upcase(%mf_getvarlist(&libds));
+  %let notpkcols=%mf_wordsinstr1butnotstr2(str1=&notpkcols,str2=&pk);
+  %do x=1 %to %sysfunc(countw(&notpkcols,%str( )));
+    ,b.%scan(&notpkcols,&x,%str( ))
+  %end;
   from &ds5 a
-  inner join &libds b
+  left join &libds b
   on 1=1
 %do x=1 %to %sysfunc(countw(&pk,%str( )));
   and a.%scan(&pk,&x,%str( ))=b.%scan(&pk,&x,%str( ))
@@ -202,13 +210,23 @@ data _null_;
   end;
   else if move_type='D' then do;
     if first.key_hash then do;
-      put "insert into &outds set _____DELETE__THIS__RECORD_____='No' " @@;
+      put "update &outds set _____DELETE__THIS__RECORD_____='No' " @@;
     end;
-    put "  ," tgtvar_nm '=' @@;
-    cnt=count(oldval_char,'"');
-    charval=quote(trim(substr(oldval_char,1,32765-cnt)));
-    if tgtvar_type='C' then put charval @@;
-    else put oldval_num @@;
+    if IS_PK=0 then do;
+      put "  ," tgtvar_nm '=' @@;
+      cnt=count(oldval_char,'"');
+      charval=quote(trim(substr(oldval_char,1,32765-cnt)));
+      if tgtvar_type='C' then put charval @@;
+      else put oldval_num @@;
+    end;
+    else do;
+      if first.is_pk then put "  where 1=1 " @@;
+      put "  and " tgtvar_nm '=' @@;
+      cnt=count(oldval_char,'"');
+      charval=quote(trim(substr(oldval_char,1,32765-cnt)));
+      if tgtvar_type='C' then put charval @@;
+      else put oldval_num @@;
+    end;
   end;
   if last.key_hash then put ';';
 run;

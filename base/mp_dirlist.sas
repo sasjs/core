@@ -85,7 +85,7 @@ data;run;
 data &out_ds(compress=no
     keep=file_or_folder filepath filename ext msg directory level
   );
-  length directory filepath $500 fref fref2 $8 file_or_folder $6 filename $80
+  length directory filepath $2000 fref fref2 $8 file_or_folder $6 filename $255
     ext $20 msg $200 foption $16;
   if _n_=1 then call missing(of _all_);
   retain level &level;

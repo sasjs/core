@@ -130,6 +130,10 @@ data members(compress=char);
   keep name name2 path;
 run;
 
+proc sort data=members;
+  by name;
+run;
+
 %let temp_options = %sysfunc(getoption(source)) %sysfunc(getoption(notes));
 options nosource nonotes;
 data _null_;

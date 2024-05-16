@@ -131,14 +131,14 @@ data members(compress=char);
 run;
 
 proc sort data=members;
-  by name;
+  by name name2;
 run;
 
 %let temp_options = %sysfunc(getoption(source)) %sysfunc(getoption(notes));
 options nosource nonotes;
 data _null_;
   set members;
-  by name notsorted;
+  by name;
 
   ord + first.name;
 

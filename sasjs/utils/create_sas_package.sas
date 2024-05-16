@@ -9,6 +9,12 @@
     Requires the server to have SSH keys.
 
   <h4> SAS Macros </h4>
+  @li mf_mkdir.sas
+  @li mp_gitadd.sas
+  @li mp_gitreleaseinfo.sas
+  @li mp_gitstatus.sas
+
+  <h4> SAS Macros </h4>
   @li mp_gitadd.sas
   @li mp_gitreleaseinfo.sas
   @li mp_gitstatus.sas

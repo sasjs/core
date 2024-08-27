@@ -14774,7 +14774,8 @@ filename __us2grp clear;
 
 %local cur_engine;
 %let cur_engine=%mf_getengine(&libref);
-%if &cur_engine ne META and &cur_engine ne %then %do;
+%if &cur_engine ne META and &cur_engine ne and %length(&open_passthrough)=0
+%then %do;
   %put NOTE:  &libref already has a direct (&cur_engine) libname connection;
   %return;
 %end;

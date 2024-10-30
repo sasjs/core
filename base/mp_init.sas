@@ -70,6 +70,7 @@ options
 %if "%substr(&sysver,1,1)" ne "4" and "%substr(&sysver,1,1)" ne "5" %then %do;
   noautocorrect           /* disallow misspelled procedure names            */
   dsoptions=note2err      /* undocumented - convert bad NOTEs to ERRs       */
+                          /* turn off with dsoptions=nonote2err             */
 %end;
 ;
 

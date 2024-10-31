@@ -11,6 +11,7 @@
   @li mf_existds.sas
   @li mp_assertdsobs.sas
   @li mp_assertcols.sas
+  @li mf_getvartype.sas
   @li ms_deletefile.sas
 
 **/
@@ -51,11 +52,12 @@ options mprint;
     ,outds=work.mySessions
   )
 %mp_assertscope(COMPARE
-                ,ignorelist=RESPONSE_JADP1LEN RESPONSE_JADPNUM RESPONSE_JADVLEN)
+                ,ignorelist=MCLIB0_JADP1LEN MCLIB0_JADPNUM MCLIB0_JADVLEN)
 
 %mp_assert(iftrue=%str(%mf_existds(work.mySessions)=1)
           ,desc=Testing output exists
-          ,outds=work.test_results)
+          ,outds=work.test_results
+)
 
 %mp_assertdsobs(work.mySessions,
   test=EQUALS 2,
@@ -65,7 +67,23 @@ options mprint;
 %mp_assertcols(work.mySessions,
   cols=sessionid,
   test=ALL,
-  desc=Testing column exists
+  desc=Testing column exists,
+  outds=work.test_results
+)
+
+data _null_;
+  retain contentCheck 1;
+  set work.mySessions end=last;
+  if missing(sessionID) then contentCheck = 0;
+  if last then do;
+    call symputx("contentCheck",contentCheck,"l");
+  end;
+run;
+%let typeCheck = %mf_getvartype(work.mySessions,sessionid);
+
+%mp_assert(iftrue=%str(&typeCheck = C and &contentCheck = 1)
+          ,desc=Testing type and content of output
+          ,outds=work.test_results
 )
 
 %ms_deletefile(/sasjs/tests/&fname1..sas)

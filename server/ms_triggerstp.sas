@@ -39,6 +39,7 @@
 
   <h4> SAS Macros </h4>
   @li mf_getuniquefileref.sas
+  @li mf_getuniquelibref.sas
   @li mf_getuniquename.sas
   @li mp_abort.sas
   @li mp_dropmembers.sas
@@ -54,7 +55,7 @@
     ,outds=work.ms_triggerstp
     ,mdebug=0
   );
-  %local dbg mainref authref boundary triggered_sid;
+  %local dbg mainref authref boundary libref triggered_sid;
   %let mainref=%mf_getuniquefileref();
   %let authref=%mf_getuniquefileref();
   %let boundary=%mf_getuniquename();
@@ -81,16 +82,11 @@
   %let optval=%sysfunc(getoption(bomfile));
   options nobomfile;
 
-  /* Add header to the content of the http request */
-  data _null_;
-    file &mainref termstr=crlf lrecl=32767;
-    put "--&boundary";
-  run;
-
   /* Add params to the content */
   data _null_;
     file &mainref termstr=crlf lrecl=32767 mod;
     length line $1000 name $32 value $32767;
+    put "--&boundary";
     if _n_=1 then call missing(of _all_);
     set &inputparams;
     line=cats('Content-Disposition: form-data; name="',name,'"');
@@ -201,11 +197,12 @@
   /* reset options */
   options &optval;
 
-  libname response JSON fileref=&outref;
+  %let libref=%mf_getuniquelibref();
+  libname &libref JSON fileref=&outref;
   %let triggered_sid=%mf_getuniquename(prefix=triggered_sid_);
 
   data work.&triggered_sid (keep=sessionid);
-    set response.root;
+    set &libref..root;
 
     %if &mdebug=1 %then %do;
       putlog (_all_)(=);
@@ -226,6 +223,7 @@
     filename &authref;
     filename &mainref;
     filename &outref;
+    libname &libref clear;
     /* and remove temp dataset */
     %mp_dropmembers(&triggered_sid,libref=work);
   %end;

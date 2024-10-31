@@ -9,9 +9,9 @@
   @li ms_createfile.sas
   @li ms_triggerstp.sas
   @li mf_existds.sas
-  @li mf_nobs.sas
-  @li ms_deletefile.sas
+  @li mp_assertdsobs.sas
   @li mp_assertcols.sas
+  @li ms_deletefile.sas
 
 **/
 

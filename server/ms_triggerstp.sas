@@ -86,9 +86,9 @@
   data _null_;
     file &mainref termstr=crlf lrecl=32767 mod;
     length line $1000 name $32 value $32767;
-    put "--&boundary";
     if _n_=1 then call missing(of _all_);
     set &inputparams;
+    put "--&boundary";
     line=cats('Content-Disposition: form-data; name="',name,'"');
     put line;
     put ;

@@ -17725,7 +17725,7 @@ data &outassocs;
     n1+1;
   end;
 run;
-proc sort;
+proc sort SORTSEQ=LINGUISTIC;
   by assoc name;
 run;
 
@@ -17745,7 +17745,7 @@ data &outattrs;
     n1+1;
   end;
 run;
-proc sort;
+proc sort SORTSEQ=LINGUISTIC;
   by type name;
 run;
 

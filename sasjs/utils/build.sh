@@ -16,8 +16,9 @@ rm -rf sasjsbuild/docsite/*.dot
 rm -rf sasjsbuild/docsite/*.css
 rm -rf sasjsbuild/docsite/*.svg
 rm -rf search
-mv sasjsbuild/docs/* sasjsbuild/docsite/
+cp -R sasjsbuild/docs/* sasjsbuild/docsite/
 cd sasjsbuild/docsite/
+git config user.name sasjs
 echo 'core.sasjs.io' > CNAME
 git add .
 git commit -m "build.sh build on $(date +%F:%H:%M:%S)"

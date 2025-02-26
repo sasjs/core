@@ -34,6 +34,10 @@ jobs:
           USER_KEY: ${{ secrets.USER_KEY }}
           TLS_KEY: ${{ secrets.TLS_KEY }}
 
+      - name: Chmod VPN files
+        run: |
+          chmod 600 .github/vpn/ca.crt .github/vpn/user.crt .github/vpn/user.key .github/vpn/tls.key
+
       - name: Install Open VPN
         run: |
           sudo apt install apt-transport-https

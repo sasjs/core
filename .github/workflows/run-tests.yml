@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     strategy:
       matrix:
@@ -34,6 +34,10 @@ jobs:
           USER_KEY: ${{ secrets.USER_KEY }}
           TLS_KEY: ${{ secrets.TLS_KEY }}
 
+      - name: Chmod VPN files
+        run: |
+          chmod 600 .github/vpn/ca.crt .github/vpn/user.crt .github/vpn/user.key .github/vpn/tls.key
+
       - name: Install Open VPN
         run: |
           sudo apt install apt-transport-https
@@ -42,8 +46,13 @@ jobs:
           sudo wget -O /etc/apt/sources.list.d/openvpn3.list https://swupdate.openvpn.net/community/openvpn3/repos/openvpn3-jammy.list
           sudo apt update
           sudo apt install openvpn3=17~betaUb22042+jammy
+
       - name: Start Open VPN 3
         run: openvpn3 session-start --config .github/vpn/config.ovpn
+
+      - name: Fetch SASJS server
+        run: curl ${{ secrets.SASJS_SERVER_URL }}/SASjsApi/info
+
       - name: Install Doxygen
         run: sudo apt-get install doxygen
 

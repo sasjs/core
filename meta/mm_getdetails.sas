@@ -1,22 +1,20 @@
 /**
   @file mm_getdetails.sas
   @brief extracts metadata attributes and associations for a particular uri
-
   @param [in] uri the metadata object for which to return
     attributes / associations
+  @param [in] sortoptions Enables sorting of the output datasets, for example,
+    `SORTSEQ=LINGUISTIC`
   @param [out] outattrs= (work.attributes)
     The dataset to create that contains the list of attributes
   @param [out] outassocs= (work.associations)
     The dataset to contain the list of associations
-
-  @version 9.2
-  @author Allan Bowe
-
 **/
 
 %macro mm_getdetails(uri
   ,outattrs=work.attributes
   ,outassocs=work.associations
+  ,sortoptions=
 )/*/STORE SOURCE*/;
 
 data &outassocs;
@@ -41,7 +39,7 @@ data &outassocs;
     n1+1;
   end;
 run;
-proc sort;
+proc sort &sortoptions;
   by assoc name;
 run;
 
@@ -61,7 +59,7 @@ data &outattrs;
     n1+1;
   end;
 run;
-proc sort;
+proc sort &sortoptions;
   by type name;
 run;
 

@@ -3,12 +3,17 @@
   @brief extracts metadata attributes and associations for a particular uri
   @param [in] uri the metadata object for which to return
     attributes / associations
-  @param [in] sortoptions Enables sorting of the output datasets, for example,
+  @param [in] sortoptions= Enables sorting of the output datasets, for example,
     `SORTSEQ=LINGUISTIC`
   @param [out] outattrs= (work.attributes)
     The dataset to create that contains the list of attributes
   @param [out] outassocs= (work.associations)
     The dataset to contain the list of associations
+
+  <h4> Related Files </h4>
+  @li mm_getobjects.sas
+  @li mm_gettypes.sas
+
 **/
 
 %macro mm_getdetails(uri

@@ -17,6 +17,7 @@
 %macro mm_getdetails(uri
   ,outattrs=work.attributes
   ,outassocs=work.associations
+  ,sortoptions=
 )/*/STORE SOURCE*/;
 
 data &outassocs;
@@ -41,7 +42,7 @@ data &outassocs;
     n1+1;
   end;
 run;
-proc sort;
+proc sort &sortoptions;
   by assoc name;
 run;
 
@@ -61,7 +62,7 @@ data &outattrs;
     n1+1;
   end;
 run;
-proc sort;
+proc sort &sortoptions;
   by type name;
 run;
 

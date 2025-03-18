@@ -26,13 +26,10 @@
   "homepage": "https://core.sasjs.io",
   "main": "index.js",
   "scripts": {
-    "build": "sasjs cbd -t server",
-    "docs": "sasjs doc -t docsonly && ./sasjs/utils/build.sh",
-    "test": "sasjs test -t server",
-    "lint": "sasjs lint",
+    "build": "npx @sasjs/cli cbd -t server",
+    "docs": "npx @sasjs/cli doc -t docsonly && ./sasjs/utils/build.sh",
+    "test": "npx @sasjs/cli test -t server",
+    "lint": "npx @sasjs/cli lint",
     "prepare": "git rev-parse --git-dir && git config core.hooksPath ./.git-hooks || true"
-  },
-  "devDependencies": {
-    "@sasjs/cli": "^4.4.1"
   }
 }

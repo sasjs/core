@@ -7,7 +7,7 @@
     "Viya",
     "SASjs"
   ],
-  "author": "Allan Bowe <support@macropeople.com>",
+  "author": "Allan Bowe",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/sasjs/core.git"

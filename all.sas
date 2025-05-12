@@ -29607,8 +29607,8 @@ function mcf_getfmttype(fmtnm $) $8;
     /* apply lookups */
     if cats(fmt) in ('DATETIME','B8601DN','B8601DN','B8601DT','B8601DT'
       ,'B8601DZ','B8601DZ','DATEAMPM','DTDATE','DTMONYY','DTWKDATX','DTYEAR'
-      ,'DTYYQC','E8601DN','E8601DN','E8601DT','E8601DT','E8601DZ','E8601DZ')
-      then return('DATETIME');
+      ,'DTYYQC','E8601DN','E8601DN','E8601DT','E8601DT','E8601DZ','E8601DZ'
+      ,'NLDATM') then return('DATETIME');
     else if fmt in ('DATE','YYMMDD','B8601DA','B8601DA','DAY','DDMMYY'
       ,'DDMMYYB','DDMMYYC','DDMMYYD','DDMMYYN','DDMMYYP','DDMMYYS','DDMMYYx'
       ,'DOWNAME','E8601DA','E8601DA','JULDAY','JULIAN','MMDDYY','MMDDYYB'
@@ -29619,7 +29619,7 @@ function mcf_getfmttype(fmtnm $) $8;
       ,'YYMMD','YYMMDDB','YYMMDDC','YYMMDDD','YYMMDDN','YYMMDDP','YYMMDDS'
       ,'YYMMDDx','YYMMN','YYMMP','YYMMS','YYMMx','YYMON','YYQ','YYQC','YYQD'
       ,'YYQN','YYQP','YYQR','YYQRC','YYQRD','YYQRN','YYQRP','YYQRS','YYQRx'
-      ,'YYQS','YYQx','YYQZ') then return('DATE');
+      ,'YYQS','YYQx','YYQZ','NLDATE') then return('DATE');
     else if fmt in ('TIME','B8601LZ','B8601LZ','B8601TM','B8601TM','B8601TZ'
       ,'B8601TZ','E8601LZ','E8601LZ','E8601TM','E8601TM','E8601TZ','E8601TZ'
       ,'HHMM','HOUR','MMSS','TIMEAMPM','TOD') then return('TIME');

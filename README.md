@@ -237,6 +237,7 @@ If you find this library useful, please leave a [star](https://github.com/sasjs/
 The following repositories are also worth checking out:
 
 * [chris-swenson/sasmacros](https://github.com/chris-swenson/sasmacros)
+* [Criptic/sas_snippets](https://github.com/Criptic/sas_snippets)
 * [greg-wotton/sas-programs](https://github.com/greg-wootton/sas-programs)
 * [KatjaGlassConsulting/SMILE-SmartSASMacros](https://github.com/KatjaGlassConsulting/SMILE-SmartSASMacros)
 * [paul-canals/toolbox](https://github.com/paul-canals/toolbox)

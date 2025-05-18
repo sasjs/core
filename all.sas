@@ -2276,11 +2276,7 @@ Usage:
 %else %if &ext=movie %then %do;%str(video/x-sgi-movie)%end;
 %else %if &ext=ice %then %do;%str(x-conference/x-cooltalk)%end;
 %else %if "&ext"="in" %then %do;%str(text/plain)%end;
-%else %do;
-  %put %str(WARN)ING: extension &ext not found!;
-  %put %str(WARN)ING- Returning text/plain.;
-  %str(text/plain)
-%end;
+%else %do;%str(application/octet-stream)%end;
 
 %mend mf_mimetype;/**
   @file
@@ -24175,9 +24171,60 @@ run;
 %mend mfv_existsashdat;
 /**
   @file
-  @brief Creates a file in SAS Drive
-  @details Creates a file in SAS Drive and adds the appropriate content type.
+  @brief Returns the uri of a file or folder
+  @details The automatic variable _FILESRVC_[fref]_URI is used after assigning
+  a fileref using the filesrvc engine.
+
+  Usage:
+
+      %put %mfv_existfile(/Public/folder/file.txt);
+      %put %mfv_existfile(/Public/folder);
+
+  @param [in] filepath The full path to the file on SAS drive
+    (eg /Public/myfile.txt)
+
+  <h4> SAS Macros </h4>
+  @li mf_abort.sas
+  @li mf_getuniquefileref.sas
+
+  <h4> Related Macros </h4>
+  @li mfv_existfile.sas
+  @li mfv_existfolder.sas
+
+  @version 3.5
+  @author [Allan Bowe](https://www.linkedin.com/in/allanbowe/)
+**/
+
+%macro mfv_getpathuri(filepath
+)/*/STORE SOURCE*/;
+
+  %mf_abort(
+    iftrue=(&syscc ne 0),
+    msg=Cannot enter &sysmacroname with syscc=&syscc
+  )
+
+  %local fref rc path name;
+  %let fref=%mf_getuniquefileref();
+  %let name=%scan(&filepath,-1,/);
+  %let path=%substr(&filepath,1,%length(&filepath)-%length(&name)-1);
+
+  %if %sysfunc(filename(fref,,filesrvc,folderPath="&path" filename="&name"))=0
+  %then %do;&&_FILESRVC_&fref._URI%let rc=%sysfunc(filename(fref));
+  %end;
+  %else %do;
+    %put &sysmacroname: did not find &filepath;
+    %let syscc=0;
+  %end;
+
+%mend mfv_getpathuri;/**
+  @file
+  @brief Creates a file in SAS Drive using the API method
+  @details Creates a file in SAS Drive using the API interface.
   If the parent folder does not exist, it is created.
+  The API approach is more flexible than using the filesrvc engine of the
+  filename statement, as it provides more options.
+
+  SAS docs:  https://developer.sas.com/rest-apis/files/createNewFile
 
   Usage:
 
@@ -24189,37 +24236,41 @@ run;
       %mv_createfile(path=/Public/temp,name=newfile.txt,inref=myfile)
 
 
-  @param [in] path= The parent folder in which to create the file
+  @param [in] path= The parent (SAS Drive) folder in which to create the file
   @param [in] name= The name of the file to be created
   @param [in] inref= The fileref pointing to the file to be uploaded
   @param [in] intype= (BINARY) The type of the input data.  Valid values:
     @li BINARY File is copied byte for byte using the mp_binarycopy.sas macro.
     @li BASE64 File will be first decoded using the mp_base64.sas macro, then
       loaded byte by byte to SAS Drive.
-  @param [in] contentdisp= (inline) Content Disposition. Example values:
+  @param [in] contentdisp= Content Disposition. Example values:
     @li inline
     @li attachment
-  @param [in] ctype= (0) Set a default HTTP Content-Type header to be returned
-    with the file when the content is retrieved from the Files service.
+  @param [in] ctype= (0) The actual MIME type of the file (if blank will be
+    determined based on file extension))
   @param [in] access_token_var= The global macro variable to contain the access
     token, if using authorization_code grant type.
   @param [in] grant_type= (sas_services) Valid values are:
     @li password
     @li authorization_code
     @li sas_services
+  @param [out] outds= (_null_) Output dataset with the uri of the new file
 
   @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
 
-  @version VIYA V.03.05
-  @author Allan Bowe, source: https://github.com/sasjs/core
-
   <h4> SAS Macros </h4>
+  @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
+  @li mf_getuniquename.sas
   @li mf_isblank.sas
+  @li mf_mimetype.sas
   @li mp_abort.sas
   @li mp_base64copy.sas
   @li mp_binarycopy.sas
   @li mv_createfolder.sas
+
+  <h4> Related Macros</h4>
+  @li mv_createfile.sas
 
 **/
 
@@ -24227,11 +24278,12 @@ run;
     ,name=
     ,inref=
     ,intype=BINARY
-    ,contentdisp=inline
+    ,contentdisp=
     ,ctype=0
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
     ,mdebug=0
+    ,outds=_null_
   );
 %local dbg;
 %if &mdebug=1 %then %do;
@@ -24266,38 +24318,87 @@ run;
   ,msg=%str(name value with length >1 must be provided)
 )
 
+/* prep the source file */
+%local fref;
+%let fref=%mf_getuniquefileref();
+
+%if %upcase(&intype)=BINARY %then %do;
+  %mp_binarycopy(inref=&inref, outref=&fref)
+%end;
+%else %if %upcase(&intype)=BASE64 %then %do;
+  %mp_base64copy(inref=&inref, outref=&fref, action=DECODE)
+%end;
+%else %put %str(ERR)OR: invalid value for intype: &intype;
+
+
+%if &mdebug=1 %then %do;
+  data _null_;
+    infile &fref lrecl=32767;
+    input;
+    put _infile_;
+  run;
+%end;
+
+
 /* create folder if it does not already exist */
+%local folderds parenturi;
+%let folderds=%mf_getuniquename(prefix=folderds);
 %mv_createfolder(path=&path
   ,access_token_var=&access_token_var
   ,grant_type=&grant_type
   ,mdebug=&mdebug
+  ,outds=&folderds
 )
+data _null_;
+  set &folderds;
+  call symputx('self_uri',self_uri,'l');
+run;
 
-/* create file with relevant options */
-%local fref;
-%let fref=%mf_getuniquefileref();
-filename &fref filesrvc
-  folderPath="&path"
-  filename="&name"
-  cdisp="&contentdisp"
-%if "&ctype" ne "0" %then %do;
-  ctype="&ctype"
-%end;
-  lrecl=1048544;
-%if &intype=BINARY %then %do;
-  %mp_binarycopy(inref=&inref, outref=&fref)
-%end;
-%else %if &intype=BASE64 %then %do;
-  %mp_base64copy(inref=&inref, outref=&fref, action=DECODE)
-%end;
 
-filename &fref clear;
-
+options noquotelenmax;
 %local base_uri; /* location of rest apis */
 %let base_uri=%mf_getplatform(VIYARESTAPI);
 
-%put &sysmacroname: File &name successfully created in &path;
-%put &sysmacroname:;%put;
+
+/* fetch job info */
+%local fname1;
+%let fname1=%mf_getuniquefileref();
+proc http method='POST' out=&fname1 &oauth_bearer in=&fref
+  %if "&ctype" = "0" %then %do;
+    ct="%mf_mimetype(%scan(&name,-1,.))"
+  %end;
+  %else %do;
+    ct="&ctype"
+  %end;
+  url="&base_uri/files/files?parentFolderUri=&self_uri";
+
+  headers "Accept"="application/json"
+  %if &grant_type=authorization_code %then %do;
+    "Authorization"="Bearer &&&access_token_var"
+  %end;
+    "Content-Disposition"= "&contentdisp filename=""&name""; name=""&name"";";
+run;
+%put &=SYS_PROCHTTP_STATUS_CODE;
+%put &=SYS_PROCHTTP_STATUS_PHRASE;
+%mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 201)
+  ,mac=&sysmacroname
+  ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
+)
+%local libref2;
+%let libref2=%mf_getuniquelibref();
+libname &libref2 JSON fileref=&fname1;
+%put Grabbing the follow on link ;
+data &outds;
+  set &libref2..links end=last;
+  if rel='createChild' then do;
+    call symputx('href',quote(cats("&base_uri",href)),'l');
+    &dbg put (_all_)(=);
+  end;
+run;
+
+
+
+%put &sysmacroname: File &name successfully created:;%put;
 %put    &base_uri/SASJobExecution?_file=&path/&name;%put;
 %put &sysmacroname:;
 
@@ -24320,15 +24421,16 @@ filename &fref clear;
     @li sas_services
 
   @param [in] mdebug=(0) set to 1 to enable DEBUG messages
+  @param [out] outds=(_null_) Optionally create an output dataset which will
+    contain the uri (self_uri) of the created (and parent) folder.
 
-  @version VIYA V.03.04
-  @author Allan Bowe, source: https://github.com/sasjs/core
 
   <h4> SAS Macros </h4>
   @li mp_abort.sas
   @li mf_getuniquefileref.sas
   @li mf_getuniquelibref.sas
   @li mf_isblank.sas
+  @li mfv_getpathuri.sas
   @li mf_getplatform.sas
   @li mfv_existfolder.sas
 
@@ -24339,6 +24441,7 @@ filename &fref clear;
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
     ,mdebug=0
+    ,outds=_null_
   );
 %local dbg;
 %if &mdebug=1 %then %do;
@@ -24349,6 +24452,11 @@ filename &fref clear;
 
 %if %mfv_existfolder(&path)=1 %then %do;
   %put &sysmacroname: &path already exists;
+  data &outds;
+    self_uri="%mfv_getpathuri(&path)";
+    output;
+    stop;
+  run;
   %return;
 %end;
 
@@ -24383,11 +24491,11 @@ options noquotelenmax;
 %local subfolder_cnt; /* determine the number of subfolders */
 %let subfolder_cnt=%sysfunc(countw(&path,/));
 
-%local href; /* resource address (none for root) */
-%let href="/folders/folders?parentFolderUri=/folders/folders/none";
-
 %local base_uri; /* location of rest apis */
 %let base_uri=%mf_getplatform(VIYARESTAPI);
+
+%local href; /* resource address (none for root) */
+%let href="&base_uri/folders/folders?parentFolderUri=/folders/folders/none";
 
 %local x newpath subfolder;
 %do x=1 %to &subfolder_cnt;
@@ -24418,7 +24526,7 @@ options noquotelenmax;
     %put &sysmacroname following check to see if &newpath exists:;
     %put _local_;
     data _null_;
-      set &fname1;
+      infile &fname1;
       input;
       putlog _infile_;
     run;
@@ -24470,12 +24578,17 @@ options noquotelenmax;
     %let libref2=%mf_getuniquelibref();
     libname &libref2 JSON fileref=&fname2;
     %put &sysmacroname &newpath now created. Grabbing the follow on link ;
-    data _null_;
+    data &outds;
       set &libref2..links;
       if rel='createChild' then do;
         call symputx('href',quote(cats("&base_uri",href)),'l');
         &dbg put (_all_)(=);
       end;
+      if method='GET' and rel='self' then do;
+        self_uri=uri;
+        output;
+      end;
+      keep self_uri ;
     run;
 
     libname &libref2 clear;

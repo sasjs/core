@@ -21,10 +21,23 @@ data _null_;
   file somefile;
   put 'hello testings';
 run;
-%mv_createfile(path=&mcTestAppLoc/temp, name=&file..txt,inref=somefile)
+%mv_createfile(path=&mcTestAppLoc/temp, name=&file..txt,inref=somefile,mdebug=1)
 
 %mp_assert(
   iftrue=(%mfv_existfile(&mcTestAppLoc/temp/&file..txt)=1),
+  desc=Check if created file exists
+)
+
+%put TEST 2 - html file;
+filename f2 temp;
+data _null_;
+  file f2;
+  put '<html><body><p>Hello world</p></body></html>';
+run;
+%mv_createfile(path=&mcTestAppLoc/temp, name=test.html,inref=f2,mdebug=1)
+
+%mp_assert(
+  iftrue=(%mfv_existfile(&mcTestAppLoc/temp/test.html)=1),
   desc=Check if created file exists
 )
 
@@ -34,7 +47,7 @@ x=1;
 run;
 filename ds "%sysfunc(pathname(work))/temp.sas7bdat";
 
-%mv_createfile(path=&mcTestAppLoc/temp, name=&file..sas7bdat,inref=ds)
+%mv_createfile(path=&mcTestAppLoc/temp, name=&file..sas7bdat,inref=ds,mdebug=1)
 
 %mp_assert(
   iftrue=(%mfv_existfile(&mcTestAppLoc/temp/&file..sas7bdat)=1),

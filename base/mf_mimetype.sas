@@ -431,10 +431,6 @@
 %else %if &ext=movie %then %do;%str(video/x-sgi-movie)%end;
 %else %if &ext=ice %then %do;%str(x-conference/x-cooltalk)%end;
 %else %if "&ext"="in" %then %do;%str(text/plain)%end;
-%else %do;
-  %put %str(WARN)ING: extension &ext not found!;
-  %put %str(WARN)ING- Returning text/plain.;
-  %str(text/plain)
-%end;
+%else %do;%str(application/octet-stream)%end;
 
 %mend mf_mimetype;

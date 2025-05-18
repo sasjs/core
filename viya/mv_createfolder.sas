@@ -17,15 +17,16 @@
     @li sas_services
 
   @param [in] mdebug=(0) set to 1 to enable DEBUG messages
+  @param [out] outds=(_null_) Optionally create an output dataset which will
+    contain the uri (self_uri) of the created (and parent) folder.
 
-  @version VIYA V.03.04
-  @author Allan Bowe, source: https://github.com/sasjs/core
 
   <h4> SAS Macros </h4>
   @li mp_abort.sas
   @li mf_getuniquefileref.sas
   @li mf_getuniquelibref.sas
   @li mf_isblank.sas
+  @li mfv_getpathuri.sas
   @li mf_getplatform.sas
   @li mfv_existfolder.sas
 
@@ -36,6 +37,7 @@
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
     ,mdebug=0
+    ,outds=_null_
   );
 %local dbg;
 %if &mdebug=1 %then %do;
@@ -46,6 +48,11 @@
 
 %if %mfv_existfolder(&path)=1 %then %do;
   %put &sysmacroname: &path already exists;
+  data &outds;
+    self_uri="%mfv_getpathuri(&path)";
+    output;
+    stop;
+  run;
   %return;
 %end;
 
@@ -80,11 +87,11 @@ options noquotelenmax;
 %local subfolder_cnt; /* determine the number of subfolders */
 %let subfolder_cnt=%sysfunc(countw(&path,/));
 
-%local href; /* resource address (none for root) */
-%let href="/folders/folders?parentFolderUri=/folders/folders/none";
-
 %local base_uri; /* location of rest apis */
 %let base_uri=%mf_getplatform(VIYARESTAPI);
+
+%local href; /* resource address (none for root) */
+%let href="&base_uri/folders/folders?parentFolderUri=/folders/folders/none";
 
 %local x newpath subfolder;
 %do x=1 %to &subfolder_cnt;
@@ -115,7 +122,7 @@ options noquotelenmax;
     %put &sysmacroname following check to see if &newpath exists:;
     %put _local_;
     data _null_;
-      set &fname1;
+      infile &fname1;
       input;
       putlog _infile_;
     run;
@@ -167,12 +174,17 @@ options noquotelenmax;
     %let libref2=%mf_getuniquelibref();
     libname &libref2 JSON fileref=&fname2;
     %put &sysmacroname &newpath now created. Grabbing the follow on link ;
-    data _null_;
+    data &outds;
       set &libref2..links;
       if rel='createChild' then do;
         call symputx('href',quote(cats("&base_uri",href)),'l');
         &dbg put (_all_)(=);
       end;
+      if method='GET' and rel='self' then do;
+        self_uri=uri;
+        output;
+      end;
+      keep self_uri ;
     run;
 
     libname &libref2 clear;

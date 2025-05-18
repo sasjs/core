@@ -31,12 +31,16 @@
   "targets": [
     {
       "name": "viya",
-      "serverUrl": "",
+      "serverUrl": "https://viya-f0g8ht62vq.engage.sas.com",
       "serverType": "SASVIYA",
       "httpsAgentOptions": {
         "allowInsecureRequests": false
       },
       "appLoc": "/Public/app/macrocore",
+      "deployConfig": {
+        "deployServicePack": true,
+        "deployScripts": []
+      },
       "macroFolders": [
         "viya",
         "tests/viyaonly"

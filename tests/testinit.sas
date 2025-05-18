@@ -10,7 +10,7 @@
 **/
 
 /* location in metadata or SAS Drive for temporary files */
-%let mcTestAppLoc=/tmp/tests/sasjs/core/%mf_uid();
+%let mcTestAppLoc=/Public/testresults/sasjs_core/%mf_uid();
 
 /* set defaults */
 %mp_init()

@@ -30,3 +30,19 @@ run;
   iftrue=(&test=1),
   desc=Check if temp folder can be successfully created
 )
+
+/* create a folder without output dataset as part of the original macro */
+%mv_createfolder(path=&mcTestAppLoc/temp/&folder/folder2,outds=folders2)
+
+%let test=0;
+data _null_;
+  set work.folders2;
+  putlog (_all_)(=);
+  if not missing(self_uri) and not missing(parent_uri)
+  then call symputx('test2',1);
+run;
+
+%mp_assert(
+  iftrue=(&test2=1),
+  desc=Check if outds param works
+)

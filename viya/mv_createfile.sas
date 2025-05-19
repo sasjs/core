@@ -25,7 +25,7 @@
     @li BINARY File is copied byte for byte using the mp_binarycopy.sas macro.
     @li BASE64 File will be first decoded using the mp_base64.sas macro, then
       loaded byte by byte to SAS Drive.
-  @param [in] contentdisp= Content Disposition. Example values:
+  @param [in] contentdisp= (attchment) Content Disposition. Example values:
     @li inline
     @li attachment
   @param [in] ctype= (0) The actual MIME type of the file (if blank will be
@@ -48,7 +48,6 @@
   @li mf_mimetype.sas
   @li mp_abort.sas
   @li mp_base64copy.sas
-  @li mp_binarycopy.sas
   @li mv_createfolder.sas
 
   <h4> Related Macros</h4>
@@ -60,7 +59,7 @@
     ,name=
     ,inref=
     ,intype=BINARY
-    ,contentdisp=
+    ,contentdisp=attachment
     ,ctype=0
     ,access_token_var=ACCESS_TOKEN
     ,grant_type=sas_services
@@ -104,9 +103,7 @@
 %local fref;
 %let fref=%mf_getuniquefileref();
 
-%if %upcase(&intype)=BINARY %then %do;
-  %mp_binarycopy(inref=&inref, outref=&fref)
-%end;
+%if %upcase(&intype)=BINARY %then %let fref=&inref;
 %else %if %upcase(&intype)=BASE64 %then %do;
   %mp_base64copy(inref=&inref, outref=&fref, action=DECODE)
 %end;
@@ -141,18 +138,26 @@ options noquotelenmax;
 %local base_uri; /* location of rest apis */
 %let base_uri=%mf_getplatform(VIYARESTAPI);
 
+%local url mimetype;
+%let url=&base_uri/files/files?parentFolderUri=&self_uri;
 
 /* fetch job info */
 %local fname1;
 %let fname1=%mf_getuniquefileref();
 proc http method='POST' out=&fname1 &oauth_bearer in=&fref
   %if "&ctype" = "0" %then %do;
-    ct="%mf_mimetype(%scan(&name,-1,.))"
+    %let mimetype=%mf_mimetype(%scan(&name,-1,.));
+    ct="&mimetype"
   %end;
   %else %do;
     ct="&ctype"
   %end;
-  url="&base_uri/files/files?parentFolderUri=&self_uri%str(&)typeDefName=file";
+  %if "&mimetype"="text/html" %then %do;
+    url="&url%str(&)typeDefName=file";
+  %end;
+  %else %do;
+    url="&url";
+  %end;
 
   headers "Accept"="application/json"
   %if &grant_type=authorization_code %then %do;
@@ -178,9 +183,9 @@ data &outds;
   end;
 run;
 
-
+%local mfv_getpathurivar=%mfv_getpathuri(&path/&name);
 %put &sysmacroname: File &name successfully created:;%put;
-%put    &base_uri%mfv_getpathuri(&path/&name);%put;
+%put    &base_uri&mfv_getpathurivar;%put;
 %put    &base_uri/SASJobExecution?_file=&path/&name;%put;
 %put &sysmacroname:;
 

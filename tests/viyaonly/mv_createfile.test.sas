@@ -41,7 +41,7 @@ run;
   desc=Check if created file exists
 )
 
-%put TEST 2 - dataset upload ;
+%put TEST 3 - dataset upload ;
 data temp;
 x=1;
 run;
@@ -53,3 +53,26 @@ filename ds "%sysfunc(pathname(work))/temp.sas7bdat";
   iftrue=(%mfv_existfile(&mcTestAppLoc/temp/&file..sas7bdat)=1),
   desc=Check if created dataset exists
 )
+
+%put TEST 4 - create a .sas file;
+filename f4 temp;
+data _null_;
+  file f4;
+  put '%put hello FromSASStudioBailey; ';
+run;
+%mv_createfile(path=&mcTestAppLoc/temp, name=test4.sas,inref=f4,mdebug=1)
+
+%mp_assert(
+  iftrue=(%mfv_existfile(&mcTestAppLoc/temp/&file..sas)=1),
+  desc=Check if created sas program exists
+)
+
+
+
+%put TEST 5 - reading from files service and writing back;
+filename sendfrom filesrvc folderpath="&mcTestAppLoc/temp" filename='test4.sas';
+
+OPTIONS MERROR SYMBOLGEN MLOGIC MPRINT;
+
+%mv_createfile(path=&mcTestAppLoc/temp,name=test5.sas,inref=sendfrom,mdebug=1) ;
+

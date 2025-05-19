@@ -31,7 +31,7 @@
   "targets": [
     {
       "name": "viya",
-      "serverUrl": "https://viya-f0g8ht62vq.engage.sas.com",
+      "serverUrl": "",
       "serverType": "SASVIYA",
       "httpsAgentOptions": {
         "allowInsecureRequests": false

@@ -37,6 +37,10 @@
         "allowInsecureRequests": false
       },
       "appLoc": "/Public/app/macrocore",
+      "deployConfig": {
+        "deployServicePack": true,
+        "deployScripts": []
+      },
       "macroFolders": [
         "viya",
         "tests/viyaonly"

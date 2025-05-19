@@ -1,13 +1,13 @@
 /**
   @file
   @brief Returns the uri of a file or folder
-  @details The automatic variable _FILESRVC_[fref]_URI is used after assigning
+  @details The automatic variable `_FILESRVC_[fref]_URI` is used after assigning
   a fileref using the filesrvc engine.
 
   Usage:
 
-      %put %mfv_existfile(/Public/folder/file.txt);
-      %put %mfv_existfile(/Public/folder);
+      %put %mfv_getpathuri(/Public/folder/file.txt);
+      %put %mfv_getpathuri(/Public/folder);
 
   @param [in] filepath The full path to the file on SAS drive
     (eg /Public/myfile.txt)

@@ -152,7 +152,7 @@ proc http method='POST' out=&fname1 &oauth_bearer in=&fref
   %else %do;
     ct="&ctype"
   %end;
-  url="&base_uri/files/files?parentFolderUri=&self_uri";
+  url="&base_uri/files/files?parentFolderUri=&self_uri%str(&)typeDefName=file";
 
   headers "Accept"="application/json"
   %if &grant_type=authorization_code %then %do;
@@ -179,8 +179,8 @@ data &outds;
 run;
 
 
-
 %put &sysmacroname: File &name successfully created:;%put;
+%put    &base_uri%mfv_getpathuri(&path/&name);%put;
 %put    &base_uri/SASJobExecution?_file=&path/&name;%put;
 %put &sysmacroname:;
 

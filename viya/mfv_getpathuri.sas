@@ -32,13 +32,17 @@
     msg=Cannot enter &sysmacroname with syscc=&syscc
   )
 
-  %local fref rc path name;
+  %local fref rc path name var /* var is used to avoid delete timing issue */;
   %let fref=%mf_getuniquefileref();
   %let name=%scan(&filepath,-1,/);
   %let path=%substr(&filepath,1,%length(&filepath)-%length(&name)-1);
 
   %if %sysfunc(filename(fref,,filesrvc,folderPath="&path" filename="&name"))=0
-  %then %do;&&_FILESRVC_&fref._URI%let rc=%sysfunc(filename(fref));
+  %then %do;
+    %let var=_FILESRVC_&fref._URI;
+    %str(&&&var)
+    %let rc=%sysfunc(filename(fref));
+    %symdel &var;
   %end;
   %else %do;
     %put &sysmacroname: did not find &filepath;

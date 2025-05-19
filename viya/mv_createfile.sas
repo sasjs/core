@@ -183,9 +183,8 @@ data &outds;
   end;
 run;
 
-%local mfv_getpathurivar=%mfv_getpathuri(&path/&name);
 %put &sysmacroname: File &name successfully created:;%put;
-%put    &base_uri&mfv_getpathurivar;%put;
+%put    &base_uri%mfv_getpathuri(&path/&name);%put;
 %put    &base_uri/SASJobExecution?_file=&path/&name;%put;
 %put &sysmacroname:;
 

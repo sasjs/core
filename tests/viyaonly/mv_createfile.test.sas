@@ -6,6 +6,7 @@
   @li mf_uid.sas
   @li mfv_existfile.sas
   @li mp_assert.sas
+  @li mp_assertscope.sas
   @li mv_createfile.sas
 
 
@@ -21,7 +22,14 @@ data _null_;
   file somefile;
   put 'hello testings';
 run;
+%mp_assertscope(SNAPSHOT)
 %mv_createfile(path=&mcTestAppLoc/temp, name=&file..txt,inref=somefile,mdebug=1)
+%mp_assertscope(COMPARE
+  ,ignorelist=MCLIB0_JADP1LEN MCLIB0_JADP2LEN MCLIB0_JADPNUM
+    MCLIB0_JADVLEN MCLIB2_JADP1LEN
+    SASJSPROCESSMODE SASJS_STPSRV_HEADER_LOC
+    MCLIB2_JADP2LEN MCLIB2_JADPNUM MCLIB2_JADVLEN
+)
 
 %mp_assert(
   iftrue=(%mfv_existfile(&mcTestAppLoc/temp/&file..txt)=1),
@@ -63,7 +71,7 @@ run;
 %mv_createfile(path=&mcTestAppLoc/temp, name=test4.sas,inref=f4,mdebug=1)
 
 %mp_assert(
-  iftrue=(%mfv_existfile(&mcTestAppLoc/temp/&file..sas)=1),
+  iftrue=(%mfv_existfile(&mcTestAppLoc/temp/test4.sas)=1),
   desc=Check if created sas program exists
 )
 

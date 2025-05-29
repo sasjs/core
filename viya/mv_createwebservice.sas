@@ -955,12 +955,7 @@ run;
   libname &libref1 clear;
 %end;
 
-%put &sysmacroname: Job &name successfully created in &path;
-%put &sysmacroname:;
-%put &sysmacroname: Check it out here:;
-%put &sysmacroname:;%put;
-%put    &url/SASJobExecution?_PROGRAM=&path/&name;%put;
-%put &sysmacroname:;
-%put &sysmacroname:;
+%put NOTE: &sysmacroname: Job &name successfully created!  Check it out:;
+%put NOTE-;%put NOTE-    &url/SASJobExecution?_PROGRAM=&path/&name;%put NOTE-;
 
 %mend mv_createwebservice;

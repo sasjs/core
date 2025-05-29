@@ -111,13 +111,15 @@ proc http method='GET' out=&fname1a &oauth_bearer
   headers "Authorization"="Bearer &&&access_token_var";
 %end;
 run;
-%put &=SYS_PROCHTTP_STATUS_CODE;
+%if &SYS_PROCHTTP_STATUS_CODE ne 200 %then %do;
+  %put &=sysmacroname &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;
+%end;
 %local libref1a;
 %let libref1a=%mf_getuniquelibref();
 libname &libref1a JSON fileref=&fname1a;
 %local uri found;
 %let found=0;
-%put Getting object uri from &libref1a..items;
+/* %put Getting object uri from &libref1a..items; */
 data _null_;
   length contenttype name $1000;
   set &libref1a..items;

@@ -24172,13 +24172,13 @@ run;
 /**
   @file
   @brief Returns the uri of a file or folder
-  @details The automatic variable _FILESRVC_[fref]_URI is used after assigning
+  @details The automatic variable `_FILESRVC_[fref]_URI` is used after assigning
   a fileref using the filesrvc engine.
 
   Usage:
 
-      %put %mfv_existfile(/Public/folder/file.txt);
-      %put %mfv_existfile(/Public/folder);
+      %put %mfv_getpathuri(/Public/folder/file.txt);
+      %put %mfv_getpathuri(/Public/folder);
 
   @param [in] filepath The full path to the file on SAS drive
     (eg /Public/myfile.txt)
@@ -24258,6 +24258,8 @@ run;
     @li password
     @li authorization_code
     @li sas_services
+  @param [in] force= (YES) Will overwrite (delete / recreate) files by default.
+    Set to NO to abort if a file already exists in that location.
   @param [out] outds= (_null_) Output dataset with the uri of the new file
 
   @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
@@ -24268,6 +24270,7 @@ run;
   @li mf_getuniquename.sas
   @li mf_isblank.sas
   @li mf_mimetype.sas
+  @li mfv_getpathuri.sas
   @li mp_abort.sas
   @li mp_base64copy.sas
   @li mv_createfolder.sas
@@ -24287,6 +24290,7 @@ run;
     ,grant_type=sas_services
     ,mdebug=0
     ,outds=_null_
+    ,force=YES
   );
 %local dbg;
 %if &mdebug=1 %then %do;
@@ -24308,16 +24312,16 @@ run;
 %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )
-  ,mac=&sysmacroname
+  ,mac=MV_CREATEFILE
   ,msg=%str(Invalid value for grant_type: &grant_type)
 )
 
 %mp_abort(iftrue=(%mf_isblank(&path)=1 or %length(&path)=1)
-  ,mac=&sysmacroname
+  ,mac=MV_CREATEFILE
   ,msg=%str(path value must be provided)
 )
 %mp_abort(iftrue=(%mf_isblank(&name)=1 or %length(&name)=1)
-  ,mac=&sysmacroname
+  ,mac=MV_CREATEFILE
   ,msg=%str(name value with length >1 must be provided)
 )
 
@@ -24340,9 +24344,12 @@ run;
   run;
 %end;
 
+options noquotelenmax;
+%local base_uri; /* location of rest apis */
+%let base_uri=%mf_getplatform(VIYARESTAPI);
 
 /* create folder if it does not already exist */
-%local folderds parenturi;
+%local folderds self_uri;
 %let folderds=%mf_getuniquename(prefix=folderds);
 %mv_createfolder(path=&path
   ,access_token_var=&access_token_var
@@ -24355,26 +24362,43 @@ data _null_;
   call symputx('self_uri',self_uri,'l');
 run;
 
+/* abort or delete if file already exists */
+%let force=%upcase(&force);
+%local fileuri ;
+%let fileuri=%mfv_getpathuri(&path/&name);
+%mp_abort(iftrue=(%mf_isblank(&fileuri)=0 and &force ne YES)
+  ,mac=MV_CREATEFILE
+  ,msg=%str(File &path/&name already exists and force=&force)
+)
 
-options noquotelenmax;
-%local base_uri; /* location of rest apis */
-%let base_uri=%mf_getplatform(VIYARESTAPI);
+%if %mf_isblank(&fileuri)=0 and &force=YES %then %do;
+  proc http method="DELETE" url="&base_uri&fileuri" &oauth_bearer;
+    headers
+  %if &grant_type=authorization_code %then %do;
+        "Authorization"="Bearer &&&access_token_var"
+  %end;
+        "Accept"="*/*";
+  run;
+  %put &sysmacroname DELETE &base_uri&fileuri
+    &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;
+%end;
 
-%local url mimetype;
+%local url mimetype ext;
 %let url=&base_uri/files/files?parentFolderUri=&self_uri;
+%let ext=%upcase(%scan(&name,-1,.));
 
 /* fetch job info */
 %local fname1;
 %let fname1=%mf_getuniquefileref();
 proc http method='POST' out=&fname1 &oauth_bearer in=&fref
   %if "&ctype" = "0" %then %do;
-    %let mimetype=%mf_mimetype(%scan(&name,-1,.));
+    %let mimetype=%mf_mimetype(&ext);
     ct="&mimetype"
   %end;
   %else %do;
     ct="&ctype"
   %end;
-  %if "&mimetype"="text/html" %then %do;
+  %if "&ext"="HTML" or "&ext"="CSS" or "&ext"="JS" or "&ext"="SVG" %then %do;
     url="&url%str(&)typeDefName=file";
   %end;
   %else %do;
@@ -24387,10 +24411,10 @@ proc http method='POST' out=&fname1 &oauth_bearer in=&fref
   %end;
     "Content-Disposition"= "&contentdisp filename=""&name""; name=""&name"";";
 run;
-%put &=SYS_PROCHTTP_STATUS_CODE;
-%put &=SYS_PROCHTTP_STATUS_PHRASE;
+%if &mdebug=1 %then %put &sysmacroname POST &=url
+  &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;
 %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 201)
-  ,mac=&sysmacroname
+  ,mac=MV_CREATEFILE
   ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
 )
 %local libref2;
@@ -24576,8 +24600,9 @@ options noquotelenmax;
                 'Content-Type'='application/vnd.sas.content.folder+json'
                 'Accept'='application/vnd.sas.content.folder+json';
     run;
-    %put &=SYS_PROCHTTP_STATUS_CODE;
-    %put &=SYS_PROCHTTP_STATUS_PHRASE;
+    %if &SYS_PROCHTTP_STATUS_CODE ne 200 %then %do;
+      %put &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;
+    %end;
     %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 201)
       ,mac=&sysmacroname
       ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
@@ -25917,13 +25942,8 @@ run;
   libname &libref1 clear;
 %end;
 
-%put &sysmacroname: Job &name successfully created in &path;
-%put &sysmacroname:;
-%put &sysmacroname: Check it out here:;
-%put &sysmacroname:;%put;
-%put    &url/SASJobExecution?_PROGRAM=&path/&name;%put;
-%put &sysmacroname:;
-%put &sysmacroname:;
+%put NOTE: &sysmacroname: Job &name successfully created!  Check it out:;
+%put NOTE-;%put NOTE-    &url/SASJobExecution?_PROGRAM=&path/&name;%put NOTE-;
 
 %mend mv_createwebservice;
 /**
@@ -26039,13 +26059,15 @@ proc http method='GET' out=&fname1a &oauth_bearer
   headers "Authorization"="Bearer &&&access_token_var";
 %end;
 run;
-%put &=SYS_PROCHTTP_STATUS_CODE;
+%if &SYS_PROCHTTP_STATUS_CODE ne 200 %then %do;
+  %put &=sysmacroname &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;
+%end;
 %local libref1a;
 %let libref1a=%mf_getuniquelibref();
 libname &libref1a JSON fileref=&fname1a;
 %local uri found;
 %let found=0;
-%put Getting object uri from &libref1a..items;
+/* %put Getting object uri from &libref1a..items; */
 data _null_;
   length contenttype name $1000;
   set &libref1a..items;
@@ -26171,7 +26193,7 @@ run;
   )
 %end;
 
-%put &sysmacroname: grab the follow on link ;
+/* grab the follow on link */
 %local libref1;
 %let libref1=%mf_getuniquelibref();
 libname &libref1 JSON fileref=&fname1;
@@ -26195,7 +26217,7 @@ run;
 libname &libref1a JSON fileref=&fname1a;
 %local uri found;
 %let found=0;
-%put Getting object uri from &libref1a..items;
+/* %put Getting object uri from &libref1a..items; */
 data _null_;
   length contenttype name $1000;
   set &libref1a..items;
@@ -26230,8 +26252,8 @@ filename &fname1a clear;
 libname &libref1a clear;
 
 %mend mv_deletejes;/**
-  @file mv_deleteviyafolder.sas
-  @brief Creates a viya folder if that folder does not already exist
+  @file
+  @brief Deletes a viya folder
   @details If not running in Studo 5 +, will expect an oauth token in a global
   macro variable (default ACCESS_TOKEN).
 

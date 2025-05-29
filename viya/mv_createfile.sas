@@ -36,6 +36,8 @@
     @li password
     @li authorization_code
     @li sas_services
+  @param [in] force= (YES) Will overwrite (delete / recreate) files by default.
+    Set to NO to abort if a file already exists in that location.
   @param [out] outds= (_null_) Output dataset with the uri of the new file
 
   @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
@@ -46,6 +48,7 @@
   @li mf_getuniquename.sas
   @li mf_isblank.sas
   @li mf_mimetype.sas
+  @li mfv_getpathuri.sas
   @li mp_abort.sas
   @li mp_base64copy.sas
   @li mv_createfolder.sas
@@ -65,6 +68,7 @@
     ,grant_type=sas_services
     ,mdebug=0
     ,outds=_null_
+    ,force=YES
   );
 %local dbg;
 %if &mdebug=1 %then %do;
@@ -86,16 +90,16 @@
 %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
     and &grant_type ne sas_services
   )
-  ,mac=&sysmacroname
+  ,mac=MV_CREATEFILE
   ,msg=%str(Invalid value for grant_type: &grant_type)
 )
 
 %mp_abort(iftrue=(%mf_isblank(&path)=1 or %length(&path)=1)
-  ,mac=&sysmacroname
+  ,mac=MV_CREATEFILE
   ,msg=%str(path value must be provided)
 )
 %mp_abort(iftrue=(%mf_isblank(&name)=1 or %length(&name)=1)
-  ,mac=&sysmacroname
+  ,mac=MV_CREATEFILE
   ,msg=%str(name value with length >1 must be provided)
 )
 
@@ -118,9 +122,12 @@
   run;
 %end;
 
+options noquotelenmax;
+%local base_uri; /* location of rest apis */
+%let base_uri=%mf_getplatform(VIYARESTAPI);
 
 /* create folder if it does not already exist */
-%local folderds parenturi;
+%local folderds self_uri;
 %let folderds=%mf_getuniquename(prefix=folderds);
 %mv_createfolder(path=&path
   ,access_token_var=&access_token_var
@@ -133,10 +140,26 @@ data _null_;
   call symputx('self_uri',self_uri,'l');
 run;
 
+/* abort or delete if file already exists */
+%let force=%upcase(&force);
+%local fileuri ;
+%let fileuri=%mfv_getpathuri(&path/&name);
+%mp_abort(iftrue=(%mf_isblank(&fileuri)=0 and &force ne YES)
+  ,mac=MV_CREATEFILE
+  ,msg=%str(File &path/&name already exists and force=&force)
+)
 
-options noquotelenmax;
-%local base_uri; /* location of rest apis */
-%let base_uri=%mf_getplatform(VIYARESTAPI);
+%if %mf_isblank(&fileuri)=0 and &force=YES %then %do;
+  proc http method="DELETE" url="&base_uri&fileuri" &oauth_bearer;
+    headers
+  %if &grant_type=authorization_code %then %do;
+        "Authorization"="Bearer &&&access_token_var"
+  %end;
+        "Accept"="*/*";
+  run;
+  %put &sysmacroname DELETE &base_uri&fileuri
+    &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;
+%end;
 
 %local url mimetype;
 %let url=&base_uri/files/files?parentFolderUri=&self_uri;
@@ -152,7 +175,8 @@ proc http method='POST' out=&fname1 &oauth_bearer in=&fref
   %else %do;
     ct="&ctype"
   %end;
-  %if "&mimetype"="text/html" %then %do;
+  %if "&mimetype"="text/html" or "&mimetype"="text/css"
+  or "&mimetype"="text/javascript" %then %do;
     url="&url%str(&)typeDefName=file";
   %end;
   %else %do;
@@ -165,10 +189,10 @@ proc http method='POST' out=&fname1 &oauth_bearer in=&fref
   %end;
     "Content-Disposition"= "&contentdisp filename=""&name""; name=""&name"";";
 run;
-%put &=SYS_PROCHTTP_STATUS_CODE;
-%put &=SYS_PROCHTTP_STATUS_PHRASE;
+%put &sysmacroname POST &=url
+  &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;
 %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 201)
-  ,mac=&sysmacroname
+  ,mac=MV_CREATEFILE
   ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
 )
 %local libref2;

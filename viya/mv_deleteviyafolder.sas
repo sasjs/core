@@ -1,6 +1,6 @@
 /**
-  @file mv_deleteviyafolder.sas
-  @brief Creates a viya folder if that folder does not already exist
+  @file
+  @brief Deletes a viya folder
   @details If not running in Studo 5 +, will expect an oauth token in a global
   macro variable (default ACCESS_TOKEN).
 

@@ -161,22 +161,22 @@ run;
     &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;
 %end;
 
-%local url mimetype;
+%local url mimetype ext;
 %let url=&base_uri/files/files?parentFolderUri=&self_uri;
+%let ext=%upcase(%scan(&name,-1,.));
 
 /* fetch job info */
 %local fname1;
 %let fname1=%mf_getuniquefileref();
 proc http method='POST' out=&fname1 &oauth_bearer in=&fref
   %if "&ctype" = "0" %then %do;
-    %let mimetype=%mf_mimetype(%scan(&name,-1,.));
+    %let mimetype=%mf_mimetype(&ext);
     ct="&mimetype"
   %end;
   %else %do;
     ct="&ctype"
   %end;
-  %if "&mimetype"="text/html" or "&mimetype"="text/css"
-  or "&mimetype"="text/javascript" %then %do;
+  %if "&ext"="HTML" or "&ext"="CSS" or "&ext"="JS" or "&ext"="SVG" %then %do;
     url="&url%str(&)typeDefName=file";
   %end;
   %else %do;
@@ -189,7 +189,7 @@ proc http method='POST' out=&fname1 &oauth_bearer in=&fref
   %end;
     "Content-Disposition"= "&contentdisp filename=""&name""; name=""&name"";";
 run;
-%put &sysmacroname POST &=url
+%if &mdebug=1 %then %put &sysmacroname POST &=url
   &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;
 %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 201)
   ,mac=MV_CREATEFILE

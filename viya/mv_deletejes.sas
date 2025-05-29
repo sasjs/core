@@ -90,7 +90,7 @@ run;
   )
 %end;
 
-%put &sysmacroname: grab the follow on link ;
+/* grab the follow on link */
 %local libref1;
 %let libref1=%mf_getuniquelibref();
 libname &libref1 JSON fileref=&fname1;
@@ -114,7 +114,7 @@ run;
 libname &libref1a JSON fileref=&fname1a;
 %local uri found;
 %let found=0;
-%put Getting object uri from &libref1a..items;
+/* %put Getting object uri from &libref1a..items; */
 data _null_;
   length contenttype name $1000;
   set &libref1a..items;

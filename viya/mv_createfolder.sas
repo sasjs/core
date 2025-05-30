@@ -47,7 +47,7 @@
 %else %let dbg=*;
 
 %if %mfv_existfolder(&path)=1 %then %do;
-  %put &sysmacroname: &path already exists;
+  %&dbg.put &sysmacroname: &path already exists;
   data &outds;
     self_uri="%mfv_getpathuri(&path)";
     output;

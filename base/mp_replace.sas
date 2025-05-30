@@ -33,7 +33,8 @@
   LUA, you can also use this macro: mp_gsubfile.sas
 
   @param [in] infile The QUOTED path to the file on which to perform the
-    substitution
+    substitution.  Note that you can extract the pathname from a fileref using
+    the pathname function, eg: `"%sysfunc(pathname(fref))"`;
   @param [in] findvar= Macro variable NAME containing the string to search for
   @param [in] replacevar= Macro variable NAME containing the replacement string
   @param [out] outfile= (0) Optional QUOTED path to the adjusted output file (to

@@ -11828,7 +11828,8 @@ insert into &outds select distinct * from &append_ds;
   LUA, you can also use this macro: mp_gsubfile.sas
 
   @param [in] infile The QUOTED path to the file on which to perform the
-    substitution
+    substitution.  Note that you can extract the pathname from a fileref using
+    the pathname function, eg: `"%sysfunc(pathname(fref))"`;
   @param [in] findvar= Macro variable NAME containing the string to search for
   @param [in] replacevar= Macro variable NAME containing the replacement string
   @param [out] outfile= (0) Optional QUOTED path to the adjusted output file (to
@@ -24239,6 +24240,20 @@ run;
       run;
       %mv_createfile(path=/Public/temp,name=newfile.txt,inref=myfile)
 
+  The macro also supports find & replace (used by the SASjs Streaming App
+  build program).  This allows one string to be replaced by another at the
+  point at which the file is created.  This is done by passing in the NAMES of
+  the macro variables containing the values to be swapped, eg:
+
+      filename fref temp;
+      data _null_;
+        file fref;
+        put 'whenever life gets you down, Mrs Brown..';
+      run;
+      %let f=Mrs Brown;
+      %let r=just remember that you're standing on a planet that's evolving;
+      %mv_createfile(path=/Public,name=life.md,inref=fref,fin,swap=f r)
+
 
   @param [in] path= The parent (SAS Drive) folder in which to create the file
   @param [in] name= The name of the file to be created
@@ -24260,6 +24275,8 @@ run;
     @li sas_services
   @param [in] force= (YES) Will overwrite (delete / recreate) files by default.
     Set to NO to abort if a file already exists in that location.
+  @param pin] swap= (0) Provide two macro variable NAMES that contain the values
+    to be swapped, eg swap=find replace (see also the example above)
   @param [out] outds= (_null_) Output dataset with the uri of the new file
 
   @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
@@ -24273,6 +24290,7 @@ run;
   @li mfv_getpathuri.sas
   @li mp_abort.sas
   @li mp_base64copy.sas
+  @li mp_replace.sas
   @li mv_createfolder.sas
 
   <h4> Related Macros</h4>
@@ -24291,6 +24309,7 @@ run;
     ,mdebug=0
     ,outds=_null_
     ,force=YES
+    ,swap=0
   );
 %local dbg;
 %if &mdebug=1 %then %do;
@@ -24335,6 +24354,12 @@ run;
 %end;
 %else %put %str(ERR)OR: invalid value for intype: &intype;
 
+%if "&swap" ne "0" %then %do;
+  %mp_replace("%sysfunc(pathname(&fref))"
+    ,findvar=%scan(&swap,1,%str( ))
+    ,replacevar=%scan(&swap,2,%str( ))
+  )
+%end;
 
 %if &mdebug=1 %then %do;
   data _null_;

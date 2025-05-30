@@ -24409,7 +24409,14 @@ proc http method='POST' out=&fname1 &oauth_bearer in=&fref
   %if &grant_type=authorization_code %then %do;
     "Authorization"="Bearer &&&access_token_var"
   %end;
-    "Content-Disposition"= "&contentdisp filename=""&name""; name=""&name"";";
+  "Content-Disposition"=
+  %if "&ext"="SVG" %then %do;
+    "filename=""&name"";"
+  %end;
+  %else %do;
+    "&contentdisp filename=""&name""; name=""&name"";"
+  %end;
+  ;
 run;
 %if &mdebug=1 %then %put &sysmacroname POST &=url
   &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;
@@ -25109,7 +25116,7 @@ options noquotelenmax;
   %let path=%substr(&path,1,%length(&path)-1);
 
 /* ensure folder exists */
-%put &sysmacroname: Path &path being checked / created;
+%&dbg.put &sysmacroname: Path &path being checked / created;
 %mv_createfolder(path=&path)
 
 %local base_uri; /* location of rest apis */
@@ -25942,8 +25949,8 @@ run;
   libname &libref1 clear;
 %end;
 
-%put NOTE: &sysmacroname: Job &name successfully created!  Check it out:;
-%put NOTE-;%put NOTE-    &url/SASJobExecution?_PROGRAM=&path/&name;%put NOTE-;
+%put &sysmacroname: Job &name created!  Check it out:;
+%put &url/SASJobExecution?_PROGRAM=&path/&name;
 
 %mend mv_createwebservice;
 /**
@@ -26172,8 +26179,7 @@ libname &libref1a clear;
 options noquotelenmax;
 %local base_uri; /* location of rest apis */
 %let base_uri=%mf_getplatform(VIYARESTAPI);
-
-%put &sysmacroname: fetching details for &path ;
+/* fetch the members of the folder to get the uri */
 %local fname1;
 %let fname1=%mf_getuniquefileref();
 proc http method='GET' out=&fname1 &oauth_bearer
@@ -26211,7 +26217,9 @@ proc http method='GET' out=&fname1a &oauth_bearer
   headers "Authorization"="Bearer &&&access_token_var";
 %end;
 run;
-%put &=SYS_PROCHTTP_STATUS_CODE;
+%if &SYS_PROCHTTP_STATUS_CODE ne 200 %then %do;
+  %put &=sysmacroname &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;
+%end;
 %local libref1a;
 %let libref1a=%mf_getuniquelibref();
 libname &libref1a JSON fileref=&fname1a;
@@ -26243,7 +26251,7 @@ run;
     ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
   )
 %end;
-%else %put &sysmacroname: &path/&name successfully deleted;
+%else %put &sysmacroname: &path/&name deleted;
 
 /* clear refs */
 filename &fname1 clear;

@@ -147,16 +147,17 @@ filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
 - macro names must be lowercase
 - one macro per file
 - prefixes:
-  - _mcf_ for macro compiled functions (proc fcmp)
-  - _mddl_ for macros containing DDL (Data Definition Language)
-  - _mf_ for macro functions (can be used in open code).
-  - _ml_ for macros that are used to compile LUA modules
-  - _mm_ for metadata macros (interface with the metadata server).
-  - _mmx_ for macros that use metadata and are XCMD enabled (working on both windows and unix)
-  - _mp_ for macro procedures (which generate sas code)
-  - _ms_ for macro procedures that will only work with [@sasjs/server](https://github.com/sasjs/server)
-  - _mv_ for macro procedures that will only work in Viya
-  - _mx_ for macros that work on Viya, SAS 9 EBI and SASjs Server
+  - _mcf__: macro compiled functions (proc fcmp)
+  - _mddl__: macros containing DDL (Data Definition Language)
+  - _mf__: macro functions (can be used in open code).
+  - _mfv__: macro functions that work only in Viya
+  - _ml__: macros that are used to compile LUA modules
+  - _mm__: metadata macros (interface with the metadata server).
+  - _mmx__: macros that use metadata and are XCMD enabled (working on both windows and unix)
+  - _mp__: macro procedures (which generate sas code)
+  - _ms__: macro procedures that will only work with [@sasjs/server](https://github.com/sasjs/server)
+  - _mv__: macro procedures that will only work in Viya
+  - _mx__: macros that work on Viya, SAS 9 EBI and SASjs Server
 - follow verb-noun convention
 - unix style line endings (lf)
 - individual lines should be no more than 80 characters long

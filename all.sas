@@ -24379,8 +24379,10 @@ run;
   %end;
         "Accept"="*/*";
   run;
-  %put &sysmacroname DELETE &base_uri&fileuri
-    &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;
+  %put &sysmacroname DELETE &base_uri&fileuri;
+  %if &SYS_PROCHTTP_STATUS_CODE ne 204 %then %do;
+    %put &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;
+  %end;
 %end;
 
 %local url mimetype ext;
@@ -24427,7 +24429,7 @@ run;
 %local libref2;
 %let libref2=%mf_getuniquelibref();
 libname &libref2 JSON fileref=&fname1;
-%put Grabbing the follow on link ;
+/* Grab the follow on link */
 data &outds;
   set &libref2..links end=last;
   if rel='createChild' then do;
@@ -24436,10 +24438,8 @@ data &outds;
   end;
 run;
 
-%put &sysmacroname: File &name successfully created:;%put;
-%put    &base_uri%mfv_getpathuri(&path/&name);%put;
+%put &sysmacroname: &name created at %mfv_getpathuri(&path/&name);%put;
 %put    &base_uri/SASJobExecution?_file=&path/&name;%put;
-%put &sysmacroname:;
 
 %mend mv_createfile;/**
   @file mv_createfolder.sas
@@ -24490,7 +24490,7 @@ run;
 %else %let dbg=*;
 
 %if %mfv_existfolder(&path)=1 %then %do;
-  %put &sysmacroname: &path already exists;
+  %&dbg.put &sysmacroname: &path already exists;
   data &outds;
     self_uri="%mfv_getpathuri(&path)";
     output;

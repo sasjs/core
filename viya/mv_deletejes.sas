@@ -69,8 +69,7 @@
 options noquotelenmax;
 %local base_uri; /* location of rest apis */
 %let base_uri=%mf_getplatform(VIYARESTAPI);
-
-%put &sysmacroname: fetching details for &path ;
+/* fetch the members of the folder to get the uri */
 %local fname1;
 %let fname1=%mf_getuniquefileref();
 proc http method='GET' out=&fname1 &oauth_bearer
@@ -108,7 +107,9 @@ proc http method='GET' out=&fname1a &oauth_bearer
   headers "Authorization"="Bearer &&&access_token_var";
 %end;
 run;
-%put &=SYS_PROCHTTP_STATUS_CODE;
+%if &SYS_PROCHTTP_STATUS_CODE ne 200 %then %do;
+  %put &=sysmacroname &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;
+%end;
 %local libref1a;
 %let libref1a=%mf_getuniquelibref();
 libname &libref1a JSON fileref=&fname1a;
@@ -140,7 +141,7 @@ run;
     ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
   )
 %end;
-%else %put &sysmacroname: &path/&name successfully deleted;
+%else %put &sysmacroname: &path/&name deleted;
 
 /* clear refs */
 filename &fname1 clear;

@@ -187,7 +187,14 @@ proc http method='POST' out=&fname1 &oauth_bearer in=&fref
   %if &grant_type=authorization_code %then %do;
     "Authorization"="Bearer &&&access_token_var"
   %end;
-    "Content-Disposition"= "&contentdisp filename=""&name""; name=""&name"";";
+  "Content-Disposition"=
+  %if "&ext"="SVG" %then %do;
+    "filename=""&name"";"
+  %end;
+  %else %do;
+    "&contentdisp filename=""&name""; name=""&name"";"
+  %end;
+  ;
 run;
 %if &mdebug=1 %then %put &sysmacroname POST &=url
   &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;

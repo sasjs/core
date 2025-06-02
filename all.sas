@@ -24425,7 +24425,8 @@ proc http method='POST' out=&fname1 &oauth_bearer in=&fref
   %else %do;
     ct="&ctype"
   %end;
-  %if "&ext"="HTML" or "&ext"="CSS" or "&ext"="JS" or "&ext"="SVG" %then %do;
+  %if "&ext"="HTML" or "&ext"="CSS" or "&ext"="JS" or "&ext"="PNG"
+  or "&ext"="SVG" %then %do;
     url="&url%str(&)typeDefName=file";
   %end;
   %else %do;

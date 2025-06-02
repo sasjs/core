@@ -53,7 +53,7 @@ run;
 data temp;
 x=1;
 run;
-filename ds "%sysfunc(pathname(work)).sas7bdat";
+filename ds "%sysfunc(pathname(work))/temp.sas7bdat";
 
 %mv_createfile(path=&mcTestAppLoc, name=&file..sas7bdat,inref=ds,mdebug=1)
 

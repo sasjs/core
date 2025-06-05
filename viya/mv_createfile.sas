@@ -215,7 +215,7 @@ proc http method='POST' out=&fname1 &oauth_bearer in=&fref
     "Authorization"="Bearer &&&access_token_var"
   %end;
   "Content-Disposition"=
-  %if "&ext"="SVG" %then %do;
+  %if "&ext"="SVG" or "&ext"="HTML" %then %do;
     "filename=""&name"";"
   %end;
   %else %do;

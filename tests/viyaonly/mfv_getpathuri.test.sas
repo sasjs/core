@@ -14,7 +14,7 @@ options mprint sgen;
 
 %let file=%mf_uid();
 
-/* create a folder */
+/* create a file */
 filename somefile temp;
 data _null_;
   file somefile;

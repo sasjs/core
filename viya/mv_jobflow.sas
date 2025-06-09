@@ -188,6 +188,8 @@
     %if %mf_existvarList(&inds,FLOW_ID)=0 %then %do;
       retain FLOW_ID 0;
     %end;
+    /* https://github.com/sasjs/adapter/pull/845#issuecomment-2956589644 */
+    retain _omitSessionResults "false";
     set &inds;
     &dbg. putlog (_all_)(=);
   run;

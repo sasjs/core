@@ -27280,7 +27280,7 @@ data _null_;
   uri=symget('uri');
   if length(uri)<12 then do;
     call symputx('errflg',1);
-    call symputx('errmsg',"URI is invalid (too short) - '&uri'",'l');
+    call symputx('errmsg',"URI is too short - "!!uri,'l');
   end;
   if scan(uri,-1)='state' or scan(uri,1) ne 'jobExecution' then do;
     call symputx('errflg',1);
@@ -27345,7 +27345,7 @@ data _null_;
   uri=symget('loglocation');
   if length(uri)<12 then do;
     call symputx('errflg',1);
-    call symputx('errmsg',"URI is invalid (too short) - '&uri'",'l');
+    call symputx('errmsg',"URI is too short - "!!uri,'l');
   end;
   else if (scan(uri,1,'/') ne 'compute' or scan(uri,2,'/') ne 'sessions')
     and (scan(uri,1,'/') ne 'files' or scan(uri,2,'/') ne 'files')
@@ -28433,6 +28433,8 @@ run;
     %if %mf_existvarList(&inds,FLOW_ID)=0 %then %do;
       retain FLOW_ID 0;
     %end;
+    /* https://github.com/sasjs/adapter/pull/845#issuecomment-2956589644 */
+    retain _omitSessionResults "false";
     set &inds;
     &dbg. putlog (_all_)(=);
   run;

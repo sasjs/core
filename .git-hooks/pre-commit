@@ -16,3 +16,14 @@ if [[ "$BRANCH" =~ ^(master|main|develop)$ ]]; then
   echo "If so, commit with -n to bypass the pre-commit hook."
   exit 1
 fi
+
+## Avoid large commits
+# https://www.backblaze.com/blog/how-many-bytes-are-in-a-megabyte-really/
+size_limit=$((2 * 2**20)) # 2mbs
+# https://git-scm.com/docs/git-rev-list#Documentation/git-rev-list.txt---disk-usage
+commit_size=$(git rev-list --disk-usage HEAD^..HEAD)
+test "$commit_size" -lt "$size_limit" || (
+  echo "Commit size is too large: $commit_size > $size_limit"
+  echo "Force commit using --no-verify"
+  exit 1
+)

@@ -244,4 +244,11 @@ run;
 %put &sysmacroname: &name created at %mfv_getpathuri(&path/&name);%put;
 %put    &base_uri/SASJobExecution?_file=&path/&name;%put;
 
+%if &mdebug=0 %then %do;
+  /* clear refs */
+  filename &fname1 clear;
+  filename &fref clear;
+  libname &libref2 clear;
+%end;
+
 %mend mv_createfile;

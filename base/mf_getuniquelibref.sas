@@ -26,7 +26,7 @@
   @author Allan Bowe
 **/
 
-%macro mf_getuniquelibref(prefix=mclib,maxtries=1000);
+%macro mf_getuniquelibref(prefix=mc,maxtries=1000);
   %local x;
 
   %if ( %length(&prefix) gt 7 ) %then %do;

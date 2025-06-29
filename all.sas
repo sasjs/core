@@ -1121,7 +1121,7 @@ or %index(&pgm,/tests/testteardown)
   @author Allan Bowe
 **/
 
-%macro mf_getuniquelibref(prefix=mclib,maxtries=1000);
+%macro mf_getuniquelibref(prefix=mc,maxtries=1000);
   %local x;
 
   %if ( %length(&prefix) gt 7 ) %then %do;
@@ -24518,6 +24518,13 @@ run;
 
 %put &sysmacroname: &name created at %mfv_getpathuri(&path/&name);%put;
 %put    &base_uri/SASJobExecution?_file=&path/&name;%put;
+
+%if &mdebug=0 %then %do;
+  /* clear refs */
+  filename &fname1 clear;
+  filename &fref clear;
+  libname &libref2 clear;
+%end;
 
 %mend mv_createfile;/**
   @file mv_createfolder.sas

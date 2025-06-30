@@ -11943,7 +11943,7 @@ data _null_;
 run;
 
 /* END */
-*%put &sysmacroname took %sysevalf(%sysfunc(datetime())-&dttm) seconds to run;
+/* %put &sysmacroname took %sysevalf(%sysfunc(datetime())-&dttm) secs to run; */
 
 %mend mp_replace;
 /**
@@ -24098,12 +24098,14 @@ run;
     msg=Cannot enter mfv_existfolder.sas with syscc=&syscc
   )
 
-  %local fref rc;
+  %local fref rc var;
   %let fref=%mf_getuniquefileref();
 
   %if %sysfunc(filename(fref,,filesrvc,folderPath="&path"))=0 %then %do;
     1
+    %let var=_FILESRVC_&fref._URI;
     %let rc=%sysfunc(filename(fref));
+    %symdel &var;
   %end;
   %else %do;
     0
@@ -24461,6 +24463,11 @@ run;
   ,mac=MV_CREATEFILE
   ,msg=%str(File &path/&name already exists and force=&force)
 )
+%mp_abort(
+  iftrue=(&syscc ne 0),
+  mac=MV_CREATEFILE182
+  msg=syscc=&syscc after mfv_getpathuri
+)
 
 %if %mf_isblank(&fileuri)=0 and &force=YES %then %do;
   proc http method="DELETE" url="&base_uri&fileuri" &oauth_bearer;
@@ -24530,8 +24537,8 @@ data &outds;
   end;
 run;
 
-%put &sysmacroname: &name created at %mfv_getpathuri(&path/&name);%put;
-%put    &base_uri/SASJobExecution?_file=&path/&name;%put;
+%put &sysmacroname: %trim(&base_uri)%mfv_getpathuri(&path/&name);
+%put /SASJobExecution?_file=&path/&name;%put;
 
 %if &mdebug=0 %then %do;
   /* clear refs */
@@ -24664,7 +24671,7 @@ options noquotelenmax;
   %if &SYS_PROCHTTP_STATUS_CODE=401 %then %do;
     /* relates to: https://github.com/sasjs/core/issues/400 */
     %put 401 thrown in &sysmacroname;
-    %put sleeping: %sysfunc(sleep(10,1)) - will try once more;
+    %put sleeping: %sysfunc(sleep(12,1)) secs - will try again;
     proc http method='GET' out=&fname1 &oauth_bearer
         url="&base_uri/folders/folders/@item?path=&newpath";
     %if &grant_type=authorization_code %then %do;
@@ -24728,7 +24735,7 @@ options noquotelenmax;
                 'Content-Type'='application/vnd.sas.content.folder+json'
                 'Accept'='application/vnd.sas.content.folder+json';
     run;
-    %if &SYS_PROCHTTP_STATUS_CODE ne 200 %then %do;
+    %if &SYS_PROCHTTP_STATUS_CODE ne 201 %then %do;
       %put &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;
     %end;
     %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 201)

@@ -24110,6 +24110,11 @@ run;
     %let syscc=0;
   %end;
 
+  %mf_abort(
+    iftrue=(&syscc ne 0),
+    msg=Cannot leave mfv_existfolder.sas with syscc=&syscc
+  )
+
 %mend mfv_existfolder;/**
   @file mfv_existsashdat.sas
   @brief Checks whether a CAS sashdat dataset exists in persistent storage.
@@ -24273,6 +24278,10 @@ run;
     %let syscc=0;
   %end;
 
+  %mf_abort(
+    iftrue=(&syscc ne 0),
+    msg=Cannot leave &sysmacroname with syscc=&syscc
+  )
 %mend mfv_getpathuri;/**
   @file
   @brief Creates a file in SAS Drive using the API method
@@ -24369,6 +24378,11 @@ run;
   %put _local_;
 %end;
 %else %let dbg=*;
+
+%mp_abort(
+  iftrue=(&syscc ne 0),
+  msg=Cannot enter &sysmacroname with syscc=&syscc
+)
 
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
@@ -24526,6 +24540,11 @@ run;
   libname &libref2 clear;
 %end;
 
+%mp_abort(
+  iftrue=(&syscc ne 0),
+  msg=Cannot leave &sysmacroname with syscc=&syscc
+)
+
 %mend mv_createfile;/**
   @file mv_createfolder.sas
   @brief Creates a viya folder if that folder does not already exist
@@ -24574,6 +24593,11 @@ run;
 %end;
 %else %let dbg=*;
 
+%mp_abort(
+  iftrue=(&syscc ne 0),
+  msg=Cannot enter &sysmacroname with syscc=&syscc
+)
+
 %if %mfv_existfolder(&path)=1 %then %do;
   %&dbg.put &sysmacroname: &path already exists;
   data &outds;
@@ -24583,6 +24607,7 @@ run;
   run;
   %return;
 %end;
+%mp_abort(iftrue=(&syscc ne 0),msg=syscc=&syscc when folder checking)
 
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
@@ -24722,6 +24747,10 @@ options noquotelenmax;
   filename &fname1 clear;
   libname &libref1 clear;
 %end;
+%mp_abort(
+  iftrue=(&syscc ne 0),
+  msg=Cannot leave &sysmacroname with syscc=&syscc
+)
 %mend mv_createfolder;/**
   @file
   @brief Creates a Viya Job

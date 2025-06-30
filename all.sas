@@ -11943,7 +11943,7 @@ data _null_;
 run;
 
 /* END */
-%put &sysmacroname took %sysevalf(%sysfunc(datetime())-&dttm) seconds to run;
+*%put &sysmacroname took %sysevalf(%sysfunc(datetime())-&dttm) seconds to run;
 
 %mend mp_replace;
 /**
@@ -24110,6 +24110,11 @@ run;
     %let syscc=0;
   %end;
 
+  %mf_abort(
+    iftrue=(&syscc ne 0),
+    msg=Cannot leave mfv_existfolder.sas with syscc=&syscc
+  )
+
 %mend mfv_existfolder;/**
   @file mfv_existsashdat.sas
   @brief Checks whether a CAS sashdat dataset exists in persistent storage.
@@ -24273,6 +24278,10 @@ run;
     %let syscc=0;
   %end;
 
+  %mf_abort(
+    iftrue=(&syscc ne 0),
+    msg=Cannot leave &sysmacroname with syscc=&syscc
+  )
 %mend mfv_getpathuri;/**
   @file
   @brief Creates a file in SAS Drive using the API method
@@ -24369,6 +24378,11 @@ run;
   %put _local_;
 %end;
 %else %let dbg=*;
+
+%mp_abort(
+  iftrue=(&syscc ne 0),
+  msg=Cannot enter &sysmacroname with syscc=&syscc
+)
 
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
@@ -24526,6 +24540,11 @@ run;
   libname &libref2 clear;
 %end;
 
+%mp_abort(
+  iftrue=(&syscc ne 0),
+  msg=Cannot leave &sysmacroname with syscc=&syscc
+)
+
 %mend mv_createfile;/**
   @file mv_createfolder.sas
   @brief Creates a viya folder if that folder does not already exist
@@ -24574,6 +24593,11 @@ run;
 %end;
 %else %let dbg=*;
 
+%mp_abort(
+  iftrue=(&syscc ne 0),
+  msg=Cannot enter &sysmacroname with syscc=&syscc
+)
+
 %if %mfv_existfolder(&path)=1 %then %do;
   %&dbg.put &sysmacroname: &path already exists;
   data &outds;
@@ -24583,6 +24607,7 @@ run;
   run;
   %return;
 %end;
+%mp_abort(iftrue=(&syscc ne 0),msg=syscc=&syscc when folder checking)
 
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
@@ -24636,6 +24661,17 @@ options noquotelenmax;
       headers "Authorization"="Bearer &&&access_token_var";
   %end;
   run;
+  %if &SYS_PROCHTTP_STATUS_CODE=401 %then %do;
+    /* relates to: https://github.com/sasjs/core/issues/400 */
+    %put 401 thrown in &sysmacroname;
+    %put sleeping: %sysfunc(sleep(10,1)) - will try once more;
+    proc http method='GET' out=&fname1 &oauth_bearer
+        url="&base_uri/folders/folders/@item?path=&newpath";
+    %if &grant_type=authorization_code %then %do;
+        headers "Authorization"="Bearer &&&access_token_var";
+    %end;
+    run;
+  %end;
   %local libref1;
   %let libref1=%mf_getuniquelibref();
   libname &libref1 JSON fileref=&fname1;
@@ -24643,7 +24679,7 @@ options noquotelenmax;
     iftrue=(
       &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 404
     )
-    ,mac=&sysmacroname
+    ,mac=mv_createfolder124
     ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
   )
   %if &mdebug=1 %then %do;
@@ -24722,6 +24758,10 @@ options noquotelenmax;
   filename &fname1 clear;
   libname &libref1 clear;
 %end;
+%mp_abort(
+  iftrue=(&syscc ne 0),
+  msg=Cannot leave &sysmacroname with syscc=&syscc
+)
 %mend mv_createfolder;/**
   @file
   @brief Creates a Viya Job

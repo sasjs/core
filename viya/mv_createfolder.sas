@@ -117,7 +117,7 @@ options noquotelenmax;
   %if &SYS_PROCHTTP_STATUS_CODE=401 %then %do;
     /* relates to: https://github.com/sasjs/core/issues/400 */
     %put 401 thrown in &sysmacroname;
-    %put sleeping: %sysfunc(sleep(10,1)) - will try once more;
+    %put sleeping: %sysfunc(sleep(12,1)) secs - will try again;
     proc http method='GET' out=&fname1 &oauth_bearer
         url="&base_uri/folders/folders/@item?path=&newpath";
     %if &grant_type=authorization_code %then %do;
@@ -181,7 +181,7 @@ options noquotelenmax;
                 'Content-Type'='application/vnd.sas.content.folder+json'
                 'Accept'='application/vnd.sas.content.folder+json';
     run;
-    %if &SYS_PROCHTTP_STATUS_CODE ne 200 %then %do;
+    %if &SYS_PROCHTTP_STATUS_CODE ne 201 %then %do;
       %put &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;
     %end;
     %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 201)

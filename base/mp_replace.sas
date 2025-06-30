@@ -148,6 +148,6 @@ data _null_;
 run;
 
 /* END */
-%put &sysmacroname took %sysevalf(%sysfunc(datetime())-&dttm) seconds to run;
+*%put &sysmacroname took %sysevalf(%sysfunc(datetime())-&dttm) seconds to run;
 
 %mend mp_replace;

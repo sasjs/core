@@ -49,4 +49,8 @@
     %let syscc=0;
   %end;
 
+  %mf_abort(
+    iftrue=(&syscc ne 0),
+    msg=Cannot leave &sysmacroname with syscc=&syscc
+  )
 %mend mfv_getpathuri;

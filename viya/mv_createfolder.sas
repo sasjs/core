@@ -46,6 +46,11 @@
 %end;
 %else %let dbg=*;
 
+%mp_abort(
+  iftrue=(&syscc ne 0),
+  msg=Cannot enter &sysmacroname with syscc=&syscc
+)
+
 %if %mfv_existfolder(&path)=1 %then %do;
   %&dbg.put &sysmacroname: &path already exists;
   data &outds;
@@ -55,6 +60,7 @@
   run;
   %return;
 %end;
+%mp_abort(iftrue=(&syscc ne 0),msg=syscc=&syscc when folder checking)
 
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
@@ -194,4 +200,8 @@ options noquotelenmax;
   filename &fname1 clear;
   libname &libref1 clear;
 %end;
+%mp_abort(
+  iftrue=(&syscc ne 0),
+  msg=Cannot leave &sysmacroname with syscc=&syscc
+)
 %mend mv_createfolder;

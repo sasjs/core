@@ -95,6 +95,11 @@
 %end;
 %else %let dbg=*;
 
+%mp_abort(
+  iftrue=(&syscc ne 0),
+  msg=Cannot enter &sysmacroname with syscc=&syscc
+)
+
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
@@ -250,5 +255,10 @@ run;
   filename &fref clear;
   libname &libref2 clear;
 %end;
+
+%mp_abort(
+  iftrue=(&syscc ne 0),
+  msg=Cannot leave &sysmacroname with syscc=&syscc
+)
 
 %mend mv_createfile;

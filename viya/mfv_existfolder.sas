@@ -45,4 +45,9 @@
     %let syscc=0;
   %end;
 
+  %mf_abort(
+    iftrue=(&syscc ne 0),
+    msg=Cannot leave mfv_existfolder.sas with syscc=&syscc
+  )
+
 %mend mfv_existfolder;

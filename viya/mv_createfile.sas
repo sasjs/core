@@ -69,6 +69,7 @@
   @li mp_base64copy.sas
   @li mp_replace.sas
   @li mv_createfolder.sas
+  @li mv_getviyafileextparms.sas
 
   <h4> Related Macros</h4>
   @li mv_createfile.sas
@@ -153,7 +154,7 @@
 
 options noquotelenmax;
 %local base_uri; /* location of rest apis */
-%let base_uri=%mf_getplatform(VIYARESTAPI);
+%let base_uri=%trim(%mf_getplatform(VIYARESTAPI));
 
 /* create folder if it does not already exist */
 %local folderds self_uri;
@@ -172,7 +173,7 @@ run;
 /* abort or delete if file already exists */
 %let force=%upcase(&force);
 %local fileuri ;
-%let fileuri=%mfv_getpathuri(&path/&name);
+%let fileuri=%trim(%mfv_getpathuri(&path/&name));
 %mp_abort(iftrue=(%mf_isblank(&fileuri)=0 and &force ne YES)
   ,mac=MV_CREATEFILE
   ,msg=%str(File &path/&name already exists and force=&force)
@@ -201,6 +202,12 @@ run;
 %let url=&base_uri/files/files?parentFolderUri=&self_uri;
 %let ext=%upcase(%scan(&name,-1,.));
 
+/* Get Viya file-extension details into some macro variables */
+%mv_getViyaFileExtParms(&ext
+                        ,propertiesVar=viyaProperties
+                        ,typeDefNameVar=viyaTypeDefName
+                        ,mdebug=&mdebug);
+
 /* fetch job info */
 %local fname1;
 %let fname1=%mf_getuniquefileref();
@@ -212,12 +219,18 @@ proc http method='POST' out=&fname1 &oauth_bearer in=&fref
   %else %do;
     ct="&ctype"
   %end;
-  %if "&ext"="HTML" or "&ext"="CSS" or "&ext"="JS" or "&ext"="PNG"
-  or "&ext"="SVG" %then %do;
-    url="&url%str(&)typeDefName=file";
+
+  %if not %mf_isBlank(&viyaTypeDefName) %then %do;
+    url="&url%str(&)typeDefName=&viyaTypeDefName";
   %end;
   %else %do;
-    url="&url";
+    %if "&ext"="HTML" or "&ext"="CSS" or "&ext"="JS" or "&ext"="PNG"
+    or "&ext"="SVG" %then %do;
+      url="&url%str(&)typeDefName=file";
+    %end;
+    %else %do;
+      url="&url";
+    %end;
   %end;
 
   headers "Accept"="application/json"
@@ -239,26 +252,63 @@ run;
   ,mac=MV_CREATEFILE
   ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
 )
-%local libref2;
-%let libref2=%mf_getuniquelibref();
-libname &libref2 JSON fileref=&fname1;
-/* Grab the follow on link */
-data &outds;
-  set &libref2..links end=last;
-  if rel='createChild' then do;
-    call symputx('href',quote(cats("&base_uri",href)),'l');
-    &dbg put (_all_)(=);
-  end;
-run;
 
-%put &sysmacroname: %trim(&base_uri)%mfv_getpathuri(&path/&name);
+/* URI of the created file */
+%let fileuri=%trim(%mfv_getpathuri(&path/&name));
+
+/* If properties were found then patch the file to include them */
+%if not %mf_isBlank(&viyaProperties) %then %do;
+  /* Wrap the properties object in a root object also containing the file name */
+  %local viyapatch;
+  %let viyapatch = %sysfunc(pathname(work))/%mf_getuniquename(prefix=patch_json_);
+  data _null_;
+    length line $32767;
+    file "&viyapatch" lrecl=32767;
+    put '{ "name": "' "&name" '",';
+    line = cat('"properties": ',symget("viyaProperties"));
+    put line;
+    put '}';
+    stop;
+  run;
+
+  %if &mdebug=1 %then %do;
+    data _null_;
+      if (_n_ eq 1) then put 'DEBUG: ** PATCH JSON **';
+      infile "&viyapatch" end=last;
+      input;
+      put _infile_;
+    run;
+  %end;
+
+  /* And apply the properties to the newly created file, using the PATCH method */
+  %let fref=%mf_getuniquefileref();
+  filename &fref "&viyapatch";
+  %let url=&base_uri&fileuri;
+
+  proc http method='PATCH' oauth_bearer=sas_services in=&fref
+    url="&url";
+    headers "Accept"="application/json"
+            "Content-Type"="application/json"
+            "If-Match"="*";
+    %if &mdebug=1 %then %do;
+      debug level=2;
+    %end;
+  run;
+  %if &mdebug=1 %then %put &sysmacroname PATCH &=url
+    &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;
+  %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200)
+    ,mac=MV_CREATEFILE
+    ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
+  )
+%end;
+
+%put &sysmacroname: &base_uri&fileuri;
 %put /SASJobExecution?_file=&path/&name;%put;
 
 %if &mdebug=0 %then %do;
   /* clear refs */
   filename &fname1 clear;
   filename &fref clear;
-  libname &libref2 clear;
 %end;
 
 %mp_abort(

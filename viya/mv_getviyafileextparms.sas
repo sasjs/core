@@ -13,10 +13,13 @@
     the 'typeDefName' property value, if found, else blank.
   @param [out] mediaTypeVar= SAS macro variable name that will contain
     the 'mediaType' property value, if found, else blank.
+  @param [out] viyaFileExtRespLibDs (work.mv_getViyaFileExtParmsResponse)
+    Library.name of the dataset to receive the local working copy of the initial
+    response that requests all file extension details. Created once per session
+    to avoid multiple api calls.
   @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
 
   <h4> SAS Macros </h4>
-  @li mf_abort.sas
   @li mf_existds.sas
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
@@ -24,22 +27,39 @@
   @li mf_getvalue.sas
   @li mf_getvarlist.sas
   @li mf_getvartype.sas
+  @li mp_abort.sas
 
 */
 
-%macro mv_getViyaFileExtParms(ext,typeDefNameVar=,propertiesVar=,mediaTypeVar=,mdebug=0);
+%macro mv_getViyaFileExtParms(
+  ext,
+  typeDefNameVar=,
+  propertiesVar=,
+  mediaTypeVar=,
+  viyaFileExtRespLibDs=work.mv_getViyaFileExtParmsResponse,
+  mdebug=0
+  );
   %local base_uri; /* location of rest apis */
-  %local viyatypedef; /* temp fileref to json response */
   %local url; /* File extension info end-point */
 
-  %mf_abort(iftrue=(%mf_isBlank(&ext))
-    ,msg=%str(MV_GETVIYAFILEEXTPARMS - No file extension provided.)
+  %mp_abort(
+    iftrue=(%mf_isBlank(&ext))
+    ,msg=%str(No file extension provided.)
+    ,mac=MV_GETVIYAFILEEXTPARMS
   );
 
-  %mf_abort(iftrue=(%mf_isBlank(&typeDefNameVar) and
-                    %mf_isBlank(&propertiesVar) and
-                    %mf_isBlank(&mediaTypeVar))
+  %mp_abort(
+    iftrue=(%mf_isBlank(&typeDefNameVar) and
+            %mf_isBlank(&propertiesVar) and
+            %mf_isBlank(&mediaTypeVar))
     ,msg=%str(MV_GETVIYAFILEEXTPARMS - No parameter was requested.)
+    ,mac=MV_GETVIYAFILEEXTPARMS
+  );
+
+  %mp_abort(
+    iftrue=(%mf_isBlank(&viyaFileExtRespLibDs))
+    ,msg=%str(No <libname.>dataset name provided to cache inital response.)
+    ,mac=MV_GETVIYAFILEEXTPARMS
   );
 
   /* Declare requested parameters as global macro vars and initialize blank */
@@ -58,122 +78,169 @@
 
   %let base_uri=%mf_getplatform(VIYARESTAPI);
   %if &mdebug=1 %then %do;
-    %put DEBUG: &SYSMACRONAME &=base_uri;
+    %put DEBUG: &=base_uri;
   %end;
 
   %let ext=%lowcase(&ext);
 
-  /* Create a temp file and fill with JSON that declares */
-  /* VIYA file-type details for the given file extension */
-  %let viyatypedef=%mf_getuniquefileref();
-  filename &viyatypedef temp;
+  /* Create a local copy of the Viya response containing all file type info, if
+  it does not already exist. */
+  %if not %mf_existds(&viyaFileExtRespLibDs) %then %do;
+    /* Create a temp file and fill with JSON that declares */
+    /* VIYA file-type details for the given file extension */
+    %local viyatypedefs;
+    %let viyatypedefs=%mf_getuniquefileref();
+    filename &viyatypedefs temp;
 
-  %let url = &base_uri/types/types?filter=contains(extensions,%str(%')&ext%str(%'));
+    %let url = &base_uri/types/types?limit=999999;
 
-  proc http oauth_bearer=sas_services out=&viyatypedef
-    url="&url";
-  run;
+    proc http oauth_bearer=sas_services out=&viyatypedefs
+      url="&url";
+    run;
 
-  %if &mdebug=1 %then %put DEBUG: &SYSMACRONAME &=url
-    &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;
+    %if &mdebug=1 %then %put DEBUG: &sysmacroname &=url
+      &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;
 
-  %if (&SYS_PROCHTTP_STATUS_CODE ne 200) %then %do;
-    /* To avoid a breaking change, exit early if the request failed.
-      The calling process will proceed with empty requested macro variables. */
-    %put INFO: &sysmacroname A response was not returned.;
-    filename &viyatypedef clear;
+    %if (&SYS_PROCHTTP_STATUS_CODE ne 200) %then %do;
+      /* To avoid a breaking change, exit early if the request failed.
+        The calling process will proceed with empty requested macro variables. */
+      %put INFO: &sysmacroname File extension details were not retrieved.;
+      filename &viyatypedefs clear;
+      %return;
+    %end;
+
+    %if &mdebug=1 %then %do;
+      /* Dump the response to the log */
+      data _null_;
+        length line $120;
+        null=byte(0);
+        infile &viyatypedefs dlm=null lrecl=120 recfm=n;
+        input line $120.;
+        if _n_ = 1 then put "DEBUG:";
+        put line;
+      run;
+    %end;
+
+    /* Convert the content of that JSON into SAS datasets */
+      /* First prepare a new WORK-based folder to receive the datasets */
+    %local jsonworkfolder jsonlib opt_dlcreatedir;
+    %let jsonworkfolder=%sysfunc(pathname(work))/%mf_getuniquename(prefix=json_);
+    %let jsonlib=%mf_getuniquelibref(prefix=json);
+      /* And point a libname at it */
+    %let opt_dlcreatedir = %sysfunc(getoption(dlcreatedir));
+    options dlcreatedir; libname &jsonlib "&jsonworkfolder"; options &opt_dlcreatedir;
+
+    /* Read the json output once and copy datasets to its work folder */
+    %local libref1;
+    %let libref1=%mf_getuniquelibref();
+    libname &libref1 JSON fileref=&viyatypedefs automap=create;
+    proc copy in=&libref1 out=&jsonlib; run;
+
+    libname &libref1 clear;
+
+    /* Now give all rows belonging to the same items array a grouping value */
+    data &viyaFileExtRespLibDs;
+      length _viyaItemIdx 8;
+      set &jsonlib..alldata;
+      retain _viyaItemIdx 0;
+      /* Increment the row group index when a new 'items' group is observed */
+      if P=1 and P1='items' then _viyaItemIdx + 1;
+    run;
+
+    %if &mdebug=0 %then %do;
+      /* Tidy up, unless debug=1 */
+      proc datasets library=&jsonlib nolist kill; quit;
+      libname &jsonlib clear;
+    %end;
+
+    filename &viyatypedefs clear;
+
+  %end; /* If initial filetype query response didn't exist */
+
+  /* Find the row-group for the current file extension */
+  %local itemRowGroup;
+  %let itemRowGroup =
+    %mf_getValue(
+      &viyaFileExtRespLibDs
+      ,_viyaItemIdx
+      ,filter=%quote(p1='items' and p2='extensions' and value="&ext")
+    );
+
+  %if &mdebug %then %put DEBUG: &=itemRowGroup;
+
+  %if %mf_isBlank(&itemRowGroup) %then %do;
+    /* extension was not found */
+    %if(&mdebug=1) %then %put DEBUG: No type details found for extension "&ext".;
     %return;
   %end;
 
-  %if &mdebug=1 %then %do;
-    data _null_;
-        infile &viyatypedef;
-        input;
-        put "DEBUG: &SYSMACRONAME" _infile_;
-    run;
-  %end;
-
-  /* Convert the content of that JSON into SAS datasets */
-    /* First prepare a new WORK-based folder to receive the datasets */
-  %local jsonworkfolder jsonlib opt_dlcreatedir;
-  %let jsonworkfolder=%sysfunc(pathname(work))/%mf_getuniquename(prefix=json_);
-  %let jsonlib=%mf_getuniquelibref(prefix=json);
-    /* And point a libname at it */
-  %let opt_dlcreatedir = %sysfunc(getoption(dlcreatedir));
-  options dlcreatedir; libname &jsonlib "&jsonworkfolder"; options &opt_dlcreatedir;
-
-  /* Read the json output once and copy datasets to its work folder */
-  %local libref1;
-  %let libref1=%mf_getuniquelibref();
-  libname &libref1 JSON fileref=&viyatypedef automap=create;
-  proc copy in=&libref1 out=&jsonlib; run;
+  /* Filter the cached response data down to the required file extension */
+  %local dsItems;
+  %let dsItems = %mf_getuniquename(prefix=dsItems_);
+  data work.&dsItems;
+    set &viyaFileExtRespLibDs;
+    where _viyaItemIdx = &itemRowGroup;
+  run;
 
   /* Populate typeDefName, if requested */
   %if (not %mf_isBlank(&typeDefNameVar)) %then %do;
-    %let &typeDefNameVar = %mf_getvalue(&jsonlib..alldata,value,filter=%quote(p1="items" and p2="name"));
-    %if &mdebug=1 %then %put DEBUG: &SYSMACRONAME &=typeDefNameVar &typeDefNameVar=&&&typeDefNameVar;
+    %let &typeDefNameVar = %mf_getvalue(&dsItems,value,filter=%quote(p1="items" and p2="name"));
+    %if &mdebug=1 %then %put DEBUG: &=typeDefNameVar &typeDefNameVar=&&&typeDefNameVar;
   %end;
 
   /* Populate mediaType, if requested */
   %if (not %mf_isBlank(&mediaTypeVar)) %then %do;
-    %let &mediaTypeVar = %mf_getvalue(&jsonlib..alldata,value,filter=%quote(p1="items" and p2="mediaType"));
-    %if &mdebug=1 %then %put DEBUG: &SYSMACRONAME &=mediaTypeVar &mediaTypeVar=&&&mediaTypeVar;
+    %let &mediaTypeVar = %mf_getvalue(&dsItems,value,filter=%quote(p1="items" and p2="mediaType"));
+    %if &mdebug=1 %then %put DEBUG: &=mediaTypeVar &mediaTypeVar=&&&mediaTypeVar;
   %end;
 
   /* Populate properties macro variable, if requested */
   %if not %mf_isBlank(&propertiesVar) %then %do;
-    /* Check for the items_properties table */
-    %if ( not %mf_existds(&jsonlib..ITEMS_PROPERTIES) ) %then %do;
+
+    /* Filter dsItems down to the properties */
+    %local dsProperties;
+    %let dsProperties = %mf_getuniquename(prefix=dsProperties_);
+    data work.&dsProperties ( rename=(p3 = propertyName) );
+        set work.&dsItems;
+        where p2="properties" and v=1;
+    run;
+
+    /* Check for 1+ properties */
+    %if ( %mf_nobs(&dsProperties) = 0 ) %then %do;
       %let &propertiesVar = %str();
       %if &mdebug=1 %then %put DEBUG: &SYSMACRONAME - No Viya properties found for file suffix %str(%')&ext%str(%');
     %end;
     %else %do;
-      /* Properties potentially span multiple rows in the ITEMS_PROPERTIES table */
-      /* First remove some unwanted variables from the items_properties dataset. */
-      %let dsTemplate=%mf_getuniquename(prefix=dsTemplate_);
-      data work.&dsTemplate;
-        stop;
-        set &jsonlib..ITEMS_PROPERTIES(drop=ordinal:);
+      /* Properties potentially span multiple rows in the input table */
+      data _null_;
+        length
+          line $32767
+          properties $32767
+        ;
+        retain properties;
+        set &dsProperties end=last;
+        if _n_ = 1 then properties = '{';
+
+        line = cats(quote(trim(propertyName)),':');
+        /* Only strings and bools appear in properties */
+        if value not in ("true","false") then value = quote(trim(value));
+        line = catx(' ',line,value);
+        /* Add a comma separator to all except the last line */
+        if not last then line = cats(line,',');
+
+        /* Add this line to the output value */
+        properties = catx(' ',properties,line);
+
+        if last then do;
+          /* Close off the properties object and output to the macro variable */
+          properties=catx(' ',properties,'}');
+          call symputx("&propertiesVar",properties);
+        end;
       run;
 
-      /* Retrieve the names of the remaining variables */
-      /* These are the names of the properties. */
-      %let varlist = %mf_getvarlist(work.&dsTemplate);
-      %if &mdebug %then %put DEBUG: &SYSMACRONAME &=varlist;
-
-      %let &propertiesVar = %quote({);
-
-      %let nvars = %sysfunc(countw(&varlist));
-      %do i = 1 %to &nvars;
-        /* Use the name of each variable in the dataset as the property 'key' */
-        %let key = %scan(&varlist,&i);
-        %let value = %mf_getvalue(&jsonlib..ITEMS_PROPERTIES,&key);
-        /* The data type determines if value should be quoted in the output*/
-        %if %mf_getvartype(&jsonlib..ITEMS_PROPERTIES,&key) = C %then %do;
-          %let value = "&value";
-        %end;
-        /* Transform the character '_', to '.' if found in the key */
-        %let key = %sysfunc(translate(&key,.,_));
-        /* Build the line to output */
-        %let line="&key": &value;
-        /* ...adding a comma to all but the final line in the object */
-        %if &i < &nvars %then %let line = &line%str(,);
-        %if &mdebug=1 %then %put DEBUG: &SYSMACRONAME line=%quote(&line);
-        %let &propertiesVar = &&&propertiesVar %quote(&line);
-      %end;
-      /* Close off the properties object */
-      %let &propertiesVar = &&&propertiesVar %quote(});
-      %if &mdebug=1 %then %put DEBUG: &SYSMACRONAME &=propertiesVar &propertiesVar=&&&propertiesVar;
+      %if &mdebug=1 %then %put DEBUG: &=propertiesVar &propertiesVar=&&&propertiesVar;
     %end;
 
   %end;
 
-  %if &mdebug=0 %then %do;
-    proc datasets library=&jsonlib nolist kill; quit;
-    libname &jsonlib clear;
-  %end;
-
-  libname &libref1 clear;
-  filename &viyatypedef clear;
-
-%mend;
+%mend mv_getViyaFileExtParms;

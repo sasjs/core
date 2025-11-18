@@ -35,7 +35,7 @@ options mprint;
 )
 
 %mp_assert(
-  iftrue=(not %mf_isBlank(&viyaProperties)),
+  iftrue=(not %mf_isBlank(%superq(viyaProperties))),
   desc=Check the requested macro variable viyaProperties is not blank.
 )
 
@@ -66,7 +66,7 @@ options mprint;
 
 %mp_assert(
   iftrue=(not ( %mf_isBlank(&cssViyaTypeDefName) or
-                %mf_isBlank(&cssViyaProperties) or
+                %mf_isBlank(%superq(cssViyaProperties)) or
                 %mf_isBlank(&cssViyaMediaType) ) ),
   desc=Check a full set of requested macro variables are not blank.
 )
@@ -88,7 +88,7 @@ options mprint;
 %mp_assert(
   iftrue=(
     %mf_isBlank(&invalidTypeDefName) and
-    %mf_isBlank(&invalidProperties) and
+    %mf_isBlank(%superq(invalidProperties)) and
     %mf_isBlank(&invalidMediaType)
     ),
   desc=Check the requested macro variables are all blank.

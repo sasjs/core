@@ -213,12 +213,13 @@ When contributing to this library, it is therefore important to ensure that all 
 
 We are currently on major release v4.  Breaking changes should be marked with the [deprecated](https://www.doxygen.nl/manual/commands.html#cmddeprecated) doxygen tag.  The following changes are planned when the next major/breaking release (v5) becomes necessary:
 
-* mf_getuniquelibref.sas to have the deprecated maxtried parameter removed (no longer needed)
-* mp_testservice.sas to be renamed as mp_execute.sas (as it doesn't actually test anything)
-* `insert_cmplib` option of mcf_xxx macros will be deprecated (the option is now checked automatically with value inserted only if needed)
+* mcf_xxx macros to have `insert_cmplib` option deprecated (the option is now checked automatically with value inserted only if needed)
 * mcf_xxx macros to have `wrap=` option defaulted to YES for convenience.  Set this option explicitly to avoid issues.
-* mp_getddl.sas to be renamed to mp_ds2ddl.sas (consistent with other ds2xxx macros).  A wrapper macro is already in place, and you are able to use this immediately.  The default for SHOWLOG will also be YES instead of NO.
+* mf_getuniquelibref.sas to have the deprecated maxtries parameter removed (no longer needed)
+* mp_abort.sas will have the redundant type= parameter removed.
 * mp_coretable.sas will be replaced by the standalone macros in the `ddl` folder (which are already available)
+* mp_getddl.sas to be renamed to mp_ds2ddl.sas (consistent with other ds2xxx macros).  A wrapper macro is already in place, and you are able to use this immediately.  The default for SHOWLOG will also be YES instead of NO.
+* mp_testservice.sas to be renamed as mp_execute.sas (as it doesn't actually test anything)
 
 ## Star Gazing
 

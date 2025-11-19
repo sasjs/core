@@ -73,16 +73,16 @@
   ignorelist=,
   outds=work.test_results
 )/*/STORE SOURCE*/;
-%local ds test_result test_comments del add mod ilist;
-%let ilist=%upcase(&sasjs_prefix._FUNCTIONS SYS_PROCHTTP_STATUS_CODE
-  SYS_PROCHTTP_STATUS_CODE SYS_PROCHTTP_STATUS_PHRASE &ignorelist);
-
 /**
   * this sets up the global vars, it will also enter STRICT mode.  If this
   * behaviour is not desired, simply initiate the following global macro
   * variable to prevent the macro from running: SASJS_PREFIX
   */
 %mp_init()
+
+%local ds test_result test_comments del add mod ilist;
+%let ilist=%upcase(&sasjs_prefix._FUNCTIONS SYS_PROCHTTP_STATUS_CODE
+  SYS_PROCHTTP_STATUS_CODE SYS_PROCHTTP_STATUS_PHRASE &ignorelist);
 
 /* get current variables */
 %if &action=SNAPSHOT %then %do;

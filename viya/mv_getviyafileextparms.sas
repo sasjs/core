@@ -4,7 +4,7 @@
     values in SAS macro variables
 
   @details Content is derived from the following endpoint:
-    "https://<srv>/types/types?filter=contains(extensions,'<some ext>')"
+    "https://${serverUrl}/types/types?limit=999999"
 
   @param [in] ext File extension to retrieve property info for.
   @param [out] propertiesVar= SAS macro variable name that will contain
@@ -27,6 +27,7 @@
   @li mf_getvalue.sas
   @li mf_getvarlist.sas
   @li mf_getvartype.sas
+  @li mf_nobs.sas
   @li mp_abort.sas
 
 */

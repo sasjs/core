@@ -262,7 +262,7 @@ run;
 %let fileuri=%trim(%mfv_getpathuri(&path/&name));
 
 /* If properties were found then patch the file to include them */
-%if not %mf_isBlank(&viyaProperties) %then %do;
+%if not %mf_isBlank(%superq(viyaProperties)) %then %do;
   /* Wrap the properties object in a root object also containing the file name */
   %local viyapatch;
   %let viyapatch = %sysfunc(pathname(work))/%mf_getuniquename(prefix=patch_json_);

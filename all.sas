@@ -24548,7 +24548,7 @@ run;
 %let fileuri=%trim(%mfv_getpathuri(&path/&name));
 
 /* If properties were found then patch the file to include them */
-%if not %mf_isBlank(&viyaProperties) %then %do;
+%if not %mf_isBlank(%superq(viyaProperties)) %then %do;
   /* Wrap the properties object in a root object also containing the file name */
   %local viyapatch;
   %let viyapatch = %sysfunc(pathname(work))/%mf_getuniquename(prefix=patch_json_);
@@ -28171,7 +28171,7 @@ libname &libref1 clear;
     values in SAS macro variables
 
   @details Content is derived from the following endpoint:
-    "https://<srv>/types/types?filter=contains(extensions,'<some ext>')"
+    "https://${serverUrl}/types/types?limit=999999"
 
   @param [in] ext File extension to retrieve property info for.
   @param [out] propertiesVar= SAS macro variable name that will contain
@@ -28194,6 +28194,7 @@ libname &libref1 clear;
   @li mf_getvalue.sas
   @li mf_getvarlist.sas
   @li mf_getvartype.sas
+  @li mf_nobs.sas
   @li mp_abort.sas
 
 */

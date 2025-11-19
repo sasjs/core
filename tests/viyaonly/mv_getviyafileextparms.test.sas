@@ -3,7 +3,7 @@
   @brief Testing mv_getviyafileextparms macro
 
   <h4> SAS Macros </h4>
-  @li mf_isBlank.sas
+  @li mf_isblank.sas
   @li mp_assert.sas
   @li mp_assertscope.sas
   @li mv_getviyafileextparms.sas

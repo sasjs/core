@@ -13,7 +13,8 @@
 options mprint;
 
 %let mvarIgnoreList =
-  MC0_JADP1LEN MC0_JADP2LEN MC0_JADP3LEN MC0_JADPNUM MC0_JADVLEN;
+  MC0_JADP1LEN MC0_JADP2LEN MC0_JADP3LEN MC0_JADPNUM MC0_JADVLEN
+  SASJSPROCESSMODE SASJS_STPSRV_HEADER_LOC;
 
 %put TEST 1 - Test with common extension, requesting only typeDefName parameter;
 %mp_assertscope(SNAPSHOT)

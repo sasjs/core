@@ -24544,6 +24544,17 @@ run;
   ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
 )
 
+%local libref2;
+%let libref2=%mf_getuniquelibref();
+libname &libref2 JSON fileref=&fname1;
+/* Grab the follow on link */
+data &outds;
+  set &libref2..links end=last;
+  if rel='createChild' then do;
+    &dbg put (_all_)(=);
+  end;
+run;
+
 /* URI of the created file */
 %let fileuri=%trim(%mfv_getpathuri(&path/&name));
 
@@ -24600,6 +24611,7 @@ run;
   /* clear refs */
   filename &fname1 clear;
   filename &fref clear;
+  libname &libref2 clear;
 %end;
 
 %mp_abort(

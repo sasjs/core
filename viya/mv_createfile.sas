@@ -200,7 +200,7 @@ run;
 
 %local url mimetype ext;
 %let url=&base_uri/files/files?parentFolderUri=&self_uri;
-%let ext=%upcase(%scan(&name,-1,.));
+%let ext=%upcase(%trim(%scan(&name,-1,.)));
 
 /* Get Viya file-extension details into some macro variables */
 %mv_getViyaFileExtParms(&ext
@@ -220,16 +220,21 @@ proc http method='POST' out=&fname1 &oauth_bearer in=&fref
     ct="&ctype"
   %end;
 
+  /* typeDefName */
   %if not %mf_isBlank(&viyaTypeDefName) %then %do;
     url="&url%str(&)typeDefName=&viyaTypeDefName";
   %end;
   %else %do;
-    %if "&ext"="HTML" or "&ext"="CSS" or "&ext"="JS" or "&ext"="PNG"
-    or "&ext"="SVG" %then %do;
-      url="&url%str(&)typeDefName=file";
+    %if "&ext"="HTM" or "&ext"="HTML" or "&ext"="XHTML" %then %do;
+      url="&url%str(&)typeDefName=file_html";
     %end;
     %else %do;
-      url="&url";
+      %if "&ext"="CSS" or "&ext"="JS" or "&ext"="PNG" or "&ext"="SVG" %then %do;
+        url="&url%str(&)typeDefName=file_%lowcase(&ext)";
+      %end;
+      %else %do;
+        url="&url";
+      %end;
     %end;
   %end;
 

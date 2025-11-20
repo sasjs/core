@@ -31,7 +31,7 @@
   @li mf_nobs.sas
   @li mp_abort.sas
 
-*/
+**/
 
 %macro mv_getViyaFileExtParms(
   ext,

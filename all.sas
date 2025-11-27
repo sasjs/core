@@ -13862,6 +13862,7 @@ run;
 
   <h4> Related Macros </h4>
   @li mddl_dc_difftable.sas
+  @li mp_ds2squeeze.sas
   @li mp_stackdiffs.sas
   @li mp_storediffs.sas
   @li mp_stripdiffs.test.sas
@@ -28210,7 +28211,7 @@ libname &libref1 clear;
   @li mf_nobs.sas
   @li mp_abort.sas
 
-*/
+**/
 
 %macro mv_getViyaFileExtParms(
   ext,
@@ -28424,7 +28425,8 @@ libname &libref1 clear;
 
   %end;
 
-%mend mv_getViyaFileExtParms;/**
+%mend mv_getViyaFileExtParms;
+/**
   @file
   @brief Executes a SAS Viya Job
   @details Triggers a SAS Viya Job, with optional URL parameters, using

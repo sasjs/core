@@ -13863,6 +13863,7 @@ run;
 
   <h4> Related Macros </h4>
   @li mddl_dc_difftable.sas
+  @li mp_ds2squeeze.sas
   @li mp_stackdiffs.sas
   @li mp_storediffs.sas
   @li mp_stripdiffs.test.sas

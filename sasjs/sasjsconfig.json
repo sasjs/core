@@ -5,7 +5,10 @@
     "ddl",
     "fcmp",
     "lua",
+    "meta",
+    "metax",
     "server",
+    "viya",
     "xplatform",
     "tests/base",
     "tests/ddlonly",
@@ -42,7 +45,6 @@
         "deployScripts": []
       },
       "macroFolders": [
-        "viya",
         "tests/viyaonly"
       ],
       "contextName": "SAS Job Execution compute context"
@@ -56,8 +58,6 @@
       },
       "appLoc": "/Shared Data/temp/macrocore",
       "macroFolders": [
-        "meta",
-        "metax",
         "tests/sas9only"
       ],
       "programFolders": [],
@@ -82,7 +82,6 @@
         "deployScripts": []
       },
       "macroFolders": [
-        "server",
         "tests/serveronly"
       ]
     },

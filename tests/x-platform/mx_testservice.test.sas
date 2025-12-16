@@ -3,10 +3,10 @@
   @brief Testing mx_testservice.sas macro
 
   Be sure to run <code>%let mcTestAppLoc=/Public/temp/macrocore;</code> when
-  runnin in Studio
+  running in Studio
 
   <h4> SAS Macros </h4>
-  @li mp_createwebservice.sas
+  @li mx_createwebservice.sas
   @li mx_testservice.sas
   @li mp_assert.sas
 

@@ -73,6 +73,8 @@ jobs:
 
       - name: Build & Deploy Project to SAS server
         run: npx @sasjs/cli cbd -t server
+        env:
+          macroCorePath: .
 
       - name: Run all tests
         run: npx @sasjs/cli test -t server
@@ -84,3 +86,4 @@ jobs:
           SAS_PASSWORD: ${{secrets.SAS_PASSWORD}}
           ACCESS_TOKEN: ${{secrets.ACCESS_TOKEN}}
           REFRESH_TOKEN: ${{secrets.REFRESH_TOKEN}}
+

@@ -9,11 +9,13 @@
   @li mx_createjob.sas
   @li mp_assert.sas
   @li mf_getuniquefileref.sas
+  @li mp_assertscope.sas
 
 **/
 
 /**
   * Test 1 - Basic job creation with default parameters
+  * Also checking for scope leakage
   */
 filename ft15f001 temp;
 parmcards4;
@@ -22,7 +24,9 @@ parmcards4;
   run;
   %put Job executed successfully;
 ;;;;
+%mp_assertscope(SNAPSHOT)
 %mx_createjob(path=&mcTestAppLoc/jobs,name=testjob1,replace=YES)
+%mp_assertscope(COMPARE)
 
 %mp_assert(
   iftrue=(&syscc=0),

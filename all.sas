@@ -26427,7 +26427,7 @@ libname &libref1a JSON fileref=&fname1a;
 %let found=0;
 /* %put Getting object uri from &libref1a..items; */
 data _null_;
-  length contenttype name $1000;
+  length contenttype name uri $1000;
   call missing(of _all_);
   set &libref1a..items;
   if contenttype='jobDefinition' and upcase(name)="%upcase(&name)" then do;

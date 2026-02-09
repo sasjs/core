@@ -48,6 +48,9 @@ Usage:
 
   @author Allan Bowe
 
+  <h4> Related Macros </h4>
+  @li mx_createjob.sas
+
 **/
 
 %macro mx_createwebservice(path=HOME

@@ -25,8 +25,9 @@
   %local dsid vnum rc schema;
   /* in case the parameter is a libref.tablename, pull off just the libref */
   %let libref = %upcase(%scan(&libref, 1, %str(.)));
+  /* sysname can be 'Schema/Owner' or just 'Schema' (eg snowflake) */
   %let dsid=%sysfunc(open(sashelp.vlibnam(where=(
-    libname="%upcase(&libref)" and sysname='Schema/Owner'
+    libname="%upcase(&libref)" and sysname=:'Schema'
   )),i));
   %if (&dsid ^= 0) %then %do;
     %let vnum=%sysfunc(varnum(&dsid,SYSVALUE));

@@ -213,7 +213,8 @@ run;
 %else %if &engine=ODBC %then %do;
   %&mD.put NOTE: Retrieving ODBC connection details;
   data _null_;
-    length connx_uri conprop_uri value datasource up_uri schema domprop_uri authdomain $256.;
+    length connx_uri conprop_uri value datasource up_uri schema domprop_uri
+      authdomain $256.;
     call missing (of _all_);
     /* get source connection ID */
     rc=metadata_getnasn("&liburi",'LibraryConnection',1,connx_uri);
@@ -412,6 +413,55 @@ run;
   %put NOTE-;
 
   libname &libref SQLSVR datasrc=&path schema=&schema user="&user" pass="&pass";
+%end;
+%else %if &engine=SASIOSNF or &engine=SNOW %then %do;
+  %&mD.put NOTE: Retrieving SNOW connection details;
+  data _null_;
+    length connx_uri conprop_uri value server up_uri schema domprop_uri
+      authdomain database $256.;
+    call missing (of _all_);
+    /* get source connection ID */
+    rc=metadata_getnasn("&liburi",'LibraryConnection',1,connx_uri);
+    /* get connection properties */
+    i=0;
+    do until (rc2<0);
+      i+1;
+      rc2=metadata_getnasn(connx_uri,'Properties',i,conprop_uri);
+      rc3=metadata_getattr(conprop_uri,'Name',value);
+      if value='Connection.DBMS.Property.SERVER.Name.xmlKey.txt' then do;
+        rc4=metadata_getattr(conprop_uri,'DefaultValue',server);
+        rc2=-1;
+      end;
+    end;
+
+    /* get auth domain */
+    autrc=metadata_getnasn(connx_uri,"Domain",1,domprop_uri);
+    arc=metadata_getattr(domprop_uri,"Name",authdomain);
+    if not missing(authdomain) then authdomain=cats('AUTHDOMAIN=',authdomain);
+    call symputx('authdomain',authdomain,'l');
+
+    /* get SCHEMA */
+    rc6=metadata_getnasn("&liburi",'UsingPackages',1,up_uri);
+    rc7=metadata_getattr(up_uri,'SchemaName',schema);
+    &mD.put rc= connx_uri= rc2= conprop_uri= rc3= value= rc4= server=
+      rc6= up_uri= rc7= schema=;
+
+    /* get database value */
+    prop='Connection.DBMS.Property.DB.Name.xmlKey.txt';
+    rc=metadata_getprop("&liburi",prop,database,"");
+    if database^='' then database='database='!!quote(trim(database));
+    call symputx('database',database,'l');
+
+    call symputx('snow_schema',schema,'l');
+    call symputx('snow_server',server,'l');
+  run;
+
+  libname &libref SNOW SERVER="&snow_server" SCHEMA=&snow_schema &authdomain
+    &database;
+  %if %length(&open_passthrough)>0 %then %do;
+    proc sql;
+    connect using &libref as &open_passthrough;
+  %end;
 %end;
 %else %if &engine=TERADATA %then %do;
   %put NOTE: Obtaining &engine library details;

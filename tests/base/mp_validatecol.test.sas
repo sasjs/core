@@ -130,3 +130,29 @@ run;
   test=EQUALS 6,
   outds=work.test_results
 )
+
+/**
+  * Test 5 - ISLIB
+  */
+data test5;
+  infile datalines4 dsd;
+  input;
+  inf=_infile_;
+  %mp_validatecol(inf,ISLIB,islib)
+  if islib=1;
+datalines4;
+some
+!lib
+%abort
+definite
+2fail
+nineletrs
+.failalso
+_valid
+;;;;
+run;
+%mp_assertdsobs(work.test5,
+  desc=Testing ISLIB,
+  test=EQUALS 3,
+  outds=work.test_results
+)

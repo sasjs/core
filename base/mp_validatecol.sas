@@ -1,6 +1,6 @@
 /**
   @file
-  @brief Used to validate variables in a dataset
+  @brief Used to validate values in a data step
   @details Useful when sanitising inputs, to ensure that they arrive with a
   certain pattern.
   Usage:
@@ -27,6 +27,7 @@
   @param [in] incol The column to be validated
   @param [in] rule The rule to apply.  Current rules:
     @li ISINT - checks if the variable is an integer
+    @li ISLIB - checks if the value is a valid libref (NOT whether it exists)
     @li ISNUM - checks if the variable is numeric
     @li LIBDS - matches LIBREF.DATASET format
     @li FORMAT - checks if the provided format is syntactically valid
@@ -64,6 +65,19 @@
   if missing(&tempcol) then &outcol=0;
   else &outcol=1;
   drop &tempcol;
+%end;
+%else %if &rule=ISLIB %then %do;
+  if _n_=1 then do;
+    retain &tempcol;
+    &tempcol=prxparse('/^[_a-z]\w{0,7}$/i');
+    if missing(&tempcol) then do;
+      putlog 'ERR' +(-1) "OR: Invalid expression for ISLIB";
+      stop;
+    end;
+    drop &tempcol;
+  end;
+  if prxmatch(&tempcol, trim(&incol)) then &outcol=1;
+  else &outcol=0;
 %end;
 %else %if &rule=LIBDS %then %do;
   /* match libref.dataset */

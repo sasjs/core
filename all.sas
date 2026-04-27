@@ -3512,6 +3512,7 @@ run;
   run;
   proc sql;
   drop table &ds;
+  quit;
 
 %mend mp_assert;/**
   @file
@@ -24211,14 +24212,17 @@ run;
       %if %mfv_existsashdat(libds=casuser.sometable) %then %put  yes it does!;
 
   The function uses `dosubl()` to run the `table.fileinfo` action, for the
-  specified library, filtering for `*.sashdat` tables.  The results are stored
-  in a WORK table (&outprefix._&lib). If that table already exists, it is
-  queried instead, to avoid the dosubl() performance hit.
+  specified library, filtering for `*.sashdat` tables.
+
+  IMPORTANT NOTE - The results are cached in a WORK table (&outprefix._&lib).
+  If that table already exists, it is queried instead, to avoid the
+  dosubl() performance hit.
 
   To force a rescan, just use a new `&outprefix` value, or delete the table(s)
   before running the function.
 
   @param [in] libds library.dataset
+  @param [in] usecache= (1) Set to 0 to rebuild the cache
   @param [out] outprefix= (work.mfv_existsashdat)
     Used to store current HDATA tables to improve subsequent query performance.
     This reference is a prefix and is converted to `&prefix._{libref}`
@@ -24229,14 +24233,14 @@ run;
   @author Mathieu Blauw
 **/
 
-%macro mfv_existsashdat(libds,outprefix=work.mfv_existsashdat
+%macro mfv_existsashdat(libds,usecache=1,outprefix=work.mfv_existsashdat
 );
 %local rc dsid name lib ds;
 %let lib=%upcase(%scan(&libds,1,'.'));
 %let ds=%upcase(%scan(&libds,-1,'.'));
 
 /* if table does not exist, create it */
-%if %sysfunc(exist(&outprefix._&lib)) ne 1 %then %do;
+%if &usecache ne 1 or %sysfunc(exist(&outprefix._&lib)) ne 1 %then %do;
   %let rc=%sysfunc(dosubl(%nrstr(
     /* Read in table list (once per &lib per session) */
     proc cas;
@@ -24246,7 +24250,7 @@ run;
     quit;
     /* Only keep name, without file extension */
     data &outprefix._&lib;
-      set &outprefix._&lib(where=(Name like '%.sashdat') keep=Name);
+      set &outprefix._&lib(where=(upcase(Name) like '%.SASHDAT') keep=Name);
       Name=upcase(scan(Name,1,'.'));
     run;
   )));
@@ -24371,6 +24375,118 @@ run;
     msg=Cannot leave &sysmacroname with syscc=&syscc
   )
 %mend mfv_getpathuri;/**
+  @file mv_castabload.sas
+  @brief Checks if a CAS table exists in a CASLIB; if not, loads & promotes it
+  @details Runs in SPRE against an active CAS session. Uses
+    `table.tableExists` to check whether the table is already in-memory,
+    and PROC CASUTIL LOAD with the PROMOTE option to load it if not.
+    CASUTIL infers the file type from the source file extension.
+
+    A CAS session must already be established by the caller, eg:
+
+        cas mysess;
+        %mv_castabload(caslib=Public, table=BASEBALL)
+
+    or (if not a hdat source with the same name as the table):
+
+        %mv_castabload(caslib=Public, table=BASEBALL,
+                    srcfile=MYBASEBALL.parquet)
+
+  @param [in] caslib=  CASLIB containing the source file
+  @param [in] table=   Name to give the in-memory CAS table
+  @param [in] srcfile= (0) Source file name.ext in the caslib.  If not provided,
+                          the code assumes that srcfile=&table..sashdat
+  @param [in] mdebug=  (0) Set to 1 to enable verbose logging:
+                        - echoes resolved parameters
+                        - prints tableExists result
+                        - enables mprint/notes during PROC calls
+
+  @returns Sets global macro variable `MV_CASTABLOAD_RC`:
+    0 = table already existed (no load performed)
+    1 = table was loaded & promoted successfully
+    3 = action failed (including source file missing)
+
+  <h4> SAS Macros </h4>
+  @li mfv_existsashdat.sas
+
+**/
+
+%macro mv_castabload(
+    caslib=
+    ,table=
+    ,srcfile=0
+    ,mdebug=0
+);
+
+%global MV_CASTABLOAD_RC;
+%let MV_CASTABLOAD_RC=3;
+
+%local _sysopts;
+%let _sysopts=%sysfunc(getoption(mprint)) %sysfunc(getoption(notes));
+
+/* ---- input validation -------------------------------------------------- */
+%if "&caslib"="" or "&table"="" or "&srcfile"="" %then %do;
+  %put %str(ERR)OR: caslib=, table= and srcfile= are all required;
+  %return;
+%end;
+%if "&srcfile"="0" %then %let srcfile=&table..sashdat;
+
+%if &mdebug=1 %then %do;
+  %put &=caslib;
+  %put &=table;
+  %put &=srcfile;
+  options mprint notes;
+%end;
+
+/* ---- check source file exists ------------------------------------------ */
+%if not %mfv_existsashdat(&caslib..%scan(&srcfile,1,.)) %then %do;
+  %put %str(ERR)OR: Source file "&srcfile" not found in caslib "&caslib";
+  %let MV_CASTABLOAD_RC=3;
+  %return;
+%end;
+
+/* ---- existence check --------------------------------------------------- */
+proc cas;
+  table.tableExists result=r /
+      caslib="&caslib"
+      name="&table";
+  %if &mdebug=1 %then %do;
+    print r;
+  %end;
+  if r.exists = 0 then rc = 9;
+  else rc = 0;
+  symputx('MV_CASTABLOAD_RC', rc, 'G');
+quit;
+
+
+/* ---- load if absent ---------------------------------------------------- */
+%if &MV_CASTABLOAD_RC=9 %then %do;
+
+  proc casutil;
+    load casdata="&srcfile"
+        incaslib="&caslib"
+        casout="&table"
+        outcaslib="&caslib"
+        promote;
+  quit;
+
+  %if &syserr=0 %then %let MV_CASTABLOAD_RC=1;
+  %else %let MV_CASTABLOAD_RC=3;
+
+%end;
+
+%if &MV_CASTABLOAD_RC=0 %then
+  %put NOTE: Table &caslib..&table already loaded - skipping;
+%else %if &MV_CASTABLOAD_RC=1 %then
+  %put NOTE: Table &caslib..&table loaded and promoted;
+%else %put %str(ERR)OR: load failed for &caslib..&table;
+
+/* ---- restore options --------------------------------------------------- */
+%if &mdebug=1 %then %do;
+  options &_sysopts;
+%end;
+
+%mend mv_castabload;/**
   @file
   @brief Creates a file in SAS Drive using the API method
   @details Creates a file in SAS Drive using the API interface.

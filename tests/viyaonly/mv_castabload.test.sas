@@ -69,7 +69,7 @@ quit;
 
 
 /* ------------------------------------------------------------------------ */
-%put TEST 2 - load a table that does not yet exist (default srcfile=table.hdat);
+%put TEST 2 - load a table that does not yet exist (default srcfile=table.sashdat);
 /* ------------------------------------------------------------------------ */
 %mv_castabload(caslib=&testcaslib,table=&tab1,mdebug=1)
 

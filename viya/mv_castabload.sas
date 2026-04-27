@@ -19,7 +19,7 @@
   @param [in] caslib=  CASLIB containing the source file
   @param [in] table=   Name to give the in-memory CAS table
   @param [in] srcfile= (0) Source file name.ext in the caslib.  If not provided,
-                          the code assumes that srcfile=&table..hdat
+                          the code assumes that srcfile=&table..sashdat
   @param [in] mdebug=  (0) Set to 1 to enable verbose logging:
                         - echoes resolved parameters
                         - prints tableExists result
@@ -28,7 +28,11 @@
   @returns Sets global macro variable `MV_CASTABLOAD_RC`:
     0 = table already existed (no load performed)
     1 = table was loaded & promoted successfully
-    3 = action failed
+    3 = action failed (including source file missing)
+
+  <h4> SAS Macros </h4>
+  @li mfv_existsashdat.sas
+
 **/
 
 %macro mv_castabload(
@@ -49,13 +53,20 @@
   %put %str(ERR)OR: caslib=, table= and srcfile= are all required;
   %return;
 %end;
-%if "&srcfile"="0" %then %let srcfile=&table..hdat;
+%if "&srcfile"="0" %then %let srcfile=&table..sashdat;
 
 %if &mdebug=1 %then %do;
   %put &=caslib;
   %put &=table;
   %put &=srcfile;
   options mprint notes;
+%end;
+
+/* ---- check source file exists ------------------------------------------ */
+%if not %mfv_existsashdat(&caslib..%scan(&srcfile,1,.)) %then %do;
+  %put %str(ERR)OR: Source file "&srcfile" not found in caslib "&caslib";
+  %let MV_CASTABLOAD_RC=3;
+  %return;
 %end;
 
 /* ---- existence check --------------------------------------------------- */
@@ -92,7 +103,7 @@ quit;
   %put NOTE: Table &caslib..&table already loaded - skipping;
 %else %if &MV_CASTABLOAD_RC=1 %then
   %put NOTE: Table &caslib..&table loaded and promoted;
-%else %put ERROR: load failed for &caslib..&table;
+%else %put %str(ERR)OR: load failed for &caslib..&table;
 
 /* ---- restore options --------------------------------------------------- */
 %if &mdebug=1 %then %do;

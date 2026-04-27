@@ -52,5 +52,6 @@
   run;
   proc sql;
   drop table &ds;
+  quit;
 
 %mend mp_assert;

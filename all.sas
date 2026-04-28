@@ -4043,6 +4043,7 @@ run;
     from dictionary.macros
     where scope="&scope" and upcase(name) not in (%mf_getquotedstr(&ilist))
     order by name,offset;
+  quit;
 %end;
 %else %if &action=COMPARE %then %do;
 
@@ -4080,7 +4081,6 @@ run;
     %let test_comments=%str(Mod:(&mod) Add:(&add) Del:(&del));
   %end;
 
-
   data ;
     length test_description $256 test_result $4 test_comments $256;
     test_description=symget('desc');
@@ -4093,6 +4093,7 @@ run;
   run;
   proc sql;
   drop table &ds;
+  quit;
 %end;
 
 %mend mp_assertscope;

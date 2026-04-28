@@ -3512,6 +3512,7 @@ run;
   run;
   proc sql;
   drop table &ds;
+  quit;
 
 %mend mp_assert;/**
   @file
@@ -4042,6 +4043,7 @@ run;
     from dictionary.macros
     where scope="&scope" and upcase(name) not in (%mf_getquotedstr(&ilist))
     order by name,offset;
+  quit;
 %end;
 %else %if &action=COMPARE %then %do;
 
@@ -4079,7 +4081,6 @@ run;
     %let test_comments=%str(Mod:(&mod) Add:(&add) Del:(&del));
   %end;
 
-
   data ;
     length test_description $256 test_result $4 test_comments $256;
     test_description=symget('desc');
@@ -4092,6 +4093,7 @@ run;
   run;
   proc sql;
   drop table &ds;
+  quit;
 %end;
 
 %mend mp_assertscope;
@@ -10103,8 +10105,9 @@ filename &tempref clear;
   &prefix._INIT_NUM  /* initialisation time as numeric                        */
   &prefix._INIT_DTTM /* initialisation time in E8601DT26.6 format             */
   &prefix.WORK       /* avoid typing %sysfunc(pathname(work)) every time      */
+  &prefix.PROCESSMODE
+  &prefix._STPSRV_HEADER_LOC
 ;
-
 %let sasjs_prefix=&prefix;
 
 data _null_;
@@ -24211,12 +24214,12 @@ run;
       %if %mfv_existsashdat(libds=casuser.sometable) %then %put  yes it does!;
 
   The function uses `dosubl()` to run the `table.fileinfo` action, for the
-  specified library, filtering for `*.sashdat` tables.  The results are stored
-  in a WORK table (&outprefix._&lib). If that table already exists, it is
-  queried instead, to avoid the dosubl() performance hit.
+  specified library, filtering for `*.sashdat` tables.
 
-  To force a rescan, just use a new `&outprefix` value, or delete the table(s)
-  before running the function.
+  Results are cached in a WORK table (&outprefix._&lib).  If that table
+  already exists it is queried directly to avoid the dosubl() overhead.
+  To force a rescan, use a new `&outprefix` value or delete the cache
+  table before calling.
 
   @param [in] libds library.dataset
   @param [out] outprefix= (work.mfv_existsashdat)
@@ -24229,13 +24232,12 @@ run;
   @author Mathieu Blauw
 **/
 
-%macro mfv_existsashdat(libds,outprefix=work.mfv_existsashdat
-);
+%macro mfv_existsashdat(libds,outprefix=work.mfv_existsashdat);
 %local rc dsid name lib ds;
 %let lib=%upcase(%scan(&libds,1,'.'));
 %let ds=%upcase(%scan(&libds,-1,'.'));
 
-/* if table does not exist, create it */
+/* if cache table does not exist, build it */
 %if %sysfunc(exist(&outprefix._&lib)) ne 1 %then %do;
   %let rc=%sysfunc(dosubl(%nrstr(
     /* Read in table list (once per &lib per session) */
@@ -24246,7 +24248,7 @@ run;
     quit;
     /* Only keep name, without file extension */
     data &outprefix._&lib;
-      set &outprefix._&lib(where=(Name like '%.sashdat') keep=Name);
+      set &outprefix._&lib(where=(upcase(Name) like '%.SASHDAT') keep=Name);
       Name=upcase(scan(Name,1,'.'));
     run;
   )));
@@ -24263,6 +24265,43 @@ run;
 %else 0;
 
 %mend mfv_existsashdat;
+/**
+  @file mfv_getcaslib.sas
+  @brief Returns the CAS caslib name for a given SAS libref
+  @details Pure macro function.  Reads sashelp.vlibnam and returns
+    the sysvalue where sysname='Caslib' for the given libref.  This
+    is useful when the caslib name and libref name may differ.
+
+    Usage:
+
+        %put %mfv_getcaslib(lib=PUBLIC);
+
+  @param [in] lib SAS libref for which to return the CAS caslib name
+
+  @return Returns the CAS caslib name, or empty string if not found
+
+**/
+
+%macro mfv_getcaslib(lib);
+
+%local dsid rc result;
+
+%let dsid=%sysfunc(open(sashelp.vlibnam(
+  where=(libname="%upcase(&lib)" and sysname="Caslib")
+)));
+
+%if &dsid %then %do;
+  %let rc=%sysfunc(fetch(&dsid));
+  %if &rc=0 %then
+    %let result=%sysfunc(
+      getvarc(&dsid,%sysfunc(varnum(&dsid,SYSVALUE)))
+    );
+  %let rc=%sysfunc(close(&dsid));
+%end;
+
+&result
+
+%mend mfv_getcaslib;
 /**
   @file
   @brief Returns the path of a folder from the URI
@@ -24371,6 +24410,405 @@ run;
     msg=Cannot leave &sysmacroname with syscc=&syscc
   )
 %mend mfv_getpathuri;/**
+  @file mv_castabload.sas
+  @brief Checks if a CAS table is loaded; if not, loads and promotes it
+  @details Runs in SPRE against an active CAS session.  Accepts a
+    SAS libref, derives the CAS caslib and session UUID from
+    sashelp.vlibnam, then checks whether the table is already
+    in-memory.  If not, locates the owning CAS server via the
+    casManagement REST API, queries the table endpoint to discover
+    the source file and caslib, then loads and promotes the table.
+
+    A CAS session must already be established by the caller, eg:
+
+        cas mysess;
+        libname mylib cas caslib=Public;
+        %mv_castabload(lib=mylib, table=BASEBALL)
+
+  @param [in] lib=    SAS libref for the CAS caslib
+  @param [in] table=  Name of the CAS table to load
+  @param [in] mdebug= (0) Set to 1 to enable verbose logging:
+                        - echoes resolved parameters
+                        - prints tableExists result
+                        - enables mprint/notes during PROC calls
+
+  <h4> SAS Macros </h4>
+  @li mf_getplatform.sas
+  @li mf_getuniquefileref.sas
+  @li mf_getuniquelibref.sas
+  @li mp_abort.sas
+
+**/
+
+%macro mv_castabload(
+    lib=
+    ,table=
+    ,mdebug=0
+);
+
+%local _sysopts base_uri caslib uuid server
+      srcfile srccaslib fname1 libref1 ftmp i _svcount _exists;
+%let _sysopts=%sysfunc(getoption(mprint)) %sysfunc(getoption(notes));
+
+/* ---- input validation -------------------------------------------------- */
+%mp_abort(
+  iftrue=("&lib"="" or "&table"=""),
+  msg=%str(lib= and table= are required)
+)
+
+%if &mdebug=1 %then %do;
+  %put &=lib;
+  %put &=table;
+  options mprint notes;
+%end;
+
+/* ---- derive caslib and session UUID from sashelp.vlibnam --------------- */
+data _null_;
+  set sashelp.vlibnam(
+    where=(libname="%upcase(&lib)"
+      and sysname in ("Caslib","Session UUID"))
+  );
+  if sysname="Caslib" then call symputx('caslib',sysvalue,'L');
+  else call symputx('uuid',sysvalue,'L');
+  %if &mdebug=1 %then %do;
+    putlog sysname sysvalue;
+  %end;
+run;
+
+%mp_abort(
+  iftrue=("&caslib"=""),
+  msg=%str(&lib is not an assigned CAS libref)
+)
+
+%mp_abort(
+  iftrue=("&uuid"=""),
+  msg=%str(No session UUID found for libref &lib)
+)
+
+/* ---- existence check --------------------------------------------------- */
+proc cas;
+  table.tableExists result=r /
+      caslib="&caslib"
+      name="&table";
+  %if &mdebug=1 %then %do;
+    print r;
+  %end;
+  if r.exists > 0 then call symputx('_exists', '1', 'L');
+  else call symputx('_exists', '0', 'L');
+quit;
+
+/* ---- already loaded: skip ---------------------------------------------- */
+%if &_exists=1 %then %do;
+  %put NOTE: Table &caslib..&table already loaded - skipping;
+  %return;
+%end;
+
+/* ---- get list of CAS servers ----------------------------------------- */
+%let base_uri=%mf_getplatform(VIYARESTAPI);
+%let fname1=%mf_getuniquefileref();
+%let libref1=%mf_getuniquelibref();
+
+proc http method='GET' out=&fname1 oauth_bearer=sas_services
+    url="&base_uri/casManagement/servers";
+run;
+
+%mp_abort(
+  iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200),
+  msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
+)
+
+libname &libref1 JSON fileref=&fname1;
+
+data _null_;
+  set &libref1..items;
+  call symputx(cats('_sv_', _n_), name, 'L');
+  call symputx('_svcount', _n_, 'L');
+run;
+
+libname &libref1 clear;
+filename &fname1 clear;
+
+/* ---- find which server owns this session ------------------------------ */
+%do i=1 %to &_svcount;
+  %if "&server"="" %then %do;
+    %if &mdebug=1 %then %put checking server: &&_sv_&i;
+    %let ftmp=%mf_getuniquefileref();
+    proc http method='GET' out=&ftmp oauth_bearer=sas_services
+      url="&base_uri/casManagement/servers/&&_sv_&i/sessions/&uuid";
+    run;
+    %if &SYS_PROCHTTP_STATUS_CODE=200
+      %then %let server=&&_sv_&i;
+    filename &ftmp clear;
+  %end;
+%end;
+
+%mp_abort(
+  iftrue=("&server"=""),
+  msg=%str(Could not find owning server for CAS session &uuid)
+)
+
+%if &mdebug=1 %then %put &=server;
+
+/* ---- discover source file from REST endpoint -------------------------- */
+%let fname1=%mf_getuniquefileref();
+%let libref1=%mf_getuniquelibref();
+
+proc http method='GET' out=&fname1 oauth_bearer=sas_services
+  url="&base_uri/casManagement/servers/&server/caslibs/&caslib/tables/&table";
+run;
+
+%if &mdebug=1 %then %do;
+  %put &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;
+  data _null_;
+    infile &fname1;
+    input;
+    putlog _infile_;
+  run;
+%end;
+
+%mp_abort(
+  iftrue=(&SYS_PROCHTTP_STATUS_CODE=404),
+  msg=%str(&caslib..&table not found - is a source file registered?)
+)
+%mp_abort(
+  iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200),
+  msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
+)
+
+libname &libref1 JSON fileref=&fname1;
+
+data _null_;
+  set &libref1..tablereference;
+  call symputx('srcfile', sourceTableName, 'L');
+  call symputx('srccaslib', sourceCaslibName, 'L');
+  stop;
+run;
+
+libname &libref1 clear;
+filename &fname1 clear;
+
+%mp_abort(
+  iftrue=("&srcfile"="" or "&srccaslib"=""),
+  msg=%str(No sourceTableName/sourceCaslibName for &caslib..&table)
+)
+
+%if &mdebug=1 %then %put &=srcfile &=srccaslib;
+
+/* ---- load from discovered source -------------------------------------- */
+proc casutil;
+  load casdata="&srcfile"
+      incaslib="&srccaslib"
+      casout="&table"
+      outcaslib="&caslib"
+      promote;
+quit;
+
+%mp_abort(
+  iftrue=(&syscc ne 0),
+  msg=%str(Load failed for &caslib..&table)
+)
+
+%put NOTE: Table &caslib..&table loaded and promoted from &srcfile;
+
+/* ---- restore options --------------------------------------------------- */
+%if &mdebug=1 %then %do;
+  options &_sysopts;
+%end;
+
+%mend mv_castabload;
+/**
+  @file mv_castabsave.sas
+  @brief Saves an in-memory CAS table back to persistent storage
+  @details Runs in SPRE against an active CAS session.  Accepts a
+    SAS libref, derives the CAS caslib and session UUID from
+    sashelp.vlibnam, locates the owning CAS server via the
+    casManagement REST API, then queries the table endpoint to
+    discover the original source file and saves back to that path.
+    CASUTIL infers the file type from the output file extension.
+
+    A CAS session must already be established by the caller, eg:
+
+        cas mysess;
+        libname mylib cas caslib=Public;
+        %mv_castabsave(lib=mylib, table=BASEBALL)
+
+  @param [in] lib=    SAS libref for the CAS caslib
+  @param [in] table=  Name of the in-memory CAS table to save
+  @param [in] mdebug= (0) Set to 1 to enable verbose logging:
+                        - echoes resolved parameters
+                        - prints HTTP response body
+                        - enables mprint/notes during PROC calls
+
+  <h4> SAS Macros </h4>
+  @li mf_getplatform.sas
+  @li mf_getuniquefileref.sas
+  @li mf_getuniquelibref.sas
+  @li mp_abort.sas
+
+**/
+
+%macro mv_castabsave(
+    lib=
+    ,table=
+    ,mdebug=0
+);
+
+%local _sysopts base_uri caslib uuid server
+      srcfile srccaslib fname1 libref1 ftmp i _svcount;
+%let _sysopts=%sysfunc(getoption(mprint)) %sysfunc(getoption(notes));
+
+/* ---- input validation -------------------------------------------------- */
+%mp_abort(
+  iftrue=("&lib"="" or "&table"=""),
+  msg=%str(lib= and table= are required)
+)
+
+%if &mdebug=1 %then %do;
+  %put &=lib;
+  %put &=table;
+  options mprint notes;
+%end;
+
+/* ---- derive caslib and session UUID from sashelp.vlibnam --------------- */
+data _null_;
+  set sashelp.vlibnam(
+    where=(libname="%upcase(&lib)"
+      and sysname in ("Caslib","Session UUID"))
+  );
+  if sysname="Caslib" then call symputx('caslib',sysvalue,'L');
+  else call symputx('uuid',sysvalue,'L');
+run;
+
+%mp_abort(
+  iftrue=("&caslib"=""),
+  msg=%str(&lib is not an assigned CAS libref)
+)
+
+%mp_abort(
+  iftrue=("&uuid"=""),
+  msg=%str(No session UUID found for libref &lib)
+)
+
+%if &mdebug=1 %then %do;
+  %put &=caslib;
+  %put &=uuid;
+%end;
+
+%let base_uri=%mf_getplatform(VIYARESTAPI);
+
+/* ---- get list of CAS servers ------------------------------------------- */
+%let fname1=%mf_getuniquefileref();
+%let libref1=%mf_getuniquelibref();
+
+proc http method='GET' out=&fname1 oauth_bearer=sas_services
+    url="&base_uri/casManagement/servers";
+run;
+
+%mp_abort(
+  iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200),
+  msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
+)
+
+libname &libref1 JSON fileref=&fname1;
+
+data _null_;
+  set &libref1..items;
+  call symputx(cats('_sv_', _n_), name, 'L');
+  call symputx('_svcount', _n_, 'L');
+run;
+
+libname &libref1 clear;
+filename &fname1 clear;
+
+/* ---- find which server owns this session ------------------------------- */
+%do i=1 %to &_svcount;
+  %if "&server"="" %then %do;
+    %if &mdebug=1 %then %put checking server: &&_sv_&i;
+    %let ftmp=%mf_getuniquefileref();
+    proc http method='GET' out=&ftmp oauth_bearer=sas_services
+        url="&base_uri/casManagement/servers/&&_sv_&i/sessions/&uuid";
+    run;
+    %if &SYS_PROCHTTP_STATUS_CODE=200
+      %then %let server=&&_sv_&i;
+    filename &ftmp clear;
+  %end;
+%end;
+
+%mp_abort(
+  iftrue=("&server"=""),
+  msg=%str(Could not find owning server for CAS session &uuid)
+)
+
+%if &mdebug=1 %then %put &=server;
+
+/* ---- discover srcfile from REST endpoint ------------------------------- */
+%let fname1=%mf_getuniquefileref();
+%let libref1=%mf_getuniquelibref();
+
+proc http method='GET' out=&fname1 oauth_bearer=sas_services
+    url="&base_uri/casManagement/servers/&server/caslibs/&caslib/tables/&table";
+run;
+
+%if &mdebug=1 %then %do;
+  %put &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;
+  data _null_;
+    infile &fname1;
+    input;
+    putlog _infile_;
+  run;
+%end;
+
+%mp_abort(
+  iftrue=(&SYS_PROCHTTP_STATUS_CODE=404),
+  msg=%str(&caslib..&table not found - is it loaded in memory?)
+)
+%mp_abort(
+  iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200),
+  msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
+)
+
+libname &libref1 JSON fileref=&fname1;
+
+data _null_;
+  set &libref1..tablereference;
+  call symputx('srcfile', sourceTableName, 'L');
+  call symputx('srccaslib', sourceCaslibName, 'L');
+  stop;
+run;
+
+libname &libref1 clear;
+filename &fname1 clear;
+
+%mp_abort(
+  iftrue=("&srcfile"="" or "&srccaslib"=""),
+  msg=%str(No sourceTableName/sourceCaslibName for &caslib..&table)
+)
+
+%if &mdebug=1 %then %put &=srcfile;
+
+/* ---- save to disk ------------------------------------------------------- */
+proc casutil;
+  save casdata="&table"
+      incaslib="&caslib"
+      casout="&srcfile"
+      outcaslib="&srccaslib"
+      replace;
+quit;
+
+%mp_abort(
+  iftrue=(&syscc ne 0),
+  msg=%str(Save failed for &caslib..&table)
+)
+
+%put NOTE: Table &caslib..&table saved to &srcfile;
+
+/* ---- restore options --------------------------------------------------- */
+%if &mdebug=1 %then %do;
+  options &_sysopts;
+%end;
+
+%mend mv_castabsave;
+/**
   @file
   @brief Creates a file in SAS Drive using the API method
   @details Creates a file in SAS Drive using the API interface.

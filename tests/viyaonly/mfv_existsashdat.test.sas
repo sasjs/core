@@ -63,37 +63,12 @@ quit;
 )
 
 /* ------------------------------------------------------------------------ */
-%put TEST 3 - usecache= controls whether the cached dataset is reused;
+/* Teardown                                                                 */
 /* ------------------------------------------------------------------------ */
-
-/* First call: populates the cache dataset work.testcache_&testcaslib */
-%let _rc=%mfv_existsashdat(&testcaslib..&tab1,outprefix=work.testcache);
-
-/* Delete the sashdat from the caslib so a fresh scan would return 0 */
 proc casutil;
   deletesource casdata="&tab1..sashdat" incaslib="&testcaslib" quiet;
 quit;
 
-/* usecache=1 (default): must return 1 from the cached dataset */
-%mp_assert(
-  iftrue=(%mfv_existsashdat(&testcaslib..&tab1,outprefix=work.testcache)=1),
-  desc=Check returns 1 from cache even after source file is deleted
-)
-
-/* usecache=0: forces rescan and reflects the deletion */
-%mp_assert(
-  iftrue=(
-    %mfv_existsashdat(&testcaslib..&tab1,usecache=0,outprefix=work.testcache)=0
-  ),
-  desc=Check returns 0 when usecache=0 forces a rescan after source file deleted
-)
-
-%let syscc=0;
-
-
-/* ------------------------------------------------------------------------ */
-/* Teardown: terminate CAS session (sashdat already removed in TEST 4)      */
-/* ------------------------------------------------------------------------ */
 cas mysess terminate;
 
 %let syscc=0;

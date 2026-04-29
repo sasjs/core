@@ -80,7 +80,7 @@ options mprint;
   typeDefNameVar=invalidTypeDefName,
   propertiesVar=invalidProperties,
   mediaTypeVar=invalidMediaType
-  )
+)
 %mp_assertscope(COMPARE
   ,ignorelist=
     &mvarIgnoreList invalidTypeDefName invalidProperties invalidMediaType

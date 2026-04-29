@@ -25014,9 +25014,10 @@ run;
 
 /* Get Viya file-extension details into some macro variables */
 %mv_getViyaFileExtParms(&ext
-                        ,propertiesVar=viyaProperties
-                        ,typeDefNameVar=viyaTypeDefName
-                        ,mdebug=&mdebug);
+  ,propertiesVar=viyaProperties
+  ,typeDefNameVar=viyaTypeDefName
+  ,mdebug=&mdebug
+)
 
 /* fetch job info */
 %local fname1;
@@ -25084,9 +25085,9 @@ run;
 
 /* If properties were found then patch the file to include them */
 %if not %mf_isBlank(%superq(viyaProperties)) %then %do;
-  /* Wrap the properties object in a root object also containing the file name */
+  /* Wrap the properties object in a root object also containing the filename */
   %local viyapatch;
-  %let viyapatch = %sysfunc(pathname(work))/%mf_getuniquename(prefix=patch_json_);
+  %let viyapatch=%sysfunc(pathname(work))/%mf_getuniquename(prefix=patch_json_);
   data _null_;
     length line $32767;
     file "&viyapatch" lrecl=32767;
@@ -25106,7 +25107,7 @@ run;
     run;
   %end;
 
-  /* And apply the properties to the newly created file, using the PATCH method */
+  /* Apply the properties to the newly created file, using the PATCH method */
   %let fref=%mf_getuniquefileref();
   filename &fref "&viyapatch";
   %let url=&base_uri&fileuri;
@@ -28727,6 +28728,7 @@ libname &libref1 clear;
   @li mf_existds.sas
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
+  @li mf_getuniquelibref.sas
   @li mf_getuniquename.sas
   @li mf_getvalue.sas
   @li mf_getvarlist.sas
@@ -28752,7 +28754,7 @@ libname &libref1 clear;
     iftrue=(%mf_isBlank(&ext))
     ,msg=%str(No file extension provided.)
     ,mac=MV_GETVIYAFILEEXTPARMS
-  );
+  )
 
   %mp_abort(
     iftrue=(%mf_isBlank(&typeDefNameVar) and
@@ -28760,13 +28762,13 @@ libname &libref1 clear;
             %mf_isBlank(&mediaTypeVar))
     ,msg=%str(MV_GETVIYAFILEEXTPARMS - No parameter was requested.)
     ,mac=MV_GETVIYAFILEEXTPARMS
-  );
+  )
 
   %mp_abort(
     iftrue=(%mf_isBlank(&viyaFileExtRespLibDs))
     ,msg=%str(No <libname.>dataset name provided to cache inital response.)
     ,mac=MV_GETVIYAFILEEXTPARMS
-  );
+  )
 
   /* Declare requested parameters as global macro vars and initialize blank */
   %if not %mf_isBlank(&typeDefNameVar) %then %do;
@@ -28783,9 +28785,7 @@ libname &libref1 clear;
   %end;
 
   %let base_uri=%mf_getplatform(VIYARESTAPI);
-  %if &mdebug=1 %then %do;
-    %put DEBUG: &=base_uri;
-  %end;
+  %if &mdebug=1 %then %put DEBUG: &=base_uri;
 
   %let ext=%lowcase(&ext);
 
@@ -28809,7 +28809,7 @@ libname &libref1 clear;
 
     %if (&SYS_PROCHTTP_STATUS_CODE ne 200) %then %do;
       /* To avoid a breaking change, exit early if the request failed.
-        The calling process will proceed with empty requested macro variables. */
+          The calling process will proceed with empty macro variables. */
       %put INFO: &sysmacroname File extension details were not retrieved.;
       filename &viyatypedefs clear;
       %return;
@@ -28830,11 +28830,12 @@ libname &libref1 clear;
     /* Convert the content of that JSON into SAS datasets */
       /* First prepare a new WORK-based folder to receive the datasets */
     %local jsonworkfolder jsonlib opt_dlcreatedir;
-    %let jsonworkfolder=%sysfunc(pathname(work))/%mf_getuniquename(prefix=json_);
+    %let jsonworkfolder=%sysfunc(pathname(work))/%mf_getuniquename(prefix=jsn_);
     %let jsonlib=%mf_getuniquelibref(prefix=json);
-      /* And point a libname at it */
+    /* And point a libname at it */
     %let opt_dlcreatedir = %sysfunc(getoption(dlcreatedir));
-    options dlcreatedir; libname &jsonlib "&jsonworkfolder"; options &opt_dlcreatedir;
+    options dlcreatedir; libname &jsonlib "&jsonworkfolder";
+    options &opt_dlcreatedir;
 
     /* Read the json output once and copy datasets to its work folder */
     %local libref1;
@@ -28863,20 +28864,22 @@ libname &libref1 clear;
 
   %end; /* If initial filetype query response didn't exist */
 
-  /* Find the row-group for the current file extension */
+  %if &mdebug %then %put DEBUG: Find the row-group for extension &ext;
   %local itemRowGroup;
-  %let itemRowGroup =
-    %mf_getValue(
-      &viyaFileExtRespLibDs
-      ,_viyaItemIdx
-      ,filter=%quote(p1='items' and p2='extensions' and value="&ext")
-    );
+  data _null_;
+    set &viyaFileExtRespLibDs;
+    where p1='items' and p2='extensions' and value="&ext";
+    call symputx('itemRowGroup',_viyaItemIdx,'l');
+  %if &mdebug %then %do;
+    putlog (_all_)(=);
+  %end;
+  run;
 
   %if &mdebug %then %put DEBUG: &=itemRowGroup;
 
   %if %mf_isBlank(&itemRowGroup) %then %do;
     /* extension was not found */
-    %if(&mdebug=1) %then %put DEBUG: No type details found for extension "&ext".;
+    %if &mdebug %then %put DEBUG: No type details found for extension "&ext";
     %return;
   %end;
 
@@ -28890,14 +28893,17 @@ libname &libref1 clear;
 
   /* Populate typeDefName, if requested */
   %if (not %mf_isBlank(&typeDefNameVar)) %then %do;
-    %let &typeDefNameVar = %mf_getvalue(&dsItems,value,filter=%quote(p1="items" and p2="name"));
-    %if &mdebug=1 %then %put DEBUG: &=typeDefNameVar &typeDefNameVar=&&&typeDefNameVar;
+    %let &typeDefNameVar = %mf_getvalue(
+        &dsItems,value,filter=%quote(p1="items" and p2="name"));
+    %if &mdebug %then
+      %put DEBUG: &=typeDefNameVar &typeDefNameVar=&&&typeDefNameVar;
   %end;
 
   /* Populate mediaType, if requested */
   %if (not %mf_isBlank(&mediaTypeVar)) %then %do;
-    %let &mediaTypeVar = %mf_getvalue(&dsItems,value,filter=%quote(p1="items" and p2="mediaType"));
-    %if &mdebug=1 %then %put DEBUG: &=mediaTypeVar &mediaTypeVar=&&&mediaTypeVar;
+    %let &mediaTypeVar = %mf_getvalue(
+      &dsItems,value,filter=%quote(p1="items" and p2="mediaType"));
+    %if &mdebug %then %put DEBUG: &=mediaTypeVar &mediaTypeVar=&&&mediaTypeVar;
   %end;
 
   /* Populate properties macro variable, if requested */
@@ -28914,7 +28920,8 @@ libname &libref1 clear;
     /* Check for 1+ properties */
     %if ( %mf_nobs(&dsProperties) = 0 ) %then %do;
       %let &propertiesVar = %str();
-      %if &mdebug=1 %then %put DEBUG: &SYSMACRONAME - No Viya properties found for file suffix %str(%')&ext%str(%');
+      %if &mdebug %then %put DEBUG: &SYSMACRONAME - No Viya properties %trim(
+        )found for file suffix %str(%')&ext%str(%');
     %end;
     %else %do;
       /* Properties potentially span multiple rows in the input table */
@@ -28944,7 +28951,8 @@ libname &libref1 clear;
         end;
       run;
 
-      %if &mdebug=1 %then %put DEBUG: &=propertiesVar &propertiesVar=&&&propertiesVar;
+      %if &mdebug %then
+        %put DEBUG: &=propertiesVar &propertiesVar=&&&propertiesVar;
     %end;
 
   %end;

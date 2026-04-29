@@ -204,9 +204,10 @@ run;
 
 /* Get Viya file-extension details into some macro variables */
 %mv_getViyaFileExtParms(&ext
-                        ,propertiesVar=viyaProperties
-                        ,typeDefNameVar=viyaTypeDefName
-                        ,mdebug=&mdebug);
+  ,propertiesVar=viyaProperties
+  ,typeDefNameVar=viyaTypeDefName
+  ,mdebug=&mdebug
+)
 
 /* fetch job info */
 %local fname1;
@@ -274,9 +275,9 @@ run;
 
 /* If properties were found then patch the file to include them */
 %if not %mf_isBlank(%superq(viyaProperties)) %then %do;
-  /* Wrap the properties object in a root object also containing the file name */
+  /* Wrap the properties object in a root object also containing the filename */
   %local viyapatch;
-  %let viyapatch = %sysfunc(pathname(work))/%mf_getuniquename(prefix=patch_json_);
+  %let viyapatch=%sysfunc(pathname(work))/%mf_getuniquename(prefix=patch_json_);
   data _null_;
     length line $32767;
     file "&viyapatch" lrecl=32767;
@@ -296,7 +297,7 @@ run;
     run;
   %end;
 
-  /* And apply the properties to the newly created file, using the PATCH method */
+  /* Apply the properties to the newly created file, using the PATCH method */
   %let fref=%mf_getuniquefileref();
   filename &fref "&viyapatch";
   %let url=&base_uri&fileuri;

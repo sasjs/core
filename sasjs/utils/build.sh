@@ -8,7 +8,7 @@
 
 # refresh github pages site
 rm -rf sasjsbuild/docsite
-git clone git@github.com:sasjs/core.github.io.git sasjsbuild/docsite
+git clone https://x-access-token:$GITHUB_TOKEN@github.com/sasjs/core.github.io.git sasjsbuild/docsite
 rm -rf sasjsbuild/docsite/*.html
 rm -rf sasjsbuild/docsite/*.js
 rm -rf sasjsbuild/docsite/*.png

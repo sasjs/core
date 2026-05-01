@@ -31,5 +31,8 @@
     "test": "npx @sasjs/cli test -t server",
     "lint": "npx @sasjs/cli lint",
     "prepare": "git rev-parse --git-dir && git config core.hooksPath ./.git-hooks || true"
-  }
+  },
+  "maintainers": [
+    "https://sasapps.io"
+  ]
 }

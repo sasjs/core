@@ -5,8 +5,6 @@
 ![npm](https://img.shields.io/npm/dt/@sasjs/core)
 ![GitHub top language](https://img.shields.io/github/languages/top/sasjs/core)
 [![GitHub closed issues](https://img.shields.io/github/issues-closed-raw/sasjs/core)](https://github.com/sasjs/core/issues?q=is%3Aissue+is%3Aclosed)
-[![GitHub issues](https://img.shields.io/github/issues-raw/sasjs/core)](https://github.com/sasjs/core/issues)
-![total lines](https://tokei.rs/b1/github/sasjs/core)
 
 
 Much quality. Many standards. The **Macro Core** library exists to save time and development effort! Herein ye shall find a veritable host of MIT-licenced, production quality SAS macros. These are a mix of tools, utilities, functions and code generators that are useful in the context of [Application Development](https://sasapps.io) on the SAS platform (eg https://datacontroller.io). [Contributions](https://github.com/sasjs/core/blob/main/.github/CONTRIBUTING.md) are welcome.

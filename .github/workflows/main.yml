@@ -69,5 +69,7 @@ jobs:
       - name: Update Docs Site
         if: steps.makerelease.outputs.new_release_published == 'true'
         run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen
           export GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
           npm run docs

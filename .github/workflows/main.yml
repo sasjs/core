@@ -71,5 +71,20 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y doxygen
-          export GITHUB_TOKEN=${{ secrets.CORESASJSIO_PAT }}
-          npm run docs
+          npx @sasjs/cli doc -t docsonly 
+          git clone https://x-access-token:${{ secrets.CORESASJSIO_PAT }}@github.com/sasjs/core.github.io.git
+          cd core.github.io
+          rm -rf *.html
+          rm -rf *.js
+          rm -rf *.png
+          rm -rf *.dot
+          rm -rf *.css
+          rm -rf *.svg
+          rm -rf search
+          cp -R ../sasjsbuild/docs/* .
+          git config user.name sasjs
+          echo 'core.sasjs.io' > CNAME
+          git add .
+          git commit -m "core pipeline build on $(date +%F:%H:%M:%S)"
+          git push
+          echo "check it out:  https://sasjs.github.io/core.github.io/files.html"

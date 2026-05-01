@@ -71,5 +71,5 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y doxygen
-          export GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+          export GITHUB_TOKEN=${{ secrets.CORESASJSIO_PAT }}
           npm run docs

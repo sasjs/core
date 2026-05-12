@@ -25,10 +25,7 @@
   },
   "testConfig": {
     "initProgram": "tests/testinit.sas",
-    "termProgram": "tests/testterm.sas",
-    "macroVars": {
-      "mcTestAppLoc": "/Public/temp/macrocore"
-    }
+    "termProgram": "tests/testterm.sas"
   },
   "defaultTarget": "server",
   "targets": [

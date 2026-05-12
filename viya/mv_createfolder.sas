@@ -145,7 +145,6 @@ options noquotelenmax;
     run;
   %end;
   %if &SYS_PROCHTTP_STATUS_CODE=200 %then %do;
-    %*put &sysmacroname &newpath exists so grab the follow on link ;
     data _null_;
       set &libref1..links;
       if rel='createChild' then

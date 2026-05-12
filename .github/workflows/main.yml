@@ -82,6 +82,7 @@ jobs:
           rm -rf *.svg
           rm -rf search
           cp -R ../sasjsbuild/docs/* .
+          ls
           git config user.name sasjs
           echo 'core.sasjs.io' > CNAME
           git add .

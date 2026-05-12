@@ -55,7 +55,7 @@
   ,showmeta=N,maxobs=MAX,workobs=0
 );
 %global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name
-  sasjs_tables SYS_JES_JOB_URI;
+  sasjs_tables SYS_JES_JOB_URI _EXECUTIONTASKS;
 %if %index("&_debug",log) %then %let _debug=131;
 
 %local i tempds table;
@@ -110,8 +110,12 @@
   %end;
   %else %do i=1 %to &_webin_file_count;
     /* read in any files that are sent */
-    /* this part needs refactoring for wide files */
-    filename indata filesrvc "&&_webin_fileuri&i" lrecl=999999;
+    %if &_EXECUTIONTASKS=true %then %do;
+      filename indata "%sysfunc(pathname(&&_webin_fileref&i))" lrecl=999999;
+    %end;
+    %else %do;
+      filename indata filesrvc "&&_webin_fileuri&i" lrecl=999999;
+    %end;
     data _null_;
       infile indata termstr=crlf lrecl=32767;
       input;

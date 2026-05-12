@@ -25291,7 +25291,6 @@ options noquotelenmax;
     run;
   %end;
   %if &SYS_PROCHTTP_STATUS_CODE=200 %then %do;
-    %*put &sysmacroname &newpath exists so grab the follow on link ;
     data _null_;
       set &libref1..links;
       if rel='createChild' then
@@ -26312,7 +26311,7 @@ data _null_;
   put '  ,showmeta=N,maxobs=MAX,workobs=0 ';
   put '); ';
   put '%global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name ';
-  put '  sasjs_tables SYS_JES_JOB_URI; ';
+  put '  sasjs_tables SYS_JES_JOB_URI _EXECUTIONTASKS; ';
   put '%if %index("&_debug",log) %then %let _debug=131; ';
   put ' ';
   put '%local i tempds table; ';
@@ -26367,8 +26366,12 @@ data _null_;
   put '  %end; ';
   put '  %else %do i=1 %to &_webin_file_count; ';
   put '    /* read in any files that are sent */ ';
-  put '    /* this part needs refactoring for wide files */ ';
-  put '    filename indata filesrvc "&&_webin_fileuri&i" lrecl=999999; ';
+  put '    %if &_EXECUTIONTASKS=true %then %do; ';
+  put '      filename indata "%sysfunc(pathname(&&_webin_fileref&i))" lrecl=999999; ';
+  put '    %end; ';
+  put '    %else %do; ';
+  put '      filename indata filesrvc "&&_webin_fileuri&i" lrecl=999999; ';
+  put '    %end; ';
   put '    data _null_; ';
   put '      infile indata termstr=crlf lrecl=32767; ';
   put '      input; ';
@@ -30429,7 +30432,7 @@ filename &fref1 clear;
   ,showmeta=N,maxobs=MAX,workobs=0
 );
 %global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name
-  sasjs_tables SYS_JES_JOB_URI;
+  sasjs_tables SYS_JES_JOB_URI _EXECUTIONTASKS;
 %if %index("&_debug",log) %then %let _debug=131;
 
 %local i tempds table;
@@ -30484,8 +30487,12 @@ filename &fref1 clear;
   %end;
   %else %do i=1 %to &_webin_file_count;
     /* read in any files that are sent */
-    /* this part needs refactoring for wide files */
-    filename indata filesrvc "&&_webin_fileuri&i" lrecl=999999;
+    %if &_EXECUTIONTASKS=true %then %do;
+      filename indata "%sysfunc(pathname(&&_webin_fileref&i))" lrecl=999999;
+    %end;
+    %else %do;
+      filename indata filesrvc "&&_webin_fileuri&i" lrecl=999999;
+    %end;
     data _null_;
       infile indata termstr=crlf lrecl=32767;
       input;

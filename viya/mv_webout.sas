@@ -70,6 +70,11 @@
     %let _webin_file_count=%eval(&_webin_file_count+0);
     %let _webin_fileuri1=&_webin_fileuri;
     %let _webin_name1=&_webin_name;
+    %if &_EXECUTIONTASKS=true %then %do;
+      /* TODO - remove this once SAS Track CS0409737 is resolved */
+      /* links:  https://github.com/sasjs/adapter/issues/884 */
+      %if %upcase(&_webin_name)=_SASJS_NOOP %then %let _webin_file_count=0;
+    %end;
   %end;
 
   /* if the sasjs_tables param is passed, we expect param based upload */

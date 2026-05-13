@@ -56,13 +56,13 @@
 );
 %global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name
   sasjs_tables SYS_JES_JOB_URI _EXECUTIONTASKS;
-%if %index("&_debug",log) %then %let _debug=131;
+%if %index("&_debug",log) %then %let _debug=128;
 
 %local i tempds table;
 %let action=%upcase(&action);
 
 %if &action=FETCH %then %do;
-  %if %upcase(&_omittextlog)=FALSE or %str(&_debug) ge 131 %then %do;
+  %if %upcase(&_omittextlog)=FALSE or %str(&_debug) ge 128 %then %do;
     options mprint notes mprintnest;
   %end;
 
@@ -125,7 +125,7 @@
       infile indata termstr=crlf lrecl=32767;
       input;
       if _n_=1 then call symputx('input_statement',_infile_);
-      %if %str(&_debug) ge 131 %then %do;
+      %if %str(&_debug) ge 128 %then %do;
         if _n_<20 then putlog _infile_;
         else stop;
       %end;
@@ -158,7 +158,7 @@
 
   /* setup json */
   data _null_;file &fref;
-  %if %str(&_debug) ge 131 and &_EXECUTIONTASKS=true %then %do;
+  %if %str(&_debug) ge 128 and &_EXECUTIONTASKS=true %then %do;
     put '>>weboutBEGIN<<';
   %end;
     put '{"SYSDATE" : "' "&SYSDATE" '"';
@@ -273,7 +273,7 @@
     memsize=quote(cats(memsize));
     put ',"MEMSIZE" : ' memsize;
     put "}";
-  %if %str(&_debug) ge 131 and &_EXECUTIONTASKS=true %then %do;
+  %if %str(&_debug) ge 128 and &_EXECUTIONTASKS=true %then %do;
     put '>>weboutEND<<';
   %end;
   %if %upcase(&fref) ne _WEBOUT and &stream=Y %then %do;

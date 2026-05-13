@@ -23,6 +23,7 @@ options lrecl=80;
 
 %macro loglevel();
   %if "&_debug"="2477" or "&_debug"="fields,log,trace" or "&_debug"="131"
+  or "&_debug"="128"
   %then %do;
     %put debug mode activated;
     options mprint mprintnest;

@@ -158,6 +158,9 @@
 
   /* setup json */
   data _null_;file &fref;
+  %if %str(&_debug) ge 131 and &_EXECUTIONTASKS=true %then %do;
+    put '>>weboutBEGIN<<';
+  %end;
     put '{"SYSDATE" : "' "&SYSDATE" '"';
     put ',"SYSTIME" : "' "&SYSTIME" '"';
   run;
@@ -270,7 +273,9 @@
     memsize=quote(cats(memsize));
     put ',"MEMSIZE" : ' memsize;
     put "}";
-
+  %if %str(&_debug) ge 131 and &_EXECUTIONTASKS=true %then %do;
+    put '>>weboutEND<<';
+  %end;
   %if %upcase(&fref) ne _WEBOUT and &stream=Y %then %do;
     data _null_; rc=fcopy("&fref","_webout");run;
   %end;

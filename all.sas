@@ -29281,7 +29281,7 @@ run;
   @li mf_nobs.sas
   @li mp_abort.sas
   @li mf_getplatform.sas
-  @li mf_getuniquefileref.sas
+  @li mf_getvarlist.sas
   @li mf_existvarlist.sas
   @li mv_jobwaitfor.sas
   @li mv_jobexecute.sas
@@ -29394,14 +29394,12 @@ data _null_;
   if last then call symputx('flowcnt',cnt,'l');
 run;
 
-/* prepare temporary datasets and frefs */
-%local fid jid jds jjson jdsapp jdsrunning jdswaitfor jfref;
+/* prepare temporary datasets */
+%local fid jid jds jdsapp jdsrunning jdswaitfor;
 data;run;%let jds=&syslast;
-data;run;%let jjson=&syslast;
 data;run;%let jdsapp=&syslast;
 data;run;%let jdsrunning=&syslast;
 data;run;%let jdswaitfor=&syslast;
-%let jfref=%mf_getuniquefileref();
 
 /* start loop */
 %do fid=1 %to &flowcnt;
@@ -29419,23 +29417,39 @@ data;run;%let jdswaitfor=&syslast;
       &dbg. if _n_= 1 then putlog "Loop &fid";
       &dbg. putlog (_all_)(=);
     run;
+    /* build list of char and num vars in json format */
+    /* Viya 2026 expects all values to be strings */
+    %local nvars cvars ii _vnm;
+    %let cvars=%mf_getvarlist(&jds,typefilter=C);
+    %let nvars=%mf_getvarlist(&jds,typefilter=N);
     %put exporting job variables in json format;
     %do jid=1 %to &jcnt;
-      data &jjson;
-        set &jds;
-        if _n_=&jid then do;
-          output;
-          stop;
-        end;
-      run;
-      proc json out=&jfref;
-        export &jjson / nosastags fmtnumeric;
-      run;
       data _null_;
-        infile &jfref lrecl=32767;
-        input;
-        jparams=cats('jparams',symget('jid'));
-        call symputx(jparams,substr(_infile_,3,length(_infile_)-4));
+        set &jds;
+        if _n_=&jid;
+        length _param $32767;
+        _param='';
+      %if %length(&cvars)>0 %then %do ii=1 %to %sysfunc(countw(&cvars,%str( )));
+        %let _vnm=%scan(&cvars,&ii,%str( ));
+        if _param ne '' then _param=cats(_param,',');
+        _param=cats(_param,'"'
+          ,"%lowcase(&_vnm)"
+          ,'":'
+          ,quote(trim(&_vnm))
+        );
+      %end;
+      %if %length(&nvars)>0 %then %do ii=1 %to %sysfunc(countw(&nvars,%str( )));
+        %let _vnm=%scan(&nvars,&ii,%str( ));
+        if _param ne '' then _param=cats(_param,',');
+        _param=cats(_param,'"'
+          ,"%lowcase(&_vnm)"
+          ,'":"'
+          ,strip(put(&_vnm,best32.))
+          ,'"'
+        );
+      %end;
+        call symputx(cats('jparams',&jid),_param,'l');
+        stop;
       run;
       %local jobuid&jid;
       %let jobuid&jid=0; /* used in next loop */
@@ -29480,6 +29494,7 @@ data;run;%let jdswaitfor=&syslast;
               ,paramstring=%superq(jparams&jid)
               ,outds=&jdsapp
               ,contextname=&&context&jid
+              ,mdebug=&mdebug
             )
             data &jdsapp;
               format jobparams $32767.;

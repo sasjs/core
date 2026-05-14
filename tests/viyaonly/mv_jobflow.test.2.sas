@@ -29,19 +29,19 @@ data _null_;
   ;
 run;
 
-%mv_createjob(path=/Public/temp,name=demo1,code=testprog)
-%mv_createjob(path=/Public/temp,name=demo2,code=testprog)
+%mv_createjob(path=&mcTestAppLoc,name=demo1,code=testprog)
+%mv_createjob(path=&mcTestAppLoc,name=demo2,code=testprog)
 
 data work.inputjobs;
-  _contextName='SAS Job Execution compute context';
+  _contextName="&mcTestContext";
   do flow_id=1 to 2;
     do i=1 to 4;
-      _program='/Public/temp/demo1';
+      _program="&mcTestAppLoc/demo1";
       macrovar1=10*i;
       macrovar2=4*i;
       output;
       i+1;
-      _program='/Public/temp/demo2';
+      _program="&mcTestAppLoc/demo2";
       macrovar1=40*i;
       macrovar2=44*i;
       output;

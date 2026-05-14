@@ -12,6 +12,8 @@
 /* location in metadata or SAS Drive for temporary files */
 %let mcTestAppLoc=/Users/&sysuserid/testresults/sasjs_core/%mf_uid();
 
+%let mcTestContext=SAS Job Execution compute context;
+
 /* set defaults */
 %mp_init()
 

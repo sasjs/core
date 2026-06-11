@@ -1,0 +1,14 @@
+Jenner 0.1.0 (Unlicensed - limited to 100 observations)
+Get a license at https://jenneranalytics.com/license
+
+NOTE: Option OBS changed to 100.
+NOTE: DATA work.dedup_check
+
+
+NOTE: Wrote work.dedup_check (1 rows, 4 columns).
+NOTE: DATA elapsed:
+  wall  0.00 seconds
+  cpu   0.00 seconds
+NOTE: PROC PRINT data=work.dedup_check
+
+NOTE: PROC PRINT completed: 1 observations printed, 4 variables

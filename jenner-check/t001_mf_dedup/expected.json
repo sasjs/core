@@ -1,0 +1,18 @@
+{
+  "_captured_at": "2026-06-11T18:35:03Z",
+  "_captured_run_id": "r_019eb7f5c2b77c83825e78434b2059b2",
+  "status": "ok",
+  "exit_code": 0,
+  "log_contains": [
+    "NOTE: Wrote work.dedup_check (1 rows, 4 columns).",
+    "NOTE: PROC PRINT completed: 1 observations printed, 4 variables"
+  ],
+  "log_does_not_contain": [
+    "ERROR:",
+    "[JENNER-ERROR"
+  ],
+  "diagnostics": {
+    "parse_warnings": [],
+    "runtime_warnings": []
+  }
+}

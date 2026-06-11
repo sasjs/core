@@ -1,0 +1,8 @@
+{
+  "bundle": "t002_mf_islibds",
+  "source_file": "base/mf_islibds.sas",
+  "source_blob_sha": "28e65f29cb6bb5a37d524bbc95a381657de67dcd",
+  "source_commit": "f484d1091390827b11ef07f81207d3d21192da0f",
+  "tier": "real_macro",
+  "notes": "mf_islibds uses a Perl regex (prxparse/prxmatch) to validate a libref.dataset reference; bundle checks a valid name, a name without a libref, and a name with an invalid character. Adapted: documentation/STORE-SOURCE block comments stripped (non-semantic) and the macro invoked via %let so its return value can be tabulated; macro logic is unchanged."
+}

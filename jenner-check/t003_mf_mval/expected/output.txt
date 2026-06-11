@@ -1,0 +1,6 @@
+
+     SCENARIO       RESULT     EXPECTED  PASS
+-------------  -----------  -----------  ----
+defined var    hello world  hello world  PASS
+undefined var                            PASS
+

@@ -12184,7 +12184,8 @@ https://blogs.sas.com/content/sastraining/2012/08/14/jedi-sas-tricks-reset-sas-s
 %mp_abort(iftrue=(&iserr=1),mac=mp_retainedkey,msg=%superq(msg))
 
 proc sql noprint;
-select sum(max(&retained_key),0) into: maxkey from &base_libds;
+select sum(max(&retained_key),0) format=32. into: maxkey trimmed
+  from &base_libds;
 
 /**
   * get base table RK and bus field values for lookup
@@ -12253,19 +12254,19 @@ quit;
   insert into &maxkeytable
     set keytable="&base_libds"
       ,keycolumn="&retained_key"
-      ,max_key=%eval(&maxkey+&newkey_cnt)
+      ,max_key=%sysevalf(&maxkey+&newkey_cnt)
       ,processed_dttm="%sysfunc(datetime(),%mf_fmtdttm())"dt;
   %end;
   %else %do;
   update &maxkeytable
-    set max_key=%eval(&maxkey+&newkey_cnt)
+    set max_key=%sysevalf(&maxkey+&newkey_cnt)
       ,processed_dttm="%sysfunc(datetime(),%mf_fmtdttm())"dt
     where keytable="&base_libds";
   %end;
   %mp_lockanytable(UNLOCK
     ,lib=%scan(&maxkeytable,1,.)
     ,ds=%scan(&maxkeytable,2,.)
-    ,ref=Updating maxkeyvalues with maxkey=%eval(&maxkey+&newkey_cnt)
+    ,ref=Updating maxkeyvalues with maxkey=%sysevalf(&maxkey+&newkey_cnt)
     ,ctl_ds=&locktable
   )
 %end;
@@ -12273,7 +12274,7 @@ quit;
 /* fill in the missing retained key values */
 %let tempvar=%mf_getuniquename();
 data &outds(drop=&tempvar);
-  retain &tempvar %eval(&maxkey+1);
+  retain &tempvar %sysevalf(&maxkey+1);
   set &tempds2;
   if &retained_key =. then &retained_key=&tempvar;
   &tempvar=&tempvar+1;

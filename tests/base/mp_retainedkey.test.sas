@@ -5,6 +5,7 @@
   <h4> SAS Macros </h4>
   @li mp_assert.sas
   @li mp_assertcolvals.sas
+  @li mp_assertscope.sas
   @li mp_retainedkey.sas
 
 **/
@@ -127,6 +128,8 @@ data work.appendtable3;
   if _n_<7;
 run;
 
+%mp_assertscope(SNAPSHOT)
+
 %mp_retainedkey(
   base_lib=X
   ,base_dsn=targetds3
@@ -140,6 +143,11 @@ run;
   ,outds=work.APPEND3
   ,filter_str=
 )
+
+%mp_assertscope(COMPARE,
+  desc=Checking macro scope leakage in mp_retainedkey (test 3)
+)
+
 %mp_assert(
   iftrue=(&syscc=0),
   desc=Checking errors in test 3 (large numeric RK),

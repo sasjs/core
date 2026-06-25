@@ -11,9 +11,23 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      id-token: write # required for npm Trusted Publishing (OIDC)
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Ensure npm supports Trusted Publishing
+        run: npm install -g npm@latest
 
       - name: Install dependencies
         run: |
@@ -58,7 +72,9 @@ jobs:
         uses: cycjimmy/semantic-release-action@v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # NPM_TOKEN no longer required: package is published via npm
+          # Trusted Publishing (OIDC). The id-token: write permission above
+          # allows npm CLI to authenticate to the registry automatically.
 
       - name: SAS Packages Release
         run: |

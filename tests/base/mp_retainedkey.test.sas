@@ -114,3 +114,46 @@ run;
   desc=Checking append records created,
   outds=work.test_results
 )
+
+/** Test 3 - large numeric RK values (avoid exponential notation issue) **/
+data work.targetds3;
+  set sashelp.class;
+  rk_col=_n_+209100000000;
+run;
+
+data work.appendtable3;
+  set sashelp.class;
+  if mod(_n_,2)=0 then name=cats('New',_n_);
+  if _n_<7;
+run;
+
+%mp_retainedkey(
+  base_lib=X
+  ,base_dsn=targetds3
+  ,append_lib=X
+  ,append_dsn=APPENDTABLE3
+  ,retained_key=rk_col
+  ,business_key= name
+  ,check_uniqueness=NO
+  ,maxkeytable=0
+  ,locktable=0
+  ,outds=work.APPEND3
+  ,filter_str=
+)
+%mp_assert(
+  iftrue=(&syscc=0),
+  desc=Checking errors in test 3 (large numeric RK),
+  outds=work.test_results
+)
+
+data work.check3;
+  do val=209100000001,209100000003,209100000005,
+    209100000020,209100000021,209100000022;
+    output;
+  end;
+run;
+%mp_assertcolvals(work.append3.rk_col,
+  checkvals=work.check3.val,
+  desc=All large numeric values have a match,
+  test=ALLVALS
+)

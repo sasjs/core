@@ -15,7 +15,7 @@
 %let test5=%mf_getvarlist(sashelp.class,typefilter=C);
 
 data work.test_results;
-  length test_description $256 test_result $4 test_comments base result  $256;
+  length test_result $4 test_description $256 test_comments base result  $256;
   test_description="Basic test";
   base=symget('test1');
   result='Name Sex Age Height Weight';

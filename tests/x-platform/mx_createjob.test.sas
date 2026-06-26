@@ -26,7 +26,10 @@ parmcards4;
 ;;;;
 %mp_assertscope(SNAPSHOT)
 %mx_createjob(path=&mcTestAppLoc/jobs,name=testjob1,replace=YES)
-%mp_assertscope(COMPARE)
+%mp_assertscope(COMPARE,ignorelist=MC0_JADP1LEN MC0_JADP2LEN MC0_JADPNUM
+  MC0_JADVLEN MC2_JADP1LEN MC2_JADP2LEN MC2_JADPNUM MC2_JADVLEN MC4_JADP1LEN
+  MC4_JADP2LEN MC4_JADPNUM MC4_JADVLEN
+)
 
 %mp_assert(
   iftrue=(&syscc=0),

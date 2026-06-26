@@ -3495,7 +3495,7 @@ run;
 )/*/STORE SOURCE*/;
 
   data ;
-    length test_description $256 test_result $4 test_comments $256;
+    length test_result $4 test_description $256 test_comments $256;
     test_description=symget('desc');
     test_comments="&sysmacroname: Test result of "!!symget('iftrue');
   %if %eval(%unquote(&iftrue)) %then %do;
@@ -3624,7 +3624,7 @@ run;
   %end;
 
   data;
-    length test_description $256 test_result $4 test_comments $256;
+    length test_result $4 test_description $256 test_comments $256;
     test_description=symget('desc');
     if test_description='0'
     then test_description="Testing &inds for existence of &test of: &cols";
@@ -3803,7 +3803,7 @@ run;
   )
 
   data;
-    length test_description $256 test_result $4 test_comments $256;
+    length test_result $4 test_description $256 test_comments $256;
     test_description=symget('desc');
     test_result='FAIL';
     test_comments="&sysmacroname: &lib..&ds..&col has &result/&orig values "
@@ -3918,7 +3918,7 @@ run;
   %end;
 
   data &ds;
-    length test_description $256 test_result $4 test_comments $256;
+    length test_result $4 test_description $256 test_comments $256;
     test_description=symget('desc');
     test_result='FAIL';
     test_comments="&sysmacroname: Dataset &inds has &nobs observations.";
@@ -4082,7 +4082,7 @@ run;
   %end;
 
   data ;
-    length test_description $256 test_result $4 test_comments $256;
+    length test_result $4 test_description $256 test_comments $256;
     test_description=symget('desc');
     test_comments=symget('test_comments');
     test_result=symget('test_result');
@@ -10101,6 +10101,7 @@ filename &tempref clear;
 
 %global
   SASJS_PREFIX       /* the ONLY hard-coded global macro variable in SASjs    */
+  &prefix.PROCESSMODE &prefix._STPSRV_HEADER_LOC /* SASjs server specific vars*/
   &prefix._FUNCTIONS /* used in mcf_init() to track core function compilation */
   &prefix._INIT_NUM  /* initialisation time as numeric                        */
   &prefix._INIT_DTTM /* initialisation time in E8601DT26.6 format             */

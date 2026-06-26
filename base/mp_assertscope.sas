@@ -131,7 +131,7 @@
   %end;
 
   data ;
-    length test_description $256 test_result $4 test_comments $256;
+    length test_result $4 test_description $256 test_comments $256;
     test_description=symget('desc');
     test_comments=symget('test_comments');
     test_result=symget('test_result');

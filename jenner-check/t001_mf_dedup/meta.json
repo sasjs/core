@@ -1,0 +1,8 @@
+{
+  "bundle": "t001_mf_dedup",
+  "source_file": "base/mf_dedup.sas",
+  "source_blob_sha": "0fd5ea6bcb5d3b06df1a650ebf65419a4aa77113",
+  "source_commit": "f484d1091390827b11ef07f81207d3d21192da0f",
+  "tier": "real_macro",
+  "notes": "mf_dedup de-duplicates a space-delimited token string; bundle runs the macro header example and asserts the documented result \"One two one and through\". Adapted: documentation/STORE-SOURCE block comments stripped (non-semantic) and the macro invoked via %let so its return value can be tabulated; macro logic is unchanged."
+}

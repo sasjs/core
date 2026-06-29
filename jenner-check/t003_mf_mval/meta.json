@@ -1,0 +1,8 @@
+{
+  "bundle": "t003_mf_mval",
+  "source_file": "base/mf_mval.sas",
+  "source_blob_sha": "4a1ab580495d931df42065d41640d3901b83eb3f",
+  "source_commit": "f484d1091390827b11ef07f81207d3d21192da0f",
+  "tier": "real_macro",
+  "notes": "mf_mval safely returns a macro variable value (or empty if undefined) via symexist/superq; bundle checks a defined and an undefined variable. Adapted: documentation/STORE-SOURCE block comments stripped (non-semantic) and the macro invoked via %let so its return value can be tabulated; macro logic is unchanged."
+}

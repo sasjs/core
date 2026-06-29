@@ -1,0 +1,7 @@
+
+            INPUT  RESULT  EXPECTED  PASS
+-----------------  ------  --------  ----
+work.somedata      1       1         PASS
+somedata           0       0         PASS
+s-mething.invalid  0       0         PASS
+

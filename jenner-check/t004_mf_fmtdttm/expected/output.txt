@@ -1,0 +1,5 @@
+
+CHOSEN_FORMAT                            NOTE
+-------------  ------------------------------
+E8601DT26.6    valid datetime format returned
+

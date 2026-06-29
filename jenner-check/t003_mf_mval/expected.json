@@ -1,0 +1,18 @@
+{
+  "_captured_at": "2026-06-11T18:35:03Z",
+  "_captured_run_id": "r_019eb7f5dd487f03b8411c0bdf70b98c",
+  "status": "ok",
+  "exit_code": 0,
+  "log_contains": [
+    "NOTE: Wrote work.mval_check (2 rows, 4 columns).",
+    "NOTE: PROC PRINT completed: 2 observations printed, 4 variables"
+  ],
+  "log_does_not_contain": [
+    "ERROR:",
+    "[JENNER-ERROR"
+  ],
+  "diagnostics": {
+    "parse_warnings": [],
+    "runtime_warnings": []
+  }
+}

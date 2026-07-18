@@ -51,12 +51,13 @@ options mprint;
   %ms_triggerstp(/sasjs/tests/&fname2
     ,outds=work.mySessions
   )
-%mp_assertscope(COMPARE
-                ,ignorelist=MCLIB0_JADP1LEN MCLIB0_JADPNUM MCLIB0_JADVLEN)
+%mp_assertscope(COMPARE,ignorelist=MCLIB0_JADP1LEN MCLIB0_JADPNUM
+  MCLIB0_JADVLEN MC0_JADP1LEN MC0_JADPNUM MC0_JADVLEN
+)
 
 %mp_assert(iftrue=%str(%mf_existds(work.mySessions)=1)
-          ,desc=Testing output exists
-          ,outds=work.test_results
+  ,desc=Testing output exists
+  ,outds=work.test_results
 )
 
 %mp_assertdsobs(work.mySessions,

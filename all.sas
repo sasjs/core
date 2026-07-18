@@ -6011,10 +6011,10 @@ data _null_;
         * there is not much point importing a short length numeric like this,
         * eg with best4., as the resulting variable will still be stored as
         * length 8.  We need a length or format statement to ensure variable
-        * is creatd with the smaller length...
+        * is created with the smaller length...
         **/
       else if vlen<8 then header=cats(varnm,':best',vlen,'.');
-      else header=cats(varnm,':best.');
+      else header=cats(varnm,':best32.');
     end;
   %end;
   %else %do;
@@ -9721,7 +9721,7 @@ run;
   @li mf_getattrn.sas
   @li mf_getuniquename.sas
   @li mf_getvarlist.sas
-  @li mp_md5.sas
+  @li mp_rowhash.sas
 
   <h4> Related Files </h4>
   @li mp_hashdataset.test.sas
@@ -9750,8 +9750,7 @@ run;
 
 %local keyvar /* roll up the md5 */
   prevkeyvar /* retain prev record md5 */
-  lastvar /* last var in input ds */
-  cvars nvars;
+  lastvar /* last var in input ds */;
 
 %if not(%eval(%unquote(&iftrue))) %then %return;
 
@@ -9783,10 +9782,11 @@ run;
     retain &prevkeyvar;
     if _n_=1 then &prevkeyvar=put(md5("&salt"),$hex32.);
     set &libds end=&lastvar;
-    /* hash should include previous row */
-    &keyvar=%mp_md5(
-      cvars=%mf_getvarlist(&libds,typefilter=C) &prevkeyvar,
-      nvars=%mf_getvarlist(&libds,typefilter=N)
+    /* hash should include previous row - listed first so it is hashed first */
+    %mp_rowhash(
+      md5_col=&keyvar
+      ,cvars=&prevkeyvar %mf_getvarlist(&libds,typefilter=C)
+      ,nvars=%mf_getvarlist(&libds,typefilter=N)
     );
     &prevkeyvar=&keyvar;
     if &lastvar then output;
@@ -10747,7 +10747,7 @@ select distinct lowcase(memname)
   @li mp_aligndecimal.sas
   @li mp_cntlout.sas
   @li mp_lockanytable.sas
-  @li mp_md5.sas
+  @li mp_rowhash.sas
   @li mp_storediffs.sas
 
   <h4> Related Macros </h4>
@@ -10876,14 +10876,19 @@ select distinct
 %let nvars=FMTROW MIN MAX DEFAULT LENGTH FUZZ MULT NOEDIT;
 data &base_fmts/note2err;
   set &base_fmts;
-  fmthash=%mp_md5(cvars=&cvars, nvars=&nvars);
+  length fmthash $32;
+  %mp_rowhash(
+    md5_col=fmthash
+    ,cvars=&cvars
+    ,nvars=&nvars
+  )
 run;
 
 /**
   * Ensure input table and base_formats have consistent lengths and types
   */
 data &inlibds/nonote2err;
-  length &delete_col $3 FMTROW 8 start end label $32767;
+  length &delete_col $3 FMTROW 8 start end label $32767 fmthash $32;
   if 0 then set &base_fmts;
   set &libds;
   by type fmtname notsorted;
@@ -10905,7 +10910,11 @@ data &inlibds/nonote2err;
     %mp_aligndecimal(end,width=16)
   end;
 
-  fmthash=%mp_md5(cvars=&cvars, nvars=&nvars);
+  %mp_rowhash(
+    md5_col=fmthash
+    ,cvars=&cvars
+    ,nvars=&nvars
+  )
 run;
 
 /**
@@ -11571,11 +11580,16 @@ drop table &ds1, &ds2;
   @li Global option:  `options dsoptions=nonote2err;`
   @li Data step option: `data YOURLIB.YOURDATASET /nonote2err;`
 
+  For very wide tables (hundreds or thousands of columns) consider using
+  `mp_rowhash.sas`, which builds the same type of row hash iteratively and
+  avoids creating a single, very long concatenated SAS expression.
+
   @param [in] cvars= () Space seperated list of character variables
   @param [in] nvars= () Space seperated list of numeric variables
 
   <h4> Related Programs </h4>
   @li mp_init.sas
+  @li mp_rowhash.sas
 
   @version 9.2
   @author Allan Bowe
@@ -12283,6 +12297,96 @@ run;
 
 %mend mp_retainedkey;
 
+/**
+  @file
+  @brief Iterative row-level MD5 hash generator
+  @details Generates DATA step statements that compute a deterministic,
+    row-level MD5 hash using a Merkle-style construction.  Each variable is
+    hashed independently and the resulting raw 16-byte digests are combined
+    iteratively.  This avoids concatenating the per-variable hex digests into a
+    single SAS character expression, which overflows when datasets contain many
+    variables.
+
+    Temporary variables use five leading underscores.
+
+    This macro is called from inside a DATA step.  The caller is responsible
+    for declaring the output hash column if it does not already exist on the
+    input dataset.
+
+    Variables are hashed in the order supplied.  If a particular variable
+    needs to influence the hash first (for example the previous row hash in
+    `mp_hashdataset`, or business dates in Data Controller's bitemporal
+    loader) simply list it first in `cvars` or `nvars`.
+
+  @param [in] md5_col= Name of the output hash column.
+  @param [in] cvars= Space separated list of character variables to hash.
+  @param [in] nvars= Space separated list of numeric variables to hash.
+
+  @version 9.3M5
+  @author Allan Bowe
+**/
+
+%macro mp_rowhash(
+    md5_col=
+    ,cvars=
+    ,nvars=
+  );
+
+  /* DATA step temp variables use five leading underscores.  The names
+      are generated at macro invocation to avoid clashing with data columns. */
+  %local state digest pair numtext normal i chars nums;
+  %let state=%mf_getuniquename(prefix=_____state_);
+  %let digest=%mf_getuniquename(prefix=_____digest_);
+  %let pair=%mf_getuniquename(prefix=_____pair_);
+  %let numtext=%mf_getuniquename(prefix=_____numtext_);
+  %let normal=%mf_getuniquename(prefix=_____normal_);
+  %let i=%mf_getuniquename(prefix=_____i_);
+  %let chars=%mf_getuniquename(prefix=_____chars_);
+  %let nums=%mf_getuniquename(prefix=_____nums_);
+
+  length &state $16
+        &digest $16
+        &pair $32
+        &numtext $64
+        &normal &i 8;
+  if _n_=1 then call missing(&state,&digest,&pair,&numtext,&normal,&i);
+  drop &state &digest &pair &numtext &normal &i;
+
+  /* Versioned seed prevents confusion with other hashing schemes. */
+  &state = md5('DC HASH v2');
+
+  %if %length(&cvars)>0 %then %do;
+    array &chars{*} $ &cvars;
+    do &i = 1 to dim(&chars);
+      /* Leading blanks are retained. */
+      &digest = md5(trimn(&chars[&i]));
+      substr(&pair,  1, 16) = &state;
+      substr(&pair, 17, 16) = &digest;
+      &state = md5(&pair);
+    end;
+  %end;
+
+  %if %length(&nvars)>0 %then %do;
+    array &nums{*} &nvars;
+    do &i = 1 to dim(&nums);
+      /*
+        multiply-by-one for consistent cross-system precision.
+        Ignore null to protect SAS special missing values.
+        Cannot use IFN() as it evaluates both sides
+      */
+      if missing(&nums[&i]) then &normal = &nums[&i];
+      else &normal = &nums[&i] * 1;
+      &numtext = put(&normal, binary64.);
+      &digest = md5(trim(&numtext));
+      substr(&pair,  1, 16) = &state;
+      substr(&pair, 17, 16) = &digest;
+      &state = md5(&pair);
+    end;
+  %end;
+
+  &md5_col = put(&state, $hex32.);
+
+%mend mp_rowhash;
 /**
   @file mp_runddl.sas
   @brief An opinionated way to execute DDL files in SAS.

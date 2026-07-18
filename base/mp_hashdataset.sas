@@ -17,7 +17,7 @@
   @li mf_getattrn.sas
   @li mf_getuniquename.sas
   @li mf_getvarlist.sas
-  @li mp_md5.sas
+  @li mp_rowhash.sas
 
   <h4> Related Files </h4>
   @li mp_hashdataset.test.sas
@@ -46,8 +46,7 @@
 
 %local keyvar /* roll up the md5 */
   prevkeyvar /* retain prev record md5 */
-  lastvar /* last var in input ds */
-  cvars nvars;
+  lastvar /* last var in input ds */;
 
 %if not(%eval(%unquote(&iftrue))) %then %return;
 
@@ -79,10 +78,11 @@
     retain &prevkeyvar;
     if _n_=1 then &prevkeyvar=put(md5("&salt"),$hex32.);
     set &libds end=&lastvar;
-    /* hash should include previous row */
-    &keyvar=%mp_md5(
-      cvars=%mf_getvarlist(&libds,typefilter=C) &prevkeyvar,
-      nvars=%mf_getvarlist(&libds,typefilter=N)
+    /* hash should include previous row - listed first so it is hashed first */
+    %mp_rowhash(
+      md5_col=&keyvar
+      ,cvars=&prevkeyvar %mf_getvarlist(&libds,typefilter=C)
+      ,nvars=%mf_getvarlist(&libds,typefilter=N)
     );
     &prevkeyvar=&keyvar;
     if &lastvar then output;

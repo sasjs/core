@@ -32,7 +32,7 @@ data _null_;
 run;
 
 %mp_assert(
-  iftrue=("&test1a"="A:best3. B:best4. C:best."),
+  iftrue=("&test1a"="A:best3. B:best4. C:best32."),
   desc=Checking header row Test 1,
   outds=work.test_results
 )

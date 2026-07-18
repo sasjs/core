@@ -28,11 +28,16 @@
   @li Global option:  `options dsoptions=nonote2err;`
   @li Data step option: `data YOURLIB.YOURDATASET /nonote2err;`
 
+  For very wide tables (hundreds or thousands of columns) consider using
+  `mp_rowhash.sas`, which builds the same type of row hash iteratively and
+  avoids creating a single, very long concatenated SAS expression.
+
   @param [in] cvars= () Space seperated list of character variables
   @param [in] nvars= () Space seperated list of numeric variables
 
   <h4> Related Programs </h4>
   @li mp_init.sas
+  @li mp_rowhash.sas
 
   @version 9.2
   @author Allan Bowe

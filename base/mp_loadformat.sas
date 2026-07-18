@@ -45,7 +45,7 @@
   @li mp_aligndecimal.sas
   @li mp_cntlout.sas
   @li mp_lockanytable.sas
-  @li mp_md5.sas
+  @li mp_rowhash.sas
   @li mp_storediffs.sas
 
   <h4> Related Macros </h4>
@@ -174,14 +174,19 @@ select distinct
 %let nvars=FMTROW MIN MAX DEFAULT LENGTH FUZZ MULT NOEDIT;
 data &base_fmts/note2err;
   set &base_fmts;
-  fmthash=%mp_md5(cvars=&cvars, nvars=&nvars);
+  length fmthash $32;
+  %mp_rowhash(
+    md5_col=fmthash
+    ,cvars=&cvars
+    ,nvars=&nvars
+  )
 run;
 
 /**
   * Ensure input table and base_formats have consistent lengths and types
   */
 data &inlibds/nonote2err;
-  length &delete_col $3 FMTROW 8 start end label $32767;
+  length &delete_col $3 FMTROW 8 start end label $32767 fmthash $32;
   if 0 then set &base_fmts;
   set &libds;
   by type fmtname notsorted;
@@ -203,7 +208,11 @@ data &inlibds/nonote2err;
     %mp_aligndecimal(end,width=16)
   end;
 
-  fmthash=%mp_md5(cvars=&cvars, nvars=&nvars);
+  %mp_rowhash(
+    md5_col=fmthash
+    ,cvars=&cvars
+    ,nvars=&nvars
+  )
 run;
 
 /**

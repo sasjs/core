@@ -73,12 +73,10 @@
       /*
         multiply-by-one for consistent cross-system precision.
         Ignore null to protect SAS special missing values.
+        Cannot use IFN() as it evaluates both sides
       */
-      &normal = ifn(
-        missing(&nums[&i]),
-        &nums[&i],
-        &nums[&i] * 1
-      );
+      if missing(&nums[&i]) then &normal = &nums[&i];
+      else &normal = &nums[&i] * 1;
       &numtext = put(&normal, binary64.);
       &digest = md5(trim(&numtext));
       substr(&pair,  1, 16) = &state;

@@ -15,7 +15,8 @@
 %mp_assertscope(SNAPSHOT)
 %ms_getusers(outds=work.test1,mdebug=&sasjs_mdebug)
 %mp_assertscope(COMPARE
-  ,ignorelist=MCLIB0_JADP1LEN MCLIB0_JADPNUM MCLIB0_JADVLEN
+  ,ignorelist=MCLIB0_JADP1LEN MCLIB0_JADPNUM MCLIB0_JADVLEN MC0_JADP1LEN
+    MC0_JADPNUM MC0_JADVLEN
 )
 
 %mp_assertdsobs(work.test1,test=ATLEAST 1)

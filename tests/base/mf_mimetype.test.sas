@@ -8,9 +8,12 @@
 
 **/
 
+%mp_assertscope(SNAPSHOT)
+%let test_value=%mf_mimetype(CSV);
+%mp_assertscope(COMPARE,ignorelist=test_value)
 
 %mp_assert(
-  iftrue=("%mf_mimetype(XLS)"="application/vnd.ms-excel",
+  iftrue=("%mf_mimetype(XLS)"="application/vnd.ms-excel"),
   desc=Checking correct value
 )
 

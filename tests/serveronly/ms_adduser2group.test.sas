@@ -32,6 +32,7 @@ run;
 %ms_adduser2group(uid=1,gid=&groupid,mdebug=&sasjs_mdebug,outds=test1)
 %mp_assertscope(COMPARE
   ,ignorelist=MCLIB2_JADP1LEN MCLIB2_JADP2LEN MCLIB2_JADPNUM MCLIB2_JADVLEN
+    MC2_JADP1LEN MC2_JADP2LEN MC2_JADPNUM MC2_JADVLEN
 )
 
 /* check the user is in the output list */

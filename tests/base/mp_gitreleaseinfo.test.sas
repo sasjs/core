@@ -24,7 +24,7 @@ data _null_;
 run;
 
 %mp_assert(
-  iftrue=(&author=sasjsbot),
+  iftrue=("&author"="github-actions[bot]"),
   desc=release info extracted successfully,
   outds=work.test_results
 )

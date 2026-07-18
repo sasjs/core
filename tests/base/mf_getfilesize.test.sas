@@ -14,7 +14,7 @@ data test;
 run;
 
 %mp_assertscope(SNAPSHOT)
-%put %mf_getfilesize(libds=work.test)
+%put %mf_getfilesize(libds=work.test);
 %mp_assertscope(COMPARE)
 
 %mp_assert(

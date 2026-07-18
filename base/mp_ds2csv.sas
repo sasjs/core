@@ -130,10 +130,10 @@ data _null_;
         * there is not much point importing a short length numeric like this,
         * eg with best4., as the resulting variable will still be stored as
         * length 8.  We need a length or format statement to ensure variable
-        * is creatd with the smaller length...
+        * is created with the smaller length...
         **/
       else if vlen<8 then header=cats(varnm,':best',vlen,'.');
-      else header=cats(varnm,':best.');
+      else header=cats(varnm,':best32.');
     end;
   %end;
   %else %do;

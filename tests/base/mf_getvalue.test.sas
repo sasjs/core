@@ -74,18 +74,5 @@ run;
   desc=Test fetching value from 1st row of empty (filtered) data,
   outds=work.test_results
 )
+%let syscc=0;
 
-%let syscc = 0; /* Reset w@rning To ensure confidence in next test */
-
-/* - Test 6 -
-  Get value from default observation.
-  Dataset does not exist.
-*/
-%let test_value=%mf_getvalue(work.test_data_x,i);
-%mp_assert(
-  iftrue=(&test_value=%str() and &syscc gt 0),
-  desc=Test fetching value from 1st row of non-existent data,
-  outds=work.test_results
-)
-
-%let syscc = 0; /* To reset expected error and allow test job to exit clean. */

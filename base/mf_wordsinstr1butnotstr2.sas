@@ -6,9 +6,12 @@
 
   Note - case sensitive!
 
+  If str1 is empty, nothing is returned.  If str2 is empty, all the words in
+  str1 are returned.
+
   Usage:
 
-      %let x= %mf_wordsInStr1ButNotStr2(
+      %let x= %mf_wordsinstr1butnotstr2(
         Str1=blah sss blaaah brah bram boo
         ,Str2=   blah blaaah brah ssss
       );
@@ -24,31 +27,23 @@
 
 **/
 
-%macro mf_wordsInStr1ButNotStr2(
+%macro mf_wordsinstr1butnotstr2(
   Str1= /* string containing words to extract */
   ,Str2= /* used to compare with the extract string */
 )/*/STORE SOURCE*/;
 
-%local count_base count_extr i i2 extr_word base_word match outvar;
-%if %length(&str1)=0 or %length(&str2)=0 %then %do;
-  %put base string (str1)= &str1;
-  %put compare string (str2) = &str2;
+%local count_extr i extr_word outvar;
+%if %length(&str1)=0 %then %do;
+  %put &sysmacroname: str1 is empty, nothing to compare;
   %return;
 %end;
-%let count_base=%sysfunc(countw(&Str2));
 %let count_extr=%sysfunc(countw(&Str1));
 
 %do i=1 %to &count_extr;
   %let extr_word=%scan(&Str1,&i,%str( ));
-  %let match=0;
-  %do i2=1 %to &count_base;
-    %let base_word=%scan(&Str2,&i2,%str( ));
-    %if &extr_word=&base_word %then %let match=1;
-  %end;
-  %if &match=0 %then %let outvar=&outvar &extr_word;
+  %if %sysfunc(indexw(%superq(str2),%superq(extr_word)))=0 %then
+    %let outvar=&outvar &extr_word;
 %end;
-
-  &outvar
-
-%mend mf_wordsInStr1ButNotStr2;
-
+/* send out the result without any surrounding whitespace */
+%do;&outvar%end;
+%mend mf_wordsinstr1butnotstr2;

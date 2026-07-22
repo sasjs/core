@@ -11,9 +11,20 @@
 filename webref temp;
 
 data demo;
+  length x $100;
   do x='"','0A'x,'0D'x,'09'x,'00'x,'0E'x,'0F'x,'01'x,'02'x,'10'x,'11'x,'\';
     output;
   end;
+  /* embedded quote variants */
+  x='say "hi" there'; output;
+  x='"fully quoted"'; output;
+  x='back\slash'; output;
+  x='quote and back\"slash'; output;
+  /* leading / trailing blank variants */
+  x='  leading blanks'; output;
+  x='  "leading blanks and quotes"'; output;
+  x='trailing blanks  '; output;
+  x='  both  '; output;
 run;
 %mp_jsonout(OPEN,jref=webref)
 %mp_jsonout(OBJ,demo,jref=webref)

@@ -57,8 +57,19 @@ describe table web.demo;
 proc compare base=work.demo compare=web.demo(keep=x);
 quit;
 
+/* sysinfo is a bitmask - keep only data-related bits, ie:
+  64    Base data set has observation not in comparison
+  128   Comparison data set has observation not in base
+  4096  A value comparison was unequal
+  32768 Number of observations differ
+  Attribute diffs (eg 16 - variable length) are ignored, as a JSON
+  round trip will not preserve lengths/formats/labels.
+*/
+/* SYSINFO is read only, so store the masked value in a new variable */
+%let sysinfo_masked=%sysfunc(band(&sysinfo, 64+128+4096+32768));
+
 %mp_assert(
-  iftrue=(&sysinfo=0),
+  iftrue=(&sysinfo_masked=0),
   desc=Returned json is identical to input table for all special chars,
   outds=work.test_results
 )

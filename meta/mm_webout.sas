@@ -77,7 +77,10 @@
     data _null_;
       infile &&_webin_fileref&i termstr=crlf;
       input;
-      call symputx('input_statement',_infile_);
+      /* a plain $ informat strips leading blanks - use $char instead */
+      call symputx('input_statement'
+        ,prxchange('s/:\$(?=[0-9 ])/:\$char/i',-1,_infile_)
+      );
       putlog "&&_webin_name&i input statement: "  _infile_;
       stop;
     data &&_webin_name&i;

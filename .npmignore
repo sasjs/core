@@ -8,3 +8,4 @@ sasjs/
 make_singlefile.sh
 *.md
 .all-contributorsrc
+.agents

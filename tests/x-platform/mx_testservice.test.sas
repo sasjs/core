@@ -44,6 +44,7 @@ data work.somedata1 work.somedata2;
   x=1;
   y='  t"w"o';
   z=.z;
+  y2='  two';
   label x='x factor';
   output;
 run;
@@ -58,14 +59,14 @@ run;
 %let test1=FAIL;
 data _null_;
   set testlib1.somedata1;
-  if x=1 and y='  t"w"o' and z="Z" then call symputx('test1','PASS');
+  if x=1 and y='  t"w"o' and z="Z" and y2='  two' then call symputx('test1','PASS');
   putlog (_all_)(=);
 run;
 
 %let test2=FAIL;
 data _null_;
   set testlib1.somedata2;
-  if x=1 and y='  t"w"o' and z="Z" then call symputx('test2','PASS');
+  if x=1 and y='  t"w"o' and z="Z" and y2='  two' then call symputx('test2','PASS');
   putlog (_all_)(=);
 run;
 

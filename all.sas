@@ -10464,7 +10464,8 @@ options
             prxchange('s/\\/\\\\/',-1,&&name&i)
           )))))))))))))!!'"';
         end;
-        else &&name&i=quote(cats(&&name&i));
+        /* trim (not cats) so leading blanks are retained */
+        else &&name&i='"'!!trim(&&name&i)!!'"';
       %end;
     %end;
     run;
@@ -17547,7 +17548,8 @@ data _null_;
   put '            prxchange(''s/\\/\\\\/'',-1,&&name&i) ';
   put '          )))))))))))))!!''"''; ';
   put '        end; ';
-  put '        else &&name&i=quote(cats(&&name&i)); ';
+  put '        /* trim (not cats) so leading blanks are retained */ ';
+  put '        else &&name&i=''"''!!trim(&&name&i)!!''"''; ';
   put '      %end; ';
   put '    %end; ';
   put '    run; ';
@@ -17666,7 +17668,10 @@ data _null_;
   put '    data _null_; ';
   put '      infile &&_webin_fileref&i termstr=crlf; ';
   put '      input; ';
-  put '      call symputx(''input_statement'',_infile_); ';
+  put '      /* a plain $ informat strips leading blanks - use $char instead */ ';
+  put '      call symputx(''input_statement'' ';
+  put '        ,prxchange(''s/:\$(?=[0-9 ])/:\$char/i'',-1,_infile_) ';
+  put '      ); ';
   put '      putlog "&&_webin_name&i input statement: "  _infile_; ';
   put '      stop; ';
   put '    data &&_webin_name&i; ';
@@ -21365,7 +21370,10 @@ run;
     data _null_;
       infile &&_webin_fileref&i termstr=crlf;
       input;
-      call symputx('input_statement',_infile_);
+      /* a plain $ informat strips leading blanks - use $char instead */
+      call symputx('input_statement'
+        ,prxchange('s/:\$(?=[0-9 ])/:\$char/i',-1,_infile_)
+      );
       putlog "&&_webin_name&i input statement: "  _infile_;
       stop;
     data &&_webin_name&i;
@@ -22659,7 +22667,8 @@ data _null_;
   put '            prxchange(''s/\\/\\\\/'',-1,&&name&i) ';
   put '          )))))))))))))!!''"''; ';
   put '        end; ';
-  put '        else &&name&i=quote(cats(&&name&i)); ';
+  put '        /* trim (not cats) so leading blanks are retained */ ';
+  put '        else &&name&i=''"''!!trim(&&name&i)!!''"''; ';
   put '      %end; ';
   put '    %end; ';
   put '    run; ';
@@ -22776,7 +22785,10 @@ data _null_;
   put '    data _null_; ';
   put '      infile &&_webin_fileref&i termstr=crlf lrecl=32767; ';
   put '      input; ';
-  put '      call symputx(''input_statement'',_infile_); ';
+  put '      /* a plain $ informat strips leading blanks - use $char instead */ ';
+  put '      call symputx(''input_statement'' ';
+  put '        ,prxchange(''s/:\$(?=[0-9 ])/:\$char/i'',-1,_infile_) ';
+  put '      ); ';
   put '      putlog "&&_webin_name&i input statement: "  _infile_; ';
   put '      stop; ';
   put '    data &&_webin_name&i; ';
@@ -24045,7 +24057,10 @@ run;
     data _null_;
       infile &&_webin_fileref&i termstr=crlf lrecl=32767;
       input;
-      call symputx('input_statement',_infile_);
+      /* a plain $ informat strips leading blanks - use $char instead */
+      call symputx('input_statement'
+        ,prxchange('s/:\$(?=[0-9 ])/:\$char/i',-1,_infile_)
+      );
       putlog "&&_webin_name&i input statement: "  _infile_;
       stop;
     data &&_webin_name&i;
@@ -26310,7 +26325,8 @@ data _null_;
   put '            prxchange(''s/\\/\\\\/'',-1,&&name&i) ';
   put '          )))))))))))))!!''"''; ';
   put '        end; ';
-  put '        else &&name&i=quote(cats(&&name&i)); ';
+  put '        /* trim (not cats) so leading blanks are retained */ ';
+  put '        else &&name&i=''"''!!trim(&&name&i)!!''"''; ';
   put '      %end; ';
   put '    %end; ';
   put '    run; ';
@@ -26456,7 +26472,10 @@ data _null_;
   put '      data _null_; ';
   put '        infile "%sysfunc(pathname(work))/&table..csv" termstr=crlf ; ';
   put '        input; ';
-  put '        if _n_=1 then call symputx(''input_statement'',_infile_); ';
+  put '        /* a plain $ informat strips leading blanks - use $char instead */ ';
+  put '        if _n_=1 then call symputx(''input_statement'' ';
+  put '          ,prxchange(''s/:\$(?=[0-9 ])/:\$char/i'',-1,_infile_) ';
+  put '        ); ';
   put '        list; ';
   put '      data work.&table; ';
   put '        infile "%sysfunc(pathname(work))/&table..csv" firstobs=2 dsd ';
@@ -26476,7 +26495,10 @@ data _null_;
   put '    data _null_; ';
   put '      infile indata termstr=crlf lrecl=32767; ';
   put '      input; ';
-  put '      if _n_=1 then call symputx(''input_statement'',_infile_); ';
+  put '      /* a plain $ informat strips leading blanks - use $char instead */ ';
+  put '      if _n_=1 then call symputx(''input_statement'' ';
+  put '        ,prxchange(''s/:\$(?=[0-9 ])/:\$char/i'',-1,_infile_) ';
+  put '      ); ';
   put '      %if %str(&_debug) ge 128 %then %do; ';
   put '        if _n_<20 then putlog _infile_; ';
   put '        else stop; ';
@@ -30602,7 +30624,10 @@ filename &fref1 clear;
       data _null_;
         infile "%sysfunc(pathname(work))/&table..csv" termstr=crlf ;
         input;
-        if _n_=1 then call symputx('input_statement',_infile_);
+        /* a plain $ informat strips leading blanks - use $char instead */
+        if _n_=1 then call symputx('input_statement'
+          ,prxchange('s/:\$(?=[0-9 ])/:\$char/i',-1,_infile_)
+        );
         list;
       data work.&table;
         infile "%sysfunc(pathname(work))/&table..csv" firstobs=2 dsd
@@ -30622,7 +30647,10 @@ filename &fref1 clear;
     data _null_;
       infile indata termstr=crlf lrecl=32767;
       input;
-      if _n_=1 then call symputx('input_statement',_infile_);
+      /* a plain $ informat strips leading blanks - use $char instead */
+      if _n_=1 then call symputx('input_statement'
+        ,prxchange('s/:\$(?=[0-9 ])/:\$char/i',-1,_infile_)
+      );
       %if %str(&_debug) ge 128 %then %do;
         if _n_<20 then putlog _infile_;
         else stop;

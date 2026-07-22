@@ -331,7 +331,8 @@
             prxchange('s/\\/\\\\/',-1,&&name&i)
           )))))))))))))!!'"';
         end;
-        else &&name&i=quote(cats(&&name&i));
+        /* trim (not cats) so leading blanks are retained */
+        else &&name&i='"'!!trim(&&name&i)!!'"';
       %end;
     %end;
     run;

@@ -14735,10 +14735,10 @@ alter table &libds modify &var char(&len);
   else &outcol=0;
 %end;
 %else %if &rule=FORMAT %then %do;
-  /* match valid format - regex could probably be improved */
+  /* match valid SAS format*/
   if _n_=1 then do;
     retain &tempcol;
-    &tempcol=prxparse('/^[_a-z\$]\w{0,31}\.[0-9]*$/i');
+    &tempcol=prxparse('/^(?:[_a-z\$]\w{0,31}|[0-9]+)\.[0-9]*$/i');
     if missing(&tempcol) then do;
       putlog 'ERR' +(-1) "OR: Invalid expression for FORMAT";
       stop;

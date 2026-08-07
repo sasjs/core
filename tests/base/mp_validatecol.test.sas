@@ -76,6 +76,9 @@ $format.
 $format12.2
 somenum.
 somenum12.4
+4.
+8.2
+12.
 above are good
 the rest are bad
 %abort
@@ -90,7 +93,7 @@ $format12.1b1
 run;
 %mp_assertdsobs(work.test3,
   desc=Test3 - ISFORMAT,
-  test=EQUALS 5,
+  test=EQUALS 8,
   outds=work.test_results
 )
 

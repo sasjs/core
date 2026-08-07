@@ -94,7 +94,7 @@
   else &outcol=0;
 %end;
 %else %if &rule=FORMAT %then %do;
-  /* match valid format - regex could probably be improved */
+  /* match valid SAS format*/
   if _n_=1 then do;
     retain &tempcol;
     &tempcol=prxparse('/^(?:[_a-z\$]\w{0,31}|[0-9]+)\.[0-9]*$/i');

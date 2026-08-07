@@ -89,6 +89,9 @@ the rest are bad
 a.A
 $format12.1b
 $format12.1b1
+1
+12
+0
 ;;;;
 run;
 %mp_assertdsobs(work.test3,

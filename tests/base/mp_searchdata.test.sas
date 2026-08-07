@@ -25,8 +25,8 @@
 data _null_;
   length txt $200;
   txt=symget('SYSWARNINGTEXT');
-  if txt=:'The Base SAS Software product with which DATASTEP is associated will be expiring'
-  then call symputx('warntxt','');
+  if txt=:'The Base SAS Software product with which DATASTEP is associated'!!
+  ' will be expiring' then call symputx('warntxt','');
 run;
 
 %mp_assert(

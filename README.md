@@ -193,7 +193,7 @@ When contributing to this library, it is therefore important to ensure that all 
 - no trailing white space
 - no invisible characters, other than spaces. If invisibles are needed, use hex literals.
 - Macro variables should not have the trailing dot (`&var` not `&var.`) unless necessary to prevent incorrect resolution
-- The closing `%mend;` should **not** contain the macro name.
+- The closing `%mend` statement **must** contain the macro name, eg `%mend mymacro;` (enforced by the `hasMacroNameInMend` lint rule).
 - All macros should be defined with brackets, even if no variables are needed - ie `%macro x();` not `%macro x;`
 - Mandatory parameters should be positional, all optional parameters should be keyword (var=) style.
 - All dataset references must be 2 level (eg `work.blah`, not `blah`). This is to avoid contention when options [DATASTMTCHK](https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000279064.htm)=ALLKEYWORDS is in effect, or the [USER](https://documentation.sas.com/doc/en/pgmsascdc/9.4_3.5/lrcon/n18m1vkqmeo4esn1moikt23zhp8s.htm) library is active.

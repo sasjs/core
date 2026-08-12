@@ -17,6 +17,7 @@ This repo is the SASjs Macro Core library — a collection of MIT-licensed, prod
   - Lowercase file names without spaces.
   - Lowercase macro names.
   - Macro definitions must use parentheses, e.g. `%macro x();` not `%macro x;`.
+  - The closing `%mend` statement must contain the macro name, e.g. `%mend x;` (rule: `hasMacroNameInMend`).
   - Indentation = 2 spaces (or multiple thereof); no tabs.
   - Max line length 300.
   - No gremlins / invisible characters.

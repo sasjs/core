@@ -19,15 +19,13 @@
   @param [in] prefix= (mclib) first part of the returned libref. As librefs can
     be as long as 8 characters, a maximum length of 7 characters is premitted
     for this prefix.
-  @param [in] maxtries= (1000) Deprecated parameter. Remains here to ensure a
-    non-breaking change.  Will be removed in v5.
 
   @version 9.2
   @author Allan Bowe
 **/
 
-%macro mf_getuniquelibref(prefix=mc,maxtries=1000);
-  %local x;
+%macro mf_getuniquelibref(prefix=mc);
+  %local x maxtries;
 
   %if ( %length(&prefix) gt 7 ) %then %do;
     %put %str(ERR)OR: The prefix parameter cannot exceed 7 characters.;

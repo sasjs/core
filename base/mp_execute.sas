@@ -1,8 +1,8 @@
 /**
   @file
-  @brief To be deprecated.  Will execute a SASjs web service on SAS 9 or Viya
-  @details Use the mx_testservice.sas macro instead (documentation can be
-  found there)
+  @brief Executes a SASjs web service on SAS 9 or Viya
+  @details Wraps the mx_testservice.sas macro (documentation can be found
+  there)
 
   <h4> SAS Macros </h4>
   @li mx_testservice.sas
@@ -12,7 +12,7 @@
 
 **/
 
-%macro mp_testservice(program,
+%macro mp_execute(program,
   inputfiles=0,
   inputdatasets=0,
   inputparams=0,
@@ -36,4 +36,4 @@
   viyacontext=&viyacontext
 )
 
-%mend mp_testservice;
+%mend mp_execute;

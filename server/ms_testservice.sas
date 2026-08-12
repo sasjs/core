@@ -42,7 +42,7 @@
   @li ms_runstp.sas
 
   <h4> Related Programs </h4>
-  @li mp_testservice.test.sas
+  @li mp_execute.sas
 
   @version 9.4
   @author Allan Bowe

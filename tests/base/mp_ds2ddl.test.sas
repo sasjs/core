@@ -1,9 +1,9 @@
 /**
   @file
-  @brief Testing mp_getddl.sas macro
+  @brief Testing mp_ds2ddl.sas macro
 
   <h4> SAS Macros </h4>
-  @li mp_getddl.sas
+  @li mp_ds2ddl.sas
   @li mp_assert.sas
 
 **/
@@ -14,10 +14,10 @@ data test(index=(pk=(x y)/unique /nomiss));
   label x='blah';
 run;
 proc sql; describe table &syslast;
-%mp_getddl(work,test,flavour=tsql,showlog=YES)
+%mp_ds2ddl(work,test,flavour=tsql,showlog=YES)
 
 %mp_assert(
   iftrue=(&syscc=0),
-  desc=mp_getddl runs without errors,
+  desc=mp_ds2ddl runs without errors,
   outds=work.test_results
 )

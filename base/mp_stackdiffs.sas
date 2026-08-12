@@ -13,7 +13,7 @@
 
     In both cases, it is necessary that the transactions are stored using
     the mp_storediffs.sas macro, or at least that the underlying table is
-    structured as per the definition in mp_coretable.sas (DIFFTABLE entry)
+    structured as per the definition in mddl_dc_difftable.sas
 
     <b>This</b> macro is used to convert the stored changes (tall format) into
     staged changes (wide format), with base table values incorporated (in the
@@ -166,7 +166,7 @@
     in libref.dataset format.
   @param [in] auditlibds Dataset with previously applied transactions, to be
     re-applied. Use libref.dataset format.
-    DDL as follows:  %mp_coretable(DIFFTABLE)
+    DDL as follows:  %mddl_dc_difftable()
   @param [in] key Space seperated list of key variables
   @param [in] mdebug= Set to 1 to enable DEBUG messages and preserve outputs
   @param [in] processed_dttm_var= (0) If a variable is being used to mark
@@ -194,7 +194,7 @@
   @li mp_ds2squeeze.sas
 
   <h4> Related Macros </h4>
-  @li mp_coretable.sas
+  @li mddl_dc_difftable.sas
   @li mp_stackdiffs.test.sas
   @li mp_storediffs.sas
   @li mp_stripdiffs.sas

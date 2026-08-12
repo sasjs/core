@@ -16,7 +16,7 @@
 
   Usage:
 
-      %mcf_getfmttype(wrap=YES, insert_cmplib=YES)
+      %mcf_getfmttype()
 
       data _null_;
         fmt1=mcf_getfmttype('DATE9.');
@@ -30,13 +30,11 @@
   > fmt1=DATE fmt2=DATETIME
   > fmt3=TIME
 
-  @param [out] wrap= (NO) Choose YES to add the proc fcmp wrapper.
+  @param [out] wrap= (YES) Choose NO to omit the proc fcmp wrapper.
   @param [out] lib= (work) The output library in which to create the catalog.
   @param [out] cat= (sasjs) The output catalog in which to create the package.
   @param [out] pkg= (utils) The output package in which to create the function.
     Uses a 3 part format:  libref.catalog.package
-  @param [out] insert_cmplib= DEPRECATED - The CMPLIB option is checked and
-    values inserted only if needed.
 
   <h4> SAS Macros </h4>
   @li mcf_init.sas
@@ -50,8 +48,7 @@
 
 **/
 
-%macro mcf_getfmttype(wrap=NO
-  ,insert_cmplib=DEPRECATED
+%macro mcf_getfmttype(wrap=YES
   ,lib=WORK
   ,cat=SASJS
   ,pkg=UTILS

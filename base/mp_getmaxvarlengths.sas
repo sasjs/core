@@ -68,7 +68,7 @@
 
 %if &num2char=NO %then %do;
   /* compile length function for numeric fields */
-  %mcf_length(wrap=YES, insert_cmplib=YES)
+  %mcf_length()
 %end;
 
 %if &num2char=NO

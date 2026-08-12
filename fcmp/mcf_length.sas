@@ -13,7 +13,7 @@
 
   Usage:
 
-      %mcf_length(wrap=YES, insert_cmplib=YES)
+      %mcf_length()
 
       data _null_;
         ina=1;
@@ -31,13 +31,11 @@
 
   > outa=3 outb=4 outc=5 outd=0
 
-  @param [out] wrap= (NO) Choose YES to add the proc fcmp wrapper.
+  @param [out] wrap= (YES) Choose NO to omit the proc fcmp wrapper.
   @param [out] lib= (work) The output library in which to create the catalog.
   @param [out] cat= (sasjs) The output catalog in which to create the package.
   @param [out] pkg= (utils) The output package in which to create the function.
     Uses a 3 part format:  libref.catalog.package
-  @param [out] insert_cmplib= DEPRECATED - The CMPLIB option is checked and
-    values inserted only if needed.
 
   <h4> SAS Macros </h4>
   @li mcf_init.sas
@@ -48,8 +46,7 @@
 
 **/
 
-%macro mcf_length(wrap=NO
-  ,insert_cmplib=DEPRECATED
+%macro mcf_length(wrap=YES
   ,lib=WORK
   ,cat=SASJS
   ,pkg=UTILS

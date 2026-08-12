@@ -8,13 +8,13 @@
   @li mp_assertcols.sas
   @li mp_assertcolvals.sas
   @li mp_assertscope.sas
-  @li mp_coretable.sas
+  @li mddl_dc_locktable.sas
 
 **/
 
 /* check create table */
 
-%mp_coretable(LOCKTABLE,libds=work.controller)
+%mddl_dc_locktable(libds=work.controller)
 
 %mp_assertcols(work.controller,
   cols=lock_status_cd lock_lib lock_ds lock_user_nm lock_ref lock_pid

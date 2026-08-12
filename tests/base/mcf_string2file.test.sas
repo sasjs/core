@@ -9,7 +9,7 @@
 **/
 
 
-%mcf_string2file(wrap=YES, insert_cmplib=YES)
+%mcf_string2file()
 
 data _null_;
   rc=mcf_string2file(

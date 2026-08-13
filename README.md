@@ -129,6 +129,16 @@ filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
 %inc mc;
 ```
 
+## Agent Skills
+
+This repo ships with agent skills (in `.agents/skills`) to help coding assistants write idiomatic SAS and follow the @sasjs/core standards. The canonical versions live in the [sasjs/skills](https://github.com/sasjs/skills) repo and cover SAS language, @sasjs/core, @sasjs/adapter, @sasjs/cli, the SASjs framework, and @sasjs/server.
+
+To install or update them in your own project, run:
+
+```bash
+npx skills add sasjs/skills
+```
+
 ## Standards
 
 ### File Properties

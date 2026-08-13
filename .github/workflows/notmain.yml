@@ -30,4 +30,12 @@ jobs:
           git commit -m "chore: updating all.sas" --allow-empty
           git push
 
+      - name: Ensure agent skills are always up to date
+        run: |
+          npx --yes skills update --project --yes
+          git add .agents/skills skills-lock.json
+          git diff --staged --quiet || \
+            git commit -m "chore: updating agent skills [skip ci]"
+          git push
+
 

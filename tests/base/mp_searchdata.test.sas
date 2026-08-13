@@ -9,6 +9,11 @@
 
 **/
 
+/* SYSWARNINGTEXT is an automatic variable and cannot be modified, so
+  capture the session start state (may contain a license expiry warning,
+  which is an environment issue) and later assert nothing new was added */
+%let initwarningtext=%superq(syswarningtext);
+
 /** Test 1 - generic useage */
 
 %mp_searchdata(lib=sashelp, ds=class, string=a)
@@ -22,8 +27,9 @@
 
 %mp_searchdata(lib=sashelp, ds=class, string=l,outobs=5)
 
+/* assert that mp_searchdata itself raised no new warnings */
 %mp_assert(
-  iftrue=("&SYSWARNINGTEXT" = ""),
+  iftrue=("%superq(syswarningtext)"="%superq(initwarningtext)"),
   desc=Ensuring WARN status is clean,
   outds=work.test_results
 )

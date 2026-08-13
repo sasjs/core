@@ -1,0 +1,966 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/sasjs/utils/blob/main/src/types/sasjsconfig-schema.json",
+  "type": "object",
+  "title": "SASjs Config File",
+  "description": "The SASjs Config file provides the settings and structure for your SASjs project. ",
+  "default": {},
+  "examples": [
+    {
+      "macroFolders": ["macros"],
+      "programFolders": ["programs"],
+      "binaryFolders": ["binaries"],
+      "defaultTarget": "viya",
+      "targets": [
+        {
+          "name": "viya",
+          "serverType": "SASVIYA",
+          "serverUrl": "https://sas.sasjs.com",
+          "appLoc": "/Public/app",
+          "contextName": "SAS Job Execution compute context",
+          "deployConfig": {
+            "deployServicePack": true,
+            "deployScripts": ["sasjsbuild/myviyadeploy.sas"]
+          },
+          "serviceConfig": {
+            "serviceFolders": ["targets/viya/services/admin"],
+            "initProgram": "build/serviceinit.sas",
+            "termProgram": "build/serviceinit.sas",
+            "macroVars": {
+              "name": "viyavalue",
+              "extravar": "this too"
+            }
+          },
+          "jobConfig": {
+            "jobFolders": [],
+            "initProgram": "",
+            "termProgram": "",
+            "macroVars": {}
+          },
+          "streamConfig": {
+            "assetPaths": [],
+            "streamWeb": false,
+            "streamWebFolder": "webv",
+            "webSourcePath": "dist"
+          },
+          "testConfig": {
+            "initProgram": "sasjs/tests/testinit.sas",
+            "termProgram": "sasjs/tests/testterm.sas",
+            "macroVars": {
+              "testVar": "testValue"
+            },
+            "testSetUp": "sasjs/tests/testsetup.sas",
+            "testTearDown": "sasjs/tests/testteardown.sas"
+          },
+          "macroFolders": ["targets/viya/macros"],
+          "programFolders": [],
+          "binaryFolders": ["binaries"]
+        },
+        {
+          "name": "sas9",
+          "serverType": "SAS9",
+          "serverUrl": "https://sas.sasjs.com:7980",
+          "appLoc": "/User Folders/&sysuserid/My Folder",
+          "serverName": "Foundation",
+          "repositoryName": "SASApp",
+          "buildConfig": {
+            "buildOutputFileName": "mysas9deploy.sas",
+            "initProgram": "",
+            "termProgram": "",
+            "macroVars": {}
+          },
+          "deployConfig": {
+            "deployScripts": ["build/deploysas9.sh"],
+            "deployServicePack": false
+          },
+          "serviceConfig": {
+            "serviceFolders": ["targets/sas9/services/admin"],
+            "initProgram": "",
+            "termProgram": "build/servicetermother.sas",
+            "macroVars": {}
+          },
+          "streamConfig": {
+            "assetPaths": [],
+            "streamWeb": false,
+            "streamWebFolder": "web9",
+            "webSourcePath": "dist"
+          },
+          "testConfig": {
+            "initProgram": "sasjs/tests/testinit.sas",
+            "termProgram": "sasjs/tests/testterm.sas",
+            "macroVars": {
+              "testVar": "testValue"
+            },
+            "testSetUp": "sasjs/tests/testsetup.sas",
+            "testTearDown": "sasjs/tests/testteardown.sas"
+          },
+          "macroFolders": ["targets/sas9/macros"],
+          "programFolders": [],
+          "binaryFolders": ["binaries"]
+        }
+      ]
+    }
+  ],
+  "properties": {
+    "binaryFolders": {
+      "$id": "#/properties/binaryFolders",
+      "type": "array",
+      "title": "The binaryFolders array",
+      "description": "These local folders are searched for Binary Files when running sasjs compile.  Folders are relative to the sasjs/sasjsconfig.json file.",
+      "examples": [["binaries", "../../more_binaries"]]
+    },
+    "sasjsBuildFolder": {
+      "$id": "#/properties/sasjsBuildFolder",
+      "type": "string",
+      "title": "sasjsBuildFolder",
+      "description": "The name of the folder containing the compiled output.  The `sasjs build` command will take all of the subfolders here as inputs to create the build pack.  By default this will be named `sasjsbuild`.  In global, the default is `~/.sasjsbuild`.",
+      "default": "sasjsbuild",
+      "examples": ["sasjsbuild", ".sasjsbuild"]
+    },
+    "sasjsResultsFolder": {
+      "$id": "#/properties/sasjsResultsFolder",
+      "type": "string",
+      "title": "sasjsResultsFolder",
+      "description": "The name of the folder containing the output (eg logs, ODS output) from `sasjs run`.  By default this will be named `sasjsresults`.  In global, the default is `~/.sasjsresults`.",
+      "default": "sasjsresults",
+      "examples": ["sasjsresults", ".sasjsresults"]
+    },
+    "defaultTarget": {
+      "$id": "#/properties/defaultTarget",
+      "type": "string",
+      "title": "Default Target",
+      "description": "If a target is not specified, this target is used by default.  The default target must exist in the (local) targets array.",
+      "default": "viya",
+      "examples": ["viya"]
+    },
+    "docConfig": {
+      "$id": "#/properties/docConfig",
+      "type": "object",
+      "title": "The docConfig schema",
+      "description": "SASjs uses doxygen to auto-generate HTML documentation using the headers in your SAS programs, macros, services & jobs. For more info, see [https://cli.sasjs.io/doc](https://cli.sasjs.io/doc).  Some properties are taken from package.json (such as the project Name).",
+      "default": {
+        "dataControllerUrl": "https://mysasserver.com/web/datacontroller/#",
+        "enableLineage": true,
+        "doxyContent": {
+          "readMe": "../../README.md"
+        }
+      },
+      "examples": [
+        {
+          "displayMacroCore": true,
+          "outDirectory": "/some/output/directory",
+          "dataControllerUrl": "https://mysasserver.com/web/datacontroller/#",
+          "enableLineage": true,
+          "doxyContent": {
+            "readMe": "../../my/custom/homepage.md",
+            "path": "my/custom/doxy/folder"
+          }
+        }
+      ],
+      "properties": {
+        "displayMacroCore": {
+          "$id": "#/properties/docConfig/properties/displayMacroCore",
+          "type": "boolean",
+          "title": "The displayMacroCore docConfig option",
+          "description": "The CLI will autocompile macro dependencies that exist in the SASjs Macro Core library.  These will also show in the documentation under 'node_modules'.  If you'd prefer not to show these in the rendered docs, set this value to false.",
+          "default": true,
+          "examples": [true]
+        },
+        "outDirectory": {
+          "$id": "#/properties/docConfig/properties/outDirectory",
+          "type": "string",
+          "title": "The outDirectory docConfig option",
+          "description": "The location to which the generated HTML SAS documentation is written.  If missing, or left blank, the files will be written to the `sasjsbuild/doc` directory (default behaviour).",
+          "default": "sasjsbuild/doc",
+          "examples": ["/my/preferred/docs/directory"]
+        },
+        "dataControllerUrl": {
+          "$id": "#/properties/docConfig/properties/dataControllerUrl",
+          "type": "string",
+          "title": "The dataControllerUrl docConfig option",
+          "description": "Provide the full URL to Data Controller so that `sasjs doc` can link the lineage diagram directly to the table viewer in [Data Controller](https://datacontroller.io).\nIf left blank, or undefined, no links will be generated.",
+          "default": "",
+          "examples": ["https://yourserver.co.uk/dcviya/#"]
+        },
+        "enableLineage": {
+          "$id": "#/properties/docConfig/properties/enableLineage",
+          "type": "boolean",
+          "title": "Enable Lineage",
+          "description": "If true, sasjs doc will generate and display Data Lineage from Jobs and Services.",
+          "default": true
+        },
+        "doxyContent": {
+          "$id": "#/properties/docConfig/properties/doxyContent",
+          "type": "object",
+          "title": "doxyContent",
+          "description": "Configuration of the Doxyfile variables",
+          "default": {},
+          "examples": [
+            {
+              "favIcon": "favicon.ico",
+              "footer": "new_footer.html",
+              "header": "new_header.html",
+              "layout": "DoxygenLayout.xml",
+              "logo": "logo.png",
+              "readMe": "../../README.md",
+              "stylesheet": "new_stylesheet.css",
+              "path": "sasjs/doxy"
+            }
+          ],
+          "properties": {
+            "favIcon": {
+              "$id": "#/properties/docConfig/properties/doxyContent/properties/favIcon",
+              "type": "string",
+              "title": "Doxygen favicon",
+              "description": "The favicon used in the doxygen documentation",
+              "default": "favicon.ico"
+            },
+            "footer": {
+              "$id": "#/properties/docConfig/properties/doxyContent/properties/footer",
+              "type": "string",
+              "title": "Doxygen footer",
+              "description": "The footer HTML file used in the doxygen documentation",
+              "default": "new_footer.html"
+            },
+            "header": {
+              "$id": "#/properties/docConfig/properties/doxyContent/properties/header",
+              "type": "string",
+              "title": "Doxygen header",
+              "description": "The header HTML file used in the doxygen documentation",
+              "default": "new_header.html"
+            },
+            "layout": {
+              "$id": "#/properties/docConfig/properties/doxyContent/properties/layout",
+              "type": "string",
+              "title": "Doxygen Layout XML File",
+              "description": "The layout XML file used to build the doxygen documentation",
+              "default": "DoxygenLayout.xml"
+            },
+            "logo": {
+              "$id": "#/properties/docConfig/properties/doxyContent/properties/logo",
+              "type": "string",
+              "title": "Doxygen Logo",
+              "description": "The logo file used by doxygen",
+              "default": "logo.png"
+            },
+            "readMe": {
+              "$id": "#/properties/docConfig/properties/doxyContent/properties/readMe",
+              "type": "string",
+              "title": "Doxygen Homepage",
+              "description": "The file used to generate the doxygen homepage (defaults to the readme.md)",
+              "default": "../../README.md"
+            },
+            "stylesheet": {
+              "$id": "#/properties/docConfig/properties/doxyContent/properties/stylesheet",
+              "type": "string",
+              "title": "Doxygen CSS",
+              "description": "The CSS file used to extend Doxygen",
+              "default": "new_stylesheet.css"
+            },
+            "path": {
+              "$id": "#/properties/docConfig/properties/doxyContent/properties/path",
+              "type": "string",
+              "title": "Doxygen Path",
+              "description": "The path to the Doxygen configuration files (relative to sasjs/sasjsconfig.json)",
+              "default": "sasjs/doxy"
+            }
+          }
+        }
+      }
+    },
+    "httpsAgentOptions": {
+      "$id": "#/properties/httpsAgentOptions",
+      "type": "object",
+      "title": "httpsAgentOptions",
+      "description": "Configure https agent by setting all supported attribute such as `key`, `cert`, `ca`, `rejectUnauthorized` and `requestCert`",
+      "examples": [
+        {
+          "allowInsecureRequests": false,
+          "caPath": "path/to/caFile",
+          "keyPath": "path/to/keyFile",
+          "certPath": "path/to/certFile",
+          "requestCert": false,
+          "rejectUnauthorized": true
+        }
+      ],
+      "properties": {
+        "allowInsecureRequests": {
+          "$id": "#/properties/httpsAgentOptions/properties/allowInsecureRequests",
+          "type": "boolean",
+          "title": "allowInsecureRequests",
+          "description": "If you are having certificate errors connecting to SAS, that cannot be properly resolved, try setting this value to true. This option only has an effect if rejectUnauthorized is not present.",
+          "default": false,
+          "examples": [true, false]
+        },
+        "caPath": {
+          "$id": "#/properties/httpsAgentOptions/properties/caPath",
+          "type": "string",
+          "title": "caPath",
+          "description": "Optionally override the trusted CA certificates. Default is to trust the well-known CAs curated by Mozilla. Mozilla's CAs are completely replaced when CAs are explicitly specified using this option.",
+          "examples": ["path/to/caFile"]
+        },
+        "keyFile": {
+          "$id": "#/properties/httpsAgentOptions/properties/keyFile",
+          "type": "string",
+          "title": "keyFile",
+          "description": "Private keys in PEM format. PEM allows the option of private keys being encrypted. Encrypted keys will be decrypted with options.passphrase. Multiple keys using different algorithms can be provided either as an array of unencrypted key strings or buffers, or an array of objects in the form {pem: <string|buffer>[, passphrase: <string>]}. The object form can only occur in an array. object.passphrase is optional. Encrypted keys will be decrypted with object.passphrase if provided, or options.passphrase if it is not.",
+          "examples": ["path/to/keyFile"]
+        },
+        "certFile": {
+          "$id": "#/properties/httpsAgentOptions/properties/certFile",
+          "type": "string",
+          "title": "certFile",
+          "description": "Cert chains in PEM format. One cert chain should be provided per private key. Each cert chain should consist of the PEM formatted certificate for a provided private key, followed by the PEM formatted intermediate certificates (if any), in order, and not including the root CA (the root CA must be pre-known to the peer, see ca). When providing multiple cert chains, they do not have to be in the same order as their private keys in key. If the intermediate certificates are not provided, the peer will not be able to validate the certificate, and the handshake will fail.",
+          "examples": ["path/to/certFile"]
+        },
+        "requestCert": {
+          "$id": "#/properties/httpsAgentOptions/properties/requestCert",
+          "type": "boolean",
+          "title": "requestCert",
+          "description": "If true the server will request a certificate from clients that connect and attempt to verify that certificate. Defaults to false.",
+          "default": false,
+          "examples": [true, false]
+        },
+        "rejectUnauthorized": {
+          "$id": "#/properties/httpsAgentOptions/properties/rejectUnauthorized",
+          "type": "boolean",
+          "title": "rejectUnauthorized",
+          "description": "If true the server will reject any connection which is not authorized with the list of supplied CAs. This option only has an effect if requestCert is true.",
+          "default": true,
+          "examples": [true, false]
+        }
+      }
+    },
+    "buildConfig": {
+      "$id": "#/properties/buildConfig",
+      "type": "object",
+      "title": "buildConfig",
+      "description": "Dictates which files get compiled into the build program (.sas), used to deploy services into SAS 9 or Viya environments (without a client/secret). You may use this config to include build specific macros, programs or macro variables - which is run a single time, on deployment - for things like database creation, or exporting a SAS 9 SPK after service creation.",
+      "examples": [
+        {
+          "initProgram": "build/buildinit.sas",
+          "termProgram": "build/buildterm.sas",
+          "macroVars": {
+            "name": "value",
+            "numvar": "42"
+          },
+          "buildOutputFileName": "buildpack.sas"
+        }
+      ],
+      "properties": {
+        "buildOutputFileName": {
+          "$id": "#/properties/buildConfig/properties/buildOutputFileName",
+          "type": "string",
+          "title": "buildOutputFileName",
+          "description": "The name of the generated .sas program, which can be used to deploy the app using only SAS Studio. By default, this will be the name of the target.",
+          "examples": ["viya.sas", "sas9.sas"]
+        },
+        "initProgram": {
+          "$id": "#/properties/buildConfig/properties/initProgram",
+          "type": "string",
+          "title": "The buildConfig initProgram",
+          "description": "The path to a .sas program that will be inserted at the start of the build .sas program (created when running `sasjs build`).",
+          "default": "sasjs/buildinit.sas"
+        },
+        "termProgram": {
+          "$id": "#/properties/buildConfig/properties/termProgram",
+          "type": "string",
+          "title": "The buildConfig termProgram",
+          "description": "The path to a .sas program that will be inserted at the end of the build .sas program (created when running `sasjs build`).",
+          "default": "sasjs/buildterm.sas"
+        },
+        "macroVars": {
+          "$id": "#/properties/buildConfig/properties/macroVars",
+          "type": "object",
+          "title": "The buildConfig macro variables",
+          "description": "A series of name value pairs that will be turned into SAS macro variables in the build .sas program (generated when running `sasjs build`).  The example provided will generate sas code as follows:\n```\n%let name=value;\n%let numvar=42;\n```",
+          "default": {},
+          "examples": [
+            {
+              "name": "value",
+              "numvar": "42"
+            }
+          ]
+        }
+      }
+    },
+    "deployConfig": {
+      "$id": "#/properties/deployConfig",
+      "type": "object",
+      "title": "The deployConfig schema",
+      "description": "The deployConfig object enables settings that relate to the deployment of a SAS app - be that Viya, or SAS 9, or a pure Base environment.",
+      "default": {},
+      "examples": [
+        {
+          "deployScripts": ["build/deployscript.sh"]
+        },
+        {
+          "deployScripts": ["build/deployscript.sh"],
+          "deployServicePack": true
+        }
+      ],
+      "properties": {
+        "deployScripts": {
+          "$id": "#/properties/deployConfig/properties/deployScripts",
+          "type": "array",
+          "title": "The deployConfig deployScripts array",
+          "description": "These scripts are executed when running `sasjs deploy`.  If the file is a .sas file, it is executed on the SAS server (Viya only).  Otherwise it is executed locally.  These scripts are run AFTER the deployment of the servicepack, if `deployServicePack:true` (Viya only).",
+          "default": [],
+          "examples": [["build/deployscript.sh", "build/myprogram.sas"]]
+        },
+        "deployServicePack": {
+          "$id": "#/properties/deployConfig/properties/deployServicePack",
+          "type": "boolean",
+          "title": "The deployConfig deployServicePack flag",
+          "description": "If set to `true` the json pack produced by `sasjs build` will be auto-deployed to the `appLoc` of the specified target (creating all jobs and services in the SAS folder tree).  Currently only Viya is supported for this flag.",
+          "default": false
+        }
+      }
+    },
+    "serviceConfig": {
+      "$id": "#/properties/serviceConfig",
+      "type": "object",
+      "title": "The serviceConfig schema",
+      "description": "The serviceConfig object defines how SASjs web services are compiled.  Web services differ from jobs in that they include some fixed pre-code (eg the macros to stream out the result json).",
+      "default": {},
+      "examples": [
+        {
+          "serviceFolders": ["services/common", "services/admin"],
+          "initProgram": "build/serviceinit.sas",
+          "termProgram": "build/serviceterm.sas",
+          "macroVars": {
+            "mac1": "value",
+            "mac2": "42"
+          }
+        }
+      ],
+      "required": [],
+      "properties": {
+        "serviceFolders": {
+          "$id": "#/properties/serviceConfig/properties/serviceFolders",
+          "type": "array",
+          "title": "The serviceConfig serviceFolders array",
+          "description": "When running `sasjs compile`, all programs in the folders defined in this array are compiled and placed into same-named folders under `sasjsbuild/services`.  They will be compiled as services (so, with the service pre-code).  Folders can be absolute, or relative to the `sasjs` folder.",
+          "default": [],
+          "examples": [["services/common", "services/admin"]]
+        },
+        "initProgram": {
+          "$id": "#/properties/serviceConfig/properties/initProgram",
+          "type": "string",
+          "title": "The serviceConfig initProgram",
+          "description": "The serviceConfig `initProgram` is a .sas file that is inserted at the start of every SAS service (after compiled macros and any `macroVars`, and before the service itself). ",
+          "default": "",
+          "examples": ["build/serviceinit.sas"]
+        },
+        "termProgram": {
+          "$id": "#/properties/serviceConfig/properties/termProgram",
+          "type": "string",
+          "title": "The serviceConfig termProgram",
+          "description": "The serviceConfig termProgram is inserted at the end of every service as part of `sasjs compile`.",
+          "default": "",
+          "examples": ["build/serviceterm.sas"]
+        },
+        "macroVars": {
+          "$id": "#/properties/serviceConfig/properties/macroVars",
+          "type": "object",
+          "title": "The `serviceConfig` macroVars",
+          "description": "This object allows `sasjs compile` to insert specific macro variables at the start of every service.  In this case, the code generated would be:\n```\n%let mac1=value;\n%let mac2=42;\n```",
+          "default": {},
+          "examples": [
+            {
+              "mac1": "value",
+              "mac2": "42"
+            }
+          ]
+        }
+      }
+    },
+    "jobConfig": {
+      "$id": "#/properties/jobConfig",
+      "type": "object",
+      "title": "The jobConfig schema",
+      "description": "The jobConfig object defines how SASjs Jobs are compiled. ",
+      "default": {},
+      "examples": [
+        {
+          "jobFolders": ["jobs/extract", "jobs/load"],
+          "initProgram": "jobs/jobinit.sas",
+          "termProgram": "jobs/jobterm.sas",
+          "macroVars": {
+            "mac1": "value",
+            "mac2": "42"
+          }
+        }
+      ],
+      "properties": {
+        "jobFolders": {
+          "$id": "#/properties/jobConfig/properties/jobFolders",
+          "type": "array",
+          "title": "The jobConfig jobFolders array",
+          "description": "When running `sasjs compile`, all programs in the local folders defined in this array are compiled and placed into same-named folders under `sasjsbuild/jobs`. Folders can be absolute, or relative to the local project `/sasjs` folder.",
+          "default": [],
+          "examples": [["jobs/extract", "jobs/transform", "jobs/load"]]
+        },
+        "initProgram": {
+          "$id": "#/properties/jobConfig/properties/initProgram",
+          "type": "string",
+          "title": "The jobConfig initProgram",
+          "description": "The jobConfig `initProgram` is a local .sas file that is inserted at the start of every SAS Job (after compiled macros and any `macroVars`, and before the Job itself). ",
+          "default": "",
+          "examples": ["jobs/jobinit.sas"]
+        },
+        "termProgram": {
+          "$id": "#/properties/jobConfig/properties/termProgram",
+          "type": "string",
+          "title": "The jobConfig termProgram",
+          "description": "The jobConfig termProgram is inserted at the end of every Job as part of `sasjs compile`.",
+          "default": "",
+          "examples": ["jobs/jobterm.sas"]
+        },
+        "macroVars": {
+          "$id": "#/properties/jobConfig/properties/macroVars",
+          "type": "object",
+          "title": "The `jobConfig` macroVars",
+          "description": "This object allows `sasjs compile` to insert specific macro variables at the start of every Job.  In this case, the code generated would be:\n```\n%let mac1=value;\n%let mac2=42;\n```",
+          "default": {},
+          "examples": [
+            {
+              "mac1": "value",
+              "mac2": "42"
+            }
+          ]
+        }
+      }
+    },
+    "streamConfig": {
+      "$id": "#/properties/streamConfig",
+      "type": "object",
+      "title": "streamConfig",
+      "description": "SASjs allows a local web app to be compiled such that all html, css, javascript, and other assets such as png or mp4 are converted into web services and streamed directly from SAS.\n\nThis approach is convenient as it bypasses the need to deploy to a web server. ",
+      "default": {},
+      "examples": [
+        {
+          "assetPaths": [],
+          "streamWeb": false,
+          "streamWebFolder": "webv",
+          "webSourcePath": "dist",
+          "streamLogo": "logo.png"
+        }
+      ],
+      "required": ["streamWeb"],
+      "properties": {
+        "assetPaths": {
+          "$id": "#/properties/streamConfig/properties/assetPaths",
+          "type": "array",
+          "title": "The streamConfig assetPaths array",
+          "description": "An array of local folders.  All assets placed in these folders are converted into web services - example file types could be png, svg, mp3, mp4, excel - anything really.",
+          "default": [],
+          "examples": [["/myassets"]]
+        },
+        "streamLogo": {
+          "$id": "#/properties/streamConfig/properties/streamLogo",
+          "type": "string",
+          "title": "Icon shown in AppStream (sasjs/server)",
+          "description": "Provide the location of a square image, under the webSourcePath.  Used as the display icon on the appStream page.",
+          "default": "logo.png",
+          "examples": ["logo.png", "favicon.ico"]
+        },
+        "streamWeb": {
+          "$id": "#/properties/streamConfig/properties/streamWeb",
+          "type": "boolean",
+          "title": "The streamConfig streamWeb flag",
+          "description": "When set to `true`, frontend files saved in the `webSourcePath` will be converted to streaming services in the `streamWebFolder` in SAS.",
+          "default": false,
+          "examples": [true]
+        },
+        "streamWebFolder": {
+          "$id": "#/properties/streamConfig/properties/streamWebFolder",
+          "type": "string",
+          "title": "The streamConfig streamWebFolder",
+          "description": "This is the target SAS folder (relative to the appLoc) where the compiled web assets will be created.",
+          "default": "webv"
+        },
+        "webSourcePath": {
+          "$id": "#/properties/streamConfig/properties/webSourcePath",
+          "type": "string",
+          "title": "The webSourcePath schema",
+          "description": "Active when `streamConfig` is `true`. Is the source (or build, or dist) LOCAL folder, relative to the `sasjs` folder, which contains the frontend to be deployed.  All assets (PNG, JS, CSS, HTML etc) are taken from here and converted to streaming services in `streamWebFolder`.  In Viya and SAS 9, any relative URLS will be modified such that the links still work and the assets still load.",
+          "default": "dist",
+          "examples": ["dist", "build"]
+        },
+        "streamServiceName": {
+          "$id": "#/properties/streamConfig/properties/streamServiceName",
+          "type": "string",
+          "title": "streamServiceName Schema",
+          "description": "The name of the service containing the `index.html` for a streaming web app.  Defaults to `clickme` and is always deployed under the appLoc/services SAS Folder.",
+          "default": "clickme.sas"
+        }
+      }
+    },
+    "testConfig": {
+      "$id": "#/properties/testConfig",
+      "type": "object",
+      "title": "testConfig",
+      "description": "Create tests for Macros, Services & Jobs by simply adding a '.test.sas' extension. ",
+      "default": {
+        "initProgram": "sasjs/tests/testinit.sas",
+        "termProgram": "sasjs/tests/testterm.sas",
+        "macroVars": {
+          "testVar": "testValue"
+        },
+        "testSetUp": "sasjs/tests/testsetup.sas",
+        "testTearDown": "sasjs/tests/testteardown.sas"
+      },
+      "properties": {
+        "initProgram": {
+          "$id": "#/properties/testConfig/properties/initProgram",
+          "type": "string",
+          "title": "The jobConfig initProgram",
+          "description": "The testConfig `initProgram` is a local .sas file that is inserted at the start of every Test (after compiled macros and any `macroVars`, and before the Test itself). ",
+          "default": "",
+          "examples": ["sasjs/tests/testinit.sas"]
+        },
+        "termProgram": {
+          "$id": "#/properties/testConfig/properties/termProgram",
+          "type": "string",
+          "title": "The jobConfig termProgram",
+          "description": "The testConfig termProgram is inserted at the end of every Test as part of `sasjs compile`.",
+          "default": "",
+          "examples": ["jobs/jobterm.sas"]
+        },
+        "macroVars": {
+          "$id": "#/properties/testConfig/properties/macroVars",
+          "type": "object",
+          "title": "The `jobConfig` macroVars",
+          "description": "This object allows `sasjs compile` to insert specific macro variables at the start of every Test.  In this case, the code generated would be:\n```\n%let mac1=value;\n%let mac2=42;\n```",
+          "default": {},
+          "examples": [
+            {
+              "mac1": "value",
+              "mac2": "42"
+            }
+          ]
+        },
+        "testSetUp": {
+          "$id": "#/properties/testConfig/properties/testsetup",
+          "type": "string",
+          "title": "The jobConfig testSetUp",
+          "description": "This program is the first to execute as part of 'sasjs test'.  It does not contain the testInit, testTerm or macroVariables.  It IS compiled.",
+          "default": "sasjs/tests/testsetup.sas",
+          "examples": ["sasjs/tests/testsetup.sas"]
+        },
+        "testTearDown": {
+          "$id": "#/properties/testConfig/properties/testTearDown",
+          "type": "string",
+          "title": "The jobConfig testTearDown",
+          "description": "The last program to execute as part of 'sasjs test'.",
+          "default": "sasjs/tests/testteardown.sas",
+          "examples": ["sasjs/tests/testteardown.sas"]
+        }
+      }
+    },
+    "macroFolders": {
+      "$id": "#/properties/macroFolders",
+      "type": "array",
+      "title": "The macroFolders array",
+      "description": "These local folders are searched for SAS Macros when running `sasjs compile`.  Folders are relative to the `sasjs/sasjsconfig.json` file.",
+      "default": [],
+      "examples": [["macros", "../../more_macros"]]
+    },
+    "programFolders": {
+      "$id": "#/properties/programFolders",
+      "type": "array",
+      "title": "The programFolders array",
+      "description": "These local folders are searched for SAS Programs when running `sasjs compile`.  Folders are relative to the `sasjs/sasjsconfig.json` file.",
+      "default": [],
+      "examples": [["programs", "../../more_programs"]]
+    },
+    "syncFolder": {
+      "$id": "#/properties/syncFolder",
+      "type": "string",
+      "title": "Sync Folder",
+      "description": "The contents of this folder are simply copied to the sasjsbuild directory AFTER the rest of the project is compiled.  Useful for synchronising random / generic content with SAS logical folders.",
+      "default": "sasjs/static_files"
+    },
+    "syncDirectories": {
+      "$id": "#/properties/syncDirectories",
+      "type": "array",
+      "title": "syncDirectories",
+      "description": "Maps the local filesystem to remote (SAS) physical directories.",
+      "examples": [
+        [
+          {
+            "local": "C:\\temp\\local\\fs1",
+            "remote": "/opt/data/fs1"
+          },
+          {
+            "local": "C:\\temp\\elsewhere",
+            "remote": "/opt/somewhere"
+          }
+        ]
+      ]
+    },
+    "targets": {
+      "$id": "#/properties/targets",
+      "type": "array",
+      "title": "The targets array",
+      "description": "A target is an alias for a deployment location, and includes at a minimum, the `serverUrl`, `serverType` and `appLoc`.  This array allows multiple targets to be defined (eg dev / test / prod).  Any properties defined here will override same-named properties in the sasjsconfig root.",
+      "default": [],
+      "examples": [
+        [
+          {
+            "name": "sas9target",
+            "serverType": "SAS9",
+            "serverUrl": "https://mysas9server",
+            "appLoc": "/Shared Folders/myApp"
+          }
+        ],
+        [
+          {
+            "name": "viya",
+            "serverType": "SASVIYA",
+            "serverUrl": "https://sas.sasjs.com",
+            "appLoc": "/Public/app",
+            "contextName": "SAS Job Execution compute context",
+            "buildConfig": {
+              "buildOutputFileName": "myviyadeploy.sas",
+              "initProgram": "build/buildinitviya.sas",
+              "termProgram": "targets/viya/viyabuildterm.sas",
+              "macroVars": {
+                "name": "viyavalue",
+                "extravar": "this too"
+              }
+            },
+            "deployConfig": {
+              "deployServicePack": true,
+              "deployScripts": ["sasjsbuild/myviyadeploy.sas"]
+            },
+            "serviceConfig": {
+              "serviceFolders": ["targets/viya/services/admin"],
+              "initProgram": "build/serviceinit.sas",
+              "termProgram": "build/serviceinit.sas",
+              "macroVars": {
+                "name": "viyavalue",
+                "extravar": "this too"
+              }
+            },
+            "streamConfig": {
+              "assetPaths": [],
+              "streamWeb": false,
+              "streamWebFolder": "webv",
+              "webSourcePath": "dist"
+            },
+            "testConfig": {
+              "initProgram": "sasjs/tests/testinit.sas",
+              "termProgram": "sasjs/tests/testterm.sas",
+              "macroVars": {
+                "testVar": "testValue"
+              },
+              "testSetUp": "sasjs/tests/testsetup.sas",
+              "testTearDown": "sasjs/tests/testteardown.sas"
+            },
+            "macroFolders": ["targets/viya/macros"]
+          },
+          {
+            "name": "sas9",
+            "serverType": "SAS9",
+            "serverUrl": "https://sas.sasjs.com:7980",
+            "appLoc": "/User Folders/&sysuserid/My Folder",
+            "serverName": "Foundation",
+            "repositoryName": "SASApp",
+            "buildConfig": {
+              "buildOutputFileName": "mysas9deploy.sas",
+              "initProgram": "",
+              "termProgram": "",
+              "macroVars": {}
+            },
+            "deployConfig": {
+              "deployScripts": ["build/deploysas9.sh"],
+              "deployServicePack": false
+            },
+            "serviceConfig": {
+              "serviceFolders": ["targets/sas9/services/admin"],
+              "initProgram": "",
+              "termProgram": "build/servicetermother.sas",
+              "macroVars": {}
+            },
+            "streamConfig": {
+              "assetPaths": [],
+              "streamWeb": false,
+              "streamWebFolder": "web9",
+              "webSourcePath": "dist"
+            },
+            "testConfig": {
+              "initProgram": "sasjs/tests/testinit.sas",
+              "termProgram": "sasjs/tests/testterm.sas",
+              "macroVars": {
+                "testVar": "testValue"
+              },
+              "testSetUp": "sasjs/tests/testsetup.sas",
+              "testTearDown": "sasjs/tests/testteardown.sas"
+            },
+            "macroFolders": ["targets/sas9/macros"],
+            "programFolders": []
+          }
+        ]
+      ],
+      "items": {
+        "$id": "#/properties/targets/items",
+        "anyOf": [
+          {
+            "$id": "#/properties/targets/items/anyOf/0",
+            "type": "object",
+            "title": "SASjs Targets",
+            "description": "A target provides the configuration specific to a particular deployment, eg DEV / TEST, or SAS9 / SASVIYA.",
+            "default": {},
+            "examples": [
+              {
+                "name": "viya",
+                "serverType": "SASVIYA",
+                "serverUrl": "https://sas.sasjs.com",
+                "appLoc": "/Public/app",
+                "contextName": "SAS Job Execution compute context",
+                "buildConfig": {
+                  "buildOutputFileName": "myviyadeploy.sas",
+                  "initProgram": "build/buildinitviya.sas",
+                  "termProgram": "targets/viya/viyabuildterm.sas",
+                  "macroVars": {
+                    "name": "viyavalue",
+                    "extravar": "this too"
+                  }
+                },
+                "deployConfig": {
+                  "deployServicePack": true,
+                  "deployScripts": ["sasjsbuild/myviyadeploy.sas"]
+                },
+                "serviceConfig": {
+                  "serviceFolders": ["targets/viya/services/admin"],
+                  "initProgram": "build/serviceinit.sas",
+                  "termProgram": "build/serviceinit.sas",
+                  "macroVars": {
+                    "name": "viyavalue",
+                    "extravar": "this too"
+                  }
+                },
+                "jobConfig": {
+                  "jobFolders": [],
+                  "initProgram": "",
+                  "termProgram": "",
+                  "macroVars": {}
+                },
+                "streamConfig": {
+                  "assetPaths": [],
+                  "streamWeb": false,
+                  "streamWebFolder": "webv",
+                  "webSourcePath": "dist"
+                },
+                "testConfig": {
+                  "initProgram": "sasjs/tests/testinit.sas",
+                  "termProgram": "sasjs/tests/testterm.sas",
+                  "macroVars": {
+                    "testVar": "testValue"
+                  },
+                  "testSetUp": "sasjs/tests/testsetup.sas",
+                  "testTearDown": "sasjs/tests/testteardown.sas"
+                },
+                "macroFolders": ["targets/viya/macros"],
+                "programFolders": []
+              }
+            ],
+            "required": ["name", "serverType", "appLoc"],
+            "properties": {
+              "name": {
+                "$id": "#/properties/targets/items/anyOf/0/properties/name",
+                "type": "string",
+                "title": "Target name property",
+                "description": "A target name can only contain alphanumeric characters and dashes.  It cannot contain spaces. It is used as the alias when referencing the target using the `-t` attribute in many of the SASjs commands.",
+                "default": "",
+                "examples": ["viya"]
+              },
+              "serverType": {
+                "$id": "#/properties/targets/items/anyOf/0/properties/serverType",
+                "type": "string",
+                "title": "The Target serverType",
+                "description": "The serverType can be either SAS9, SASVIYA or SASJS.",
+                "default": "",
+                "examples": ["SASVIYA"]
+              },
+              "appLoc": {
+                "$id": "#/properties/targets/items/anyOf/0/properties/appLoc",
+                "type": "string",
+                "title": "The Target appLoc",
+                "description": "The appLoc provides the root SAS folder location under which all jobs and services are deployed and executed.  The SAS folder could be metadata in SAS 9, or SAS Drive in Viya. ",
+                "default": "",
+                "examples": ["/Public/app"]
+              },
+              "binaryFolders": {
+                "$ref": "#/properties/binaryFolders"
+              },
+              "buildConfig": {
+                "$ref": "#/properties/buildConfig"
+              },
+              "contextName": {
+                "$id": "#/properties/targets/items/anyOf/0/properties/contextName",
+                "type": "string",
+                "title": "The Target contextName",
+                "description": "The name of the compute context used to execute SAS code.  The context determines the way in which the SAS session is spawned (eg user credentials, autoexec code, system options etc).\nContexts can be created / modified / deleted using the `sasjs context` command.",
+                "default": "SAS Job Execution compute context",
+                "examples": ["SAS Job Execution compute context"]
+              },
+              "deployConfig": {
+                "$ref": "#/properties/deployConfig"
+              },
+              "httpsAgentOptions": {
+                "$ref": "#/properties/httpsAgentOptions"
+              },
+              "serverUrl": {
+                "$id": "#/properties/targets/items/anyOf/0/properties/serverUrl",
+                "type": "string",
+                "title": "The Target serverUrl",
+                "description": "The serverUrl is the location to which the app is deployed, and against which any server based operations are performed.  If SAS is served from a particular port, that port should also be included here.",
+                "default": "",
+                "examples": [
+                  "https://sas.sasjs.com",
+                  "https://sas.sasjs.com:8080"
+                ]
+              },
+              "serviceConfig": {
+                "$ref": "#/properties/serviceConfig"
+              },
+              "jobConfig": {
+                "$ref": "#/properties/jobConfig"
+              },
+              "docConfig": {
+                "$ref": "#/properties/docConfig"
+              },
+              "streamConfig": {
+                "$ref": "#/properties/streamConfig"
+              },
+              "syncDirectories": {
+                "$ref": "#/properties/syncDirectories"
+              },
+              "syncFolder": {
+                "$ref": "#/properties/syncFolder"
+              },
+              "testConfig": {
+                "$ref": "#/properties/testConfig"
+              },
+              "macroFolders": {
+                "$ref": "#/properties/macroFolders"
+              },
+              "programFolders": {
+                "$ref": "#/properties/programFolders"
+              },
+              "sasjsBuildFolder": {
+                "$ref": "#properties/sasjsBuildFolder"
+              },
+              "sasjsResultsFolder": {
+                "$ref": "#properties/sasjsResultsFolder"
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -19,7 +19,7 @@ This repo is the SASjs Macro Core library — a collection of MIT-licensed, prod
   - Macro definitions must use parentheses, e.g. `%macro x();` not `%macro x;`.
   - The closing `%mend` statement must contain the macro name, e.g. `%mend x;` (rule: `hasMacroNameInMend`).
   - Indentation = 2 spaces (or multiple thereof); no tabs.
-  - Max line length 300.
+  - Max line length 300 (hard lint limit), but keep lines to 80 chars max where possible for readability.
   - No gremlins / invisible characters.
 - One macro per file; filename must match macro name.
 - Macro *calls* should NOT be terminated with a semicolon. Use `%my_macro()` not `%my_macro();`.

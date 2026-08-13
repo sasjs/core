@@ -6046,6 +6046,7 @@ run;
   @param [in] flavour= (SAS) The type of DDL to create. Options:
     @li SAS
     @li TSQL
+    @li PGSQL
 
   @param [in]showlog= (YES) Set to NO to prevent the DDL showing in the log
   @param [in] schema= () Choose a preferred schema name (default is to use
@@ -6109,8 +6110,8 @@ create table _data_ as
 %mp_getconstraints(lib=%upcase(&libref),ds=%upcase(&ds),outds=_data_)
 %local colconst; %let colconst=&syslast;
 
+%local constraints_used;
 %macro addConst();
-  %global constraints_used;
   data _null_;
     length ctype $11 constraint_name_orig $256 constraints_used $5000;
     set &colconst(

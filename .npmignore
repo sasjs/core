@@ -10,3 +10,5 @@ make_singlefile.sh
 .all-contributorsrc
 .agents
 skills-lock.json
+.env*
+

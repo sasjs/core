@@ -3,7 +3,10 @@
   @brief Testing mp_filterstore macro
 
   <h4> SAS Macros </h4>
-  @li mp_coretable.sas
+  @li mddl_dc_filterdetail.sas
+  @li mddl_dc_filtersummary.sas
+  @li mddl_dc_locktable.sas
+  @li mddl_dc_maxkeytable.sas
   @li mp_filterstore.sas
   @li mp_assertdsobs.sas
   @li mp_assert.sas
@@ -40,10 +43,10 @@ run;
 
 libname permlib (work);
 
-%mp_coretable(LOCKTABLE,libds=permlib.locktable)
-%mp_coretable(FILTER_SUMMARY,libds=permlib.filtsum)
-%mp_coretable(FILTER_DETAIL,libds=permlib.filtdet)
-%mp_coretable(MAXKEYTABLE,libds=permlib.maxkey)
+%mddl_dc_locktable(libds=permlib.locktable)
+%mddl_dc_filtersummary(libds=permlib.filtsum)
+%mddl_dc_filterdetail(libds=permlib.filtdet)
+%mddl_dc_maxkeytable(libds=permlib.maxkey)
 
 /* valid filter */
 data work.inds;

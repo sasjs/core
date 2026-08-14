@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "skills": {
+    "sas": {
+      "source": "sasjs/skills",
+      "sourceType": "github",
+      "skillPath": "sas/SKILL.md",
+      "computedHash": "aea496a8db854e9f5d199fb03bebeedb956447f0c278456e721695d346c595a9"
+    },
+    "sasjs-adapter": {
+      "source": "sasjs/skills",
+      "sourceType": "github",
+      "skillPath": "sasjs-adapter/SKILL.md",
+      "computedHash": "473afccd586b07477ee74c103385bdadc86a085e97b2cd66bc1324dca832c09e"
+    },
+    "sasjs-cli": {
+      "source": "sasjs/skills",
+      "sourceType": "github",
+      "skillPath": "sasjs-cli/SKILL.md",
+      "computedHash": "7170b16415891389e0fb1c9247e551db5914f7238c2a13b6aca5006d1af1b86d"
+    },
+    "sasjs-core": {
+      "source": "sasjs/skills",
+      "sourceType": "github",
+      "skillPath": "sasjs-core/SKILL.md",
+      "computedHash": "e447b7893c55563f9d6b13ec421a6f7f848c3a859705dfb79f83316d24b1c072"
+    },
+    "sasjs-framework": {
+      "source": "sasjs/skills",
+      "sourceType": "github",
+      "skillPath": "sasjs-framework/SKILL.md",
+      "computedHash": "951ea010862c2c586223e06dea2e684a56bd58352fa741c9712ee6d412e0e204"
+    },
+    "sasjs-server": {
+      "source": "sasjs/skills",
+      "sourceType": "github",
+      "skillPath": "sasjs-server/SKILL.md",
+      "computedHash": "5c394e56cebf0f23e945cd665d598ff3b8f38f7f49a9ec98a1801572f4cbce29"
+    }
+  }
+}

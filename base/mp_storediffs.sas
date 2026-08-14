@@ -48,7 +48,7 @@
   @param [in] appds= (0) Dataset with appended records
   @param [in] modds= (0) Dataset with modified records
   @param [out] outds= (work.mp_storediffs) Output table containing stored data.
-    DDL as follows:  %mp_coretable(DIFFTABLE)
+    DDL as follows:  %mddl_dc_difftable()
 
   @param [in] processed_dttm= (0) Provide a datetime constant in relation to
     the actual load time.  If not provided, current timestamp is used.

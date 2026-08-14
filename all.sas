@@ -1115,15 +1115,13 @@ or %index(&pgm,/tests/testteardown)
   @param [in] prefix= (mclib) first part of the returned libref. As librefs can
     be as long as 8 characters, a maximum length of 7 characters is premitted
     for this prefix.
-  @param [in] maxtries= (1000) Deprecated parameter. Remains here to ensure a
-    non-breaking change.  Will be removed in v5.
 
   @version 9.2
   @author Allan Bowe
 **/
 
-%macro mf_getuniquelibref(prefix=mc,maxtries=1000);
-  %local x;
+%macro mf_getuniquelibref(prefix=mc);
+  %local x maxtries;
 
   %if ( %length(&prefix) gt 7 ) %then %do;
     %put %str(ERR)OR: The prefix parameter cannot exceed 7 characters.;
@@ -2842,7 +2840,7 @@ Usage:
   @cond
 **/
 
-%macro mp_abort(mac=mp_abort.sas, type=, msg=, iftrue=%str(1=1)
+%macro mp_abort(mac=mp_abort.sas, msg=, iftrue=%str(1=1)
   , errds=work.mp_abort_errds
   , mode=REGULAR
 )/*/STORE SOURCE*/;
@@ -4734,79 +4732,6 @@ drop table &ddlds,&cntlds;
 
 %mend mp_copyfolder;
 /**
-  @file
-  @brief Create the permanent Core tables
-  @details Several macros in the [core](https://github.com/sasjs/core) library
-    make use of permanent tables.  To avoid duplication in definitions, this
-    macro provides a central location for managing the corresponding DDL.
-
-  Note - this macro is likely to be deprecated in future in favour of a
-  dedicated "datamodel" folder (prefix mddl)
-
-  Any corresponding data would go in a seperate repo, to avoid this one
-  ballooning in size!
-
-  Example usage:
-
-      %mp_coretable(LOCKTABLE,libds=work.locktable)
-
-  @param [in] table_ref The type of table to create.  Example values:
-    @li DIFFTABLE
-    @li FILTER_DETAIL
-    @li FILTER_SUMMARY
-    @li LOCKANYTABLE
-    @li MAXKEYTABLE
-  @param [in] libds= (0) The library.dataset reference used to create the table.
-    If not provided, then the DDL is simply printed to the log.
-
-  <h4> SAS Macros </h4>
-  @li mddl_dc_difftable.sas
-  @li mddl_dc_filterdetail.sas
-  @li mddl_dc_filtersummary.sas
-  @li mddl_dc_locktable.sas
-  @li mddl_dc_maxkeytable.sas
-  @li mf_getuniquename.sas
-
-  <h4> Related Macros </h4>
-  @li mp_filterstore.sas
-  @li mp_lockanytable.sas
-  @li mp_retainedkey.sas
-  @li mp_storediffs.sas
-  @li mp_stackdiffs.sas
-
-  @version 9.2
-  @author Allan Bowe
-
-**/
-
-%macro mp_coretable(table_ref,libds=0
-)/*/STORE SOURCE*/;
-%local outds ;
-%let outds=%sysfunc(ifc(&libds=0,%mf_getuniquename(),&libds));
-proc sql;
-%if &table_ref=DIFFTABLE %then %do;
-  %mddl_dc_difftable(libds=&outds)
-%end;
-%else %if &table_ref=LOCKTABLE %then %do;
-  %mddl_dc_locktable(libds=&outds)
-%end;
-%else %if &table_ref=FILTER_SUMMARY %then %do;
-  %mddl_dc_filtersummary(libds=&outds)
-%end;
-%else %if &table_ref=FILTER_DETAIL %then %do;
-  %mddl_dc_filterdetail(libds=&outds)
-%end;
-%else %if &table_ref=MAXKEYTABLE %then %do;
-  %mddl_dc_maxkeytable(libds=&outds)
-%end;
-
-%if &libds=0 %then %do;
-  proc sql;
-  describe table &syslast;
-  drop table &syslast;
-%end;
-%mend mp_coretable;
-/**
   @file mp_createconstraints.sas
   @brief Creates constraints
   @details Takes the output from mp_getconstraints.sas as input
@@ -5912,7 +5837,7 @@ quit;
     @li LABEL - Use the variable label (or name, if blank)
     @li NAME - Use the variable name
     @li SASJS - Used to create sasjs-formatted input CSVs, eg for use in
-      mp_testservice.sas.  This format will supply an input statement in the
+      mp_execute.sas.  This format will supply an input statement in the
       first row, making ingestion by datastep a breeze.  Special misisng values
       will be prefixed with a period (eg `.A`) to enable ingestion on both SAS 9
       and Viya.  Dates / Datetimes etc are identified by the format type (lookup
@@ -5964,7 +5889,7 @@ quit;
 %if &headerformat=SASJS %then %do;
   %let delim=",";
   %let termstr=CRLF;
-  %mcf_getfmttype(wrap=YES)
+  %mcf_getfmttype()
 %end;
 %else %if &dlm=COMMA %then %let delim=",";
 %else %let delim=";";
@@ -6090,45 +6015,409 @@ data _null_;
 run;
 
 %mend mp_ds2csv;/**
-  @file
-  @brief Fetches DDL for a specific table
-  @details Uses mp_getddl under the hood
+  @file mp_ds2ddl.sas
+  @brief Extract DDL in various formats, by table or library
+  @details Data Definition Language relates to a set of SQL instructions used
+    to create tables in SAS or a database.  The macro can be used at table or
+    library level.  The default behaviour is to create DDL in SAS format.
 
-  @param [in] libds library.dataset to create ddl for
+    Note - views are not currently supported.
+
+  Usage:
+
+      data test(index=(pk=(x y)/unique /nomiss));
+        x=1;
+        y='blah';
+        label x='blah';
+      run;
+      proc sql; describe table &syslast;
+      %mp_ds2ddl(work,test,flavour=tsql,showlog=YES)
+
+  <h4> SAS Macros </h4>
+  @li mf_existfileref.sas
+  @li mf_getvarcount.sas
+  @li mp_getconstraints.sas
+
+  @param [in] libref Libref of the library to create DDL for. Should already
+    be assigned.
+  @param [in] ds dataset to create ddl for (optional)
   @param [in] fref= (getddl) the fileref to which to _append_ the DDL.  If it
     does not exist, it will be created.
   @param [in] flavour= (SAS) The type of DDL to create. Options:
     @li SAS
     @li TSQL
+    @li PGSQL
 
-  @param [in]showlog= (NO) Set to YES to show the DDL in the log
+  @param [in]showlog= (YES) Set to NO to prevent the DDL showing in the log
   @param [in] schema= () Choose a preferred schema name (default is to use
     actual schema, else libref)
-  @param [in] applydttm= (NO) For non SAS DDL, choose if columns are created with
-    native datetime2 format or regular decimal type
+  @param [in] applydttm= (NO) For non SAS DDL, choose if columns are created
+    with native datetime2 format or regular decimal type
 
-  <h4> SAS Macros </h4>
-  @li mp_getddl.sas
-
+  @version 9.3
+  @author Allan Bowe
 **/
 
-%macro mp_ds2ddl(libds,fref=getddl,flavour=SAS,showlog=YES,schema=
+%macro mp_ds2ddl(libref,ds,fref=getddl,flavour=SAS,showlog=YES,schema=
   ,applydttm=NO
 )/*/STORE SOURCE*/;
 
-%local libref;
-%let libds=%upcase(&libds);
-%let libref=%scan(&libds,1,.);
-%if &libref=&libds %then %let libds=WORK.&libds;
+/* check fileref is assigned */
+%if %mf_existfileref(&fref)=0 %then %do;
+  filename &fref temp ;
+%end;
 
-%mp_getddl(%scan(&libds,1,.)
-  ,%scan(&libds,2,.)
-  ,fref=&fref
-  ,flavour=SAS
-  ,showlog=&showlog
-  ,schema=&schema
-  ,applydttm=&applydttm
-)
+%if %length(&libref)=0 %then %let libref=WORK;
+%let flavour=%upcase(&flavour);
+
+proc sql noprint;
+create table _data_ as
+  select * from dictionary.tables
+  where upcase(libname)="%upcase(&libref)"
+    and memtype='DATA' /* views not currently supported */
+  %if %length(&ds)>0 %then %do;
+    and upcase(memname)="%upcase(&ds)"
+  %end;
+  ;
+%local tabinfo; %let tabinfo=&syslast;
+
+create table _data_ as
+  select * from dictionary.columns
+  where upcase(libname)="%upcase(&libref)"
+  %if %length(&ds)>0 %then %do;
+    and upcase(memname)="%upcase(&ds)"
+  %end;
+  ;
+%local colinfo; %let colinfo=&syslast;
+
+%local dsnlist;
+  select distinct upcase(memname) into: dsnlist
+  separated by ' '
+  from &syslast
+;
+
+create table _data_ as
+  select * from dictionary.indexes
+  where upcase(libname)="%upcase(&libref)"
+  %if %length(&ds)>0 %then %do;
+    and upcase(memname)="%upcase(&ds)"
+  %end;
+  order by idxusage, indxname, indxpos
+  ;
+%local idxinfo; %let idxinfo=&syslast;
+
+/* Extract all Primary Key and Unique data constraints */
+%mp_getconstraints(lib=%upcase(&libref),ds=%upcase(&ds),outds=_data_)
+%local colconst; %let colconst=&syslast;
+
+%local constraints_used;
+%macro addConst();
+  data _null_;
+    length ctype $11 constraint_name_orig $256 constraints_used $5000;
+    set &colconst(
+        where=(table_name="&curds" and constraint_type in ('PRIMARY','UNIQUE'))
+      ) end=last;
+    file &fref mod;
+    by constraint_type constraint_name;
+    retain constraints_used;
+    constraint_name_orig=constraint_name;
+    if upcase(strip(constraint_type)) = 'PRIMARY' then ctype='PRIMARY KEY';
+    else ctype=strip(constraint_type);
+    %if &flavour=TSQL %then %do;
+      column_name=catt('[',column_name,']');
+      constraint_name=catt('[',constraint_name,']');
+    %end;
+    %else %if &flavour=PGSQL %then %do;
+      column_name=catt('"',column_name,'"');
+      constraint_name=catt('"',constraint_name,'"');
+    %end;
+    if first.constraint_name then do;
+      constraints_used = catx(' ', constraints_used, constraint_name_orig);
+      put "   ,CONSTRAINT " constraint_name ctype "(" ;
+      put '     ' column_name;
+    end;
+  else put '     ,' column_name;
+  if last.constraint_name then do;
+    put "   )";
+    call symput('constraints_used',strip(constraints_used));
+  end;
+  run;
+  %put &=constraints_used;
+%mend addConst;
+
+data _null_;
+  file &fref mod;
+  put "/* DDL generated by &sysuserid on %sysfunc(datetime(),datetime19.) */";
+run;
+
+%local x curds;
+%if &flavour=SAS %then %do;
+  %do x=1 %to %sysfunc(countw(&dsnlist));
+    %let curds=%scan(&dsnlist,&x);
+    data _null_;
+      file &fref mod;
+      put "/* SAS Flavour DDL for %upcase(&libref).&curds */";
+      put "proc sql;";
+    run;
+    data _null_;
+      file &fref mod;
+      length lab $1024 typ $20;
+      set &colinfo (where=(upcase(memname)="&curds")) end=last;
+
+      if _n_=1 then do;
+        if memtype='DATA' then do;
+          put "create table &libref..&curds(";
+        end;
+        else do;
+          /* just a placeholder - we filter out views at the top */
+          put "create view &libref..&curds(";
+        end;
+        put "    "@@;
+      end;
+      else put "   ,"@@;
+      if length(format)>1 then fmt=" format="!!cats(format);
+      if length(label)>1 then
+        lab=" label="!!cats("'",tranwrd(label,"'","''"),"'");
+      if notnull='yes' then notnul=' not null';
+      if type='char' then typ=cats('char(',length,')');
+      else if length ne 8 then typ='num length='!!cats(length);
+      else typ='num';
+      put name typ fmt notnul lab;
+    run;
+
+    /* Extra step for data constraints */
+    %addConst()
+
+    data _null_;
+      file &fref mod;
+      put ');';
+    run;
+
+    /* Create Unique Indexes, but only if they were not already defined within
+      the Constraints section. */
+    data _null_;
+      *length ds $128;
+      set &idxinfo(
+        where=(
+          memname="&curds"
+          and unique='yes'
+          and indxname not in (
+              %sysfunc(tranwrd("&constraints_used",%str( ),%str(",")))
+              )
+          )
+        );
+      file &fref mod;
+      by idxusage indxname;
+/*       ds=cats(libname,'.',memname); */
+      if first.indxname then do;
+          put 'CREATE UNIQUE INDEX ' indxname "ON &libref..&curds (" ;
+          put '  ' name ;
+      end;
+      else put '  ,' name ;
+      *else put '    ,' name ;
+      if last.indxname then do;
+        put ');';
+      end;
+    run;
+
+/*
+    ods output IntegrityConstraints=ic;
+    proc contents data=testali out2=info;
+    run;
+    */
+  %end;
+%end;
+%else %if &flavour=TSQL %then %do;
+  /* if schema does not exist, set to be same as libref */
+  %local schemaactual;
+  proc sql noprint;
+  select sysvalue into: schemaactual
+    from dictionary.libnames
+    where upcase(libname)="&libref" and engine='SQLSVR';
+  %let schema=%sysfunc(coalescec(&schemaactual,&schema,&libref));
+
+  %do x=1 %to %sysfunc(countw(&dsnlist));
+    %let curds=%scan(&dsnlist,&x);
+    data _null_;
+      file &fref mod;
+      put "/* TSQL Flavour DDL for &schema..&curds */";
+    data _null_;
+      file &fref mod;
+      set &colinfo (where=(upcase(memname)="&curds")) end=last;
+      if _n_=1 then do;
+        if memtype='DATA' then do;
+          put "create table [&schema].[&curds](";
+        end;
+        else do;
+          /* just a placeholder - we filter out views at the top */
+          put "create view [&schema].[&curds](";
+        end;
+        put "    "@@;
+      end;
+      else put "   ,"@@;
+      format=upcase(format);
+      if 1=0 then; /* dummy if */
+      %if &applydttm=YES %then %do;
+        else if format=:'DATETIME' then fmt='[datetime2](7)  ';
+      %end;
+      else if type='num' then fmt='[decimal](18,2)';
+      else if length le 8000 then fmt='[varchar]('!!cats(length)!!')';
+      else fmt=cats('[varchar](max)');
+      if notnull='yes' then notnul=' NOT NULL';
+      put "[" name +(-1) "]" fmt notnul;
+    run;
+
+    /* Extra step for data constraints */
+    %addConst()
+
+    /* Create Unique Indexes, but only if they were not already defined within
+      the Constraints section. */
+    data _null_;
+      *length ds $128;
+      set &idxinfo(
+        where=(
+          memname="&curds"
+          and unique='yes'
+          and indxname not in (
+            %sysfunc(tranwrd("&constraints_used",%str( ),%str(",")))
+          )
+        )
+      );
+      file &fref mod;
+      by idxusage indxname;
+      *ds=cats(libname,'.',memname);
+      if first.indxname then do;
+        /* add nonclustered in case of multiple unique indexes */
+        put '   ,index [' indxname +(-1) '] UNIQUE NONCLUSTERED (';
+        put '     [' name +(-1) ']';
+      end;
+      else put '     ,[' name +(-1) ']';
+      if last.indxname then do;
+        put '   )';
+      end;
+    run;
+
+    data _null_;
+      file &fref mod;
+      put ')';
+      put 'GO';
+    run;
+
+    /* add extended properties for labels */
+    data _null_;
+      file &fref mod;
+      length nm $64 lab $1024;
+      set &colinfo (where=(upcase(memname)="&curds" and label ne '')) end=last;
+      nm=cats("N'",tranwrd(name,"'","''"),"'");
+      lab=cats("N'",tranwrd(label,"'","''"),"'");
+      put ' ';
+      put "EXEC sys.sp_addextendedproperty ";
+      put "  @name=N'MS_Description',@value=" lab ;
+      put "  ,@level0type=N'SCHEMA',@level0name=N'&schema' ";
+      put "  ,@level1type=N'TABLE',@level1name=N'&curds'";
+      put "  ,@level2type=N'COLUMN',@level2name=" nm ;
+      if last then put 'GO';
+    run;
+  %end;
+%end;
+%else %if &flavour=PGSQL %then %do;
+  /* if schema does not exist, set to be same as libref */
+  %local schemaactual;
+  proc sql noprint;
+  select sysvalue into: schemaactual
+    from dictionary.libnames
+    where upcase(libname)="&libref" and engine='POSTGRES';
+  %let schema=%sysfunc(coalescec(&schemaactual,&schema,&libref));
+  data _null_;
+    file &fref mod;
+    put "CREATE SCHEMA &schema;";
+  %do x=1 %to %sysfunc(countw(&dsnlist));
+    %let curds=%scan(&dsnlist,&x);
+    %local curdsvarcount;
+    %let curdsvarcount=%mf_getvarcount(&libref..&curds);
+    %if &curdsvarcount>1600 %then %do;
+      data _null_;
+        file &fref mod;
+        put "/* &libref..&curds contains &curdsvarcount vars */";
+        put "/* Postgres cannot create tables with over 1600 vars */";
+        put "/* No DDL will be generated for this table";
+      run;
+    %end;
+    %else %do;
+      data _null_;
+        file &fref mod;
+        put "/* Postgres Flavour DDL for &schema..&curds */";
+      data _null_;
+        file &fref mod;
+        set &colinfo (where=(upcase(memname)="&curds")) end=last;
+        length fmt $32;
+        if _n_=1 then do;
+          if memtype='DATA' then do;
+            put "CREATE TABLE &schema..&curds (";
+          end;
+          else do;
+            /* just a placeholder - we filter out views at the top */
+            put "CREATE VIEW &schema..&curds (";
+          end;
+          put "    "@@;
+        end;
+        else put "   ,"@@;
+        format=upcase(format);
+        if 1=0 then; /* dummy if */
+        %if &applydttm=YES %then %do;
+          else if format=:'DATETIME' then fmt=' TIMESTAMP ';
+        %end;
+        else if type='num' then fmt=' DOUBLE PRECISION';
+        else fmt='VARCHAR('!!cats(length)!!')';
+        if notnull='yes' then notnul=' NOT NULL';
+        /* quote column names in case they represent reserved words */
+        name2=quote(trim(name));
+        put name2 fmt notnul;
+      run;
+
+      /* Extra step for data constraints */
+      %addConst()
+
+      data _null_;
+        file &fref mod;
+        put ');';
+      run;
+
+      /* Create Unique Indexes, but only if they were not already defined within
+        the Constraints section. */
+      data _null_;
+        *length ds $128;
+        set &idxinfo(
+          where=(
+            memname="&curds"
+            and unique='yes'
+            and indxname not in (
+              %sysfunc(tranwrd("&constraints_used",%str( ),%str(",")))
+            )
+          )
+        );
+        file &fref mod;
+        by idxusage indxname;
+        if first.indxname then do;
+          put 'CREATE UNIQUE INDEX "' indxname +(-1) '" ' "ON &schema..&curds(";
+          put '  "' name +(-1) '"' ;
+        end;
+        else put '  ,"' name +(-1) '"';
+        if last.indxname then do;
+          put ');';
+        end;
+      run;
+    %end;
+  %end;
+%end;
+%if %upcase(&showlog)=YES %then %do;
+  options ps=max;
+  data _null_;
+    infile &fref;
+    input;
+    putlog _infile_;
+  run;
+%end;
 
 %mend mp_ds2ddl;/**
   @file
@@ -6694,7 +6983,7 @@ options varlenchk=&optval;
   @li mp_dsmeta.test.sas
   @li mp_getcols.sas
   @li mp_getdbml.sas
-  @li mp_getddl.sas
+  @li mp_ds2ddl.sas
   @li mp_getformats.sas
   @li mp_getpk.sas
   @li mp_guesspk.sas
@@ -6746,6 +7035,45 @@ drop table &ds1, &ds2;
 
 %mend mp_dsmeta;
 
+/**
+  @file
+  @brief Executes a SASjs web service on SAS 9 or Viya
+  @details Wraps the mx_testservice.sas macro (documentation can be found
+  there)
+
+  <h4> SAS Macros </h4>
+  @li mx_testservice.sas
+
+  @version 9.4
+  @author Allan Bowe
+
+**/
+
+%macro mp_execute(program,
+  inputfiles=0,
+  inputdatasets=0,
+  inputparams=0,
+  debug=log,
+  mdebug=0,
+  outlib=0,
+  outref=0,
+  viyaresult=WEBOUT_JSON,
+  viyacontext=SAS Job Execution compute context
+)/*/STORE SOURCE*/;
+
+%mx_testservice(&program,
+  inputfiles=&inputfiles,
+  inputdatasets=&inputdatasets,
+  inputparams=&inputparams,
+  debug=&debug,
+  mdebug=&mdebug,
+  outlib=&outlib,
+  outref=&outref,
+  viyaresult=&viyaresult,
+  viyacontext=&viyacontext
+)
+
+%mend mp_execute;
 /**
   @file
   @brief Checks an input filter table for validity
@@ -7216,7 +7544,7 @@ filename &outref temp;
 |AND|AND|1|SOME_TIME|=|77333|
   @param [in] filter_summary= (PERM.FILTER_SUMMARY) Permanent table containing
     summary filter values.  The definition is available by running
-    mp_coretable.sas as follows:  `mp_coretable(FILTER_SUMMARY)`. Example
+    mddl_dc_filtersummary.sas as follows:  `%mddl_dc_filtersummary()`. Example
     values:
 |FILTER_RK:best.|FILTER_HASH:$32.|FILTER_TABLE:$41.|PROCESSED_DTTM:datetime19.|
 |---|---|---|---|
@@ -7225,7 +7553,7 @@ filename &outref temp;
 |`3 `|`8048BD908DBBD83D013560734E90D394 `|`VIYA6014.MPE_TABLES `|`1956093620.6`|
   @param [in] filter_detail= (PERM.FILTER_DETAIL) Permanent table containing
     detailed (raw) filter values. The definition is available by running
-    mp_coretable.sas as follows:  `mp_coretable(FILTER_DETAIL)`. Example
+    mddl_dc_filterdetail.sas as follows:  `%mddl_dc_filterdetail()`. Example
     values:
 |FILTER_HASH:$32.|FILTER_LINE:best.|GROUP_LOGIC:$3.|SUBGROUP_LOGIC:$3.|SUBGROUP_ID:best.|VARIABLE_NM:$32.|OPERATOR_NM:$12.|RAW_VALUE:$4000.|PROCESSED_DTTM:datetime19.|
 |---|---|---|---|---|---|---|---|---|
@@ -7234,7 +7562,7 @@ filename &outref temp;
 |`87737DB9EEE2650F5C89956CEAD0A14F `|`1 `|`AND `|`AND `|`1 `|`PRIMARY_KEY_FIELD `|`IN `|`(1,2,3) `|`1956084451.9 `|
   @param [in] lock_table= (PERM.LOCK_TABLE) Permanent locking table.  Used to
     manage concurrent access.  The definition is available by running
-    mp_coretable.sas as follows:  `mp_coretable(LOCKTABLE)`.
+    mddl_dc_locktable.sas as follows:  `%mddl_dc_locktable()`.
   @param [in] maxkeytable= (0) Optional permanent reference table used for
     retained key tracking.  Described in mp_retainedkey.sas.
   @param [in] mdebug= (1) set to 1 to enable DEBUG messages
@@ -8067,410 +8395,6 @@ run;
 %end;
 
 %mend mp_getdbml;/**
-  @file mp_getddl.sas
-  @brief Extract DDL in various formats, by table or library
-  @details Data Definition Language relates to a set of SQL instructions used
-    to create tables in SAS or a database.  The macro can be used at table or
-    library level.  The default behaviour is to create DDL in SAS format.
-
-    Note - views are not currently supported.
-
-  Usage:
-
-      data test(index=(pk=(x y)/unique /nomiss));
-        x=1;
-        y='blah';
-        label x='blah';
-      run;
-      proc sql; describe table &syslast;
-      %mp_getddl(work,test,flavour=tsql,showlog=YES)
-
-  <h4> SAS Macros </h4>
-  @li mf_existfileref.sas
-  @li mf_getvarcount.sas
-  @li mp_getconstraints.sas
-
-  @param [in] libref Libref of the library to create DDL for. Should already
-    be assigned.
-  @param [in] ds dataset to create ddl for (optional)
-  @param [in] fref= (getddl) the fileref to which to _append_ the DDL.  If it
-    does not exist, it will be created.
-  @param [in] flavour= (SAS) The type of DDL to create. Options:
-    @li SAS
-    @li TSQL
-
-  @param [in]showlog= (NO) Set to YES to show the DDL in the log
-  @param [in] schema= () Choose a preferred schema name (default is to use
-    actual schema, else libref)
-  @param [in] applydttm= (NO) For non SAS DDL, choose if columns are created
-    with native datetime2 format or regular decimal type
-
-  @version 9.3
-  @author Allan Bowe
-**/
-
-%macro mp_getddl(libref,ds,fref=getddl,flavour=SAS,showlog=NO,schema=
-  ,applydttm=NO
-)/*/STORE SOURCE*/;
-
-/* check fileref is assigned */
-%if %mf_existfileref(&fref)=0 %then %do;
-  filename &fref temp ;
-%end;
-
-%if %length(&libref)=0 %then %let libref=WORK;
-%let flavour=%upcase(&flavour);
-
-proc sql noprint;
-create table _data_ as
-  select * from dictionary.tables
-  where upcase(libname)="%upcase(&libref)"
-    and memtype='DATA' /* views not currently supported */
-  %if %length(&ds)>0 %then %do;
-    and upcase(memname)="%upcase(&ds)"
-  %end;
-  ;
-%local tabinfo; %let tabinfo=&syslast;
-
-create table _data_ as
-  select * from dictionary.columns
-  where upcase(libname)="%upcase(&libref)"
-  %if %length(&ds)>0 %then %do;
-    and upcase(memname)="%upcase(&ds)"
-  %end;
-  ;
-%local colinfo; %let colinfo=&syslast;
-
-%local dsnlist;
-  select distinct upcase(memname) into: dsnlist
-  separated by ' '
-  from &syslast
-;
-
-create table _data_ as
-  select * from dictionary.indexes
-  where upcase(libname)="%upcase(&libref)"
-  %if %length(&ds)>0 %then %do;
-    and upcase(memname)="%upcase(&ds)"
-  %end;
-  order by idxusage, indxname, indxpos
-  ;
-%local idxinfo; %let idxinfo=&syslast;
-
-/* Extract all Primary Key and Unique data constraints */
-%mp_getconstraints(lib=%upcase(&libref),ds=%upcase(&ds),outds=_data_)
-%local colconst; %let colconst=&syslast;
-
-%macro addConst();
-  %global constraints_used;
-  data _null_;
-    length ctype $11 constraint_name_orig $256 constraints_used $5000;
-    set &colconst(
-        where=(table_name="&curds" and constraint_type in ('PRIMARY','UNIQUE'))
-      ) end=last;
-    file &fref mod;
-    by constraint_type constraint_name;
-    retain constraints_used;
-    constraint_name_orig=constraint_name;
-    if upcase(strip(constraint_type)) = 'PRIMARY' then ctype='PRIMARY KEY';
-    else ctype=strip(constraint_type);
-    %if &flavour=TSQL %then %do;
-      column_name=catt('[',column_name,']');
-      constraint_name=catt('[',constraint_name,']');
-    %end;
-    %else %if &flavour=PGSQL %then %do;
-      column_name=catt('"',column_name,'"');
-      constraint_name=catt('"',constraint_name,'"');
-    %end;
-    if first.constraint_name then do;
-      constraints_used = catx(' ', constraints_used, constraint_name_orig);
-      put "   ,CONSTRAINT " constraint_name ctype "(" ;
-      put '     ' column_name;
-    end;
-  else put '     ,' column_name;
-  if last.constraint_name then do;
-    put "   )";
-    call symput('constraints_used',strip(constraints_used));
-  end;
-  run;
-  %put &=constraints_used;
-%mend addConst;
-
-data _null_;
-  file &fref mod;
-  put "/* DDL generated by &sysuserid on %sysfunc(datetime(),datetime19.) */";
-run;
-
-%local x curds;
-%if &flavour=SAS %then %do;
-  %do x=1 %to %sysfunc(countw(&dsnlist));
-    %let curds=%scan(&dsnlist,&x);
-    data _null_;
-      file &fref mod;
-      put "/* SAS Flavour DDL for %upcase(&libref).&curds */";
-      put "proc sql;";
-    run;
-    data _null_;
-      file &fref mod;
-      length lab $1024 typ $20;
-      set &colinfo (where=(upcase(memname)="&curds")) end=last;
-
-      if _n_=1 then do;
-        if memtype='DATA' then do;
-          put "create table &libref..&curds(";
-        end;
-        else do;
-          /* just a placeholder - we filter out views at the top */
-          put "create view &libref..&curds(";
-        end;
-        put "    "@@;
-      end;
-      else put "   ,"@@;
-      if length(format)>1 then fmt=" format="!!cats(format);
-      if length(label)>1 then
-        lab=" label="!!cats("'",tranwrd(label,"'","''"),"'");
-      if notnull='yes' then notnul=' not null';
-      if type='char' then typ=cats('char(',length,')');
-      else if length ne 8 then typ='num length='!!cats(length);
-      else typ='num';
-      put name typ fmt notnul lab;
-    run;
-
-    /* Extra step for data constraints */
-    %addConst()
-
-    data _null_;
-      file &fref mod;
-      put ');';
-    run;
-
-    /* Create Unique Indexes, but only if they were not already defined within
-      the Constraints section. */
-    data _null_;
-      *length ds $128;
-      set &idxinfo(
-        where=(
-          memname="&curds"
-          and unique='yes'
-          and indxname not in (
-              %sysfunc(tranwrd("&constraints_used",%str( ),%str(",")))
-              )
-          )
-        );
-      file &fref mod;
-      by idxusage indxname;
-/*       ds=cats(libname,'.',memname); */
-      if first.indxname then do;
-          put 'CREATE UNIQUE INDEX ' indxname "ON &libref..&curds (" ;
-          put '  ' name ;
-      end;
-      else put '  ,' name ;
-      *else put '    ,' name ;
-      if last.indxname then do;
-        put ');';
-      end;
-    run;
-
-/*
-    ods output IntegrityConstraints=ic;
-    proc contents data=testali out2=info;
-    run;
-    */
-  %end;
-%end;
-%else %if &flavour=TSQL %then %do;
-  /* if schema does not exist, set to be same as libref */
-  %local schemaactual;
-  proc sql noprint;
-  select sysvalue into: schemaactual
-    from dictionary.libnames
-    where upcase(libname)="&libref" and engine='SQLSVR';
-  %let schema=%sysfunc(coalescec(&schemaactual,&schema,&libref));
-
-  %do x=1 %to %sysfunc(countw(&dsnlist));
-    %let curds=%scan(&dsnlist,&x);
-    data _null_;
-      file &fref mod;
-      put "/* TSQL Flavour DDL for &schema..&curds */";
-    data _null_;
-      file &fref mod;
-      set &colinfo (where=(upcase(memname)="&curds")) end=last;
-      if _n_=1 then do;
-        if memtype='DATA' then do;
-          put "create table [&schema].[&curds](";
-        end;
-        else do;
-          /* just a placeholder - we filter out views at the top */
-          put "create view [&schema].[&curds](";
-        end;
-        put "    "@@;
-      end;
-      else put "   ,"@@;
-      format=upcase(format);
-      if 1=0 then; /* dummy if */
-      %if &applydttm=YES %then %do;
-        else if format=:'DATETIME' then fmt='[datetime2](7)  ';
-      %end;
-      else if type='num' then fmt='[decimal](18,2)';
-      else if length le 8000 then fmt='[varchar]('!!cats(length)!!')';
-      else fmt=cats('[varchar](max)');
-      if notnull='yes' then notnul=' NOT NULL';
-      put "[" name +(-1) "]" fmt notnul;
-    run;
-
-    /* Extra step for data constraints */
-    %addConst()
-
-    /* Create Unique Indexes, but only if they were not already defined within
-      the Constraints section. */
-    data _null_;
-      *length ds $128;
-      set &idxinfo(
-        where=(
-          memname="&curds"
-          and unique='yes'
-          and indxname not in (
-            %sysfunc(tranwrd("&constraints_used",%str( ),%str(",")))
-          )
-        )
-      );
-      file &fref mod;
-      by idxusage indxname;
-      *ds=cats(libname,'.',memname);
-      if first.indxname then do;
-        /* add nonclustered in case of multiple unique indexes */
-        put '   ,index [' indxname +(-1) '] UNIQUE NONCLUSTERED (';
-        put '     [' name +(-1) ']';
-      end;
-      else put '     ,[' name +(-1) ']';
-      if last.indxname then do;
-        put '   )';
-      end;
-    run;
-
-    data _null_;
-      file &fref mod;
-      put ')';
-      put 'GO';
-    run;
-
-    /* add extended properties for labels */
-    data _null_;
-      file &fref mod;
-      length nm $64 lab $1024;
-      set &colinfo (where=(upcase(memname)="&curds" and label ne '')) end=last;
-      nm=cats("N'",tranwrd(name,"'","''"),"'");
-      lab=cats("N'",tranwrd(label,"'","''"),"'");
-      put ' ';
-      put "EXEC sys.sp_addextendedproperty ";
-      put "  @name=N'MS_Description',@value=" lab ;
-      put "  ,@level0type=N'SCHEMA',@level0name=N'&schema' ";
-      put "  ,@level1type=N'TABLE',@level1name=N'&curds'";
-      put "  ,@level2type=N'COLUMN',@level2name=" nm ;
-      if last then put 'GO';
-    run;
-  %end;
-%end;
-%else %if &flavour=PGSQL %then %do;
-  /* if schema does not exist, set to be same as libref */
-  %local schemaactual;
-  proc sql noprint;
-  select sysvalue into: schemaactual
-    from dictionary.libnames
-    where upcase(libname)="&libref" and engine='POSTGRES';
-  %let schema=%sysfunc(coalescec(&schemaactual,&schema,&libref));
-  data _null_;
-    file &fref mod;
-    put "CREATE SCHEMA &schema;";
-  %do x=1 %to %sysfunc(countw(&dsnlist));
-    %let curds=%scan(&dsnlist,&x);
-    %local curdsvarcount;
-    %let curdsvarcount=%mf_getvarcount(&libref..&curds);
-    %if &curdsvarcount>1600 %then %do;
-      data _null_;
-        file &fref mod;
-        put "/* &libref..&curds contains &curdsvarcount vars */";
-        put "/* Postgres cannot create tables with over 1600 vars */";
-        put "/* No DDL will be generated for this table";
-      run;
-    %end;
-    %else %do;
-      data _null_;
-        file &fref mod;
-        put "/* Postgres Flavour DDL for &schema..&curds */";
-      data _null_;
-        file &fref mod;
-        set &colinfo (where=(upcase(memname)="&curds")) end=last;
-        length fmt $32;
-        if _n_=1 then do;
-          if memtype='DATA' then do;
-            put "CREATE TABLE &schema..&curds (";
-          end;
-          else do;
-            /* just a placeholder - we filter out views at the top */
-            put "CREATE VIEW &schema..&curds (";
-          end;
-          put "    "@@;
-        end;
-        else put "   ,"@@;
-        format=upcase(format);
-        if 1=0 then; /* dummy if */
-        %if &applydttm=YES %then %do;
-          else if format=:'DATETIME' then fmt=' TIMESTAMP ';
-        %end;
-        else if type='num' then fmt=' DOUBLE PRECISION';
-        else fmt='VARCHAR('!!cats(length)!!')';
-        if notnull='yes' then notnul=' NOT NULL';
-        /* quote column names in case they represent reserved words */
-        name2=quote(trim(name));
-        put name2 fmt notnul;
-      run;
-
-      /* Extra step for data constraints */
-      %addConst()
-
-      data _null_;
-        file &fref mod;
-        put ');';
-      run;
-
-      /* Create Unique Indexes, but only if they were not already defined within
-        the Constraints section. */
-      data _null_;
-        *length ds $128;
-        set &idxinfo(
-          where=(
-            memname="&curds"
-            and unique='yes'
-            and indxname not in (
-              %sysfunc(tranwrd("&constraints_used",%str( ),%str(",")))
-            )
-          )
-        );
-        file &fref mod;
-        by idxusage indxname;
-        if first.indxname then do;
-          put 'CREATE UNIQUE INDEX "' indxname +(-1) '" ' "ON &schema..&curds(";
-          put '  "' name +(-1) '"' ;
-        end;
-        else put '  ,"' name +(-1) '"';
-        if last.indxname then do;
-          put ');';
-        end;
-      run;
-    %end;
-  %end;
-%end;
-%if %upcase(&showlog)=YES %then %do;
-  options ps=max;
-  data _null_;
-    infile &fref;
-    input;
-    putlog _infile_;
-  run;
-%end;
-
-%mend mp_getddl;/**
   @file
   @brief Export format definitions
   @details Formats are exported from the first (if any) catalog entry in the
@@ -8673,7 +8597,7 @@ create table &outsummary as
 
 %if &num2char=NO %then %do;
   /* compile length function for numeric fields */
-  %mcf_length(wrap=YES, insert_cmplib=YES)
+  %mcf_length()
 %end;
 
 %if &num2char=NO
@@ -10622,7 +10546,7 @@ select distinct lowcase(memname)
   macro.
   Usage:
 
-      %mp_getddl(sashelp, schema=work, fref=tempref)
+      %mp_ds2ddl(sashelp, schema=work, fref=tempref)
 
       %mp_lib2inserts(sashelp, schema=work, outref=tempref)
 
@@ -12066,11 +11990,11 @@ https://blogs.sas.com/content/sastraining/2012/08/14/jedi-sas-tricks-reset-sas-s
   @li permlib.base_table - the target table to be loaded (**not** loaded by this
     macro)
   @li permlib.maxkeytable - optional, used to store load metaadata.
-    The definition is available by running mp_coretable.sas as follows:
-    `mp_coretable(MAXKEYTABLE)`.
+    The definition is available in mddl_dc_maxkeytable.sas as follows:
+    `%mddl_dc_maxkeytable()`.
   @li permlib.locktable - Necessary if maxkeytable is being populated. The
-    definition is available by running mp_coretable.sas as follows:
-    `mp_coretable(LOCKTABLE)`.
+    definition is available in mddl_dc_locktable.sas as follows:
+    `%mddl_dc_locktable()`.
 
 
   @param [in] base_lib= (WORK) Libref of the base (target) table.
@@ -12850,7 +12774,7 @@ run;
 
     In both cases, it is necessary that the transactions are stored using
     the mp_storediffs.sas macro, or at least that the underlying table is
-    structured as per the definition in mp_coretable.sas (DIFFTABLE entry)
+    structured as per the definition in mddl_dc_difftable.sas
 
     <b>This</b> macro is used to convert the stored changes (tall format) into
     staged changes (wide format), with base table values incorporated (in the
@@ -13003,7 +12927,7 @@ run;
     in libref.dataset format.
   @param [in] auditlibds Dataset with previously applied transactions, to be
     re-applied. Use libref.dataset format.
-    DDL as follows:  %mp_coretable(DIFFTABLE)
+    DDL as follows:  %mddl_dc_difftable()
   @param [in] key Space seperated list of key variables
   @param [in] mdebug= Set to 1 to enable DEBUG messages and preserve outputs
   @param [in] processed_dttm_var= (0) If a variable is being used to mark
@@ -13031,7 +12955,7 @@ run;
   @li mp_ds2squeeze.sas
 
   <h4> Related Macros </h4>
-  @li mp_coretable.sas
+  @li mddl_dc_difftable.sas
   @li mp_stackdiffs.test.sas
   @li mp_storediffs.sas
   @li mp_stripdiffs.sas
@@ -13477,7 +13401,7 @@ select distinct tgtvar_nm into: missvars separated by ' '
   @param [in] appds= (0) Dataset with appended records
   @param [in] modds= (0) Dataset with modified records
   @param [out] outds= (work.mp_storediffs) Output table containing stored data.
-    DDL as follows:  %mp_coretable(DIFFTABLE)
+    DDL as follows:  %mddl_dc_difftable()
 
   @param [in] processed_dttm= (0) Provide a datetime constant in relation to
     the actual load time.  If not provided, current timestamp is used.
@@ -14289,45 +14213,6 @@ libname &lib clear;
 
 
 %mend mp_testjob;/**
-  @file
-  @brief To be deprecated.  Will execute a SASjs web service on SAS 9 or Viya
-  @details Use the mx_testservice.sas macro instead (documentation can be
-  found there)
-
-  <h4> SAS Macros </h4>
-  @li mx_testservice.sas
-
-  @version 9.4
-  @author Allan Bowe
-
-**/
-
-%macro mp_testservice(program,
-  inputfiles=0,
-  inputdatasets=0,
-  inputparams=0,
-  debug=log,
-  mdebug=0,
-  outlib=0,
-  outref=0,
-  viyaresult=WEBOUT_JSON,
-  viyacontext=SAS Job Execution compute context
-)/*/STORE SOURCE*/;
-
-%mx_testservice(&program,
-  inputfiles=&inputfiles,
-  inputdatasets=&inputdatasets,
-  inputparams=&inputparams,
-  debug=&debug,
-  mdebug=&mdebug,
-  outlib=&outlib,
-  outref=&outref,
-  viyaresult=&viyaresult,
-  viyacontext=&viyacontext
-)
-
-%mend mp_testservice;
-/**
   @file mp_testwritespeedlibrary.sas
   @brief Tests the write speed of a new table in a SAS library
   @details Will create a new table of a certain size in an
@@ -23654,7 +23539,7 @@ options &optval;
   @li ms_runstp.sas
 
   <h4> Related Programs </h4>
-  @li mp_testservice.test.sas
+  @li mp_execute.sas
 
   @version 9.4
   @author Allan Bowe
@@ -31281,7 +31166,7 @@ options lrecl=&optval;
 
   Usage:
 
-      %mcf_getfmttype(wrap=YES, insert_cmplib=YES)
+      %mcf_getfmttype()
 
       data _null_;
         fmt1=mcf_getfmttype('DATE9.');
@@ -31295,13 +31180,11 @@ options lrecl=&optval;
   > fmt1=DATE fmt2=DATETIME
   > fmt3=TIME
 
-  @param [out] wrap= (NO) Choose YES to add the proc fcmp wrapper.
+  @param [out] wrap= (YES) Choose NO to omit the proc fcmp wrapper.
   @param [out] lib= (work) The output library in which to create the catalog.
   @param [out] cat= (sasjs) The output catalog in which to create the package.
   @param [out] pkg= (utils) The output package in which to create the function.
     Uses a 3 part format:  libref.catalog.package
-  @param [out] insert_cmplib= DEPRECATED - The CMPLIB option is checked and
-    values inserted only if needed.
 
   <h4> SAS Macros </h4>
   @li mcf_init.sas
@@ -31315,8 +31198,7 @@ options lrecl=&optval;
 
 **/
 
-%macro mcf_getfmttype(wrap=NO
-  ,insert_cmplib=DEPRECATED
+%macro mcf_getfmttype(wrap=YES
   ,lib=WORK
   ,cat=SASJS
   ,pkg=UTILS
@@ -31439,7 +31321,7 @@ endsub;
 
   Usage:
 
-      %mcf_length(wrap=YES, insert_cmplib=YES)
+      %mcf_length()
 
       data _null_;
         ina=1;
@@ -31457,13 +31339,11 @@ endsub;
 
   > outa=3 outb=4 outc=5 outd=0
 
-  @param [out] wrap= (NO) Choose YES to add the proc fcmp wrapper.
+  @param [out] wrap= (YES) Choose NO to omit the proc fcmp wrapper.
   @param [out] lib= (work) The output library in which to create the catalog.
   @param [out] cat= (sasjs) The output catalog in which to create the package.
   @param [out] pkg= (utils) The output package in which to create the function.
     Uses a 3 part format:  libref.catalog.package
-  @param [out] insert_cmplib= DEPRECATED - The CMPLIB option is checked and
-    values inserted only if needed.
 
   <h4> SAS Macros </h4>
   @li mcf_init.sas
@@ -31474,8 +31354,7 @@ endsub;
 
 **/
 
-%macro mcf_length(wrap=NO
-  ,insert_cmplib=DEPRECATED
+%macro mcf_length(wrap=YES
   ,lib=WORK
   ,cat=SASJS
   ,pkg=UTILS
@@ -31531,7 +31410,7 @@ endsub;
 
   Usage:
 
-      %mcf_string2file(wrap=YES, insert_cmplib=YES)
+      %mcf_string2file()
 
       data _null_;
         rc=mcf_string2file(
@@ -31546,13 +31425,11 @@ endsub;
         putlog _infile_;
       run;
 
-  @param [out] wrap= (NO) Choose YES to add the proc fcmp wrapper.
+  @param [out] wrap= (YES) Choose NO to omit the proc fcmp wrapper.
   @param [out] lib= (work) The output library in which to create the catalog.
   @param [out] cat= (sasjs) The output catalog in which to create the package.
   @param [out] pkg= (utils) The output package in which to create the function.
     Uses a 3 part format:  libref.catalog.package
-  @param [out] insert_cmplib= DEPRECATED - The CMPLIB option is checked and
-    values inserted only if needed.
 
   <h4> SAS Macros </h4>
   @li mcf_init.sas
@@ -31563,8 +31440,7 @@ endsub;
 
 **/
 
-%macro mcf_string2file(wrap=NO
-  ,insert_cmplib=DEPRECATED
+%macro mcf_string2file(wrap=YES
   ,lib=WORK
   ,cat=SASJS
   ,pkg=UTILS

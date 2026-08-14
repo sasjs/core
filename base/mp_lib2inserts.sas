@@ -5,7 +5,7 @@
   macro.
   Usage:
 
-      %mp_getddl(sashelp, schema=work, fref=tempref)
+      %mp_ds2ddl(sashelp, schema=work, fref=tempref)
 
       %mp_lib2inserts(sashelp, schema=work, outref=tempref)
 

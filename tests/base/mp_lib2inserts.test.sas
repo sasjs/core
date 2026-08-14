@@ -4,7 +4,7 @@
 
   <h4> SAS Macros </h4>
   @li mf_mkdir.sas
-  @li mp_getddl.sas
+  @li mp_ds2ddl.sas
   @li mp_lib2inserts.sas
   @li mp_assert.sas
 
@@ -28,7 +28,7 @@ data _null_;
 run;
 
 /* export DDL and inserts */
-%mp_getddl(sashlp, schema=work, fref=tempref)
+%mp_ds2ddl(sashlp, schema=work, fref=tempref)
 %mp_lib2inserts(sashlp, schema=work, outref=tempref,maxobs=50)
 
 /* check if it actually runs */

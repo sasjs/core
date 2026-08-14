@@ -50,6 +50,27 @@ jobs:
       - name: Start Open VPN 3
         run: openvpn3 session-start --config .github/vpn/config.ovpn
 
+      - name: Check VPN / DNS connectivity
+        run: |
+          openvpn3 sessions-list || true
+          echo "--- resolv.conf ---"
+          cat /etc/resolv.conf
+          SASJS_HOST=$(echo "${{ secrets.SASJS_SERVER_URL }}" | sed -E 's|https?://([^/:]+).*|\1|')
+          echo "--- waiting for DNS resolution of ${SASJS_HOST} ---"
+          for i in $(seq 1 12); do
+            if getent hosts "${SASJS_HOST}"; then break; fi
+            echo "attempt $i: ${SASJS_HOST} not resolvable yet, retrying in 5s"
+            sleep 5
+          done
+          getent hosts "${SASJS_HOST}" || {
+            echo "::error::DNS resolution failed for ${SASJS_HOST} - VPN tunnel is likely down"
+            exit 1
+          }
+          echo "--- fetching server info ---"
+          curl -sS --retry 5 --retry-all-errors --retry-delay 5 \
+            -o /dev/null -w "HTTP %{http_code}\n" \
+            "${{ secrets.SASJS_SERVER_URL }}/SASjsApi/info"
+
       - name: Fetch SASJS server
         run: curl ${{ secrets.SASJS_SERVER_URL }}/SASjsApi/info
 

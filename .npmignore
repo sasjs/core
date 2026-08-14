@@ -9,4 +9,6 @@ make_singlefile.sh
 *.md
 .all-contributorsrc
 .agents
+skills-lock.json
 .env*
+

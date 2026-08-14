@@ -10,7 +10,7 @@
 **/
 
 %mp_assertscope(SNAPSHOT)
-%mcf_getfmttype(wrap=YES, insert_cmplib=YES)
+%mcf_getfmttype()
 %mp_assertscope(COMPARE,ignorelist=SASJS_FUNCTIONS)
 
 %mp_assert(
@@ -31,7 +31,7 @@
 )
 
 /* test 2 - compile again test for warnings */
-%mcf_getfmttype(wrap=YES, insert_cmplib=YES)
+%mcf_getfmttype()
 
 %mp_assert(
   iftrue=(&syscc=0),

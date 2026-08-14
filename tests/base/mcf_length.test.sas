@@ -8,7 +8,7 @@
 
 **/
 
-%mcf_length(wrap=YES, insert_cmplib=YES)
+%mcf_length()
 
 data test;
   call symputx('null',mcf_length(.));
@@ -59,7 +59,7 @@ run;
 )
 
 /* test 2 - compile again test for warnings */
-%mcf_length(wrap=YES, insert_cmplib=YES)
+%mcf_length()
 
 %mp_assert(
   iftrue=(&syscc=0),

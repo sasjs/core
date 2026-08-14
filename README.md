@@ -129,6 +129,16 @@ filename mc url "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
 %inc mc;
 ```
 
+## Agent Skills
+
+This repo ships with agent skills (in `.agents/skills`) to help coding assistants write idiomatic SAS and follow the @sasjs/core standards. The canonical versions live in the [sasjs/skills](https://github.com/sasjs/skills) repo and cover SAS language, @sasjs/core, @sasjs/adapter, @sasjs/cli, the SASjs framework, and @sasjs/server.
+
+To install or update them in your own project, run:
+
+```bash
+npx skills add sasjs/skills
+```
+
 ## Standards
 
 ### File Properties
@@ -193,7 +203,7 @@ When contributing to this library, it is therefore important to ensure that all 
 - no trailing white space
 - no invisible characters, other than spaces. If invisibles are needed, use hex literals.
 - Macro variables should not have the trailing dot (`&var` not `&var.`) unless necessary to prevent incorrect resolution
-- The closing `%mend;` should **not** contain the macro name.
+- The closing `%mend` statement **must** contain the macro name, eg `%mend mymacro;` (enforced by the `hasMacroNameInMend` lint rule).
 - All macros should be defined with brackets, even if no variables are needed - ie `%macro x();` not `%macro x;`
 - Mandatory parameters should be positional, all optional parameters should be keyword (var=) style.
 - All dataset references must be 2 level (eg `work.blah`, not `blah`). This is to avoid contention when options [DATASTMTCHK](https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000279064.htm)=ALLKEYWORDS is in effect, or the [USER](https://documentation.sas.com/doc/en/pgmsascdc/9.4_3.5/lrcon/n18m1vkqmeo4esn1moikt23zhp8s.htm) library is active.
@@ -209,15 +219,15 @@ When contributing to this library, it is therefore important to ensure that all 
 
 ## Breaking Changes
 
-We are currently on major release v4.  Breaking changes should be marked with the [deprecated](https://www.doxygen.nl/manual/commands.html#cmddeprecated) doxygen tag.  The following changes are planned when the next major/breaking release (v5) becomes necessary:
+We are currently on major release v5.  The following breaking changes were applied as part of the v5 release:
 
-* mcf_xxx macros to have `insert_cmplib` option deprecated (the option is now checked automatically with value inserted only if needed)
-* mcf_xxx macros to have `wrap=` option defaulted to YES for convenience.  Set this option explicitly to avoid issues.
-* mf_getuniquelibref.sas to have the deprecated maxtries parameter removed (no longer needed)
-* mp_abort.sas will have the redundant type= parameter removed.
-* mp_coretable.sas will be replaced by the standalone macros in the `ddl` folder (which are already available)
-* mp_getddl.sas to be renamed to mp_ds2ddl.sas (consistent with other ds2xxx macros).  A wrapper macro is already in place, and you are able to use this immediately.  The default for SHOWLOG will also be YES instead of NO.
-* mp_testservice.sas to be renamed as mp_execute.sas (as it doesn't actually test anything)
+* mcf_xxx macros - the `insert_cmplib` option was removed (the option is now checked automatically with value inserted only if needed)
+* mcf_xxx macros - the `wrap=` option now defaults to YES for convenience.  Set this option explicitly to avoid issues.
+* mf_getuniquelibref.sas - the deprecated maxtries parameter was removed (no longer needed)
+* mp_abort.sas - the redundant type= parameter was removed.
+* mp_coretable.sas - removed, and replaced by the standalone macros in the `ddl` folder
+* mp_getddl.sas - renamed to mp_ds2ddl.sas (consistent with other ds2xxx macros).  The default for SHOWLOG is now YES instead of NO.
+* mp_testservice.sas - renamed to mp_execute.sas (as it doesn't actually test anything)
 
 ## Star Gazing
 

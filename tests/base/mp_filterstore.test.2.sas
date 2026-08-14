@@ -6,17 +6,20 @@
   @li mp_assert.sas
   @li mp_assertdsobs.sas
   @li mp_assertscope.sas
-  @li mp_coretable.sas
+  @li mddl_dc_filterdetail.sas
+  @li mddl_dc_filtersummary.sas
+  @li mddl_dc_locktable.sas
+  @li mddl_dc_maxkeytable.sas
   @li mp_filterstore.sas
 
 **/
 
 libname permlib (work);
 
-%mp_coretable(LOCKTABLE,libds=permlib.locktable)
-%mp_coretable(FILTER_SUMMARY,libds=permlib.filtsum)
-%mp_coretable(FILTER_DETAIL,libds=permlib.filtdet)
-%mp_coretable(MAXKEYTABLE,libds=permlib.maxkey)
+%mddl_dc_locktable(libds=permlib.locktable)
+%mddl_dc_filtersummary(libds=permlib.filtsum)
+%mddl_dc_filterdetail(libds=permlib.filtdet)
+%mddl_dc_maxkeytable(libds=permlib.maxkey)
 
 /* valid filter */
 data work.inds;

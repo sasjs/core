@@ -61,7 +61,7 @@
   @cond
 **/
 
-%macro mp_abort(mac=mp_abort.sas, type=, msg=, iftrue=%str(1=1)
+%macro mp_abort(mac=mp_abort.sas, msg=, iftrue=%str(1=1)
   , errds=work.mp_abort_errds
   , mode=REGULAR
 )/*/STORE SOURCE*/;

@@ -24,11 +24,11 @@
   @li permlib.base_table - the target table to be loaded (**not** loaded by this
     macro)
   @li permlib.maxkeytable - optional, used to store load metaadata.
-    The definition is available by running mp_coretable.sas as follows:
-    `mp_coretable(MAXKEYTABLE)`.
+    The definition is available in mddl_dc_maxkeytable.sas as follows:
+    `%mddl_dc_maxkeytable()`.
   @li permlib.locktable - Necessary if maxkeytable is being populated. The
-    definition is available by running mp_coretable.sas as follows:
-    `mp_coretable(LOCKTABLE)`.
+    definition is available in mddl_dc_locktable.sas as follows:
+    `%mddl_dc_locktable()`.
 
 
   @param [in] base_lib= (WORK) Libref of the base (target) table.

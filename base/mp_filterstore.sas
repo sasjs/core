@@ -23,7 +23,7 @@
 |AND|AND|1|SOME_TIME|=|77333|
   @param [in] filter_summary= (PERM.FILTER_SUMMARY) Permanent table containing
     summary filter values.  The definition is available by running
-    mp_coretable.sas as follows:  `mp_coretable(FILTER_SUMMARY)`. Example
+    mddl_dc_filtersummary.sas as follows:  `%mddl_dc_filtersummary()`. Example
     values:
 |FILTER_RK:best.|FILTER_HASH:$32.|FILTER_TABLE:$41.|PROCESSED_DTTM:datetime19.|
 |---|---|---|---|
@@ -32,7 +32,7 @@
 |`3 `|`8048BD908DBBD83D013560734E90D394 `|`VIYA6014.MPE_TABLES `|`1956093620.6`|
   @param [in] filter_detail= (PERM.FILTER_DETAIL) Permanent table containing
     detailed (raw) filter values. The definition is available by running
-    mp_coretable.sas as follows:  `mp_coretable(FILTER_DETAIL)`. Example
+    mddl_dc_filterdetail.sas as follows:  `%mddl_dc_filterdetail()`. Example
     values:
 |FILTER_HASH:$32.|FILTER_LINE:best.|GROUP_LOGIC:$3.|SUBGROUP_LOGIC:$3.|SUBGROUP_ID:best.|VARIABLE_NM:$32.|OPERATOR_NM:$12.|RAW_VALUE:$4000.|PROCESSED_DTTM:datetime19.|
 |---|---|---|---|---|---|---|---|---|
@@ -41,7 +41,7 @@
 |`87737DB9EEE2650F5C89956CEAD0A14F `|`1 `|`AND `|`AND `|`1 `|`PRIMARY_KEY_FIELD `|`IN `|`(1,2,3) `|`1956084451.9 `|
   @param [in] lock_table= (PERM.LOCK_TABLE) Permanent locking table.  Used to
     manage concurrent access.  The definition is available by running
-    mp_coretable.sas as follows:  `mp_coretable(LOCKTABLE)`.
+    mddl_dc_locktable.sas as follows:  `%mddl_dc_locktable()`.
   @param [in] maxkeytable= (0) Optional permanent reference table used for
     retained key tracking.  Described in mp_retainedkey.sas.
   @param [in] mdebug= (1) set to 1 to enable DEBUG messages

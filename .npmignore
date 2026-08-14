@@ -1,6 +1,9 @@
 all.sas
+mc_*.sas
 build.py
 tests/
+sasjsbuild/
+sasjsresults/
 sasjs/
 .github/
 .git-hooks/

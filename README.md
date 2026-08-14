@@ -2,9 +2,10 @@
 
 [![npm package](https://img.shields.io/npm/v/@sasjs/core.svg)](http://npmjs.org/package/@sasjs/core)
 [![Github Workflow](https://github.com/sasjs/core/actions/workflows/main.yml/badge.svg)](https://github.com/sasjs/core/blob/main/.github/workflows/main.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/sasjs/core/blob/main/LICENSE)
+[![npms.io](https://img.shields.io/npms-io/final-score/@sasjs/core)](https://npms.io/search?q=%40sasjs%2Fcore)
 ![npm](https://img.shields.io/npm/dt/@sasjs/core)
-![GitHub top language](https://img.shields.io/github/languages/top/sasjs/core)
-[![GitHub closed issues](https://img.shields.io/github/issues-closed-raw/sasjs/core)](https://github.com/sasjs/core/issues?q=is%3Aissue+is%3Aclosed)
+![GitHub last commit](https://img.shields.io/github/last-commit/sasjs/core)
 
 
 Much quality. Many standards. The **Macro Core** library exists to save time and development effort! Herein ye shall find a veritable host of MIT-licenced, production quality SAS macros. These are a mix of tools, utilities, functions and code generators that are useful in the context of [Application Development](https://sasapps.io) on the SAS platform (eg https://datacontroller.io). [Contributions](https://github.com/sasjs/core/blob/main/.github/CONTRIBUTING.md) are welcome.

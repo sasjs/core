@@ -1,6 +1,10 @@
 all.sas
+# build.py per-folder bundles (mc_base.sas, mc_ddl.sas, etc.) — generated at build time, not committed
+mc_*.sas
 build.py
 tests/
+sasjsbuild/
+sasjsresults/
 sasjs/
 .github/
 .git-hooks/

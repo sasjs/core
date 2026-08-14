@@ -55,5 +55,6 @@ These follow the @sasjs/core coding standards — apply them to all SAS code:
 - Unintended many-to-many MERGEs
 - Automatic variable `_ERROR_` / implicit RETAIN surprises
 - Macro timing issues: referencing `&macrovar` before it exists, `%if` evaluating data-step variables (use `if`/`symget` instead)
+- Automatic macro variables (`&syscc`, `&syswarningtext`, `&syserrortext`, `&sysdate`, `&sysuserid`, etc.) are READ-ONLY — attempting to overwrite them (e.g. `%let syswarningtext=;` or `call symput('syscc',...)`) raises `ERROR: Unable to assign value to a macro variable that is read only` (or similar). Never try to "clear" them.
 - Truncation from implicit length=8 on first assignment
 - `proc sql` cartesian product warnings

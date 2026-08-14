@@ -1,11 +1,18 @@
 {
   "name": "@sasjs/core",
-  "description": "Macros for SAS Application Developers",
+  "description": "Production-quality MIT-licensed SAS macro library (mf_*, mp_*, mm* macros) for SAS 9 and Viya application development",
   "license": "MIT",
   "keywords": [
     "SAS",
     "Viya",
-    "SASjs"
+    "SASjs",
+    "sas-macros",
+    "sas-macro-library",
+    "sas9",
+    "sas-viya",
+    "datastep",
+    "etl",
+    "sasjs-cli"
   ],
   "author": "Allan Bowe",
   "repository": {
@@ -24,7 +31,6 @@
     "url": "https://github.com/sasjs/core/issues"
   },
   "homepage": "https://core.sasjs.io",
-  "main": "index.js",
   "scripts": {
     "build": "npx @sasjs/cli cbd -t server",
     "docs": "npx @sasjs/cli doc -t docsonly && ./sasjs/utils/build.sh",

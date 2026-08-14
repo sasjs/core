@@ -34,3 +34,13 @@ proc sql; describe table &syslast;
   desc=mp_ds2ddl flavour=SAS (default) runs without errors,
   outds=work.test_results
 )
+
+%mp_assertscope(SNAPSHOT)
+%mp_ds2ddl(work,test,flavour=pgsql,showlog=YES)
+%mp_assertscope(COMPARE)
+
+%mp_assert(
+  iftrue=(&syscc=0),
+  desc=mp_ds2ddl flavour=PGSQL runs without errors,
+  outds=work.test_results
+)

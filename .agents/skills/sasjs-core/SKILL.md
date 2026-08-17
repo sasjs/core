@@ -72,9 +72,25 @@ When `%mp_abort` is called from within a `%include` block, SAS cannot exit clean
 
 Note: `%include`s inside macros should be performed with `%mp_include()` so the `_SYSINCLUDEFILEDEVICE` indicator is set and the abort dataset (`work.mp_abort_errds`) is passed back to the calling program.
 
+## Testing macros (mandatory conventions)
+
+- **Always apply `%mp_assertscope` around the macro under test** to catch scope leakage (macro variables must stay `%local`):
+
+```sas
+%mp_assertscope(SNAPSHOT)
+%mx_foo(args)
+%mp_assertscope(COMPARE,
+  desc=Test 1: mx_foo does not leak scope,
+  outds=work.test_results
+)
+```
+
+- Assertions go to `work.test_results` via `%mp_assert(iftrue=(...), desc=..., outds=work.test_results)`.
+
 ## Lint and build
 
 - Run `sasjs lint` after every change; do not consider work done until it passes
 - NEVER bump the version in `package.json` (semantic-release handles it)
 - Do NOT edit generated files by hand: `all.sas`, `mc_*.sas`, the `lua/` wrappers, and `sasjsbuild/` outputs are produced by the CI build
 - Markdown files: never hard-wrap; one paragraph per line
+

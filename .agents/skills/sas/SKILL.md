@@ -49,6 +49,7 @@ These follow the @sasjs/core coding standards — apply them to all SAS code:
 
 - Note when code differs between SAS 9.4 and Viya (e.g. CAS actions vs procs, `proc casutil` for sashdat loading, no X command on locked-down servers)
 - Avoid hard-coded physical paths and engine-specific options unless asked
+- No open macro code with if/else logic: wrap branching blocks in `%macro ... %mend` and call them — open `%if`/`%else` does not behave as expected in all SAS environments.
 
 ## Common pitfalls to flag when reviewing
 

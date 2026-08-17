@@ -79,7 +79,7 @@ If the abort happens inside a `%include` block, SAS cannot exit to `_webout` cle
 
 - Run `sasjs lint` after touching any `.sas` file; fix all warnings in files you touched.
 - The linter enforces 2-space indentation everywhere, including continuation lines inside `/* ... */` block comments — never align comment text with 3+ spaces.
-- Add tests under `sasjs/tests` and run `sasjs test` for backend logic changes.
+- Add tests and run `sasjs test` for backend logic changes. When testing macros, always wrap the macro under test with `%mp_assertscope(SNAPSHOT)` / `%mp_assertscope(COMPARE, ...)` to catch macro-variable scope leakage, and wrap any platform-branching code in `%macro` wrappers (no open conditional macro code in test programs).
 - Provide mocks in `sasjs/mocks` so the frontend can be developed without a live SAS server.
 - Never auto-commit or bump versions; releases are pipeline-driven (conventional commits).
 - Markdown files: no hard wrapping — one paragraph per line.
@@ -87,4 +87,7 @@ If the abort happens inside a `%include` block, SAS cannot exit to `_webout` cle
 
 ## Reference implementations
 
-Look at existing apps for patterns: folder layouts, `sasjsconfig.json` multi-target setups, service structure, streaming builds, and test/mock conventions (e.g. Data Controller `dc`, `dwp_frs`, `plato`).
+Look at existing apps for patterns: folder layouts, `sasjsconfig.json` multi-target setups, service structure, streaming builds, and test/mock conventions, eg:
+* https://git.datacontroller.io/dc/dc
+* https://github.com/sasjs/react-seed-app
+* https://github.com/sasjs/macro-dash

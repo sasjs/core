@@ -51,3 +51,8 @@ sasjs cbd                 # compile + build + deploy in one step (-t viya etc.)
 - `sasjs compile` output goes to the `sasjsbuild/` folder (git-ignore it); `sasjsresults/` holds test/run outputs.
 - CI/CD: `sasjs cbd -t viya` is the standard deploy step; combine with `sasjs servicepack deploy` for artefact-based releases.
 - Exit codes are non-zero on failure — safe for pipelines.
+
+## Gotchas
+
+- Run `npm i` before `sasjs cb` — macro dependency resolution needs `node_modules/@sasjs/core` present, and `@sasjs/core` (and `@sasjs/adapter` if used) must be listed in `package.json`.
+- Credentials files are per-target: `.env.<targetname>` (e.g. `.env.server`) with `CLIENT`, `ACCESS_TOKEN`, `REFRESH_TOKEN`. Never commit them — gitignore `.env*`.

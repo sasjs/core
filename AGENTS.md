@@ -24,6 +24,7 @@ This repo is the SASjs Macro Core library — a collection of MIT-licensed, prod
 - One macro per file; filename must match macro name.
 - Macro *calls* should NOT be terminated with a semicolon. Use `%my_macro()` not `%my_macro();`.
 - Macro variables must always be local, to prevent scope leakage.
+- Always use `mf_getuniquefileref` when assigning filerefs (never hardcode or hand-roll unique filerefs).
 
 
 ## Testing

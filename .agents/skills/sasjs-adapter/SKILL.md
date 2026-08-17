@@ -1,6 +1,6 @@
 ---
 name: sasjs-adapter
-description: Frontend/Node integration with SAS backends using @sasjs/adapter — configuring the SASjs class, authentication (SAS 9, Viya, SASjs server), executing requests with input/output tables, file upload, and session/context management. Use when writing TypeScript/JavaScript that calls SAS services or jobs.
+description: Frontend/Node integration with SAS backends using @sasjs/adapter — configuring the SASjs class, authentication (SAS 9, Viya, SASjs server), requests with input/output tables, file upload, and session management. Use when writing TypeScript/JavaScript that calls SAS services or jobs.
 ---
 
 # @sasjs/adapter
@@ -54,3 +54,15 @@ const response = await sasjs.request('services/common/getdata', {
 - Always handle `response.status` / error responses — SAS-side errors (e.g. from `%mp_abort`) come back in the JSON, not necessarily as HTTP errors.
 - For large payloads prefer CSV upload or streamed files over JSON input tables.
 - Keep `appLoc` consistent with the `appLoc` in `sasjsconfig.json` used to deploy.
+
+## Important: request() inputs are ALWAYS tables
+
+Every key in the `data` object of `sasjs.request(path, data)` is serialized via the `sasjs_tables` CSV mechanism and arrives in SAS as a **work dataset named after the key** — even scalar values. You cannot pass ad-hoc macro variables this way; services must read inputs from the work table (e.g. `data _null_; set work.config; call symputx('rootdir', rootdir); run;`). Output column names in `response.result.<table>` come back UPPERCASE (SAS dataset semantics).
+
+## Using the adapter without a bundler (zero-build / strict CSP frontends)
+
+The package root `index.js` is a UMD bundle exposing a global `SASjs`. Pattern (from the minimal seed app):
+
+1. `"prepare": "cp node_modules/@sasjs/adapter/index.js src/sasjs.js"` in package.json (runs on `npm i`).
+2. `<script src="sasjs.js"></script>` before your app script.
+3. Configure via a hidden custom element: `<sasjs serverType="SASJS" appLoc="/Public/app/myapp" debug="false"></sasjs>` and read attributes with `document.querySelector('sasjs')`. When the app is streamed by SAS itself, omit `serverUrl` — same-origin requests just work (CSP `default-src 'self'` safe).

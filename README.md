@@ -228,7 +228,7 @@ We are currently on major release v5.  The following breaking changes were appli
 * mp_abort.sas - the redundant type= parameter was removed.
 * mp_coretable.sas - removed, and replaced by the standalone macros in the `ddl` folder
 * mp_getddl.sas - renamed to mp_ds2ddl.sas (consistent with other ds2xxx macros).  The default for SHOWLOG is now YES instead of NO.
-* mp_testservice.sas - renamed to mp_execute.sas (as it doesn't actually test anything)
+* mp_testservice.sas - renamed to mx_execute.sas (as it doesn't actually test anything, and the mp_ suite should not reference mx_ macros)
 
 ## Star Gazing
 

@@ -45,14 +45,14 @@
   @li mv_jobflow.sas
 
   <h4> Related Programs </h4>
-  @li mx_testservice.test.sas
+  @li mx_execute.test.sas
 
   @version 9.4
   @author Allan Bowe
 
 **/
 
-%macro mx_testservice(program,
+%macro mx_execute(program,
   inputfiles=0,
   inputdatasets=0,
   inputparams=0,
@@ -296,4 +296,4 @@ filename &webref "&webrefpath";
   %put _local_;
 %end;
 
-%mend mx_testservice;
+%mend mx_execute;

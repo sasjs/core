@@ -41,7 +41,7 @@
     @li LABEL - Use the variable label (or name, if blank)
     @li NAME - Use the variable name
     @li SASJS - Used to create sasjs-formatted input CSVs, eg for use in
-      mp_execute.sas.  This format will supply an input statement in the
+      mx_execute.sas.  This format will supply an input statement in the
       first row, making ingestion by datastep a breeze.  Special misisng values
       will be prefixed with a period (eg `.A`) to enable ingestion on both SAS 9
       and Viya.  Dates / Datetimes etc are identified by the format type (lookup

@@ -1,6 +1,6 @@
 ---
 name: sas
-description: Expert guidance for the SAS programming language — DATA step, PROC SQL, macro language, formats, ODS, and common procedures. Pure SAS syntax only; contains no SASjs-framework content. Use when writing, reviewing, debugging, or refactoring .sas programs, or when asked SAS language questions.
+description: Expert guidance for the SAS programming language — DATA step, PROC SQL, macro language, formats, ODS, and common procedures. Pure SAS syntax only, no SASjs-framework content. Use when writing, reviewing, or debugging .sas programs, or answering SAS language questions.
 ---
 
 # SAS Language

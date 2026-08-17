@@ -1,6 +1,6 @@
 ---
 name: sasjs-server
-description: Installing, configuring, and running @sasjs/server — the open-source NodeJS wrapper around the SAS binary that provides a REST API, filesystem (SASjs Drive), Stored Program execution, and web app streaming. Covers desktop vs server modes, runtime configuration (SAS/JS/Python/R), environment variables, auth (tokens, LDAP), and mock server types. Use when deploying, troubleshooting, or developing against sasjs/server.
+description: Installing, configuring, and running @sasjs/server — the open-source NodeJS wrapper around the SAS binary that provides a REST API, filesystem (SASjs Drive), Stored Program execution, and web app streaming. Covers desktop vs server modes, runtimes (SAS/JS/Python/R), env vars, auth (tokens, LDAP), and mock servers. Use when deploying, troubleshooting, or developing against sasjs/server.
 ---
 
 # @sasjs/server

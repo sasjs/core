@@ -1,6 +1,6 @@
 ---
 name: sasjs-core
-description: Standards and conventions for the @sasjs/core SAS macro library (mf_*, mp_*, mm*, ms_*, mv_* macros). Use when writing or editing SAS macros in a sasjs/core-style repo, when choosing an existing macro instead of reinventing one, or when asked about the sasjs/core build, lint, doxygen header, or testing conventions.
+description: Standards and conventions for the @sasjs/core SAS macro library (mf_*, mp_*, mm*, ms_*, mv_* macros). Use when writing or editing SAS macros in a sasjs/core-style repo, picking an existing macro over reinventing one, or the sasjs/core build, lint, doxygen, and testing conventions.
 ---
 
 # @sasjs/core — SAS Macro Library
@@ -13,6 +13,7 @@ description: Standards and conventions for the @sasjs/core SAS macro library (mf
 - Macro definitions must use parentheses: `%macro x();` not `%macro x;`
 - Macro *calls* are NOT terminated with a semicolon: `%my_macro()` not `%my_macro();`
 - All macro variables must be declared `%local` to prevent scope leakage
+- Always use `mf_getuniquefileref` when assigning filerefs, and `mf_getuniquelibref` when assigning librefs (never hardcode or hand-roll unique references)
 - 2-space indentation, no tabs, no trailing spaces, no invisible characters, max line length 300 (hard lint limit) but keep lines to 80 chars max where possible
 - Every file must have a Doxygen header:
 

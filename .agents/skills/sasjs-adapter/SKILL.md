@@ -1,6 +1,6 @@
 ---
 name: sasjs-adapter
-description: Frontend/Node integration with SAS backends using @sasjs/adapter — configuring the SASjs class, authentication (SAS 9, Viya, SASjs server), executing requests with input/output tables, file upload, and session/context management. Use when writing TypeScript/JavaScript that calls SAS services or jobs.
+description: Frontend/Node integration with SAS backends using @sasjs/adapter — configuring the SASjs class, authentication (SAS 9, Viya, SASjs server), requests with input/output tables, file upload, and session management. Use when writing TypeScript/JavaScript that calls SAS services or jobs.
 ---
 
 # @sasjs/adapter

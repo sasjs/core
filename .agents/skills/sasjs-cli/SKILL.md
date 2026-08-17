@@ -1,6 +1,6 @@
 ---
 name: sasjs-cli
-description: Using the @sasjs/cli command-line tool to create, compile, build, deploy, run, and test SASjs projects against SAS 9, Viya, and SASjs server targets. Use for any sasjs <command> usage, CI/CD deployment pipelines, target/auth configuration, sasjsconfig.json manipulation, service packs, or frontend streaming builds.
+description: Using the SASjs CLI (@sasjs/cli) to create, compile, build, deploy, run, and test SASjs projects against SAS 9, Viya, and SASjs server targets. Use for any `sasjs <command>` usage, CI/CD pipelines, target/auth config, sasjsconfig.json, service packs, or frontend streaming builds.
 ---
 
 # @sasjs/cli

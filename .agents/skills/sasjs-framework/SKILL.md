@@ -1,6 +1,6 @@
 ---
 name: sasjs-framework
-description: Building full SASjs applications — project structure, sasjsconfig.json, services/jobs/macros folders, multi-target (SAS 9 / Viya / SASjs server) configuration, streaming frontends, mocks and tests. Use when creating or modifying a SASjs app, editing sasjsconfig.json, writing backend services that return JSON to a web frontend, or structuring a project like Data Controller.
+description: Building full SASjs applications — project structure, sasjsconfig.json, services/jobs/macros folders, multi-target (SAS 9 / Viya / SASjs server) configuration, streaming frontends, mocks and tests. Use when creating or modifying a SASjs app, editing sasjsconfig.json, or writing backend services returning JSON to a web frontend.
 ---
 
 # SASjs Framework — Building SASjs Applications

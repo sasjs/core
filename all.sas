@@ -5837,7 +5837,7 @@ quit;
     @li LABEL - Use the variable label (or name, if blank)
     @li NAME - Use the variable name
     @li SASJS - Used to create sasjs-formatted input CSVs, eg for use in
-      mp_execute.sas.  This format will supply an input statement in the
+      mx_execute.sas.  This format will supply an input statement in the
       first row, making ingestion by datastep a breeze.  Special misisng values
       will be prefixed with a period (eg `.A`) to enable ingestion on both SAS 9
       and Viya.  Dates / Datetimes etc are identified by the format type (lookup
@@ -7035,45 +7035,6 @@ drop table &ds1, &ds2;
 
 %mend mp_dsmeta;
 
-/**
-  @file
-  @brief Executes a SASjs web service on SAS 9 or Viya
-  @details Wraps the mx_testservice.sas macro (documentation can be found
-  there)
-
-  <h4> SAS Macros </h4>
-  @li mx_testservice.sas
-
-  @version 9.4
-  @author Allan Bowe
-
-**/
-
-%macro mp_execute(program,
-  inputfiles=0,
-  inputdatasets=0,
-  inputparams=0,
-  debug=log,
-  mdebug=0,
-  outlib=0,
-  outref=0,
-  viyaresult=WEBOUT_JSON,
-  viyacontext=SAS Job Execution compute context
-)/*/STORE SOURCE*/;
-
-%mx_testservice(&program,
-  inputfiles=&inputfiles,
-  inputdatasets=&inputdatasets,
-  inputparams=&inputparams,
-  debug=&debug,
-  mdebug=&mdebug,
-  outlib=&outlib,
-  outref=&outref,
-  viyaresult=&viyaresult,
-  viyacontext=&viyacontext
-)
-
-%mend mp_execute;
 /**
   @file
   @brief Checks an input filter table for validity
@@ -23539,7 +23500,7 @@ options &optval;
   @li ms_runstp.sas
 
   <h4> Related Programs </h4>
-  @li mp_execute.sas
+  @li mx_execute.sas
 
   @version 9.4
   @author Allan Bowe
@@ -31953,160 +31914,6 @@ Usage:
 %mend mx_createwebservice;
 /**
   @file
-  @brief Fetches code from Viya Job, SAS 9 STP, or SASjs Server STP
-  @details  When building applications that run on multiple flavours of SAS, it
-  is convenient to use a single macro (like this one) to fetch the source
-  code from a Viya Job, SAS 9 Stored Process, or SASjs Stored Program.
-
-  The alternative would be to compile a generic macro in target-specific
-  folders (SASVIYA, SAS9 and SASJS).  This avoids compiling unnecessary macros
-  at the expense of a more complex sasjsconfig.json setup.
-
-
-  @param [in] loc The full path to the Viya Job, SAS 9 Stored Process or SASjs
-    Stored Program in Drive or Metadata, WITHOUT the .sas extension (SASjs only)
-  @param [out] outref= (0) The fileref to create, which will contain the source
-    code.
-
-  <h4> SAS Macros </h4>
-  @li mf_getplatform.sas
-  @li mm_getstpcode.sas
-  @li ms_getfile.sas
-  @li mv_getjobcode.sas
-
-  @author Allan Bowe
-
-**/
-
-%macro mx_getcode(loc,outref=0
-)/*/STORE SOURCE*/;
-
-%local platform name shortloc;
-%let platform=%mf_getplatform();
-
-%if &platform=SASJS %then %do;
-  %ms_getfile(&loc..sas, outref=&outref)
-%end;
-%else %if &platform=SAS9 or &platform=SASMETA %then %do;
-  %mm_getstpcode(tree=&loc,outref=&outref)
-%end;
-%else %if &platform=SASVIYA %then %do;
-  /* extract name & path from &loc */
-  data _null_;
-    loc=symget('loc');
-    name=scan(loc,-1,'/');
-    shortloc=substr(loc,1,length(loc)-length(name)-1);
-    call symputx('name',name,'l');
-    call symputx('shortloc',shortloc,'l');
-  run;
-  %mv_getjobcode(
-    path=&shortloc,
-    name=&name,
-    outref=&outref
-  )
-%end;
-%else %put &sysmacroname: &platform is unsupported!!!;
-
-%mend mx_getcode;
-/**
-  @file
-  @brief Fetches all groups or the groups for a particular member
-  @details  When building applications that run on multiple flavours of SAS, it
-  is convenient to use a single macro (like this one) to fetch the groups
-  regardless of the flavour of SAS being used
-
-  The alternative would be to compile a generic macro in target-specific
-  folders (SASVIYA, SAS9 and SASJS).  This avoids compiling unnecessary macros
-  at the expense of a more complex sasjsconfig.json setup.
-
-
-  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
-  @param [in] user= (0) Provide the username on which to filter
-  @param [in] uid= (0) Provide the userid on which to filter
-  @param [in] repo= (foundation) SAS9 only, choose the metadata repo to query
-  @param [in] access_token_var= (ACCESS_TOKEN) VIYA only.
-    The global macro variable to contain the access token
-  @param [in] grant_type= (sas_services) VIYA only.
-    Valid values are "password" or "authorization_code" (unquoted).
-  @param [out] outds= (work.mx_getgroups) This output dataset will contain the
-    list of groups. Format:
-|GROUPNAME:$32.|GROUPDESC:$256.|GROUPURI:best.|
-|---|---|---|
-|`SomeGroup `|`A group `|`1`|
-|`Another Group`|`this is a different group`|`2`|
-|`admin`|`Administrators `|`3`|
-
-  <h4> SAS Macros </h4>
-  @li mf_getplatform.sas
-  @li mm_getgroups.sas
-  @li ms_getgroups.sas
-  @li mv_getgroups.sas
-  @li mv_getusergroups.sas
-
-**/
-
-%macro mx_getgroups(
-  mdebug=0,
-  user=0,
-  uid=0,
-  repo=foundation,
-  access_token_var=ACCESS_TOKEN,
-  grant_type=sas_services,
-  outds=work.mx_getgroups
-)/*/STORE SOURCE*/;
-%local platform name shortloc;
-%let platform=%mf_getplatform();
-
-%if &platform=SASJS %then %do;
-  %ms_getgroups(
-    user=&user,
-    uid=&uid,
-    outds=&outds,
-    mdebug=&mdebug
-  )
-  data &outds;
-    length groupuri groupname $32 groupdesc $128 ;
-    set &outds;
-    keep groupuri groupname groupdesc;
-    groupuri=cats(groupid);
-    groupname=name;
-    groupdesc=description;
-  run;
-  proc sort; by groupname; run;
-%end;
-%else %if &platform=SAS9 or &platform=SASMETA %then %do;
-  %if &user=0 %then %let user=;
-  %mm_getGroups(
-    user=&user
-    ,outds=&outds
-    ,repo=&repo
-    ,mDebug=&mdebug
-  )
-  proc sort data=&outds; by groupname; run;
-%end;
-%else %if &platform=SASVIYA %then %do;
-  %if &user=0 %then %do;
-    %mv_getgroups(access_token_var=&access_token_var
-      ,grant_type=&grant_type
-      ,outds=&outds
-    )
-  %end;
-  %else %do;
-    %mv_getusergroups(&user
-      ,outds=&outds
-      ,access_token_var=&access_token_var
-      ,grant_type=&grant_type
-    )
-  %end;
-  proc sort
-      data=&outds(rename=(id=groupuri name=groupname description=groupdesc))
-      out=&outds (keep=groupuri groupname groupdesc);
-    by groupname;
-  run;
-%end;
-
-%mend mx_getgroups;/**
-  @file
   @brief Will execute a SASjs web service on SAS 9, Viya or SASjs Server
   @details Prepares the input files and retrieves the resulting datasets from
   the response JSON.
@@ -32152,14 +31959,14 @@ Usage:
   @li mv_jobflow.sas
 
   <h4> Related Programs </h4>
-  @li mx_testservice.test.sas
+  @li mx_execute.test.sas
 
   @version 9.4
   @author Allan Bowe
 
 **/
 
-%macro mx_testservice(program,
+%macro mx_execute(program,
   inputfiles=0,
   inputdatasets=0,
   inputparams=0,
@@ -32403,4 +32210,159 @@ filename &webref "&webrefpath";
   %put _local_;
 %end;
 
-%mend mx_testservice;
+%mend mx_execute;
+/**
+  @file
+  @brief Fetches code from Viya Job, SAS 9 STP, or SASjs Server STP
+  @details  When building applications that run on multiple flavours of SAS, it
+  is convenient to use a single macro (like this one) to fetch the source
+  code from a Viya Job, SAS 9 Stored Process, or SASjs Stored Program.
+
+  The alternative would be to compile a generic macro in target-specific
+  folders (SASVIYA, SAS9 and SASJS).  This avoids compiling unnecessary macros
+  at the expense of a more complex sasjsconfig.json setup.
+
+
+  @param [in] loc The full path to the Viya Job, SAS 9 Stored Process or SASjs
+    Stored Program in Drive or Metadata, WITHOUT the .sas extension (SASjs only)
+  @param [out] outref= (0) The fileref to create, which will contain the source
+    code.
+
+  <h4> SAS Macros </h4>
+  @li mf_getplatform.sas
+  @li mm_getstpcode.sas
+  @li ms_getfile.sas
+  @li mv_getjobcode.sas
+
+  @author Allan Bowe
+
+**/
+
+%macro mx_getcode(loc,outref=0
+)/*/STORE SOURCE*/;
+
+%local platform name shortloc;
+%let platform=%mf_getplatform();
+
+%if &platform=SASJS %then %do;
+  %ms_getfile(&loc..sas, outref=&outref)
+%end;
+%else %if &platform=SAS9 or &platform=SASMETA %then %do;
+  %mm_getstpcode(tree=&loc,outref=&outref)
+%end;
+%else %if &platform=SASVIYA %then %do;
+  /* extract name & path from &loc */
+  data _null_;
+    loc=symget('loc');
+    name=scan(loc,-1,'/');
+    shortloc=substr(loc,1,length(loc)-length(name)-1);
+    call symputx('name',name,'l');
+    call symputx('shortloc',shortloc,'l');
+  run;
+  %mv_getjobcode(
+    path=&shortloc,
+    name=&name,
+    outref=&outref
+  )
+%end;
+%else %put &sysmacroname: &platform is unsupported!!!;
+
+%mend mx_getcode;
+/**
+  @file
+  @brief Fetches all groups or the groups for a particular member
+  @details  When building applications that run on multiple flavours of SAS, it
+  is convenient to use a single macro (like this one) to fetch the groups
+  regardless of the flavour of SAS being used
+
+  The alternative would be to compile a generic macro in target-specific
+  folders (SASVIYA, SAS9 and SASJS).  This avoids compiling unnecessary macros
+  at the expense of a more complex sasjsconfig.json setup.
+
+
+  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
+  @param [in] user= (0) Provide the username on which to filter
+  @param [in] uid= (0) Provide the userid on which to filter
+  @param [in] repo= (foundation) SAS9 only, choose the metadata repo to query
+  @param [in] access_token_var= (ACCESS_TOKEN) VIYA only.
+    The global macro variable to contain the access token
+  @param [in] grant_type= (sas_services) VIYA only.
+    Valid values are "password" or "authorization_code" (unquoted).
+  @param [out] outds= (work.mx_getgroups) This output dataset will contain the
+    list of groups. Format:
+|GROUPNAME:$32.|GROUPDESC:$256.|GROUPURI:best.|
+|---|---|---|
+|`SomeGroup `|`A group `|`1`|
+|`Another Group`|`this is a different group`|`2`|
+|`admin`|`Administrators `|`3`|
+
+  <h4> SAS Macros </h4>
+  @li mf_getplatform.sas
+  @li mm_getgroups.sas
+  @li ms_getgroups.sas
+  @li mv_getgroups.sas
+  @li mv_getusergroups.sas
+
+**/
+
+%macro mx_getgroups(
+  mdebug=0,
+  user=0,
+  uid=0,
+  repo=foundation,
+  access_token_var=ACCESS_TOKEN,
+  grant_type=sas_services,
+  outds=work.mx_getgroups
+)/*/STORE SOURCE*/;
+%local platform name shortloc;
+%let platform=%mf_getplatform();
+
+%if &platform=SASJS %then %do;
+  %ms_getgroups(
+    user=&user,
+    uid=&uid,
+    outds=&outds,
+    mdebug=&mdebug
+  )
+  data &outds;
+    length groupuri groupname $32 groupdesc $128 ;
+    set &outds;
+    keep groupuri groupname groupdesc;
+    groupuri=cats(groupid);
+    groupname=name;
+    groupdesc=description;
+  run;
+  proc sort; by groupname; run;
+%end;
+%else %if &platform=SAS9 or &platform=SASMETA %then %do;
+  %if &user=0 %then %let user=;
+  %mm_getGroups(
+    user=&user
+    ,outds=&outds
+    ,repo=&repo
+    ,mDebug=&mdebug
+  )
+  proc sort data=&outds; by groupname; run;
+%end;
+%else %if &platform=SASVIYA %then %do;
+  %if &user=0 %then %do;
+    %mv_getgroups(access_token_var=&access_token_var
+      ,grant_type=&grant_type
+      ,outds=&outds
+    )
+  %end;
+  %else %do;
+    %mv_getusergroups(&user
+      ,outds=&outds
+      ,access_token_var=&access_token_var
+      ,grant_type=&grant_type
+    )
+  %end;
+  proc sort
+      data=&outds(rename=(id=groupuri name=groupname description=groupdesc))
+      out=&outds (keep=groupuri groupname groupdesc);
+    by groupname;
+  run;
+%end;
+
+%mend mx_getgroups;

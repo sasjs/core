@@ -49,6 +49,8 @@ description: Standards and conventions for the @sasjs/core SAS macro library (mf
 
 Use `mf_` macros when the macro returns a value usable in an expression; use `mp_` for procedural macros that generate code/statements.
 
+**Cross-suite rule:** `mp_` macros must never reference `mx_` macros. Platform dispatching (SAS 9 / Viya / SASjs server) belongs in the `mx_` suite, which delegates to `ms_`/`mv_`/PROC STP per platform. If an `mp_` macro seems to need platform-specific behaviour, the macro itself belongs in `xplatform/` as an `mx_` macro instead.
+
 ## Reuse before writing
 
 Before writing a new macro, check the library for an existing one — common utilities already exist, e.g. `mp_abort` (the deprecated `mf_abort` is retained for backwards compatibility — don't use it in new code), `mf_existds`, `mf_existvar`, `mf_existfileref`, `mf_getuser`, `mp_jsonout` (SAS datasets → JSON for `_webout`), `mp_ds2ddl`, `mp_hashdataset`. Platform-specific variants exist under `meta/`, `viya/`, `server/` and are selected at compile time by the CLI.

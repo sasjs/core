@@ -17,13 +17,13 @@
       "source": "sasjs/skills",
       "sourceType": "github",
       "skillPath": "sasjs-cli/SKILL.md",
-      "computedHash": "fbfa031a0c430a907afa3f4251ac05de8110f46a6a0285575ed424577dfbd74b"
+      "computedHash": "ead3be77925deaed1f2513852b52af73f78f476708de6caf0609eb309992d5d7"
     },
     "sasjs-core": {
       "source": "sasjs/skills",
       "sourceType": "github",
       "skillPath": "sasjs-core/SKILL.md",
-      "computedHash": "e3f68bc83c965360751af28d03615eb353aee443b2a9c5bb2fd727278f3c3929"
+      "computedHash": "45e3b3fa93c2ecb05890a8bb6d2b96614fcf90b908f265af15eaa150c00af479"
     },
     "sasjs-framework": {
       "source": "sasjs/skills",

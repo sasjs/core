@@ -31653,8 +31653,7 @@ filename &combref clear;
     ,mdebug=0
 )/*/STORE SOURCE*/;
 
-%local platform name shortloc fref;
-%let fref=%mf_getuniquefileref();
+%local platform name shortloc;
 %let platform=%mf_getplatform();
 
 %if &inref=0 %then %do;
@@ -31692,6 +31691,8 @@ filename &combref clear;
     call symputx('name',name,'l');
     call symputx('shortloc',shortloc,'l');
   run;
+  %local fref;
+  %let fref=%mf_getuniquefileref();
   filename &fref "%sysfunc(getoption(work))/%superq(name).sas";
   data _null_;
     infile &inref lrecl=32767;

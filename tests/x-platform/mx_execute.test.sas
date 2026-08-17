@@ -1,15 +1,14 @@
 /**
   @file
-  @brief Testing mp_execute.sas macro
-  @details mp_execute is a thin wrapper around mx_testservice - this test
-  verifies the wrapper delegates correctly by creating and executing a real
-  service.
+  @brief Testing mx_execute.sas macro
+
+  Be sure to run <code>%let mcTestAppLoc=/Public/temp/macrocore;</code> when
+  running in Studio
 
   <h4> SAS Macros </h4>
   @li mx_createwebservice.sas
-  @li mp_execute.sas
+  @li mx_execute.sas
   @li mp_assert.sas
-  @li mp_assertscope.sas
 
 **/
 
@@ -39,9 +38,9 @@ parmcards4;
 )
 
 /**
-  * Test 1 - execute the service via mp_execute
+  * Test 1 - send a dataset
   */
-data work.somedata;
+data work.somedata1 work.somedata2;
   x=1;
   y='  t"w"o';
   z=.z;
@@ -50,29 +49,35 @@ data work.somedata;
   output;
 run;
 
-%mp_assertscope(SNAPSHOT)
-%mp_execute(&mcTestAppLoc/services/sendObj,
-  inputdatasets=work.somedata,
+%mx_execute(&mcTestAppLoc/services/sendObj,
+  inputdatasets=work.somedata1 work.somedata2,
   debug=log,
   mdebug=1,
-  outlib=testlib,
+  outlib=testlib1,
   outref=test1
 )
-/* ignore macro vars created by the JSON libname engine */
-%mp_assertscope(COMPARE
-  ,ignorelist=TESTLIB_JADP1LEN TESTLIB_JADP2LEN TESTLIB_JADPNUM TESTLIB_JADVLEN
-)
-
 %let test1=FAIL;
 data _null_;
-  set testlib.somedata;
-  if x=1 and y='  t"w"o' and z="Z" and y2='  two'
-  then call symputx('test1','PASS');
+  set testlib1.somedata1;
+  if x=1 and y='  t"w"o' and z="Z" and y2='  two' then call symputx('test1','PASS');
   putlog (_all_)(=);
 run;
 
+%let test2=FAIL;
+data _null_;
+  set testlib1.somedata2;
+  if x=1 and y='  t"w"o' and z="Z" and y2='  two' then call symputx('test2','PASS');
+  putlog (_all_)(=);
+run;
+
+
 %mp_assert(
   iftrue=(&test1=PASS),
-  desc=mp_execute delegates correctly and returns input dataset,
+  desc=somedata1 created correctly,
+  outds=work.test_results
+)
+%mp_assert(
+  iftrue=(&test2=PASS),
+  desc=somedata2 created correctly,
   outds=work.test_results
 )

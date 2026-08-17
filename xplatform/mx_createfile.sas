@@ -33,13 +33,16 @@
       %mx_createfile(&filepath, inref=ft15f001)
 
   @param [in] filepath The full path of the file to create, INCLUDING the
-    filename.  On SASjs Server the name should carry the .sas extension if it
-    will be executed as a Stored Program.
-  @param [in] inref= (0) The fileref containing the file content
+    filename (must contain at least one `/` delimiter).  On SASjs Server the
+    name should carry the .sas extension if it will be executed as a Stored
+    Program.
+  @param [in] inref= (0) The fileref containing the file content.  A valid
+    fileref is mandatory - if omitted, the macro aborts with an error.
   @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
 
   <h4> SAS Macros </h4>
   @li mf_getplatform.sas
+  @li mf_getuniquefileref.sas
   @li mm_createstp.sas
   @li ms_createfile.sas
   @li mv_createfile.sas
@@ -55,8 +58,14 @@
     ,mdebug=0
 )/*/STORE SOURCE*/;
 
-%local platform name shortloc;
+%local platform name shortloc fref;
+%let fref=%mf_getuniquefileref();
 %let platform=%mf_getplatform();
+
+%if &inref=0 %then %do;
+  %put %str(ERR)OR: &sysmacroname requires a valid inref fileref;
+  %return;
+%end;
 
 %if &platform=SASJS %then %do;
   %ms_createfile(%superq(filepath), inref=&inref, mdebug=&mdebug)
@@ -88,9 +97,10 @@
     call symputx('name',name,'l');
     call symputx('shortloc',shortloc,'l');
   run;
+  filename &fref "%sysfunc(getoption(work))/%superq(name).sas";
   data _null_;
     infile &inref lrecl=32767;
-    file "%sysfunc(getoption(work))/%superq(name).sas" lrecl=32767;
+    file &fref lrecl=32767;
     input;
     put _infile_;
   run;
@@ -101,7 +111,16 @@
     ,stptype=2
     ,mdebug=&mdebug
   )
+  %if &mdebug=0 %then %do;
+    /* remove the temporary physical file */
+    %local rc;
+    %let rc=%sysfunc(fdelete(&fref));
+    filename &fref clear;
+  %end;
 %end;
-%else %put &sysmacroname: &platform is unsupported!!!;
+%else %do;
+  %put %str(ERR)OR: &sysmacroname: &platform is unsupported!!!;
+  %let syscc=1012;
+%end;
 
 %mend mx_createfile;

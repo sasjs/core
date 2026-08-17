@@ -53,6 +53,11 @@ run;
     %mm_getstpcode(tree=&mcTestAppLoc/temp/&item, outref=testref2)
     %inc testref2;
   %end;
+  %else %if &platform=SASVIYA %then %do;
+    /* read the file back from SAS Content and check the content executes */
+    filename testref3 filesrvc folderpath="&mcTestAppLoc/temp";
+    %inc testref3(&item)/source2;
+  %end;
 %mend check_content;
 %check_content()
 
@@ -62,6 +67,11 @@ run;
     %mp_assert(
       iftrue=(%mfv_existfile(&mcTestAppLoc/temp/&item)=1),
       desc=Test 1: VIYA - content file created,
+      outds=work.test_results
+    )
+    %mp_assert(
+      iftrue=(&test1=SUCCESS),
+      desc=Test 2: VIYA - file created with correct content,
       outds=work.test_results
     )
   %end;

@@ -82,11 +82,23 @@ jobs:
           # need long duration token per https://github.com/sasjs/server/issues/307
           # npx @sasjs/cli run sasjsbuild/jobs/utils/create_sas_package.sas -t server
 
+      - name: Debug app token inputs (no secret values printed)
+        if: steps.makerelease.outputs.new_release_published == 'true'
+        env:
+          APP_ID_VAR: ${{ vars.APP_ID }}
+          APP_ID_SECRET: ${{ secrets.APP_ID }}
+          APP_KEY_SECRET: ${{ secrets.APP_PRIVATE_KEY }}
+        run: |
+          echo "vars.APP_ID length:            ${#APP_ID_VAR}"
+          echo "secrets.APP_ID length:         ${#APP_ID_SECRET}"
+          echo "secrets.APP_PRIVATE_KEY length: ${#APP_KEY_SECRET}"
+
       - name: Generate GitHub App token for docs site
         id: app-token
+        if: steps.makerelease.outputs.new_release_published == 'true'
         uses: actions/create-github-app-token@v2
         with:
-          app-id: ${{ vars.APP_ID }}
+          app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
           repositories: core.github.io
 

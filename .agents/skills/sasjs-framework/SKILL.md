@@ -80,6 +80,31 @@ When `streamWeb: true`, the CLI uploads the frontend (`index.html`, renamed per 
 
 If the abort happens inside a `%include` block, SAS cannot exit to `_webout` cleanly — after the include, call `%mp_abort(mode=INCLUDE)` (outside any macro wrapper), which checks `work.mp_abort_errds` for an abort status.
 
+## Sanitising service inputs (SAS macro injection)
+
+Every value arriving from the web request (input tables, url params) is attacker-controlled. If it is resolved as a macro variable inside generated code — a `libname` path, a `set`/`from` statement, a `where` clause, a `%include` — then spaces, quotes, semicolons and `&`/`%` macro triggers become classic SAS injection vectors.
+
+Rules:
+
+- Validate inputs in a data step with `%mp_validatecol(incol,RULE,outcol)` from @sasjs/core **before** any `call symputx`. Only symput on pass; abort otherwise (`%mp_abort(iftrue=...)`). Rules include `ISLIB` (valid libref), `ISNAME` (valid SAS name, eg a member/table name), `LIBDS` (`LIBREF.DATASET`), `FORMAT`, `ISINT`, `ISNUM`.
+- Where a whitelist exists, use it: after syntactic validation, confirm the value exists in a control table (eg a primary-key lookup) before using it to build paths or code.
+- Values read back from control tables can also be tampered with — validate those too before passing them into code-generating macros.
+- For free-text values that must be echoed into code (eg a user message), strip macro triggers: `compress(value,'&%;')` or `tranwrd` each dangerous char — but prefer not to place free text in code at all.
+
+```sas
+%let libds=0;
+data _null_;
+  set work.sascontroltable;
+  %mp_validatecol(libds,LIBDS,is_libds)
+  if is_libds=1 then call symputx('libds',libds);
+  else putlog 'ERR' 'OR: invalid libds: ' libds;
+run;
+%mp_abort(iftrue= ("&libds"="0")
+  ,mac=&_program
+  ,msg=%str(Invalid libds provided)
+)
+```
+
 ## Multi-target discipline
 
 - Keep backend code platform-neutral in shared folders; put platform-specific shims in `targets/<name>/macros_*` folders and register them only on that target.

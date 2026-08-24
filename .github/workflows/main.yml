@@ -82,13 +82,23 @@ jobs:
           # need long duration token per https://github.com/sasjs/server/issues/307
           # npx @sasjs/cli run sasjsbuild/jobs/utils/create_sas_package.sas -t server
 
+      - name: Generate GitHub App token for docs site
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          repositories: core.github.io
+
       - name: Update Docs Site
         if: steps.makerelease.outputs.new_release_published == 'true'
+        env:
+          DOCS_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           sudo apt-get update
           sudo apt-get install -y doxygen
-          npx @sasjs/cli doc -t docsonly 
-          git clone https://x-access-token:${{ secrets.CORESASJSIO_PAT }}@github.com/sasjs/core.github.io.git
+          npx @sasjs/cli doc -t docsonly
+          git clone https://x-access-token:${DOCS_TOKEN}@github.com/sasjs/core.github.io.git
           cd core.github.io
           rm -rf *.html
           rm -rf *.js
@@ -100,6 +110,7 @@ jobs:
           cp -R ../sasjsbuild/docs/* .
           ls
           git config user.name sasjs
+          git config user.email bot@sasjs.io
           echo 'core.sasjs.io' > CNAME
           git add .
           git commit -m "core pipeline build on $(date +%F:%H:%M:%S)"

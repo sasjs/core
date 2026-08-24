@@ -37,6 +37,16 @@ Root config holds defaults; each entry in `targets[]` can override them. Key sec
 
 The full JSON schema is bundled at `sasjsconfig-schema.json` next to this file — validate config changes against it. Reference it with `"$schema": "https://cli.sasjs.io/sasjsconfig-schema.json"`.
 
+## Streamed frontend files on Viya (mime types)
+
+When `streamWeb: true`, the CLI uploads the frontend (`index.html`, renamed per `streamServiceName`, plus css/js) to the Viya Files service using the `%mv_createfile` macro. That macro creates the file in a very particular way to ensure it streams correctly:
+
+- POSTs to `/files/files` with the content type derived from the extension (`%mf_mimetype`)
+- sets `typeDefName=file_html` (via `%mv_getViyaFileExtParms`) so the file is recognised as HTML
+- sends `Content-Disposition` **without** `attachment` for HTML/SVG so it renders in the browser
+
+**Never update a streamed frontend file in place** with a `filename filesrvc` fileref + data step rewrite — the Files service then treats it as a generic blob and the mime type is lost, so the app no longer streams (browser downloads it or shows raw text). To modify a streamed file at runtime (eg patching the compute `contextname` in the html), read it (a `filesrvc` fileref is fine for *reading*), write the modified content to a temp fileref, and **re-create the file with `%mv_createfile(path=..., name=..., inref=...)`** (it deletes the old file and re-POSTs with the correct mime type).
+
 ## Service contract (frontend ↔ SAS)
 
 1. Adapter POSTs to `services/<folder>/<name>` with input tables (arrays of objects) → work datasets named after the JS keys.
@@ -84,6 +94,14 @@ If the abort happens inside a `%include` block, SAS cannot exit to `_webout` cle
 - Never auto-commit or bump versions; releases are pipeline-driven (conventional commits).
 - Markdown files: no hard wrapping — one paragraph per line.
 - Apps must work offline/on-prem: no external CDN assets in the frontend bundle.
+
+## Tests must be idempotent
+
+A test file must pass when run repeatedly (including after a run that failed partway).
+
+- Start the file with `%let syscc=0;` — many DC macros abort on entry if `&syscc>0`, and any `WARNING` in a previous test bumps `syscc` to 4.
+- Make prep defensive: delete-then-insert config records (handles leftovers from an aborted run),
+  and recreate physical tables rather than assuming they are absent.
 
 ## Reference implementations
 

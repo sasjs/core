@@ -28,6 +28,9 @@
   @param [in] rule The rule to apply.  Current rules:
     @li ISINT - checks if the variable is an integer
     @li ISLIB - checks if the value is a valid libref (NOT whether it exists)
+    @li ISNAME - checks if the value is a valid SAS NAME (V7 rules - up to 32
+      chars, starting with a letter or underscore, followed by letters,
+      numbers or underscores)
     @li ISNUM - checks if the variable is numeric
     @li LIBDS - matches LIBREF.DATASET format
     @li FORMAT - checks if the provided format is syntactically valid
@@ -72,6 +75,20 @@
     &tempcol=prxparse('/^[_a-z]\w{0,7}$/i');
     if missing(&tempcol) then do;
       putlog 'ERR' +(-1) "OR: Invalid expression for ISLIB";
+      stop;
+    end;
+    drop &tempcol;
+  end;
+  if prxmatch(&tempcol, trim(&incol)) then &outcol=1;
+  else &outcol=0;
+%end;
+%else %if &rule=ISNAME %then %do;
+  /* match a valid SAS name (V7 rules) */
+  if _n_=1 then do;
+    retain &tempcol;
+    &tempcol=prxparse('/^[_a-z]\w{0,31}$/i');
+    if missing(&tempcol) then do;
+      putlog 'ERR' +(-1) "OR: Invalid expression for ISNAME";
       stop;
     end;
     drop &tempcol;

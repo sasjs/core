@@ -162,3 +162,36 @@ run;
   test=EQUALS 3,
   outds=work.test_results
 )
+
+/**
+  * Test 6 - ISNAME
+  */
+data test6;
+  infile datalines4 dsd;
+  input;
+  inf=_infile_;
+  %mp_validatecol(inf,ISNAME,isname)
+  if isname=1;
+datalines4;
+somename
+_underscore_start
+name_with_32_characters_exactly_
+UPPERCASE
+MixedCase99
+above are ok - below are not ok
+name_with_33_characters_exactly_x
+!name
+%abort
+2fail
+.fail
+has spaces
+has-hyphen
+has.dot
+&badness
+;;;;
+run;
+%mp_assertdsobs(work.test6,
+  desc=Testing ISNAME,
+  test=EQUALS 5,
+  outds=work.test_results
+)

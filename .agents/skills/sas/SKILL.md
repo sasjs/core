@@ -40,10 +40,12 @@ These follow the @sasjs/core coding standards — apply them to all SAS code:
   - Mandatory parameters positional; optional parameters keyword (`var=`) style
   - Macro names lowercase, verb-noun convention
   - Macro variables without trailing dot (`&var` not `&var.`) unless needed to prevent incorrect resolution
+  - Macro variable NAMES are case-insensitive: `&Foo`, `&FOO`, and `&foo` all resolve to the same symbol (same for `%symexist`/`%superq`/`symget` arguments, which take a NAME not a value). Don't chase case mismatches as a bug — it's never the cause.
   - ALL macro variables must be `%local` unless deliberately global (globals should use an application prefix to avoid collisions); use `call symputx` (not `symput`) in DATA steps
   - Comment with `/* */` inside macros (asterisk comments are compiled into the macro)
   - Guard macro logic with `%length(&var)=0` checks rather than `&var=` (empty comparisons are unsafe)
 - Avoid naming collisions: use `%sysfunc`-/`&syslast`-based work tables (e.g. `data &output; set &syslast; run;`) rather than hard-coded names
+- No open (non-macro) conditional code: wrap platform-branching or conditionally-executed blocks (e.g. `%if %mf_getplatform()=VIYA %then %do; ... %end;`) in a `%macro ... %mend` and invoke the macro. Open `%if` at program level fails in some execution contexts (job/scheduler/test harnesses) and hides scope leaks.
 
 ## Portability awareness
 

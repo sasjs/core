@@ -97,7 +97,8 @@
     ,grant_type=sas_services
     ,mdebug=0
   );
-%local dbg libref1 libref2 loglocation fname1 fname2 jobstate err_httpcode err_msg;
+%local dbg libref1 libref2 loglocation fname1 fname2 jobstate err_httpcode
+  err_msg abortmsg;
 %if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;
@@ -202,6 +203,8 @@ run;
   %put &sysmacroname: jobstate=[&jobstate] loglocation=[&loglocation];
 %end;
 %if %str(&loglocation)= or %str(&loglocation)=. %then %do;
+  %let err_httpcode=;
+  %let err_msg=;
   %if %sysfunc(exist(&libref1..error)) %then %do;
     data _null_;
       set &libref1..error;
@@ -211,13 +214,14 @@ run;
       stop;
     run;
   %end;
-  %mp_abort(iftrue=(%length(&err_msg)>0)
+  /* Build the abort message so it reads cleanly whether or not error
+    details were available (err_msg stays empty if the table is absent
+    or has zero observations). */
+  %let abortmsg=Job &jobstate, no log available.;
+  %if %length(&err_msg)>0 %then %let abortmsg=Job &jobstate, no log available. Error &err_httpcode: &err_msg;
+  %mp_abort(iftrue=(1=1)
     ,mac=&sysmacroname
-    ,msg=%str(Job &jobstate, no log available. Error &err_httpcode: &err_msg)
-  )
-  %mp_abort(iftrue=(%length(&err_msg)=0)
-    ,mac=&sysmacroname
-    ,msg=%str(Job &jobstate, no log available.)
+    ,msg=%str(&abortmsg)
   )
 %end;
 

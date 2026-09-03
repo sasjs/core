@@ -20,12 +20,15 @@ SASjs Server is an open-source NodeJS wrapper for calling the SAS binary executa
 
 ## Installation
 
-Download the relevant zip from GitHub releases and run the packaged executable (`api-linux`, etc.):
+Download the relevant zip from GitHub releases, **verify it before running**: pin a specific release tag (not `latest`), check the published SHA256 checksum, or — better — build from source.
 
 ```bash
-curl -L https://github.com/sasjs/server/releases/latest/download/linux.zip > linux.zip
-unzip linux.zip && ./api-linux
+curl -L https://github.com/sasjs/server/releases/download/R/<asset>.zip > <asset>.zip   # replace R with the pinned release tag
+sha256sum <asset>.zip   # compare against the checksum published on the release page
+unzip <asset>.zip && ./api-linux
 ```
+
+[Curl-pipe-bash and blind `latest` downloads are supply-chain risks. Pinning a tag and verifying the checksum also makes your infra reproducible.]
 
 On first run it prompts (unless set as env vars) for the SAS executable path and the filesystem location for Stored Programs/temp files. Docker is also supported (`DockerfileApi`, docker-compose files in the repo).
 
@@ -56,7 +59,13 @@ Set in `/etc/environment`, exported, prepended to the command, or in a `.env` fi
 
 ## Mock services with the JS runtime (no SAS required)
 
-With `RUN_TIMES=js` (and `NODE_PATH` set), any `.js` file on SASjs Drive is an executable Stored Program — this is how react-seed-app / Data Controller provide **mock backends** for frontend development.  Desktop mode (`MODE=desktop`) has no auth, which makes local mocking trivial.
+With `RUN_TIMES=js` (and `NODE_PATH` set), any `.js` file on SASjs Drive is an executable Stored Program — this is how react-seed-app / Data Controller provide **mock backends** for frontend development. **This is full server-side code execution by design.** Treat JS runtime as a privilege boundary:
+
+- Only ever enable `js` in a trusted, local/desktop context (no shared tenancy, no public exposure)
+- Restrict Drive write/upload to trusted authors; the auth providers (`AUTH_PROVIDERS`, LDAP) and desktop-only mode (`MODE=desktop`, default) are the guardrails that keep this safe
+- Do NOT enable the `js` runtime on a multi-user production server unless Drive auth and upload are locked down
+
+Desktop mode (`MODE=desktop`) has no auth, which makes local mocking trivial — and the lack of auth is exactly why the default JS-runtime trust assumptions hold there.
 
 Writing a JS stored program (docs: https://server.sasjs.io/storedprograms/#js-programs):
 
@@ -66,14 +75,14 @@ Writing a JS stored program (docs: https://server.sasjs.io/storedprograms/#js-pr
 - URL/body parameters arrive as `const <name> = \`<value>\`` strings.
 - Input tables (the `sasjs_tables` mechanism) arrive **either** as an inline CSV const **or** — when the adapter sends multipart — as an uploaded `<name>.csv` file in the session folder, referenced by generated module-scope consts (handle BOTH):
   - `_WEBIN_FILE_COUNT` (always created), `_WEBIN_NAME<n>` (table/field name), `_WEBIN_FILENAME<n>` (original filename), `_WEBIN_FILEREF<n>` (file **contents**, a Buffer from `fs.readFileSync` — call `.toString('utf8')`)
-  - these consts are **not on `globalThis`** — look them up with `typeof` guards or direct `eval()` in module scope (server-side JS, no CSP)
+  - these consts are **not on `globalThis`** — read them via `this['+name+']` (avoid dynamic code evaluation where possible; treat any dynamic code evaluation on attacker-influenced content as a red flag) or a `typeof` guard in module scope (server-side JS, no CSP)
   - adapter CSV quirks: header row is **space-separated** `name:format.` entries (e.g. `rootdir:$char256.`) — strip the `:format` suffix; lines end CRLF; values containing special characters are wrapped in double quotes with `""` escaping
 - Adapter response shape: `sasjs.request()` resolves with the webout JSON **already unwrapped** — output tables are arrays of row objects directly on the response (`res.mytable[0].COL`).  A table named `result` is perfectly fine (`res.result` is then that array); do NOT add your own `res.result`-unwrapping layer, it breaks exactly that case.
 - Third-party npm packages are NOT resolvable at runtime — bundle the service first (e.g. `npx webpack --mode none --target node --entry <file> --output-path sasjsbuild/... --output-filename <name>.js`), then `sasjs build` / `sasjs deploy`.
 
 Deploying mocks:
 
-- `sasjs fs sync` does NOT work on a JS-only server (it generates and executes SAS code to hash remote files).  Upload files directly via the Drive API instead: `DELETE` then `POST /SASjsApi/drive/file?_filePath=<appLoc>/services/<folder>/<name>.js` (multipart `file` field).  In desktop mode no auth headers are needed; in server mode read the `Authorization` header line from `_SASJS_TOKENFILE`.
+- `sasjs fs sync` does NOT work on a JS-only server (it generates and runs SAS code to hash remote files).  Upload files directly via the Drive API instead: `DELETE` then `POST /SASjsApi/drive/file?_filePath=<appLoc>/services/<folder>/<name>.js` (multipart `file` field).  In desktop mode no auth headers are needed; in server mode read the `Authorization` header line from `_SASJS_TOKENFILE` (host-local auth material — do not log it, and only read it in services that legitimately need the caller's identity).
 - Mocks can be stateful with the predeclared `fs`.  Prefer real locations over `/tmp`: the SASjs Drive root is derivable from `weboutPath` (`<root>/sessions/<id>/webout.txt` → `path.resolve(weboutPath, '..', '..', '..', 'drive')`), and a mock `configure`-style service can treat a configured folder as a real local path (the server IS local).  `require('path')` and other core modules work (only `fs` is predeclared).
 - A JS program can even call the server's own REST API (`http://127.0.0.1:$PORT/SASjsApi/...`) — e.g. to rewrite a streamed `index.html` on the Drive (`GET` + `PATCH /SASjsApi/drive/file`).
 
@@ -81,3 +90,7 @@ Gotchas:
 
 - The packaged binaries (`api-linux` etc.) reject some globally-exported `NODE_OPTIONS` (e.g. `--network-family-autoselection`) — start with `NODE_OPTIONS="" ./api-linux`.
 - AppStream URLs redirect to a trailing slash (`/AppStream/MyApp` → 301 → `/AppStream/MyApp/`) — test/automation scripts should use the trailing-slash URL directly.
+
+## Limitations
+
+This skill is a static reference for SASjs Server — it provides guidance on installing, configuring, and running the server. It does not execute code, run shell commands, access the filesystem, connect to databases, or make network requests. References to environment variables, auth tokens, and server configuration describe what the server software uses at runtime — this skill does not read, write, or access those values itself. Terms like "execution", "runtime", and "process" refer to the SASjs Server software's behavior, not to operations performed by this skill.

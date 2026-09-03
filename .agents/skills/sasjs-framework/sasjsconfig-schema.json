@@ -690,11 +690,11 @@
       "examples": [
         [
           {
-            "local": "C:\\temp\\local\\fs1",
+            "local": "C:\\projects\\myapp\\fs1",
             "remote": "/opt/data/fs1"
           },
           {
-            "local": "C:\\temp\\elsewhere",
+            "local": "C:\\projects\\shared",
             "remote": "/opt/somewhere"
           }
         ]

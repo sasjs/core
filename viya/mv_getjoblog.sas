@@ -97,8 +97,7 @@
     ,grant_type=sas_services
     ,mdebug=0
   );
-%local dbg libref1 libref2 loglocation fname1 fname2;
-%local jobstate err_httpcode err_msg;
+%local dbg libref1 libref2 loglocation fname1 fname2 jobstate err_httpcode err_msg;
 %if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;

@@ -44,6 +44,7 @@ Generated SAS code must run cleanly — **zero WARNINGs (and zero ERRORs) in the
 These follow the @sasjs/core coding standards — apply them to all SAS code:
 
 - One statement per line; indentation = 2 spaces, no tabs, no trailing whitespace
+- Consolidate multi-operand statements — `%local`/`%global`, `length`, `attrib`, `retain`, `array`, `format`/`informat`, `label`, `keep`/`drop`, `var`, `rename` — into a single statement listing all operands. Never split into duplicate statements (two `%local` lines, two `length` statements, etc.) just to stay under the line limit; if the line exceeds it, wrap to the next line — the statement ends at the semicolon, so continuation lines are free.
 - Lines no longer than 80 characters; unix (LF) line endings; UTF-8
 - Avoid non-ASCII / special characters entirely — maximum compatibility across SAS installations and encodings
 - Always end steps with `run;`; for `proc sql` (and CAS-connected procs) `quit;` is essential to avoid `WARNING: You cannot disconnect or terminate session ...` on Viya
@@ -157,6 +158,35 @@ After — `%local dsid` keeps the temp variable in macro scope, `%length(&filter
   %let dsid = &syslast;
 %mend apply_filter;
 ```
+
+### Multi-operand statements: one statement, not duplicates
+
+Before — two `%local` statements and two `length` statements for related operands. This is needless repetition; the operands belong in a single declaration:
+
+```sas
+%local dbg libref1 libref2 loglocation fname1 fname2;
+%local jobstate err_httpcode err_msg;
+
+data work.staged;
+  length customer_id 8;
+  length customer_name $ 50;
+  set work.source;
+run;
+```
+
+After — consolidate each group into one statement; wrap to a continuation line when the single statement exceeds 80 chars (the statement ends at the semicolon, so wrapped lines are free):
+
+```sas
+%local dbg libref1 libref2 loglocation fname1 fname2
+       jobstate err_httpcode err_msg;
+
+data work.staged;
+  length customer_id 8 customer_name $ 50;
+  set work.source;
+run;
+```
+
+This applies to every statement that accepts a list of operands — `%local`/`%global`, `length`, `attrib`, `retain`, `array`, `format`/`informat`, `label`, `keep`/`drop`, `var`, `rename`.
 
 ## Common pitfalls to flag when reviewing
 

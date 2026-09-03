@@ -187,35 +187,38 @@ data _null_;
     call symputx('jobstate',state,'l');
   %end;
   %else %do;
-    call symputx('jobstate','','l');
+    call symputx('jobstate','unknown','l');
   %end;
 run;
+/* If root had zero observations, jobstate was never set - fall back to
+  "unknown" so the abort message below reads cleanly. */
+%if %str(&jobstate)= %then %let jobstate=unknown;
 
-/* If the job failed, was canceled, or has no loglocation, the job likely
-   failed before a compute session was created (e.g. 403 on session creation).
-   Read the error details from the job response so the actual failure reason
-   is reported instead of the opaque "URI is too short" message. */
+/* If the job has no loglocation, the job likely failed before a compute
+  session was created (e.g. 403 on session creation). Read the error
+  details from the job response so the actual failure reason is reported
+  instead of the opaque "URI is too short" message. */
 %if &mdebug=1 %then %do;
   %put &sysmacroname: jobstate=[&jobstate] loglocation=[&loglocation];
 %end;
-%if %str(&jobstate)=failed or %str(&jobstate)=canceled
-  or %str(&loglocation)= or %str(&loglocation)=. %then %do;
-  /* If the job state is failed/canceled but a loglocation IS present, we
-    fall through to normal log fetching below — the log may still be useful. */
-  %if %str(&loglocation)= or %str(&loglocation)=. %then %do;
-    %if %sysfunc(exist(&libref1..error)) %then %do;
-      data _null_;
-        set &libref1..error;
-        call symputx('err_httpcode',httpStatusCode,'l');
-        call symputx('err_msg',message,'l');
-        putlog "&sysmacroname: Job &jobstate - error " httpStatusCode ": " message;
-        stop;
-      run;
-    %end;
-    %mp_abort(mac=&sysmacroname
-      ,msg=%str(Job &jobstate, no log available. Error &err_httpcode: &err_msg)
-    )
+%if %str(&loglocation)= or %str(&loglocation)=. %then %do;
+  %if %sysfunc(exist(&libref1..error)) %then %do;
+    data _null_;
+      set &libref1..error;
+      call symputx('err_httpcode',httpStatusCode,'l');
+      call symputx('err_msg',message,'l');
+      putlog "&sysmacroname: Job &jobstate - error " httpStatusCode ": " message;
+      stop;
+    run;
   %end;
+  %mp_abort(iftrue=(%length(&err_msg)>0)
+    ,mac=&sysmacroname
+    ,msg=%str(Job &jobstate, no log available. Error &err_httpcode: &err_msg)
+  )
+  %mp_abort(iftrue=(%length(&err_msg)=0)
+    ,mac=&sysmacroname
+    ,msg=%str(Job &jobstate, no log available.)
+  )
 %end;
 
 /* validate log path*/

@@ -27977,7 +27977,35 @@ libname &libref1 JSON fileref=&fname1;
 data _null_;
   set &libref1..root;
   call symputx('loglocation',loglocation,'l');
+  call symputx('jobstate',state,'l');
 run;
+
+/* If the job failed, was canceled, or has no loglocation, the job likely
+   failed before a compute session was created (e.g. 403 on session creation).
+   Read the error details from the job response so the actual failure reason
+   is reported instead of the opaque "URI is too short" message. */
+%local jobstate;
+%put &sysmacroname: jobstate=[&jobstate] loglocation=[&loglocation];
+%if %str(&jobstate)=failed or %str(&jobstate)=canceled
+  or %str(&loglocation)= or %str(&loglocation)=. %then %do;
+  %if %str(&loglocation)= or %str(&loglocation)=. %then %do;
+    %local err_httpcode err_msg;
+    %let err_httpcode=;
+    %let err_msg=;
+    %if %sysfunc(exist(&libref1..error)) %then %do;
+      data _null_;
+        set &libref1..error;
+        call symputx('err_httpcode',httpStatusCode,'l');
+        call symputx('err_msg',message,'l');
+        putlog "&sysmacroname: Job &jobstate - error " httpStatusCode ": " message;
+        stop;
+      run;
+    %end;
+    %mp_abort(mac=&sysmacroname
+      ,msg=%str(Job &jobstate, no log available. Error &err_httpcode: &err_msg)
+    )
+  %end;
+%end;
 
 /* validate log path*/
 %let errflg=1;

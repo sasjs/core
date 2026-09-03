@@ -27879,6 +27879,7 @@ run;
 
   <h4> SAS Macros </h4>
   @li mp_abort.sas
+  @li mf_existvar.sas
   @li mf_getplatform.sas
   @li mf_existfileref.sas
   @li mf_getuniquefileref.sas
@@ -27892,6 +27893,7 @@ run;
     ,mdebug=0
   );
 %local dbg libref1 libref2 loglocation fname1 fname2;
+%local jobstate err_httpcode err_msg;
 %if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;
@@ -27977,21 +27979,26 @@ libname &libref1 JSON fileref=&fname1;
 data _null_;
   set &libref1..root;
   call symputx('loglocation',loglocation,'l');
-  call symputx('jobstate',state,'l');
+  %if %mf_existvar(&libref1..root,state) %then %do;
+    call symputx('jobstate',state,'l');
+  %end;
+  %else %do;
+    call symputx('jobstate','','l');
+  %end;
 run;
 
 /* If the job failed, was canceled, or has no loglocation, the job likely
    failed before a compute session was created (e.g. 403 on session creation).
    Read the error details from the job response so the actual failure reason
    is reported instead of the opaque "URI is too short" message. */
-%local jobstate;
-%put &sysmacroname: jobstate=[&jobstate] loglocation=[&loglocation];
+%if &mdebug=1 %then %do;
+  %put &sysmacroname: jobstate=[&jobstate] loglocation=[&loglocation];
+%end;
 %if %str(&jobstate)=failed or %str(&jobstate)=canceled
   or %str(&loglocation)= or %str(&loglocation)=. %then %do;
+  /* If the job state is failed/canceled but a loglocation IS present, we
+    fall through to normal log fetching below — the log may still be useful. */
   %if %str(&loglocation)= or %str(&loglocation)=. %then %do;
-    %local err_httpcode err_msg;
-    %let err_httpcode=;
-    %let err_msg=;
     %if %sysfunc(exist(&libref1..error)) %then %do;
       data _null_;
         set &libref1..error;

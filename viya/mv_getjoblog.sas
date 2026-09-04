@@ -195,14 +195,16 @@ run;
   "unknown" so the abort message below reads cleanly. */
 %if %str(&jobstate)= %then %let jobstate=unknown;
 
-/* If the job has no loglocation, the job likely failed before a compute
-  session was created (e.g. 403 on session creation). Read the error
-  details from the job response so the actual failure reason is reported
-  instead of the opaque "URI is too short" message. */
+/* A real loglocation is always a /files/files/<uuid> URI (48+ chars), so
+  length<2 unambiguously means the job has no log (empty or SAS missing
+  value) - the job likely failed before a compute session was created
+  (e.g. 403 on session creation). Read the error details from the job
+  response so the actual failure reason is reported instead of the
+  opaque "URI is too short" message. */
 %if &mdebug=1 %then %do;
   %put &sysmacroname: jobstate=[&jobstate] loglocation=[&loglocation];
 %end;
-%if %str(&loglocation)= or %str(&loglocation)=. %then %do;
+%if %length(&loglocation)<2 %then %do;
   %let err_httpcode=;
   %let err_msg=;
   %if %sysfunc(exist(&libref1..error)) %then %do;
@@ -216,10 +218,9 @@ run;
   %end;
   /* Build the abort message so it reads cleanly whether or not error
     details were available (err_msg stays empty if the table is absent
-    or has zero observations).  Include the job URI so the full JSON
-    response can be fetched directly via a GET to &base_uri&uri. */
-  %let abortmsg=Job &jobstate, no log available. GET &uri;
-  %if %length(&err_msg)>0 %then %let abortmsg=Job &jobstate, no log available. Error &err_httpcode: &err_msg. GET &uri;
+    or has zero observations). */
+  %let abortmsg=Job &jobstate, no log available.;
+  %if %length(&err_msg)>0 %then %let abortmsg=Job &jobstate, no log available. Error &err_httpcode: &err_msg;
   %mp_abort(iftrue=(1=1)
     ,mac=&sysmacroname
     ,msg=%str(&abortmsg)

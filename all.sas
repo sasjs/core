@@ -28013,9 +28013,10 @@ run;
   %end;
   /* Build the abort message so it reads cleanly whether or not error
     details were available (err_msg stays empty if the table is absent
-    or has zero observations). */
-  %let abortmsg=Job &jobstate, no log available.;
-  %if %length(&err_msg)>0 %then %let abortmsg=Job &jobstate, no log available. Error &err_httpcode: &err_msg;
+    or has zero observations).  Include the job URI so the full JSON
+    response can be fetched directly via a GET to &base_uri&uri. */
+  %let abortmsg=Job &jobstate, no log available. GET &uri;
+  %if %length(&err_msg)>0 %then %let abortmsg=Job &jobstate, no log available. Error &err_httpcode: &err_msg. GET &uri;
   %mp_abort(iftrue=(1=1)
     ,mac=&sysmacroname
     ,msg=%str(&abortmsg)

@@ -13,6 +13,7 @@
   <h4> SAS Macros </h4>
   @li mp_assert.sas
   @li mp_assertscope.sas
+  @li mf_getapploc.sas
   @li mf_getplatform.sas
   @li mv_createjob.sas
   @li mv_jobexecute.sas
@@ -20,9 +21,12 @@
 
 **/
 
-/* create the child job under the running user's own folder so the
-   test works whichever identity executes it */
-%let testloc=/Users/&sysuserid/mv_jobwaitfor_test;
+/* create the child job under the deployed appLoc (derived from
+   _program at runtime) so the test works whichever identity runs
+   it and whichever appLoc it is deployed to - the appLoc folder is
+   always writable by the test session, since the deploy itself
+   created it */
+%let testloc=%mf_getapploc(&_program)/tests/mv_jobwaitfor_test;
 
 filename testprog temp;
 data _null_;

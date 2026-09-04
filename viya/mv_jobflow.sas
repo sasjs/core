@@ -273,7 +273,7 @@ data;run;%let jdswaitfor=&syslast;
         %let _vnm=%scan(&cvars,&ii,%str( ));
         if _param ne '' then _param=cats(_param,',');
         _param=cats(_param,'"'
-          ,"%lowcase(&_vnm)"
+          ,"&_vnm"
           ,'":'
           ,quote(trim(&_vnm))
         );
@@ -282,7 +282,7 @@ data;run;%let jdswaitfor=&syslast;
         %let _vnm=%scan(&nvars,&ii,%str( ));
         if _param ne '' then _param=cats(_param,',');
         _param=cats(_param,'"'
-          ,"%lowcase(&_vnm)"
+          ,"&_vnm"
           ,'":"'
           ,strip(put(&_vnm,best32.))
           ,'"'

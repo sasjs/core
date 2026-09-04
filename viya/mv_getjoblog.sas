@@ -84,6 +84,7 @@
 
   <h4> SAS Macros </h4>
   @li mp_abort.sas
+  @li mf_existvar.sas
   @li mf_getplatform.sas
   @li mf_existfileref.sas
   @li mf_getuniquefileref.sas
@@ -96,7 +97,8 @@
     ,grant_type=sas_services
     ,mdebug=0
   );
-%local dbg libref1 libref2 loglocation fname1 fname2;
+%local dbg libref1 libref2 loglocation fname1 fname2 jobstate err_httpcode
+  err_msg abortmsg;
 %if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;
@@ -182,7 +184,49 @@ libname &libref1 JSON fileref=&fname1;
 data _null_;
   set &libref1..root;
   call symputx('loglocation',loglocation,'l');
+  %if %mf_existvar(&libref1..root,state) %then %do;
+    call symputx('jobstate',state,'l');
+  %end;
+  %else %do;
+    call symputx('jobstate','unknown','l');
+  %end;
 run;
+/* If root had zero observations, jobstate was never set - fall back to
+  "unknown" so the abort message below reads cleanly. */
+%if %str(&jobstate)= %then %let jobstate=unknown;
+
+/* A real loglocation is always a /files/files/<uuid> URI (48+ chars), so
+  length<2 unambiguously means the job has no log (empty or SAS missing
+  value) - the job likely failed before a compute session was created
+  (e.g. 403 on session creation). Read the error details from the job
+  response so the actual failure reason is reported instead of the
+  opaque "URI is too short" message. */
+%if &mdebug=1 %then %do;
+  %put &sysmacroname: jobstate=[&jobstate] loglocation=[&loglocation];
+%end;
+%if %length(&loglocation)<2 %then %do;
+  %let err_httpcode=;
+  %let err_msg=;
+  %if %sysfunc(exist(&libref1..error)) %then %do;
+    data _null_;
+      set &libref1..error;
+      call symputx('err_httpcode',httpStatusCode,'l');
+      call symputx('err_msg',message,'l');
+      putlog "&sysmacroname: Job &jobstate - error " httpStatusCode ": " message;
+      stop;
+    run;
+  %end;
+  /* Build the abort message so it reads cleanly whether or not error
+    details were available (err_msg stays empty if the table is absent
+    or has zero observations).  Include the job URI so the full JSON
+    response can be fetched directly via a GET to &base_uri&uri. */
+  %let abortmsg=Job &jobstate, no log available. GET &uri;
+  %if %length(&err_msg)>0 %then %let abortmsg=Job &jobstate, no log available. Error &err_httpcode: &err_msg. GET &uri;
+  %mp_abort(iftrue=(1=1)
+    ,mac=&sysmacroname
+    ,msg=%str(&abortmsg)
+  )
+%end;
 
 /* validate log path*/
 %let errflg=1;

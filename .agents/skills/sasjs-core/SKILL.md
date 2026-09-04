@@ -97,3 +97,7 @@ Note: `%include`s inside macros should be performed with `%mp_include()` so the 
 - Do NOT edit generated files by hand: `all.sas`, `mc_*.sas`, the `lua/` wrappers, and `sasjsbuild/` outputs are produced by the CI build
 - Markdown files: never hard-wrap; one paragraph per line
 
+## Limitations
+
+This skill is a static reference for the @sasjs/core macro library — it provides coding standards, prefix conventions, and testing guidance. It does not execute SAS code, run shell commands, access the filesystem, connect to databases, or make network requests. All code examples are illustrative and must be submitted to a SAS session by the user.
+

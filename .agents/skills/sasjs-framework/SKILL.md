@@ -134,3 +134,7 @@ Look at existing apps for patterns: folder layouts, `sasjsconfig.json` multi-tar
 * https://git.datacontroller.io/dc/dc
 * https://github.com/sasjs/react-seed-app
 * https://github.com/sasjs/macro-dash
+
+## Limitations
+
+This skill is a static reference for building SASjs applications — it provides guidance on project structure, configuration, and service contracts. It does not execute code, run shell commands, access the filesystem, connect to databases, or make network requests. References to file paths, build outputs, and deployment targets describe the structure of a SASjs project — this skill does not create, modify, or access those paths itself.

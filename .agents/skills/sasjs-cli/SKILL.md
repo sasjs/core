@@ -10,7 +10,7 @@ The SASjs CLI (`npm i -g @sasjs/cli`, invoked as `sasjs`) automates compiling, b
 ## Targets and auth
 
 - A **target** = `{ name, serverUrl, serverType, appLoc }`. `serverType` is one of `SAS9`, `SASVIYA`, `SASJS`.
-- Credentials: `sasjs add cred` (or `.env` file). Viya uses client/secret **or** `sasjs auth login` (user/pass, no client/secret needed — see below); SAS 9 uses user/pass; SASJS server uses an access token.
+- Credentials: `sasjs add cred` (or a local env file). Viya uses client/secret **or** `sasjs auth login` (user/pass, no client/secret needed — see below); SAS 9 uses user/pass; SASJS server uses an access token.
 - `sasjs context` manages Viya compute contexts; `sasjs add target` adds a new target.
 
 ## Core workflow
@@ -57,11 +57,11 @@ sasjs cbd                 # compile + build + deploy in one step (-t viya etc.)
 ## Gotchas
 
 - Run `npm i` before `sasjs cb` — macro dependency resolution needs `node_modules/@sasjs/core` present, and `@sasjs/core` (and `@sasjs/adapter` if used) must be listed in `package.json`.
-- Credentials files are per-target: `.env.<targetname>` (e.g. `.env.server`) with `CLIENT`, `ACCESS_TOKEN`, `REFRESH_TOKEN`. Never commit them — gitignore `.env*`.
+- Credentials files are per-target: env files named `.env.<targetname>` (e.g. `.env.server`) with `CLIENT`, `ACCESS_TOKEN`, and `REFRESH_TOKEN` entries. Never commit them — gitignore `.env*`.
 
 ## Viya auth without a client/secret (`sasjs auth login`)
 
-`sasjs auth login -t <target>` authenticates with a regular SAS username/password via the OAuth2 password grant against the built-in, secret-less `sas.cli` public client. No admin-registered OAuth client is needed — the fastest way to get `sasjs run`/`deploy` working on dev/demo estates. The password is never stored; the minted ACCESS_TOKEN/REFRESH_TOKEN pair is persisted to `.env.<target>` (local) or `~/.sasjsrc` (global) and verified via `/identities/users/@currentUser` (`Logged in as <id> (<name>)`). Bare `sasjs auth` is still an alias for `sasjs add cred`.
+`sasjs auth login -t <target>` authenticates with a regular SAS username/password via the OAuth2 password grant against the built-in, secret-less `sas.cli` public client. No admin-registered OAuth client is needed — the fastest way to get `sasjs run`/`deploy` working on dev/demo estates. The password is never stored; the minted token pair is persisted to a local env file (`.env.<target>`) or `~/.sasjsrc` (global) and verified via `/identities/users/@currentUser` (`Logged in as <id> (<name>)`). Bare `sasjs auth` is still an alias for `sasjs add cred`.
 
 - Token expiry: the CLI silently refreshes via the stored refresh token (works with and without a client/secret), and re-persists the rotated pair — Viya refresh tokens are **single-use/rotating**, so this persistence is what keeps later invocations working. If refresh fails, re-run `sasjs auth login`.
 - Some estates give `sas.cli` a short access-token TTL (e.g. 1h); a refresh on most invocations is normal.
@@ -69,6 +69,10 @@ sasjs cbd                 # compile + build + deploy in one step (-t viya etc.)
 - Limitations: local/LDAP accounts only (no SSO/SAML/MFA estates); password grant must be enabled for `sas.cli` (default on Viya 3.5+/4); ROPC is deprecated in OAuth 2.1 — use a registered client/secret for CI/production.
 - `sasjs run` 403 on session creation = the account isn't authorised for the configured compute context — set `contextName: "SAS Studio compute context"` on the target. First run on a cold estate can take many minutes (compute pod spin-up) and may appear to hang.
 - Self-signed estates: use `--insecure` on `auth login`, or configure `httpsAgentOptions` on the target.
+
+## Limitations
+
+This skill is a static reference for the SASjs CLI — it provides guidance on using the `sasjs` command-line tool. It does not execute CLI commands, access the filesystem, read credentials, or make network requests. All commands shown are illustrative; the user must run them in their own environment. References to credential files (`.env`, `~/.sasjsrc`) describe where the CLI stores authentication tokens — this skill does not read, write, or access those files itself.
 
 ## Viya streaming apps (streamConfig.streamWeb)
 
@@ -78,8 +82,7 @@ With `streamWeb: true`, `sasjs web`/`cbd -t viya` deploys the frontend **into SA
 
 ### Verifying a Viya deployment headlessly (no browser)
 
-1. Get a token (password grant works out of the box with the built-in `sas.ec` client, empty secret):
-   `curl -X POST <server>/SASLogon/oauth/token -u 'sas.ec:' -d 'grant_type=password&username=U&password=P'`
+1. Get a token — prefer the CLI rather than handling credentials directly: `sasjs auth login -t <target>` takes care of the OAuth flow and token storage. If you need the token for curl anyway, mint it from the public secret-less client (`sas.ec`) via the OAuth password grant on `/SASLogon/oauth/token` — see the SAS Viya REST auth docs; do not embed real credentials in scripts or command lines.
 2. Fetch the app: `GET /SASJobExecution/?_FILE=<appLoc>/services/<name>.html` with `Authorization: Bearer` → expect `200` and the full `index.html`. `401` = auth, anything else = not deployed there.
 3. Fetch each asset the HTML references. Response tells you what's wrong:
    - `200` with file content → asset deployed correctly.

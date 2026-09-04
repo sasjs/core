@@ -6,27 +6,36 @@
     always carries the plain job uri and that no macro variables leak
     scope.
 
+    The child job is created under the JES job's own user folder
+    (rather than mcTestAppLoc) so the test is independent of the
+    identity the test session runs as.
+
   <h4> SAS Macros </h4>
   @li mp_assert.sas
   @li mp_assertscope.sas
+  @li mf_getplatform.sas
   @li mv_createjob.sas
   @li mv_jobexecute.sas
   @li mv_jobwaitfor.sas
 
 **/
 
-/**
-  * Test Case 1 - wait with the plain job uri (no /state suffix)
-  */
+/* create the child job under the running user's own folder so the
+   test works whichever identity executes it */
+%let testloc=/Users/&sysuserid/mv_jobwaitfor_test;
+
 filename testprog temp;
 data _null_;
   file testprog;
   put 'data;run;';
 run;
-%mv_createjob(path=&mcTestAppLoc/jobs/temp,name=waitjob,code=testprog)
+%mv_createjob(path=&testloc,name=waitjob,code=testprog)
 
+/**
+  * Test Case 1 - wait with the plain job uri (no /state suffix)
+  */
 %mv_jobexecute(
-  path=&mcTestAppLoc/jobs/temp,
+  path=&testloc,
   name=waitjob,
   outds=work.info
 )
@@ -62,7 +71,7 @@ run;
   * Test Case 2 - wait with the state link (with /state suffix)
   */
 %mv_jobexecute(
-  path=&mcTestAppLoc/jobs/temp,
+  path=&testloc,
   name=waitjob,
   outds=work.info2
 )

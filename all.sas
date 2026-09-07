@@ -2994,7 +2994,13 @@ and %superq(SYSPROCESSNAME) ne %str(Compute Server)
     put ',"_DEBUG":' debug ;
     if symexist('_metauser') then do;
       _METAUSER=quote(trim(symget('_METAUSER')));
-      put ",""_METAUSER"": " _METAUSER;
+      put ',"_METAUSER": ' _METAUSER;
+    end;
+    /* _METAPERSON is not always set when _METAUSER is (e.g. Viya JES
+       sessions provide only _METAUSER) - guard it separately or SYMGET
+       raises "Invalid argument" and pollutes SYSERRORTEXT inside the
+       very abort JSON we are writing here. */
+    if symexist('_metaperson') then do;
       _METAPERSON=quote(trim(symget('_METAPERSON')));
       put ',"_METAPERSON": ' _METAPERSON;
     end;
@@ -29665,8 +29671,10 @@ data;run;%let jdswaitfor=&syslast;
   @param [in] action=Either ALL (to wait for every job) or ANY (if one job
     completes, processing will continue).  Default=ALL.
   @param [in] inds= The input dataset containing the list of job uris, in the
-    following format:  `/jobExecution/jobs/&JOBID./state` and the corresponding
-    job name.  The uri should be in a `uri` variable, and the job path/name
+    following format:  `/jobExecution/jobs/&JOBID.` (a trailing `/state`
+    suffix, as returned by the mv_jobexecute state link, is also
+    accepted and will be stripped) and the corresponding job name.
+    The uri should be in a `uri` variable, and the job path/name
     should be in a `_program` variable.
   @param [in] raise_err=0 Set to 1 to raise SYSCC when a job does not complete
               succcessfully
@@ -29748,7 +29756,15 @@ options noquotelenmax;
 data _null_;
   length jobparams $32767;
   set &inds end=last;
-  call symputx(cats('joburi',_n_),substr(uri,1,55),'l');
+  /* strip any trailing /state suffix - the poll below GETs the plain
+     job uri (whose root object carries the state field), and
+     downstream consumers (mv_getjoblog, the outds) expect the plain
+     job uri.  Do not truncate: job uris are not a fixed length (a
+     definition uri passed in error must fail loudly, not be silently
+     corrupted into a 404). */
+  if length(strip(uri))>6 and substr(strip(uri),length(strip(uri))-5)='/state'
+    then uri=substr(strip(uri),1,length(strip(uri))-6);
+  call symputx(cats('joburi',_n_),strip(uri),'l');
   call symputx(cats('jobname',_n_),_program,'l');
   call symputx(cats('jobparams',_n_),jobparams,'l');
   if last then call symputx('uricnt',_n_,'l');
@@ -29802,21 +29818,21 @@ run;
     libname &libref1 clear;
 
     %if &status=completed or &status=failed or &status=canceled %then %do;
-      %local plainuri;
-      %let plainuri=%substr(&&joburi&i,1,55);
+      /* &&joburi&i is already the plain job uri (any /state suffix was
+         stripped on input) - use it as-is. */
       proc sql;
       insert into &outds set
         _program="&&jobname&i",
-        uri="&plainuri",
+        uri="&&joburi&i",
         state="&status",
         stateDetails=symget("stateDetails"),
         timestamp=datetime(),
         jobparams=symget("jobparams&i");
-      %let joburi&i=0; /* do not re-check */
       /* fetch log */
       %if %str(&outref) ne 0 %then %do;
-        %mv_getjoblog(uri=&plainuri,outref=&outref,mdebug=&mdebug)
+        %mv_getjoblog(uri=&&joburi&i,outref=&outref,mdebug=&mdebug)
       %end;
+      %let joburi&i=0; /* do not re-check */
     %end;
     %else %if &status=idle or &status=pending or &status=running %then %do;
       data _null_;

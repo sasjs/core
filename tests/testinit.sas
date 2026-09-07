@@ -12,7 +12,23 @@
 /* location in metadata or SAS Drive for temporary files */
 %let mcTestAppLoc=/Users/&sysuserid/testresults/sasjs_core/%mf_uid();
 
+/**
+  * Use the context the test session is actually running in (passed by the
+  * CLI as _contextName on the test URL) when available, else fall back to
+  * the historical default.  This lets job-spawning tests create child
+  * jobs in the same context on servers that do not have the default
+  * context (e.g. a reusable context on a Viya demo tenant).
+  * A data step is used (rather than open code %if) because nested
+  * open code %if statements are not supported on all platforms.
+  */
 %let mcTestContext=SAS Job Execution compute context;
+data _null_;
+  if symexist('_contextname') then do;
+    length ctx $256;
+    ctx=cats(symget('_contextname'));
+    if ctx ne '' then call symputx('mcTestContext',ctx,'g');
+  end;
+run;
 
 /* set defaults */
 %mp_init()

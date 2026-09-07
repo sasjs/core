@@ -29463,10 +29463,21 @@ data;run;%let jdswaitfor=&syslast;
       %if %length(&cvars)>0 %then %do ii=1 %to %sysfunc(countw(&cvars,%str( )));
         %let _vnm=%scan(&cvars,&ii,%str( ));
         if _param ne '' then _param=cats(_param,',');
+        /* The keys are V7 SAS names (from mf_getvarlist) so need no
+          * escaping.  The values are free-form data - eg SASJS-formatted
+          * CSV payloads with embedded doubled quotes and CRLF row
+          * separators - so must be json escaped.  The sas quote() function
+          * doubles any embedded double quotes (csv convention) which is
+          * invalid json and makes the jobExecution request fail with a
+          * 400 response.  Raw control characters (CR/LF) are also invalid
+          * json - viya silently replaces them with spaces, corrupting
+          * multi-line CSV payloads.  Escape backslashes first, then CR,
+          * LF, and finally double quotes. */
         _param=cats(_param,'"'
           ,"&_vnm"
-          ,'":'
-          ,quote(trim(&_vnm))
+          ,'":"'
+          ,tranwrd(tranwrd(tranwrd(tranwrd(trim(&_vnm),'\','\\'),'0D'x,'\r'),'0A'x,'\n'),'"','\"')
+          ,'"'
         );
       %end;
       %if %length(&nvars)>0 %then %do ii=1 %to %sysfunc(countw(&nvars,%str( )));

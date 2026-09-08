@@ -28023,6 +28023,19 @@ run;
     response can be fetched directly via a GET to &base_uri&uri. */
   %let abortmsg=Job &jobstate, no log available. GET &uri;
   %if %length(&err_msg)>0 %then %let abortmsg=Job &jobstate, no log available. Error &err_httpcode: &err_msg. GET &uri;
+  /* A canceled job does not always provide a loglocation (eg a job
+    that was aborted by design, or canceled by the server before a
+    compute session was created).  Aborting here would terminate the
+    calling program, so instead record the reason in the outref and
+    return - the caller can decide how to handle the missing log. */
+  %if &jobstate=canceled %then %do;
+    %put &sysmacroname: &abortmsg;
+    data _null_;
+      file &outref mod;
+      put "&sysmacroname: &abortmsg";
+    run;
+    %return;
+  %end;
   %mp_abort(iftrue=(1=1)
     ,mac=&sysmacroname
     ,msg=%str(&abortmsg)
@@ -28321,6 +28334,36 @@ data _null_;
   call symputx('resuri',_&result,'l');
   &dbg putlog "&sysmacroname results: " (_all_)(=);
 run;
+%if "&resuri"="." %then %do;
+  /* The requested result was not registered - typical for a canceled
+    * job whose session ended before the result file was created (eg a
+    * job aborted by design, or a job that failed on session creation).
+    * Aborting here would terminate the calling program, so write an
+    * empty payload and return - the caller can check the job state
+    * (from the outds of the wait macro) and decide what to do. */
+  %put &sysmacroname: _&result not found in job results -;
+  %put &sysmacroname: use mv_getjoblog to fetch the job log instead;
+  %if &outref ne 0 %then %do;
+    data _null_;
+      file &outref;
+      put "&sysmacroname: no &_result result available for job &uri";
+    run;
+  %end;
+  %if &outlib ne 0 %then %do;
+    %local fname3;
+    %let fname3=%mf_getuniquefileref();
+    data _null_;
+      file &fname3;
+      put '{}';
+    run;
+    libname &outlib JSON fileref=&fname3;
+  %end;
+  %if &mdebug=0 %then %do;
+    filename &fname1 clear;
+    libname &lib1 clear;
+  %end;
+  %return;
+%end;
 %mp_abort(iftrue=("&resuri"=".")
   ,mac=&sysmacroname
   ,msg=%str(Variable _&result did not exist in the response json)

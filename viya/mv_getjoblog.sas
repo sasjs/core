@@ -222,6 +222,19 @@ run;
     response can be fetched directly via a GET to &base_uri&uri. */
   %let abortmsg=Job &jobstate, no log available. GET &uri;
   %if %length(&err_msg)>0 %then %let abortmsg=Job &jobstate, no log available. Error &err_httpcode: &err_msg. GET &uri;
+  /* A canceled job does not always provide a loglocation (eg a job
+    that was aborted by design, or canceled by the server before a
+    compute session was created).  Aborting here would terminate the
+    calling program, so instead record the reason in the outref and
+    return - the caller can decide how to handle the missing log. */
+  %if &jobstate=canceled %then %do;
+    %put &sysmacroname: &abortmsg;
+    data _null_;
+      file &outref mod;
+      put "&sysmacroname: &abortmsg";
+    run;
+    %return;
+  %end;
   %mp_abort(iftrue=(1=1)
     ,mac=&sysmacroname
     ,msg=%str(&abortmsg)

@@ -1,5 +1,41 @@
 #!/bin/bash
 
+# Scan staged changes for secrets before anything else runs.
+# The binary is pinned by the @nogoo9/gitleaks devDependency and lands
+# in node_modules/.bin after npm i. Commits are blocked until it is
+# installed so no clone silently skips the secrets scan.
+gitleaks_bin=node_modules/.bin/gitleaks
+
+if [ ! -x "$gitleaks_bin" ]; then
+    echo "❌ gitleaks not found - run 'npm i' to install it"
+    exit 1
+fi
+
+if ! "$gitleaks_bin" protect --staged --redact; then
+    echo "❌ gitleaks detected a potential secret in your staged changes"
+    echo "Remove the secret, or add a .gitleaksignore entry if it is a false positive"
+    exit 1
+fi
+
+## Avoid large commits
+# https://www.backblaze.com/blog/how-many-bytes-are-in-a-megabyte-really/
+size_limit=$((2 * 1024 * 1024)) # 2MB
+# Sum the sizes of the blobs this commit would introduce: the staged
+# added/copied/modified/renamed/typechanged entries in the index.
+# https://git-scm.com/docs/git-cat-file#Documentation/git-cat-file.txt---batch-check
+# Renames are treated as add+delete (--no-renames) and pure mode changes
+# (same blob, different permissions) add no new blob, so both are safe.
+commit_size=$(git diff --cached --raw --no-renames --diff-filter=ACMRT |
+  awk '$3 != $4 { print $4 }' |
+  git cat-file --batch-check='%(objectsize)' |
+  awk '{ s += $1 } END { print s + 0 }')
+
+if [ "$commit_size" -ge "$size_limit" ]; then
+  echo "Commit size is too large: $commit_size > $size_limit"
+  echo "Force commit using --no-verify"
+  exit 1
+fi
+
 # Ensure lint is passing
 LINT=`sasjs lint`
 if [[ "$LINT" != *"All matched files use @sasjs/lint code style!" ]]; then

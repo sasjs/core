@@ -40,5 +40,8 @@
   },
   "maintainers": [
     "https://sasapps.io"
-  ]
+  ],
+  "devDependencies": {
+    "@nogoo9/gitleaks": "8.30.1-post.2"
+  }
 }

@@ -25,7 +25,7 @@
       the provided integer
   @param [out] outds= (work.test_results) The output dataset to contain the
   results.  If it does not exist, it will be created, with the following format:
-  |TEST_DESCRIPTION:$256|TEST_RESULT:$4|TEST_COMMENTS:$256|
+  |TEST_DESCRIPTION:$256|TEST_RESULT:$5|TEST_COMMENTS:$256|
   |---|---|---|
   |User Provided description|PASS|Dataset &inds has XX obs|
 
@@ -87,7 +87,7 @@
   %end;
 
   data &ds;
-    length test_result $4 test_description $256 test_comments $256;
+    length test_result $5 test_description $256 test_comments $256;
     test_description=symget('desc');
     test_result='FAIL';
     test_comments="&sysmacroname: Dataset &inds has &nobs observations.";

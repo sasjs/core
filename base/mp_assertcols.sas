@@ -35,7 +35,8 @@
   @param [in] desc= (0) The user provided test description
   @param [in] test= (ALL) The test to apply.  Valid values are:
     @li ALL - Test is a PASS if ALL columns exist in &inds
-    @li ANY - Test is a PASS if ANY of the columns exist in &inds
+    @li ANY - Test is a PASS if ANY of the columns exist in &inds - including
+      when all of them do
     @li NONE - Test is a PASS if NONE of the columns exist in &inds
   @param [out] outds= (work.test_results) The output dataset to contain the
   results.  If it does not exist, it will be created, with the following format:
@@ -121,7 +122,8 @@
     %end;
   %end;
   %else %if &test=ANY %then %do;
-    %if &result=SOME %then %do;
+    /* SOME or ALL - if every column exists then any of them does too */
+    %if &result ne NONE %then %do;
       test_result='PASS';
     %end;
   %end;

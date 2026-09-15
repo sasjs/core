@@ -21,9 +21,15 @@
 )
 
 %mp_assertcols(sashelp.class,
+  cols=name notacol,
+  test=ANY,
+  desc=Checking ANY is satisfied when some of the columns exist
+)
+
+%mp_assertcols(sashelp.class,
   cols=name weight,
   test=ANY,
-  desc=Checking ANY is satisfied when one column exists
+  desc=Checking ANY is satisfied when every column exists
 )
 
 %mp_assertcols(sashelp.class,
@@ -34,7 +40,7 @@
 
 /* unsatisfied conditions */
 %mp_assertcols(sashelp.class,
-  cols=name age weight,
+  cols=name age notacol,
   test=ALL,
   desc=Checking ALL is unsatisfied when a column is missing,
   outds=work.neg_results

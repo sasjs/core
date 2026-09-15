@@ -3474,7 +3474,7 @@ run;
   @param [in] desc= (Testing observations) The user provided test description
   @param [out] outds= (work.test_results) The output dataset to contain the
   results.  If it does not exist, it will be created, with the following format:
-  |TEST_DESCRIPTION:$256|TEST_RESULT:$4|TEST_COMMENTS:$256|
+  |TEST_DESCRIPTION:$256|TEST_RESULT:$5|TEST_COMMENTS:$256|
   |---|---|---|
   |User Provided description|PASS|Dataset &inds contained ALL columns|
 
@@ -3489,7 +3489,7 @@ run;
 )/*/STORE SOURCE*/;
 
   data ;
-    length test_result $4 test_description $256 test_comments $256;
+    length test_result $5 test_description $256 test_comments $256;
     test_description=symget('desc');
     test_comments="&sysmacroname: Test result of "!!symget('iftrue');
   %if %eval(%unquote(&iftrue)) %then %do;
@@ -3549,7 +3549,7 @@ run;
     @li NONE - Test is a PASS if NONE of the columns exist in &inds
   @param [out] outds= (work.test_results) The output dataset to contain the
   results.  If it does not exist, it will be created, with the following format:
-  |TEST_DESCRIPTION:$256|TEST_RESULT:$4|TEST_COMMENTS:$256|
+  |TEST_DESCRIPTION:$256|TEST_RESULT:$5|TEST_COMMENTS:$256|
   |---|---|---|
   |User Provided description|PASS|Dataset &inds contained ALL columns|
 
@@ -3618,7 +3618,7 @@ run;
   %end;
 
   data;
-    length test_result $4 test_description $256 test_comments $256;
+    length test_result $5 test_description $256 test_comments $256;
     test_description=symget('desc');
     if test_description='0'
     then test_description="Testing &inds for existence of &test of: &cols";
@@ -3699,7 +3699,7 @@ run;
     @li NOVAL - Test is a PASS if there are NO matches in checkvals
   @param [out] outds= (work.test_results) The output dataset to contain the
   results.  If it does not exist, it will be created, with the following format:
-  |TEST_DESCRIPTION:$256|TEST_RESULT:$4|TEST_COMMENTS:$256|
+  |TEST_DESCRIPTION:$256|TEST_RESULT:$5|TEST_COMMENTS:$256|
   |---|---|---|
   |User Provided description|PASS|Column &indscol contained ALL target vals|
 
@@ -3797,7 +3797,7 @@ run;
   )
 
   data;
-    length test_result $4 test_description $256 test_comments $256;
+    length test_result $5 test_description $256 test_comments $256;
     test_description=symget('desc');
     test_result='FAIL';
     test_comments="&sysmacroname: &lib..&ds..&col has &result/&orig values "
@@ -3850,7 +3850,7 @@ run;
       the provided integer
   @param [out] outds= (work.test_results) The output dataset to contain the
   results.  If it does not exist, it will be created, with the following format:
-  |TEST_DESCRIPTION:$256|TEST_RESULT:$4|TEST_COMMENTS:$256|
+  |TEST_DESCRIPTION:$256|TEST_RESULT:$5|TEST_COMMENTS:$256|
   |---|---|---|
   |User Provided description|PASS|Dataset &inds has XX obs|
 
@@ -3912,7 +3912,7 @@ run;
   %end;
 
   data &ds;
-    length test_result $4 test_description $256 test_comments $256;
+    length test_result $5 test_description $256 test_comments $256;
     test_description=symget('desc');
     test_result='FAIL';
     test_comments="&sysmacroname: Dataset &inds has &nobs observations.";
@@ -3991,7 +3991,7 @@ run;
     scope snapshot
   @param [out] outds= (work.test_results) The output dataset to contain the
   results.  If it does not exist, it will be created, with the following format:
-  |TEST_DESCRIPTION:$256|TEST_RESULT:$4|TEST_COMMENTS:$256|
+  |TEST_DESCRIPTION:$256|TEST_RESULT:$5|TEST_COMMENTS:$256|
   |---|---|---|
   |User Provided description|PASS|No out of scope variables created or modified|
 
@@ -4076,7 +4076,7 @@ run;
   %end;
 
   data ;
-    length test_result $4 test_description $256 test_comments $256;
+    length test_result $5 test_description $256 test_comments $256;
     test_description=symget('desc');
     test_comments=symget('test_comments');
     test_result=symget('test_result');

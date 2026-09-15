@@ -162,6 +162,16 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "Nakaya-Ryo",
+      "name": "NAKAYA-Ryo",
+      "avatar_url": "https://avatars.githubusercontent.com/u/207527203?v=4",
+      "profile": "https://github.com/Nakaya-Ryo",
+      "contributions": [
+        "code",
+        "test"
+      ]
     }
   ],
   "contributorsPerLine": 7,

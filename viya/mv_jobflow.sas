@@ -339,7 +339,10 @@ data;run;%let jdswaitfor=&syslast;
             %let jobpath=
                   %substr(&&job&jid,1,%length(&&job&jid)-%length(&jobname)-1);
 
-            %put executing &jobpath/&jobname with paramstring &&jparams&jid;
+            /* the paramstring holds free-form data - an escaped double quote
+              * followed by a single quote reads as an unterminated literal and
+              * stops the macro, so mask it */
+            %put executing &jobpath/&jobname with paramstring %superq(jparams&jid);
             %mv_jobexecute(path=&jobpath
               ,name=&jobname
               ,paramstring=%superq(jparams&jid)

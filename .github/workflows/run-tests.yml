@@ -9,6 +9,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-22.04
+    # Backstop: healthy runs take 3-8 minutes. Without this, a hung step
+    # (e.g. the VPN) burns a runner until GitHub's 6h platform timeout.
+    timeout-minutes: 30
 
     strategy:
       matrix:
@@ -48,6 +51,11 @@ jobs:
           sudo apt install openvpn3=17~betaUb22042+jammy
 
       - name: Start Open VPN 3
+        # session-start can hang indefinitely (VPN endpoint unreachable,
+        # auth server down). When it hangs it never errors, so without a
+        # step timeout the job sits silent until the platform timeout.
+        # Healthy session-start completes in seconds.
+        timeout-minutes: 1
         run: openvpn3 session-start --config .github/vpn/config.ovpn
 
       - name: Check VPN / DNS connectivity

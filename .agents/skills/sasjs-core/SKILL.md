@@ -3,7 +3,7 @@ name: sasjs-core
 description: Standards and conventions for the @sasjs/core SAS macro library (mf_*, mp_*, mm*, ms_*, mv_* macros). Use when writing or editing SAS macros in a sasjs/core-style repo, picking an existing macro over reinventing one, or the sasjs/core build, lint, doxygen, and testing conventions.
 ---
 
-# @sasjs/core — SAS Macro Library
+# @sasjs/core - SAS Macro Library
 
 @sasjs/core is an MIT-licensed library of production-quality SAS macros for SAS application development, portable across SAS 9 (meta), Viya, and SASjs server.
 
@@ -46,7 +46,7 @@ description: Standards and conventions for the @sasjs/core SAS macro library (mf
 | `viya/` | `mv_` | Viya |
 | `server/` | `ms_` | SASjs server |
 | `xplatform/` | `mx_` | Runtime platform detection |
-| `fcmp/`, `lua/`, `ddl/` | — | PROC FCMP functions, LUA wrappers, DDL |
+| `fcmp/`, `lua/`, `ddl/` | - | PROC FCMP functions, LUA wrappers, DDL |
 
 Use `mf_` macros when the macro returns a value usable in an expression; use `mp_` for procedural macros that generate code/statements.
 
@@ -54,11 +54,11 @@ Use `mf_` macros when the macro returns a value usable in an expression; use `mp
 
 ## Reuse before writing
 
-Before writing a new macro, check the library for an existing one — common utilities already exist, e.g. `mp_abort` (the deprecated `mf_abort` is retained for backwards compatibility — don't use it in new code), `mf_existds`, `mf_existvar`, `mf_existfileref`, `mf_getuser`, `mp_jsonout` (SAS datasets → JSON for `_webout`), `mp_ds2ddl`, `mp_hashdataset`. Platform-specific variants exist under `meta/`, `viya/`, `server/` and are selected at compile time by the CLI.
+Before writing a new macro, check the library for an existing one - common utilities already exist, e.g. `mp_abort` (the deprecated `mf_abort` is retained for backwards compatibility - don't use it in new code), `mf_existds`, `mf_existvar`, `mf_existfileref`, `mf_getuser`, `mp_jsonout` (SAS datasets -> JSON for `_webout`), `mp_ds2ddl`, `mp_hashdataset`. Platform-specific variants exist under `meta/`, `viya/`, `server/` and are selected at compile time by the CLI.
 
 ## Aborting safely
 
-Never invoke `%mp_abort` from inside an `%if/%else` block — as a procedural macro, the macro processor can continue executing statements after it before the abort takes effect. Use the `iftrue=` condition parameter instead:
+Never invoke `%mp_abort` from inside an `%if/%else` block - as a procedural macro, the macro processor can continue executing statements after it before the abort takes effect. Use the `iftrue=` condition parameter instead:
 
 ```sas
 %mp_abort(iftrue= (&syscc ne 0)
@@ -67,7 +67,7 @@ Never invoke `%mp_abort` from inside an `%if/%else` block — as a procedural ma
 )
 ```
 
-When `%mp_abort` is called from within a `%include` block, SAS cannot exit cleanly (e.g. to `_webout`). Call `%mp_abort(mode=INCLUDE)` after the include (OUTSIDE any macro wrapper) — it checks `work.mp_abort_errds` for an abort status:
+When `%mp_abort` is called from within a `%include` block, SAS cannot exit cleanly (e.g. to `_webout`). Call `%mp_abort(mode=INCLUDE)` after the include (OUTSIDE any macro wrapper) - it checks `work.mp_abort_errds` for an abort status:
 
 ```sas
 %mp_abort(mode=INCLUDE)
@@ -99,5 +99,5 @@ Note: `%include`s inside macros should be performed with `%mp_include()` so the 
 
 ## Limitations
 
-This skill is a static reference for the @sasjs/core macro library — it provides coding standards, prefix conventions, and testing guidance. It does not execute SAS code, run shell commands, access the filesystem, connect to databases, or make network requests. All code examples are illustrative and must be submitted to a SAS session by the user.
+This skill is a static reference for the @sasjs/core macro library - it provides coding standards, prefix conventions, and testing guidance. It does not execute SAS code, run shell commands, access the filesystem, connect to databases, or make network requests. All code examples are illustrative and must be submitted to a SAS session by the user.
 

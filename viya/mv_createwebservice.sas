@@ -316,7 +316,7 @@ data _null_;
   put '  run; ';
   put ' ';
   put '  %let tempds=%substr(_%sysfunc(compress(%sysfunc(uuidgen()),-)),1,32); ';
-  put '  proc sql; ';
+  put '  proc sql noprint; ';
   put '  select count(*) into: lastobs from &ds; ';
   put '  %if &maxobs ne MAX %then %let lastobs=%sysfunc(min(&lastobs,&maxobs)); ';
   put ' ';

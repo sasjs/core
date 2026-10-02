@@ -50,6 +50,7 @@ sasjs cbd                 # compile + build + deploy in one step (-t viya etc.)
 - Test coverage is generated only from a `sasjs compile` (or `sasjs c`). It accepts a target (`-t <target>`), but nothing is deployed to that target - compilation and coverage are fully local/offline, so no server needs to be available or reachable. Missing macro dependencies (e.g. `mp_ds2csv.sas`) mean `@sasjs/core` isn't installed - run `npm i` first.
 
 - Dependencies are declared in doxygen headers: `<h4> SAS Macros </h4>`, `<h4> SAS Files </h4>`, `<h4> SAS Folders </h4>`, and `@li item` entries - the CLI builds the dependency tree from these.
+- The `@li` list is the compiler's only dependency source: a macro that is called in the code but not declared is not inlined into the build, and the deployed job fails at runtime with `Apparent invocation of macro X not resolved`. It can still work by accident when another declared macro's own `@li` chain happens to inline it (transitive resolution) - which breaks as soon as that macro's dependencies change. Declare every macro the code calls, indirect helpers (e.g. `mf_getuser.sas`) included; when editing an existing service, re-audit the `%macro()` calls in the body against the `@li` entries.
 - `sasjs compile` output goes to the `sasjsbuild/` folder (git-ignore it); `sasjsresults/` holds test/run outputs.
 - CI/CD: `sasjs cbd -t viya` is the standard deploy step; combine with `sasjs servicepack deploy` for artefact-based releases.
 - Exit codes are non-zero on failure - safe for pipelines.

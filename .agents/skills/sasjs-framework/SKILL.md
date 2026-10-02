@@ -69,7 +69,9 @@ When `streamWeb: true`, the CLI uploads the frontend (`index.html`, renamed per 
 %mp_jsonout(CLOSE)
 ```
 
-4. On error, abort cleanly with `%mp_abort(...)` (`mf_abort` is deprecated) so the adapter receives a structured error in the JSON, not a half-written response. Do **not** call `%mp_abort` inside an `%if/%else` block - the macro processor may keep executing beyond the abort. Use the conditional `iftrue=` parameter instead, e.g.:
+4. The `<h4> SAS Macros </h4>` `@li` entries in the header are not documentation - they are the compiler's dependency manifest. Every macro the service calls must be listed there or it is not inlined into the build and the deployed job fails at runtime with `Apparent invocation of macro X not resolved`. Undeclared calls can pass testing by accident when a declared macro's own `@li` chain happens to inline them (transitive resolution), then break when that macro's dependencies change. When editing an existing service, re-audit the `%macro()` calls in the body against the header entries and declare anything missing - including small helpers like `mf_getuser.sas`.
+
+5. On error, abort cleanly with `%mp_abort(...)` (`mf_abort` is deprecated) so the adapter receives a structured error in the JSON, not a half-written response. Do **not** call `%mp_abort` inside an `%if/%else` block - the macro processor may keep executing beyond the abort. Use the conditional `iftrue=` parameter instead, e.g.:
 
 ```sas
 %mp_abort(iftrue= (%mf_existds(work.results)=0)

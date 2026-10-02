@@ -10,6 +10,7 @@
 **/
 
 data work.test_data;
+  j = "A";
   do i = 1 to 10;
     output;
   end;
@@ -64,11 +65,53 @@ run;
 )
 
 /* - Test 5 -
-  Get value from default observation.
+  Get numeric value from default observation.
   Filter removes all rows. This simulates providing an empty dataset
   or specifying an observation number beyond the set returned by the filter.
+  Default warn parameter setting avoids raising a w@rning.
 */
 %let test_value=%mf_getvalue(work.test_data,i,filter=(i>10));
+%mp_assert(
+  iftrue=(&test_value=. and &syscc eq 0),
+  desc=Test fetching value from 1st row of empty (filtered) data,
+  outds=work.test_results
+)
+
+/* - Test 6 -
+  Get numeric from default observation.
+  Filter removes all rows. This simulates providing an empty dataset
+  or specifying an observation number beyond the set returned by the filter.
+  Explicitly raise a w@rning when reading past end of data.
+*/
+%let test_value=%mf_getvalue(work.test_data,i,filter=(i>10),warn=1);
+%mp_assert(
+  iftrue=(&test_value=. and &syscc eq 4),
+  desc=Test fetching value from 1st row of empty (filtered) data,
+  outds=work.test_results
+)
+
+%let syscc=0;
+
+/* - Test 7 -
+  Get character value from default observation.
+  Filter removes all rows. This simulates providing an empty dataset
+  or specifying an observation number beyond the set returned by the filter.
+  Default warn parameter setting avoids raising a w@rning.
+*/
+%let test_value=%mf_getvalue(work.test_data,j,filter=(i>10));
+%mp_assert(
+  iftrue=(&test_value=%str() and &syscc eq 0),
+  desc=Test fetching value from 1st row of empty (filtered) data,
+  outds=work.test_results
+)
+
+/* - Test 8 -
+  Get character value from default observation.
+  Filter removes all rows. This simulates providing an empty dataset
+  or specifying an observation number beyond the set returned by the filter.
+  Explicitly raise a w@rning when reading past end of data.
+*/
+%let test_value=%mf_getvalue(work.test_data,j,filter=(i>10),warn=1);
 %mp_assert(
   iftrue=(&test_value=%str() and &syscc eq 4),
   desc=Test fetching value from 1st row of empty (filtered) data,

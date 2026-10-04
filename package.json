@@ -35,8 +35,7 @@
     "build": "npx @sasjs/cli cbd -t server",
     "docs": "npx @sasjs/cli doc -t docsonly && ./sasjs/utils/build.sh",
     "test": "npx @sasjs/cli test -t server",
-    "lint": "npx @sasjs/cli lint",
-    "prepare": "git rev-parse --git-dir && git config core.hooksPath ./.git-hooks || true"
+    "lint": "npx @sasjs/cli lint"
   },
   "maintainers": [
     "https://sasapps.io"

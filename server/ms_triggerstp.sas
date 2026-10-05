@@ -171,7 +171,7 @@
   /* prepare request*/
   proc http method='POST' headerin=&authref in=&mainref out=&outref
     url="&_sasjs_apiserverurl/SASjsApi/stp/trigger?%trim(
-      )_program=&pgm%str(&)_debug=131%str(&)expiresAfterMins=&expiresaftermins";
+      )_program=&pgm%str(&)_debug=&debug%str(&)expiresAfterMins=&expiresaftermins";
   %if &mdebug=1 %then %do;
     debug level=2;
   %end;

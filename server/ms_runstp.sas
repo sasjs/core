@@ -160,7 +160,7 @@ filename &outref "&resp_path" lrecl=32767;
 
 /* prepare request*/
 proc http method='POST' headerin=&authref in=&mainref out=&outref
-  url="&_sasjs_apiserverurl.&_sasjs_apipath?_program=&pgm%str(&)_debug=131";
+  url="&_sasjs_apiserverurl.&_sasjs_apipath?_program=&pgm%str(&)_debug=&debug";
 %if &mdebug=1 %then %do;
   debug level=2;
 %end;

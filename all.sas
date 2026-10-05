@@ -23443,7 +23443,7 @@ filename &outref "&resp_path" lrecl=32767;
 
 /* prepare request*/
 proc http method='POST' headerin=&authref in=&mainref out=&outref
-  url="&_sasjs_apiserverurl.&_sasjs_apipath?_program=&pgm%str(&)_debug=131";
+  url="&_sasjs_apiserverurl.&_sasjs_apipath?_program=&pgm%str(&)_debug=&debug";
 %if &mdebug=1 %then %do;
   debug level=2;
 %end;
@@ -23517,7 +23517,8 @@ options &optval;
     |stpmacname|some value|
     |mustbevalidname|can be anything, oops, %abort!!|
 
-  @param [in] debug= (131) Provide the _debug value to pass to the STP
+  @param [in] debug= (131) The _debug value to send to the STP. The response
+    log is returned when the value is 131 or above, which outlogds depends on.
   @param [in] mdebug= (0) Set to 1 to provide macro debugging (this macro)
   @param [out] outlib= (0) Output libref to contain the final tables.  Set to
     0 if the service output is not in JSON format.
@@ -23551,7 +23552,7 @@ options &optval;
   inputfiles=0,
   inputdatasets=0,
   inputparams=0,
-  debug=0,
+  debug=131,
   mdebug=0,
   outlib=0,
   outref=0,
@@ -23593,7 +23594,9 @@ data &ds1;
 run;
 
 
-/* execute the STP */
+/* execute the STP. _debug is forwarded to ms_runstp, whose own default is
+   131 - the log separator this macro chops on is only present when the
+   server runs in debug mode, so outlogds needs the default. */
 %let fref1=%mf_getuniquefileref();
 
 %ms_runstp(&program
@@ -23810,7 +23813,7 @@ run;
   /* prepare request*/
   proc http method='POST' headerin=&authref in=&mainref out=&outref
     url="&_sasjs_apiserverurl/SASjsApi/stp/trigger?%trim(
-      )_program=&pgm%str(&)_debug=131%str(&)expiresAfterMins=&expiresaftermins";
+      )_program=&pgm%str(&)_debug=&debug%str(&)expiresAfterMins=&expiresaftermins";
   %if &mdebug=1 %then %do;
     debug level=2;
   %end;

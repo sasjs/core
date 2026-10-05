@@ -60,7 +60,6 @@ run;
 
 %ms_testservice(&mcTestAppLoc/services/sendObj,
   inputdatasets=work.somedata1 work.somedata2,
-  debug=log,
   mdebug=1,
   outlib=testlib1,
   outref=test1

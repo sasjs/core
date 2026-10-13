@@ -33,6 +33,9 @@ jobs:
         run: |
           npm ci
 
+      - name: Audit dependencies (fails on any advisory)
+        run: npm audit
+
       - name: Check code style (aborts if errors found)
         run: npx @sasjs/cli lint
 

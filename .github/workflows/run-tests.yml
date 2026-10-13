@@ -88,6 +88,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Scan for secrets (gitleaks)
+        # Same pinned binary the pre-commit hook uses, so the scan is
+        # enforced on the server even when a clone has no hooks wired up.
+        run: node_modules/.bin/gitleaks detect --redact --no-banner
+
+      - name: Audit dependencies (fails on any advisory)
+        run: npm audit
+
       - name: Check code style (aborts if errors found)
         run: npx @sasjs/cli lint
 

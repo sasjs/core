@@ -1242,26 +1242,26 @@ or %index(&pgm,/tests/testteardown)
 
 %macro mf_getvalue(libds,variable,filter=1,fetchobs=1,warn=0
 )/*/STORE SOURCE*/;
-  %local dsid rc vartype;
+  %local dsid rc vartype result;
 
   %let vartype = %mf_getvartype(&libds,&variable);
 
   %let dsid=%sysfunc(open(&libds(where=(&filter))));
   %if (&dsid) %then %do;
-    %syscall set(dsid);
     %let rc = %sysfunc(fetchobs(&dsid,&fetchobs));
     %if (&rc ne 0) %then %do;
-      %put %sysfunc(sysmsg());
-      /* Set the requested variable to a missing value */
-      /* Need only consider numerics - char variables are already empty*/
-      %if (&vartype eq N) %then %let &variable = .;
+      /* Fetchobs() failed - Log any issue that was not 'read past end' */
+      %if (&rc ne -1) %then %put %sysfunc(sysmsg());
+      /* Set the result to a missing value dependent on type. */
+      %if (&vartype eq N) %then %let result = .;
+      %else %let result = ;
+
       %if (&warn) %then %do;
         %if (&rc eq -1) %then %do; /* read past end of data */
           %put %sysfunc(
             compbl(
-              %quote(WARN%str(ING): Missing value returned as no rows were)
-              %quote(found in &libds for filter (%superq(filter)))
-              %quote(and/or fetchobs (&fetchobs).)
+              %quote(WARN%str(ING): Missing value returned for variable)
+              %quote(&variable after reading past end of &libds..)
             )
           );
           %let rc=4;
@@ -1270,9 +1270,17 @@ or %index(&pgm,/tests/testteardown)
       /* And update SYSCC if the &rc value is higher */
       %let syscc = %sysfunc(max(&syscc,&rc));
     %end;
+    %else %do;
+      %let result = %sysfunc(
+                      getvar&vartype(
+                        &dsid
+                        ,%sysfunc(varnum(&dsid,&variable))
+                      )
+                    );
+    %end;
     %let rc = %sysfunc(close(&dsid));
 
-    %trim(&&&variable)
+    %trim(&result)
 
   %end;
   %else %do;

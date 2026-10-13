@@ -126,7 +126,6 @@ run;
   with the same name as the requested column.
   Filter removes all rows. This simulates providing an empty dataset
   or specifying an observation number beyond the set returned by the filter.
-  Explicitly raise a w@rning when reading past end of data.
 */
 %let j = Z;
 %let test_value=%mf_getvalue(work.test_data,j,filter=(i>10));

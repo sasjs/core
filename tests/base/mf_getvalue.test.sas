@@ -119,3 +119,25 @@ run;
 )
 %let syscc=0;
 
+/* - Test 9 -
+  Get character value from default observation.
+  Ensure that the returned value is sourced from the input data set or set to
+  missing. Prevent accidentally returning value from a global macro variable
+  with the same name as the requested column.
+  Filter removes all rows. This simulates providing an empty dataset
+  or specifying an observation number beyond the set returned by the filter.
+*/
+%let j = Z;
+%let test_value=%mf_getvalue(work.test_data,j,filter=(i>10));
+%mp_assert(
+  iftrue=(&test_value eq %str()),
+  desc=%sysfunc(
+    compbl(
+      Test fetching value from an empty (filtered) input with
+      a column name identical to an existing global macrovariable.
+    )
+  ),
+  outds=work.test_results
+)
+%let syscc=0;
+%symdel j / nowarn;

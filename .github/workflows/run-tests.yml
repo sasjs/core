@@ -24,6 +24,23 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
+      # The static gates run before the VPN so they still report when the
+      # tunnel is down, and so a lint or audit failure fails fast without
+      # spending a runner on the VPN install.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Scan for secrets (gitleaks)
+        # Same pinned binary the pre-commit hook uses, so the scan is
+        # enforced on the server even when a clone has no hooks wired up.
+        run: node_modules/.bin/gitleaks detect --redact --no-banner
+
+      - name: Audit dependencies (fails on any advisory)
+        run: npm audit
+
+      - name: Check code style (aborts if errors found)
+        run: npx @sasjs/cli lint
+
       - name: Write VPN Files
         run: |
           echo "$CA_CRT" > .github/vpn/ca.crt
@@ -84,12 +101,6 @@ jobs:
 
       - name: Install Doxygen
         run: sudo apt-get install doxygen
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Check code style (aborts if errors found)
-        run: npx @sasjs/cli lint
 
       - name: Add client
         run: echo "CLIENT=${{secrets.SAS9_4GL_IO_CLIENT}}"> .env.server

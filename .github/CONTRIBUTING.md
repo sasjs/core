@@ -21,6 +21,10 @@ To get configured:
 2.  Install local dependencies (`npm install`)
 3.  Install the SASjs CLI globally (`npm install -g @sasjs/cli`)
 4.  Add a target, and authentication (`npm add`).  See [docs](https://cli.sasjs.io/add/).
+5.  Activate the repository git hooks: `git config core.hooksPath ./.git-hooks`.  These run the
+    gitleaks secret scan, a commit-size guard, and `sasjs lint` before each commit.  Nothing
+    activates them automatically, so a clone that skips this step commits without the secret
+    scan (CI re-runs gitleaks as a backstop).
 
 To contribute:
 

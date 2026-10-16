@@ -3,7 +3,8 @@
   @brief Returns the type of the format
   @details
   Returns the type, eg DATE / DATETIME / TIME (based on hard-coded lookup)
-  else CHAR / NUM.
+  else CHAR / NUM.  The lookup lists live in mf_dttmfmts.sas, which is also
+  usable directly in open code.
 
   This macro may be extended in the future to support custom formats - this
   would necessitate a call to `dosubl()` for running a proc format with cntlout.
@@ -38,6 +39,7 @@
 
   <h4> SAS Macros </h4>
   @li mcf_init.sas
+  @li mf_dttmfmts.sas
 
   <h4> Related Programs </h4>
   @li mcf_getfmttype.test.sas
@@ -74,25 +76,10 @@ function mcf_getfmttype(fmtnm $) $8;
       else fmt=substr(fmt,1,length(fmt)-1);
     end;
 
-    /* apply lookups */
-    if cats(fmt) in ('DATETIME','B8601DN','B8601DN','B8601DT','B8601DT'
-      ,'B8601DZ','B8601DZ','DATEAMPM','DTDATE','DTMONYY','DTWKDATX','DTYEAR'
-      ,'DTYYQC','E8601DN','E8601DN','E8601DT','E8601DT','E8601DZ','E8601DZ'
-      ,'NLDATM') then return('DATETIME');
-    else if fmt in ('DATE','YYMMDD','B8601DA','B8601DA','DAY','DDMMYY'
-      ,'DDMMYYB','DDMMYYC','DDMMYYD','DDMMYYN','DDMMYYP','DDMMYYS','DDMMYYx'
-      ,'DOWNAME','E8601DA','E8601DA','JULDAY','JULIAN','MMDDYY','MMDDYYB'
-      ,'MMDDYYC','MMDDYYD','MMDDYYN','MMDDYYP','MMDDYYS','MMDDYYx','MMYY'
-      ,'MMYYC','MMYYD','MMYYN','MMYYP','MMYYS','MMYYx','MONNAME','MONTH'
-      ,'MONYY','PDJULG','PDJULI','QTR','QTRR','WEEKDATE','WEEKDATX','WEEKDAY'
-      ,'WEEKU','WEEKV','WEEKW','WORDDATE','WORDDATX','YEAR','YYMM','YYMMC'
-      ,'YYMMD','YYMMDDB','YYMMDDC','YYMMDDD','YYMMDDN','YYMMDDP','YYMMDDS'
-      ,'YYMMDDx','YYMMN','YYMMP','YYMMS','YYMMx','YYMON','YYQ','YYQC','YYQD'
-      ,'YYQN','YYQP','YYQR','YYQRC','YYQRD','YYQRN','YYQRP','YYQRS','YYQRx'
-      ,'YYQS','YYQx','YYQZ','NLDATE') then return('DATE');
-    else if fmt in ('TIME','B8601LZ','B8601LZ','B8601TM','B8601TM','B8601TZ'
-      ,'B8601TZ','E8601LZ','E8601LZ','E8601TM','E8601TM','E8601TZ','E8601TZ'
-      ,'HHMM','HOUR','MMSS','TIMEAMPM','TOD') then return('TIME');
+    /* apply lookups - the format lists live in mf_dttmfmts.sas */
+    if cats(fmt) in (%mf_dttmfmts(DATETIME)) then return('DATETIME');
+    else if cats(fmt) in (%mf_dttmfmts(DATE)) then return('DATE');
+    else if cats(fmt) in (%mf_dttmfmts(TIME)) then return('TIME');
     else return('NUM');
   end;
 endsub;

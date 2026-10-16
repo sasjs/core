@@ -30,6 +30,17 @@
   desc=Check DATETIME format
 )
 
+/* these prove the lookups really come from mf_dttmfmts - neither name starts
+  with DATE / TIME, so a prefix test would not find them */
+%mp_assert(
+  iftrue=(%sysfunc(mcf_getfmttype(MMDDYY9.))=DATE),
+  desc=Check date format that is not DATE-prefixed
+)
+%mp_assert(
+  iftrue=(%sysfunc(mcf_getfmttype(HHMM8.))=TIME),
+  desc=Check time format that is not TIME-prefixed
+)
+
 /* test 2 - compile again test for warnings */
 %mcf_getfmttype()
 

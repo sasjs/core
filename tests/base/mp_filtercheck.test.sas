@@ -230,3 +230,104 @@ run;
   test=HASOBS,
   outds=work.test_results
 )
+
+/* temporal literals are valid values for numeric columns */
+data work.dates;
+  length dt dtm tm 8;
+  format dt date9. dtm datetime20. tm time8.;
+  dt='20APR2042'd;
+  dtm='01JAN1960:00:00:42'dt;
+  tm='00:00:42't;
+run;
+
+data work.inds;
+  infile datalines4 dsd;
+  input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
+datalines4;
+AND,AND,1,dt,=,"'20APR2042'd"
+AND,AND,1,dt,NE,"'20APR2042'd"
+AND,AND,1,dtm,>=,"'01JAN1960:00:00:42'dt"
+AND,AND,1,tm,<,"'00:00:42't"
+AND,AND,1,dt,IN,"('20APR2042'd,'21APR2042'd)"
+AND,AND,1,dt,BETWEEN,"'20APR2042'd AND '21APR2042'd"
+;;;;
+run;
+
+%mp_filtercheck(work.inds,
+  targetds=work.dates,
+  outds=work.badrecords,
+  abort=NO
+)
+%let syscc=0;
+%mp_assertdsobs(work.badrecords,
+  desc=Temporal literals in RAW_VALUE,
+  test=EMPTY,
+  outds=work.test_results
+)
+
+/* a temporal literal is not valid for a character column */
+data work.inds;
+  infile datalines4 dsd;
+  input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
+datalines4;
+AND,AND,1,name,=,"'20APR2042'd"
+;;;;
+run;
+
+%mp_filtercheck(work.inds,
+  targetds=work.class,
+  outds=work.badrecords,
+  abort=NO
+)
+%let syscc=0;
+%mp_assertdsobs(work.badrecords,
+  desc=Temporal literal against a character column,
+  test=HASOBS,
+  outds=work.test_results
+)
+
+/* every value of an IN list is checked, not just the first */
+data work.inds;
+  infile datalines4 dsd;
+  input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
+datalines4;
+AND,AND,1,dt,IN,"('20APR2042'd,notanumber)"
+;;;;
+run;
+
+%mp_filtercheck(work.inds,
+  targetds=work.dates,
+  outds=work.badrecords,
+  abort=NO
+)
+%let syscc=0;
+%mp_assertdsobs(work.badrecords,
+  desc=Invalid value after the first in an IN list,
+  test=HASOBS,
+  outds=work.test_results
+)
+
+/* a suffix that is not temporal is still rejected */
+data work.inds;
+  infile datalines4 dsd;
+  input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
+datalines4;
+AND,AND,1,dt,=,"'20APR2042'x"
+;;;;
+run;
+
+%mp_filtercheck(work.inds,
+  targetds=work.dates,
+  outds=work.badrecords,
+  abort=NO
+)
+%let syscc=0;
+%mp_assertdsobs(work.badrecords,
+  desc=Non temporal literal suffix,
+  test=HASOBS,
+  outds=work.test_results
+)

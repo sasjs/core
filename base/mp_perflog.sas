@@ -15,6 +15,9 @@
   @param [in] libds= (work.mp_perflog) Provide a dataset in which to store
     performance stats.  Default name is <code>work.mp_perflog</code>;
 
+  <h4> SAS Macros </h4>
+  @li mf_existds.sas
+
   @version 9.2
   @author Allan Bowe
   @source https://github.com/sasjs/core

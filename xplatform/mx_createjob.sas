@@ -27,6 +27,7 @@ Usage:
   @li mm_createstp.sas
   @li ms_createfile.sas
   @li mv_createjob.sas
+  @li mf_getuniquefileref.sas
 
   @param [in,out] path= The full folder path where the job will be created
   @param [in,out] name= Job name.  Avoid spaces.

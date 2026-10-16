@@ -36,8 +36,6 @@
   <h4> SAS Macros </h4>
   @li mf_getuniquefileref.sas
   @li mf_getuniquename.sas
-  @li mp_abort.sas
-  @li mp_binarycopy.sas
   @li mp_chop.sas
   @li mp_ds2csv.sas
   @li ms_runstp.sas

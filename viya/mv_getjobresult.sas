@@ -86,6 +86,8 @@
   @li mp_binarycopy.sas
   @li mf_getplatform.sas
   @li mf_existfileref.sas
+  @li mf_getuniquefileref.sas
+  @li mf_getuniquelibref.sas
 
 **/
 

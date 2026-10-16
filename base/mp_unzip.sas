@@ -23,7 +23,6 @@
   <h4> SAS Macros </h4>
   @li mf_mkdir.sas
   @li mf_getuniquefileref.sas
-  @li mp_binarycopy.sas
 
   @version 9.4
   @author Allan Bowe

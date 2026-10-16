@@ -26,8 +26,6 @@
   @li mf_getuniquelibref.sas
   @li mf_getuniquename.sas
   @li mf_getvalue.sas
-  @li mf_getvarlist.sas
-  @li mf_getvartype.sas
   @li mf_isblank.sas
   @li mf_nobs.sas
   @li mp_abort.sas

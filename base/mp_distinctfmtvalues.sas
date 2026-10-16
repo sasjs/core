@@ -13,6 +13,10 @@
   @param [out] outds= (work.mp_distinctfmtvalues) dataset to create.
   @param [in] varlen= (2000) length of variable to create
 
+  <h4> SAS Macros </h4>
+  @li mf_getvarformat.sas
+  @li mf_getvartype.sas
+
   @version 9.2
   @author Allan Bowe
 

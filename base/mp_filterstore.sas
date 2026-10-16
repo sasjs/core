@@ -60,6 +60,7 @@
   @li mp_filtercheck.sas
   @li mp_hashdataset.sas
   @li mp_retainedkey.sas
+  @li mp_lockanytable.sas
 
   <h4> Related Macros </h4>
   @li mp_filtercheck.sas

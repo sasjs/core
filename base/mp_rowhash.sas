@@ -23,6 +23,9 @@
   @param [in] cvars= Space separated list of character variables to hash.
   @param [in] nvars= Space separated list of numeric variables to hash.
 
+  <h4> SAS Macros </h4>
+  @li mf_getuniquename.sas
+
   @version 9.3M5
   @author Allan Bowe
 **/

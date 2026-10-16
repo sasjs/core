@@ -61,9 +61,9 @@
   <h4> SAS Macros </h4>
   @li mf_getuniquefileref.sas
   @li mf_getuniquename.sas
+  @li mp_abort.sas
 
   <h4> Related Macros </h4>
-  @li mp_abort.sas
   @li mp_gsubfile.sas
   @li mp_replace.sas
   @li mp_chop.test.sas

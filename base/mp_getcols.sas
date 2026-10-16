@@ -6,7 +6,8 @@
 
     @li Blank labels are filled in with column names
     @li Formats are reconstructed with default values
-    @li Types such as DATE / TIME / DATETIME are inferred from the formats
+    @li Types such as DATE / TIME / DATETIME are inferred from the formats,
+      using mf_dttmfmts.sas so every caller shares one set of format lists
 
   Example usage:
 
@@ -20,6 +21,9 @@
 |`DATE `|`8 `|`1 `|`DATE `|`MONYY `|`MONYY. `|`N `|`DATE `|
 |`REGION `|`3 `|`3 `|`REGION `|` `|`$3. `|`C `|`CHARACTER `|
 
+
+  <h4> SAS Macros </h4>
+  @li mf_dttmfmts.sas
 
   <h4> Related Macros </h4>
   @li mf_getvarlist.sas
@@ -53,13 +57,9 @@ data &outds(keep=name type length varnum format label ddtype fmtname);
     else if formatd=0 then format=cats(fmtname,formatl,'.');
     else format=cats(fmtname,formatl,'.',formatd);
     type='N';
-    if format=:'DATETIME' or format=:'E8601DT' or format=:'NLDATM'
-    then ddtype='DATETIME';
-    else if format=:'DATE' or format=:'DDMMYY' or format=:'MMDDYY'
-      or format=:'YYMMDD' or format=:'E8601DA' or format=:'B8601DA'
-      or format=:'MONYY' or format=:'NLDATE'
-    then ddtype='DATE';
-    else if format=:'TIME' then ddtype='TIME';
+    if upcase(fmtname) in (%mf_dttmfmts(DATETIME)) then ddtype='DATETIME';
+    else if upcase(fmtname) in (%mf_dttmfmts(DATE)) then ddtype='DATE';
+    else if upcase(fmtname) in (%mf_dttmfmts(TIME)) then ddtype='TIME';
     else ddtype='NUMERIC';
   end;
   if label='' then label=name;

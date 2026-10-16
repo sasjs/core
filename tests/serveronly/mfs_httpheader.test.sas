@@ -9,15 +9,15 @@
 
 **/
 
-%let orig_sasjs_stpsrv_header_loc=&sasjs_stpsrv_header_loc;
-%let sasjs_stpsrv_header_loc=%sysfunc(pathname(work))/header.txt;
+%let orig_webout_headers=&_sasjs_webout_headers;
+%let _sasjs_webout_headers=%sysfunc(pathname(work))/header.txt;
 
 %mp_assertscope(SNAPSHOT)
 %mfs_httpheader(Content-Type,application/csv)
-%mp_assertscope(COMPARE,ignorelist=sasjs_stpsrv_header_loc)
+%mp_assertscope(COMPARE,ignorelist=_sasjs_webout_headers)
 
 data _null_;
-  infile "&sasjs_stpsrv_header_loc";
+  infile "&_sasjs_webout_headers";
   input;
   if _n_=1 then call symputx('test1',_infile_);
 run;
@@ -36,7 +36,7 @@ run;
 %mfs_httpheader(Content-Type,application/text)
 %let test2=0;
 data _null_;
-  infile "&sasjs_stpsrv_header_loc";
+  infile "&_sasjs_webout_headers";
   input;
   if _n_=2 then call symputx('test2',_infile_);
 run;
@@ -54,4 +54,4 @@ run;
 
 
 /* reset header so the test will pass */
-%let sasjs_stpsrv_header_loc=&orig_sasjs_stpsrv_header_loc;
+%let _sasjs_webout_headers=&orig_webout_headers;

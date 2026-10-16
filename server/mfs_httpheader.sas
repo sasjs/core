@@ -8,7 +8,7 @@
   the server.
 
   The location of this file is driven by the global variable
-  `sasjs_stpsrv_header_loc` which is made available in the autoexec.
+  `_sasjs_webout_headers` which is made available in the autoexec.
 
   Usage:
 
@@ -28,11 +28,11 @@
 %macro mfs_httpheader(header_name
   ,header_value
 )/*/STORE SOURCE*/;
-%global sasjs_stpsrv_header_loc;
+%global _sasjs_webout_headers;
 %local fref fid i;
 
-%if %sysfunc(filename(fref,&sasjs_stpsrv_header_loc)) ne 0 %then %do;
-  %put &=fref &=sasjs_stpsrv_header_loc;
+%if %sysfunc(filename(fref,&_sasjs_webout_headers)) ne 0 %then %do;
+  %put &=fref &=_sasjs_webout_headers;
   %put %str(ERR)OR: %sysfunc(sysmsg());
   %return;
 %end;

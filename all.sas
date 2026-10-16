@@ -2933,7 +2933,7 @@ Usage:
   , mode=REGULAR
 )/*/STORE SOURCE*/;
 
-%global sysprocessmode sysprocessname sasjs_stpsrv_header_loc sasjsprocessmode;
+%global sysprocessmode sysprocessname _sasjs_webout_headers sasjsprocessmode;
 %local fref fid i;
 
 %if not(%eval(%unquote(&iftrue))) %then %return;
@@ -3038,7 +3038,7 @@ and %superq(SYSPROCESSNAME) ne %str(Compute Server)
         name="_webout.json" lrecl=999999 mod;
     %end;
   %end;
-  %else %if %sysfunc(filename(fref,&sasjs_stpsrv_header_loc))=0 %then %do;
+  %else %if %sysfunc(filename(fref,&_sasjs_webout_headers))=0 %then %do;
     options nobomfile;
     /* set up http header for SASjs Server */
     %let fid=%sysfunc(fopen(&fref,A));
@@ -21716,7 +21716,7 @@ run;
   the server.
 
   The location of this file is driven by the global variable
-  `sasjs_stpsrv_header_loc` which is made available in the autoexec.
+  `_sasjs_webout_headers` which is made available in the autoexec.
 
   Usage:
 
@@ -21736,11 +21736,11 @@ run;
 %macro mfs_httpheader(header_name
   ,header_value
 )/*/STORE SOURCE*/;
-%global sasjs_stpsrv_header_loc;
+%global _sasjs_webout_headers;
 %local fref fid i;
 
-%if %sysfunc(filename(fref,&sasjs_stpsrv_header_loc)) ne 0 %then %do;
-  %put &=fref &=sasjs_stpsrv_header_loc;
+%if %sysfunc(filename(fref,&_sasjs_webout_headers)) ne 0 %then %do;
+  %put &=fref &=_sasjs_webout_headers;
   %put %str(ERR)OR: %sysfunc(sysmsg());
   %return;
 %end;
@@ -22922,11 +22922,11 @@ data _null_;
   put '%macro mfs_httpheader(header_name ';
   put '  ,header_value ';
   put ')/*/STORE SOURCE*/; ';
-  put '%global sasjs_stpsrv_header_loc; ';
+  put '%global _sasjs_webout_headers; ';
   put '%local fref fid i; ';
   put ' ';
-  put '%if %sysfunc(filename(fref,&sasjs_stpsrv_header_loc)) ne 0 %then %do; ';
-  put '  %put &=fref &=sasjs_stpsrv_header_loc; ';
+  put '%if %sysfunc(filename(fref,&_sasjs_webout_headers)) ne 0 %then %do; ';
+  put '  %put &=fref &=_sasjs_webout_headers; ';
   put '  %put %str(ERR)OR: %sysfunc(sysmsg()); ';
   put '  %return; ';
   put '%end; ';

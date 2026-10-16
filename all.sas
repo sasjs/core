@@ -408,6 +408,9 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
   @param [in] libds 2 part dataset or view reference
   @param [in] varlist space separated variable names
 
+  <h4> SAS Macros </h4>
+  @li mf_abort.sas
+
   @version 9.2
   @author Allan Bowe
   @cond
@@ -4440,9 +4443,9 @@ run;
   <h4> SAS Macros </h4>
   @li mf_getuniquefileref.sas
   @li mf_getuniquename.sas
+  @li mp_abort.sas
 
   <h4> Related Macros </h4>
-  @li mp_abort.sas
   @li mp_gsubfile.sas
   @li mp_replace.sas
   @li mp_chop.test.sas
@@ -5519,6 +5522,10 @@ drop table &out_ds;
   @param [out] outvar= (formatteed_value) variable to create.
   @param [out] outds= (work.mp_distinctfmtvalues) dataset to create.
   @param [in] varlen= (2000) length of variable to create
+
+  <h4> SAS Macros </h4>
+  @li mf_getvarformat.sas
+  @li mf_getvartype.sas
 
   @version 9.2
   @author Allan Bowe
@@ -7657,6 +7664,7 @@ filename &outref temp;
   @li mp_filtercheck.sas
   @li mp_hashdataset.sas
   @li mp_retainedkey.sas
+  @li mp_lockanytable.sas
 
   <h4> Related Macros </h4>
   @li mp_filtercheck.sas
@@ -8773,6 +8781,7 @@ create table &outds (rename=(
   @li mf_getschema.sas
   @li mp_dropmembers.sas
   @li mp_getconstraints.sas
+  @li mf_getuniquename.sas
 
   <h4> Related Macros </h4>
   @li mp_getpk.test.sas
@@ -11473,7 +11482,6 @@ lock &libds clear;
   @li mf_getvarlist.sas
   @li mf_islibds.sas
   @li mf_nobs.sas
-  @li mp_getcols.sas
   @li mp_getpk.sas
 
   <h4> Related Macros </h4>
@@ -11619,6 +11627,9 @@ put(md5(
   @param [in] label Provide label to go into the control dataset
   @param [in] libds= (work.mp_perflog) Provide a dataset in which to store
     performance stats.  Default name is <code>work.mp_perflog</code>;
+
+  <h4> SAS Macros </h4>
+  @li mf_existds.sas
 
   @version 9.2
   @author Allan Bowe
@@ -12103,7 +12114,6 @@ https://blogs.sas.com/content/sastraining/2012/08/14/jedi-sas-tricks-reset-sas-s
   @li mf_fmtdttm.sas
   @li mf_getquotedstr.sas
   @li mf_getuniquename.sas
-  @li mf_nobs.sas
   @li mp_abort.sas
   @li mp_lockanytable.sas
 
@@ -12312,6 +12322,9 @@ run;
   @param [in] md5_col= Name of the output hash column.
   @param [in] cvars= Space separated list of character variables to hash.
   @param [in] nvars= Space separated list of numeric variables to hash.
+
+  <h4> SAS Macros </h4>
+  @li mf_getuniquename.sas
 
   @version 9.3M5
   @author Allan Bowe
@@ -13029,6 +13042,7 @@ run;
   @li mf_wordsinstr1butnotstr2.sas
   @li mp_abort.sas
   @li mp_ds2squeeze.sas
+  @li mf_getvarlist.sas
 
   <h4> Related Macros </h4>
   @li mddl_dc_difftable.sas
@@ -14441,7 +14455,6 @@ run;
   <h4> SAS Macros </h4>
   @li mf_mkdir.sas
   @li mf_getuniquefileref.sas
-  @li mp_binarycopy.sas
 
   @version 9.4
   @author Allan Bowe
@@ -16069,6 +16082,7 @@ run;
   @li mm_getlibs.sas
   @li mm_gettables.sas
   @li mm_getcols.sas
+  @li mf_nobs.sas
 
   @param [in] libds= library.dataset metadata source.  Note - table names in metadata
     can be longer than 32 chars (just fyi, not an issue here)
@@ -16447,6 +16461,7 @@ run;
   <h4> SAS Macros </h4>
   @li mf_verifymacvars.sas
   @li mm_createfolder.sas
+  @li mp_abort.sas
 
 
   @param [in] libname= (My New Library) Library name (as displayed to user,
@@ -19853,6 +19868,7 @@ run;
 
   <h4> SAS Macros </h4>
   @li mm_gettree.sas
+  @li mf_nobs.sas
 
   @param [in] tree= () the metadata folder location in which to search.
       Leave blank for all folders.  Does not search subdirectories.
@@ -21313,6 +21329,7 @@ run;
 
   <h4> SAS Macros </h4>
   @li mp_jsonout.sas
+  @li mf_getuser.sas
 
   <h4> Related Macros </h4>
   @li ms_webout.sas
@@ -22333,7 +22350,6 @@ options &optval;
   <h4> SAS Macros </h4>
   @li ms_createfile.sas
   @li mf_getuser.sas
-  @li mf_getuniquename.sas
   @li mf_getuniquefileref.sas
   @li mp_abort.sas
 
@@ -23626,8 +23642,6 @@ options &optval;
   <h4> SAS Macros </h4>
   @li mf_getuniquefileref.sas
   @li mf_getuniquename.sas
-  @li mp_abort.sas
-  @li mp_binarycopy.sas
   @li mp_chop.sas
   @li mp_ds2csv.sas
   @li ms_runstp.sas
@@ -24972,6 +24986,7 @@ quit;
   @li mp_replace.sas
   @li mv_createfolder.sas
   @li mv_getviyafileextparms.sas
+  @li mf_getuniquelibref.sas
 
   <h4> Related Macros</h4>
   @li mv_createfile.sas
@@ -28346,6 +28361,8 @@ run;
   @li mp_binarycopy.sas
   @li mf_getplatform.sas
   @li mf_existfileref.sas
+  @li mf_getuniquefileref.sas
+  @li mf_getuniquelibref.sas
 
 **/
 
@@ -28930,8 +28947,6 @@ libname &libref1 clear;
   @li mf_getuniquelibref.sas
   @li mf_getuniquename.sas
   @li mf_getvalue.sas
-  @li mf_getvarlist.sas
-  @li mf_getvartype.sas
   @li mf_isblank.sas
   @li mf_nobs.sas
   @li mp_abort.sas
@@ -29852,6 +29867,15 @@ data;run;%let jdswaitfor=&syslast;
     (default=work.mv_jobexecute)
   @param [out] outref= A fileref to which the spawned job logs should be
     appended.
+
+  <h4> SAS Macros </h4>
+  @li mp_abort.sas
+  @li mf_existvar.sas
+  @li mf_nobs.sas
+  @li mf_getplatform.sas
+  @li mf_getuniquefileref.sas
+  @li mf_getuniquelibref.sas
+  @li mv_getjoblog.sas
 
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
@@ -31718,7 +31742,6 @@ endsub;
   @li mf_getuniquefileref.sas
   @li mm_createstp.sas
   @li mm_deletestp.sas
-  @li mm_getstpcode.sas
   @li ms_createfile.sas
   @li ms_deletefile.sas
   @li mv_createfile.sas
@@ -31982,6 +32005,7 @@ Usage:
   @li mm_createstp.sas
   @li ms_createfile.sas
   @li mv_createjob.sas
+  @li mf_getuniquefileref.sas
 
   @param [in,out] path= The full folder path where the job will be created
   @param [in,out] name= Job name.  Avoid spaces.
@@ -32205,11 +32229,11 @@ Usage:
   @li mf_getuniquename.sas
   @li mp_abort.sas
   @li mp_binarycopy.sas
-  @li mp_chop.sas
   @li mp_ds2csv.sas
   @li ms_testservice.sas
   @li mv_getjobresult.sas
   @li mv_jobflow.sas
+  @li mf_nobs.sas
 
   <h4> Related Programs </h4>
   @li mx_execute.test.sas

@@ -7164,7 +7164,7 @@ data &outds;
     OPERATOR_NM $10 RAW_VALUE $4000;*/
   set &inds end=last;
   length reason_cd $4032 vtype vtype2 $1 vnum dsid 8 tmp $4000 re_temporal 8;
-  drop tmp;
+  drop tmp re_temporal;
   retain re_temporal;
   /* SAS temporal literals - date, datetime and time */
   if _n_=1 then re_temporal=prxparse("/^'[^']*'(dt|d|t)$/i");
@@ -7298,24 +7298,32 @@ data &outds;
     if vtype='N' then do i=1 to countc(raw_value1, ',')+1;
       tmp=scan(raw_value1,i,',');
       if cats(tmp) ne '.' and input(tmp, ?? 8.) eq . then do;
-        if prxmatch(re_temporal,cats(tmp))>0 then do;
-          /* valid SAS temporal literal (eg '20APR2042'd) */
-        end;
-        else if OPERATOR_NM ='BETWEEN' and subpad(upcase(tmp),1,1) in (
-          'A','B','C','D','E','F','G','H','I','J','K','L','M','N'
-          'N','O','P','Q','R','S','T','U','V','W','X','Y','Z','_'
-        )
-        then do;
-          /* check if the raw_value contains a valid variable NAME */
-          /* is not valid syntax for IN or NOT IN */
-          vnum=varnum(dsid,subpad(tmp,1,32));
-          if vnum>0 then do;
-            /* now we can get the type */
-            vtype2=vartype(dsid,vnum);
-            /* check type matches */
-            if vtype2 ne vtype then do;
-              REASON_CD=cats("Compared Type (",vtype2,") is not (",vtype,")");
-              putlog REASON_CD= dsid=;
+        /* a SAS temporal literal is a valid value for a numeric column */
+        if prxmatch(re_temporal,cats(tmp))=0 then do;
+          if OPERATOR_NM ='BETWEEN' and subpad(upcase(tmp),1,1) in (
+            'A','B','C','D','E','F','G','H','I','J','K','L','M','N'
+            'N','O','P','Q','R','S','T','U','V','W','X','Y','Z','_'
+          )
+          then do;
+            /* check if the raw_value contains a valid variable NAME */
+            /* is not valid syntax for IN or NOT IN */
+            vnum=varnum(dsid,subpad(tmp,1,32));
+            if vnum>0 then do;
+              /* now we can get the type */
+              vtype2=vartype(dsid,vnum);
+              /* check type matches */
+              if vtype2 ne vtype then do;
+                REASON_CD=cats("Compared Type (",vtype2,") is not (",vtype,")");
+                putlog REASON_CD= dsid=;
+                call symputx('reason_cd',reason_cd,'l');
+                call symputx('nobs',_n_,'l');
+                output;
+                goto endstep;
+              end;
+            end;
+            else do;
+              REASON_CD='Non Numeric value provided';
+              putlog REASON_CD= OPERATOR_NM= raw_value= raw_value1= ;
               call symputx('reason_cd',reason_cd,'l');
               call symputx('nobs',_n_,'l');
               output;
@@ -7329,18 +7337,12 @@ data &outds;
             output;
           end;
         end;
-        else do;
-          REASON_CD='Non Numeric value provided';
-          putlog REASON_CD= OPERATOR_NM= raw_value= raw_value1= ;
-          call symputx('reason_cd',reason_cd,'l');
-          call symputx('nobs',_n_,'l');
-          output;
-        end;
       end;
     end;
-    /* the values of a numeric IN / BETWEEN list are checked one by one above,
-      so skip the generic check below - it would flag the list brackets */
-    return;
+    /* every value of a numeric IN / BETWEEN list is checked one by one above,
+      so a numeric list skips the generic check below - that would only flag
+      the list syntax itself.  A character list is unchanged. */
+    if vtype='N' then return;
   end;
   else raw_value1=raw_value;
 

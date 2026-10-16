@@ -39,7 +39,6 @@
   @li mf_getuniquefileref.sas
   @li mm_createstp.sas
   @li mm_deletestp.sas
-  @li mm_getstpcode.sas
   @li ms_createfile.sas
   @li ms_deletefile.sas
   @li mv_createfile.sas

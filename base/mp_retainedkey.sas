@@ -61,7 +61,6 @@
   @li mf_fmtdttm.sas
   @li mf_getquotedstr.sas
   @li mf_getuniquename.sas
-  @li mf_nobs.sas
   @li mp_abort.sas
   @li mp_lockanytable.sas
 

@@ -21,6 +21,7 @@
   @li mm_getlibs.sas
   @li mm_gettables.sas
   @li mm_getcols.sas
+  @li mf_nobs.sas
 
   @param [in] libds= library.dataset metadata source.  Note - table names in metadata
     can be longer than 32 chars (just fyi, not an issue here)

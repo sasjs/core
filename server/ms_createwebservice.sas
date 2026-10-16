@@ -43,7 +43,6 @@
   <h4> SAS Macros </h4>
   @li ms_createfile.sas
   @li mf_getuser.sas
-  @li mf_getuniquename.sas
   @li mf_getuniquefileref.sas
   @li mp_abort.sas
 

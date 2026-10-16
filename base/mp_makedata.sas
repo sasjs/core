@@ -36,7 +36,6 @@
   @li mf_getvarlist.sas
   @li mf_islibds.sas
   @li mf_nobs.sas
-  @li mp_getcols.sas
   @li mp_getpk.sas
 
   <h4> Related Macros </h4>

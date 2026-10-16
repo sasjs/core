@@ -42,6 +42,7 @@
 
   <h4> SAS Macros </h4>
   @li mp_jsonout.sas
+  @li mf_getuser.sas
 
   <h4> Related Macros </h4>
   @li ms_webout.sas

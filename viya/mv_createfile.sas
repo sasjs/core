@@ -70,6 +70,7 @@
   @li mp_replace.sas
   @li mv_createfolder.sas
   @li mv_getviyafileextparms.sas
+  @li mf_getuniquelibref.sas
 
   <h4> Related Macros</h4>
   @li mv_createfile.sas

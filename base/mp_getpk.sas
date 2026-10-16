@@ -39,6 +39,7 @@
   @li mf_getschema.sas
   @li mp_dropmembers.sas
   @li mp_getconstraints.sas
+  @li mf_getuniquename.sas
 
   <h4> Related Macros </h4>
   @li mp_getpk.test.sas

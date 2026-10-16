@@ -81,6 +81,15 @@
   @param [out] outref= A fileref to which the spawned job logs should be
     appended.
 
+  <h4> SAS Macros </h4>
+  @li mp_abort.sas
+  @li mf_existvar.sas
+  @li mf_nobs.sas
+  @li mf_getplatform.sas
+  @li mf_getuniquefileref.sas
+  @li mf_getuniquelibref.sas
+  @li mv_getjoblog.sas
+
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
 

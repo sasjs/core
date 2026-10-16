@@ -22,6 +22,7 @@
   <h4> SAS Macros </h4>
   @li mf_verifymacvars.sas
   @li mm_createfolder.sas
+  @li mp_abort.sas
 
 
   @param [in] libname= (My New Library) Library name (as displayed to user,

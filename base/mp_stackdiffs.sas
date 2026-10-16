@@ -192,6 +192,7 @@
   @li mf_wordsinstr1butnotstr2.sas
   @li mp_abort.sas
   @li mp_ds2squeeze.sas
+  @li mf_getvarlist.sas
 
   <h4> Related Macros </h4>
   @li mddl_dc_difftable.sas

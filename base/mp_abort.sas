@@ -66,7 +66,7 @@
   , mode=REGULAR
 )/*/STORE SOURCE*/;
 
-%global sysprocessmode sysprocessname sasjs_stpsrv_header_loc sasjsprocessmode;
+%global sysprocessmode sysprocessname _sasjs_webout_headers sasjsprocessmode;
 %local fref fid i;
 
 %if not(%eval(%unquote(&iftrue))) %then %return;
@@ -171,7 +171,7 @@ and %superq(SYSPROCESSNAME) ne %str(Compute Server)
         name="_webout.json" lrecl=999999 mod;
     %end;
   %end;
-  %else %if %sysfunc(filename(fref,&sasjs_stpsrv_header_loc))=0 %then %do;
+  %else %if %sysfunc(filename(fref,&_sasjs_webout_headers))=0 %then %do;
     options nobomfile;
     /* set up http header for SASjs Server */
     %let fid=%sysfunc(fopen(&fref,A));

@@ -331,3 +331,41 @@ run;
   test=HASOBS,
   outds=work.test_results
 )
+
+/* a character IN list is still validated - only a numeric list takes the
+  value-by-value path and skips the generic check */
+data work.inds;
+  infile datalines4 dsd;
+  input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
+datalines4;
+AND,AND,1,name,IN,"(Alfred,Alice)"
+;;;;;
+run;
+
+%mp_filtercheck(work.inds,
+  targetds=work.class,
+  outds=work.badrecords,
+  abort=NO
+)
+%let syscc=0;
+%mp_assertdsobs(work.badrecords,
+  desc=Character IN list is still validated,
+  test=HASOBS,
+  outds=work.test_results
+)
+
+/* the regex id is a working variable - it must not leak into the output */
+%let re_temporal_col=1;
+data _null_;
+  dsid=open('work.badrecords','i');
+  if dsid>0 then do;
+    call symputx('re_temporal_col',(varnum(dsid,'RE_TEMPORAL')>0));
+    rc=close(dsid);
+  end;
+run;
+%mp_assert(iftrue=(&re_temporal_col=0),
+  desc=re_temporal is not in the bad records table,
+  outds=work.test_results
+)
+

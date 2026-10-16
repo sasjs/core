@@ -7097,7 +7097,9 @@ drop table &ds1, &ds2;
   @li SUBGROUP_ID - only integers
   @li VARIABLE_NM - must be in the target table
   @li OPERATOR_NM - only =/>/</<=/>=/BETWEEN/IN/NOT IN/NE/CONTAINS
-  @li RAW_VALUE - no unquoted values except integers, commas and spaces.
+  @li RAW_VALUE - no unquoted values except integers, commas and spaces.  For
+    numeric columns, SAS date, datetime and time literals are also accepted, eg
+    '20APR2042'd, '01JAN1960:00:00:42'dt, '00:00:42't.
 
   @returns The &outds table containing any bad rows, plus a REASON_CD column.
 
@@ -7127,7 +7129,7 @@ drop table &ds1, &ds2;
   @version 9.3
   @author Allan Bowe
 
-  @todo Support date / hex / name literals and exponents in RAW_VALUE field
+  @todo Support hex / name literals and exponents in RAW_VALUE field
 **/
 
 %macro mp_filtercheck(inds,targetds=,outds=work.badrecords,abort=YES);
@@ -7161,8 +7163,11 @@ data &outds;
   /*length GROUP_LOGIC SUBGROUP_LOGIC $3 SUBGROUP_ID 8 VARIABLE_NM $32
     OPERATOR_NM $10 RAW_VALUE $4000;*/
   set &inds end=last;
-  length reason_cd $4032 vtype vtype2 $1 vnum dsid 8 tmp $4000;
-  drop tmp;
+  length reason_cd $4032 vtype vtype2 $1 vnum dsid 8 tmp $4000 re_temporal 8;
+  drop tmp re_temporal;
+  retain re_temporal;
+  /* SAS temporal literals - date, datetime and time */
+  if _n_=1 then re_temporal=prxparse("/^'[^']*'(dt|d|t)$/i");
 
   /* quick check to ensure column exists */
   if upcase(VARIABLE_NM) not in
@@ -7271,6 +7276,9 @@ data &outds;
     end;
   end;
 
+  /* a SAS temporal literal is a valid value for a numeric column */
+  if vtype='N' and prxmatch(re_temporal,cats(raw_value))>0 then return;
+
   /* special logic */
   if OPERATOR_NM in ('IN','NOT IN','BETWEEN') then do;
     if OPERATOR_NM='BETWEEN' then raw_value1=tranwrd(raw_value,' AND ',',');
@@ -7290,40 +7298,51 @@ data &outds;
     if vtype='N' then do i=1 to countc(raw_value1, ',')+1;
       tmp=scan(raw_value1,i,',');
       if cats(tmp) ne '.' and input(tmp, ?? 8.) eq . then do;
-        if OPERATOR_NM ='BETWEEN' and subpad(upcase(tmp),1,1) in (
-          'A','B','C','D','E','F','G','H','I','J','K','L','M','N'
-          'N','O','P','Q','R','S','T','U','V','W','X','Y','Z','_'
-        )
-        then do;
-          /* check if the raw_value contains a valid variable NAME */
-          /* is not valid syntax for IN or NOT IN */
-          vnum=varnum(dsid,subpad(tmp,1,32));
-          if vnum>0 then do;
-            /* now we can get the type */
-            vtype2=vartype(dsid,vnum);
-            /* check type matches */
-            if vtype2=vtype then do;
-              /* valid target var - exit loop */
-              return;
+        /* a SAS temporal literal is a valid value for a numeric column */
+        if prxmatch(re_temporal,cats(tmp))=0 then do;
+          if OPERATOR_NM ='BETWEEN' and subpad(upcase(tmp),1,1) in (
+            'A','B','C','D','E','F','G','H','I','J','K','L','M','N'
+            'N','O','P','Q','R','S','T','U','V','W','X','Y','Z','_'
+          )
+          then do;
+            /* check if the raw_value contains a valid variable NAME */
+            /* is not valid syntax for IN or NOT IN */
+            vnum=varnum(dsid,subpad(tmp,1,32));
+            if vnum>0 then do;
+              /* now we can get the type */
+              vtype2=vartype(dsid,vnum);
+              /* check type matches */
+              if vtype2 ne vtype then do;
+                REASON_CD=cats("Compared Type (",vtype2,") is not (",vtype,")");
+                putlog REASON_CD= dsid=;
+                call symputx('reason_cd',reason_cd,'l');
+                call symputx('nobs',_n_,'l');
+                output;
+                goto endstep;
+              end;
             end;
             else do;
-              REASON_CD=cats("Compared Type (",vtype2,") is not (",vtype,")");
-              putlog REASON_CD= dsid=;
+              REASON_CD='Non Numeric value provided';
+              putlog REASON_CD= OPERATOR_NM= raw_value= raw_value1= ;
               call symputx('reason_cd',reason_cd,'l');
               call symputx('nobs',_n_,'l');
               output;
-              goto endstep;
             end;
           end;
+          else do;
+            REASON_CD='Non Numeric value provided';
+            putlog REASON_CD= OPERATOR_NM= raw_value= raw_value1= ;
+            call symputx('reason_cd',reason_cd,'l');
+            call symputx('nobs',_n_,'l');
+            output;
+          end;
         end;
-        REASON_CD='Non Numeric value provided';
-        putlog REASON_CD= OPERATOR_NM= raw_value= raw_value1= ;
-        call symputx('reason_cd',reason_cd,'l');
-        call symputx('nobs',_n_,'l');
-        output;
       end;
-      return;
     end;
+    /* every value of a numeric IN / BETWEEN list is checked one by one above,
+      so a numeric list skips the generic check below - that would only flag
+      the list syntax itself.  A character list is unchanged. */
+    if vtype='N' then return;
   end;
   else raw_value1=raw_value;
 

@@ -7619,6 +7619,11 @@ filename &outref temp;
 
   @param [in] libds= The target dataset to be filtered (lib should be assigned).
     If filtering a format catalog, add the following suffix:  `-FC`.
+  @param [in] targetds= (&libds) The dataset against which VARIABLE_NM values
+    are validated.  Defaults to &libds, which is the correct behaviour for
+    physical columns.  Supply a view that adds computed columns when the filter
+    may reference variables that do not exist in the physical table - the
+    filter is still stored against &libds.
   @param [in] queryds= (WORK.FILTERQUERY) The temporary input query dataset to
     be validated.  Has the following format:
 |GROUP_LOGIC:$3|SUBGROUP_LOGIC:$3|SUBGROUP_ID:8.|VARIABLE_NM:$32|OPERATOR_NM:$10|RAW_VALUE:$32767|
@@ -7678,6 +7683,7 @@ filename &outref temp;
 **/
 
 %macro mp_filterstore(libds=,
+  targetds=,
   queryds=work.filterquery,
   filter_summary=PERM.FILTER_SUMMARY,
   filter_detail=PERM.FILTER_DETAIL,
@@ -7690,7 +7696,7 @@ filename &outref temp;
 %put &sysmacroname entry vars:;
 %put _local_;
 
-%local ds0 ds1 ds2 ds3 ds4 filter_hash orig_libds;
+%local ds0 ds1 ds2 ds3 ds4 filter_hash orig_libds targetds_used;
 %let libds=%upcase(&libds);
 %let orig_libds=&libds;
 
@@ -7727,7 +7733,13 @@ filename &outref temp;
   %mddl_sas_cntlout(libds=&ds0)
 
 %end;
-%mp_filtercheck(&queryds,targetds=&libds,abort=YES)
+
+/* the validation target defaults to the (possibly rewritten) libds, so that
+  computed columns can be validated against a view when required */
+%if %length(&targetds)>0 %then %let targetds_used=&targetds;
+%else %let targetds_used=&libds;
+
+%mp_filtercheck(&queryds,targetds=&targetds_used,abort=YES)
 
 /* hash the result */
 %let ds1=%mf_getuniquename(prefix=hashds);

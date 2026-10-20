@@ -5279,7 +5279,8 @@ run;
   reserved=0
 );
 
-%local physlist derived_err resv_list i w left nready;
+%local physlist derived_err resv_list i w left nready
+  cyc_start cyc_cur cyc_next cyc_path cyc_seen cyc_i;
 
 %mp_abort(iftrue= (%length(&libds)=0 or %length(&control)=0)
   ,mac=&sysmacroname
@@ -5554,17 +5555,36 @@ run;
 
   %let nready=%mf_nobs(work.derived_ready);
   %if &nready=0 %then %do;
+    /* walk the edges, so the message names the cycle rather than just the
+      names that could not be placed */
     data _null_;
-      length list $4000;
-      do until (eof);
-        set work.derived_todo end=eof;
-        list=catx(', ',list,name);
-      end;
-      call symputx('derived_err',list);
+      set work.derived_todo(obs=1);
+      call symputx('cyc_start',name);
     run;
+    %let cyc_path=&cyc_start;
+    %let cyc_cur=&cyc_start;
+    %let cyc_seen=%str(.&cyc_start..);
+    %do cyc_i=1 %to &left;
+      %let cyc_next=;
+      proc sql noprint;
+        select e.parent into: cyc_next
+        from work.derived_edge e
+        where e.child="&cyc_cur"
+          and e.parent in (select name from work.derived_todo);
+      quit;
+      %if %length(&cyc_next)=0 %then %let cyc_i=&left;
+      %else %do;
+        %let cyc_path=&cyc_path. -> &cyc_next;
+        %if %index(&cyc_seen,%str(.&cyc_next..))>0 %then %let cyc_i=&left;
+        %else %do;
+          %let cyc_seen=&cyc_seen.&cyc_next..;
+          %let cyc_cur=&cyc_next;
+        %end;
+      %end;
+    %end;
     %mp_abort(iftrue=1
       ,mac=&sysmacroname
-      ,msg=%str(VAR_DEPENDENCIES contains a cycle - unresolved: &derived_err)
+      ,msg=%str(VAR_DEPENDENCIES contains a cycle: &cyc_path)
     )
   %end;
 

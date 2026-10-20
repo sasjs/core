@@ -28,21 +28,26 @@
       REGION = <expression>;
 
   Type and length are declared in the control table, so the result is
-  deterministic.  The label is the variable name, an equals sign, and the
+  deterministic.  The label is the variable name, an equals sign and the
   expression - so a reader can see both what the column is and where it comes
   from.
 
-  Statements are generated in VAR_ORDER sequence, so a derived variable may
-  reference another derived variable with a lower order.  A reference to a
-  variable that is not defined earlier is rejected, because SAS would
-  otherwise treat it as an uninitialised variable and return a missing value
-  without an error.  Semicolons, macro triggers and comments are rejected, so
-  a row can only ever be an expression.
+  VAR_DEPENDENCIES lists every input the expression uses - physical columns
+  and derived variables alike.  The order the statements are generated in is
+  the dependency order (variables with no unsatisfied dependency first, ties
+  broken by name), so a derived variable may build on another one without the
+  administrator maintaining a sequence number.  A cycle is rejected.
+
+  The declaration is checked against the expression: a derived variable that
+  is referenced must be declared, a declared name that is not referenced is an
+  error, and a declared name must be a column of the target table or a derived
+  variable defined for it.  Semicolons, macro triggers and comments are
+  rejected, so a row can only ever be an expression.
 
   The control table is created by mddl_derivedvars.sas, and must carry LIBREF,
-  DSN, VAR_NM, VAR_ORDER, VAR_TYPE, VAR_LEN, VAR_FMT and VAR_LOGIC.  Extra
-  columns - such as a bitemporal TX_FROM / TX_TO pair - are ignored, and can be
-  excluded with the where= clause.
+  DSN, VAR_NM, VAR_DEPENDENCIES, VAR_TYPE, VAR_LEN, VAR_FMT and VAR_LOGIC.
+  Extra columns - such as a bitemporal TX_FROM / TX_TO pair - are ignored, and
+  can be excluded with the where= clause.
 
   <h4> SAS Macros </h4>
   @li mf_existds.sas
@@ -78,7 +83,7 @@
   reserved=0
 );
 
-%local physlist derived_err resv_list i w;
+%local physlist derived_err resv_list i w left nready;
 
 %mp_abort(iftrue= (%length(&libds)=0 or %length(&control)=0)
   ,mac=&sysmacroname
@@ -113,22 +118,16 @@ data work.derived_cfg;
   %end;
   where also upcase(libref)="%upcase(%scan(&libds,1,.))"
     and upcase(dsn)="%upcase(%scan(&libds,2,.))";
-  length name $32 logic $4000 fmt $32;
+  length name $32 logic $4000 fmt $32 deps $4000;
   name=upcase(strip(var_nm));
   logic=strip(var_logic);
   type=upcase(strip(var_type));
   len=var_len;
   fmt=strip(upcase(var_fmt));
-  ord=var_order;
+  deps=upcase(strip(var_dependencies));
 run;
 
 %if %mf_nobs(work.derived_cfg)=0 %then %return;
-
-/* statement order is the configured order - a derived variable may reference
-  one with a lower VAR_ORDER, so they must be assigned in this sequence */
-proc sort data=work.derived_cfg out=work.derived_srt;
-  by ord name;
-run;
 
 proc sort data=work.derived_cfg out=work.derived_byname;
   by name;
@@ -149,7 +148,7 @@ run;
   * produce a variable we cannot describe to the caller
   */
 data work.derived_bad;
-  set work.derived_srt;
+  set work.derived_byname;
   length reason $200;
   call missing(reason);
 
@@ -164,8 +163,6 @@ data work.derived_bad;
   else if name in (%unquote(&resv_list))
     then reason='VAR_NM is reserved';
   %end;
-  else if missing(ord) or ord ne int(ord) or ord<1
-    then reason='VAR_ORDER must be a positive integer';
   else if type not in ('C','N')
     then reason='VAR_TYPE must be C or N';
   else if missing(len) or len ne int(len) or len<1
@@ -202,37 +199,109 @@ run;
 proc append base=work.derived_bad data=work.derived_dup;
 run;
 
-/* a derived variable may only reference derived variables defined earlier -
-  otherwise the reference silently resolves to a missing value */
+/**
+  * The declared dependencies, one row per word
+  */
+data work.derived_dep;
+  set work.derived_byname;
+  length dep_nm $32;
+  do i=1 to countw(deps,' ');
+    dep_nm=scan(deps,i,' ');
+    if not missing(dep_nm) then output;
+  end;
+  keep name dep_nm;
+run;
+
+/**
+  * The identifiers the expression actually references - quoted strings are
+  * removed first, so a name inside a literal is not mistaken for a reference
+  */
+data work.derived_ref;
+  set work.derived_byname;
+  length l $4000 tok $32;
+  l=prxchange("s/'([^']|'')*'//",-1,logic);
+  l=prxchange('s/"([^"]|"")*"//',-1,l);
+  l=prxchange('s/[^A-Za-z0-9_]/ /',-1,upcase(l));
+  do i=1 to countw(l,' ');
+    tok=scan(l,i,' ');
+    if not missing(tok) then output;
+  end;
+  keep name tok;
+run;
+
+/* a declared name must resolve - to a column of the target, or to a variable
+  in this configuration */
 proc sql noprint;
-create table work.derived_orderbad_key as
-  select distinct a.name
-  from work.derived_srt a
-  inner join work.derived_srt b
-    on a.name ne b.name
-  where prxmatch(
-      cats('/(^|[^A-Z0-9_])',b.name,'([^A-Z0-9_]|$)/')
-      ,upcase(a.logic)
-    )>0
-    and b.ord>=a.ord
-  order by a.name;
+create table work.derived_bad_dep as
+  select d.name, d.dep_nm
+  from work.derived_dep d
+  where d.dep_nm not in (%unquote(&physlist))
+    and d.dep_nm not in (select name from work.derived_byname);
+
+/* every declared name must actually appear in the expression */
+create table work.derived_stale as
+  select d.name, d.dep_nm
+  from work.derived_dep d
+  where not exists (
+    select 1 from work.derived_ref r
+    where r.name=d.name and r.tok=d.dep_nm
+  );
+
+/* a derived variable referenced by the expression must be declared, otherwise
+  the statement order would be wrong and the value would be silently missing */
+create table work.derived_undeclared as
+  select distinct r.name, r.tok as dep_nm
+  from work.derived_ref r
+  where r.tok in (select name from work.derived_byname)
+    and r.tok ne r.name
+    and not exists (
+      select 1 from work.derived_dep d
+      where d.name=r.name and d.dep_nm=r.tok
+    );
+
+/* a variable may not depend on itself */
+create table work.derived_self as
+  select name, dep_nm from work.derived_dep
+  where name=dep_nm;
 quit;
 
-proc sort data=work.derived_orderbad_key;
-  by name;
-run;
+%if %mf_nobs(work.derived_bad_dep)>0 %then %do;
+  data _null_;
+    set work.derived_bad_dep(obs=1);
+    call symputx('derived_err'
+      ,cats(name,': VAR_DEPENDENCIES lists ',dep_nm
+        ,', which is not a column of the table or a derived variable'));
+  run;
+  %mp_abort(iftrue=1,mac=&sysmacroname,msg=%superq(derived_err))
+%end;
 
-data work.derived_orderbad;
-  merge work.derived_byname(in=in1) work.derived_orderbad_key(in=in2);
-  by name;
-  if in2;
-  length reason $200;
-  reason='VAR_LOGIC references a derived variable that is not defined'
-    !!' earlier - lower the VAR_ORDER of this one';
-run;
+%if %mf_nobs(work.derived_self)>0 %then %do;
+  data _null_;
+    set work.derived_self(obs=1);
+    call symputx('derived_err',cats(name,': VAR_DEPENDENCIES may not list itself'));
+  run;
+  %mp_abort(iftrue=1,mac=&sysmacroname,msg=%superq(derived_err))
+%end;
 
-proc append base=work.derived_bad data=work.derived_orderbad;
-run;
+%if %mf_nobs(work.derived_undeclared)>0 %then %do;
+  data _null_;
+    set work.derived_undeclared(obs=1);
+    call symputx('derived_err'
+      ,cats(name,': VAR_LOGIC references ',dep_nm
+        ,', which is not in VAR_DEPENDENCIES'));
+  run;
+  %mp_abort(iftrue=1,mac=&sysmacroname,msg=%superq(derived_err))
+%end;
+
+%if %mf_nobs(work.derived_stale)>0 %then %do;
+  data _null_;
+    set work.derived_stale(obs=1);
+    call symputx('derived_err'
+      ,cats(name,': VAR_DEPENDENCIES lists ',dep_nm
+        ,', which VAR_LOGIC does not reference'));
+  run;
+  %mp_abort(iftrue=1,mac=&sysmacroname,msg=%superq(derived_err))
+%end;
 
 %if %mf_nobs(work.derived_bad)>0 %then %do;
   data _null_;
@@ -248,6 +317,78 @@ run;
     ,msg=%str(Invalid derived variable configuration - &derived_err)
   )
 %end;
+
+/**
+  * Dependency order.  The edges are between derived variables only - a
+  * physical column is available from the start.  Repeatedly take the variables
+  * whose derived inputs have all been placed, alphabetically within a round;
+  * if a round places nothing, what is left is a cycle.
+  */
+proc sql;
+create table work.derived_edge as
+  select d.name as child, d.dep_nm as parent
+  from work.derived_dep d
+  where d.dep_nm in (select name from work.derived_byname);
+quit;
+
+data work.derived_todo(keep=name);
+  set work.derived_byname;
+run;
+
+data work.derived_placed(keep=name);
+  length name $32;
+  name='';
+  if 0;
+run;
+
+%let left=%mf_nobs(work.derived_todo);
+
+%do %while (&left>0);
+  proc sql;
+  create table work.derived_ready as
+    select t.name
+    from work.derived_todo t
+    where not exists (
+      select 1 from work.derived_edge e
+      inner join work.derived_todo t2 on e.parent=t2.name
+      where e.child=t.name
+    )
+    order by t.name;
+  quit;
+
+  %let nready=%mf_nobs(work.derived_ready);
+  %if &nready=0 %then %do;
+    data _null_;
+      length list $4000;
+      do until (eof);
+        set work.derived_todo end=eof;
+        list=catx(', ',list,name);
+      end;
+      call symputx('derived_err',list);
+    run;
+    %mp_abort(iftrue=1
+      ,mac=&sysmacroname
+      ,msg=%str(VAR_DEPENDENCIES contains a cycle - unresolved: &derived_err)
+    )
+  %end;
+
+  proc append base=work.derived_placed data=work.derived_ready force;
+  run;
+
+  proc sql;
+  delete from work.derived_todo
+    where name in (select name from work.derived_ready);
+  quit;
+
+  %let left=%mf_nobs(work.derived_todo);
+%end;
+
+data work.derived_srt;
+  merge work.derived_placed(in=in1) work.derived_byname(in=in2);
+  by name;
+  if in1 and in2;
+  seq=_n_;
+run;
 
 /**
   * Generate the attrib + assignment statements

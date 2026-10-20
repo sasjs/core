@@ -34,7 +34,7 @@
       libref char(8) label='Library Reference (8 chars)',
       dsn char(32) label='Dataset Name (32 chars)',
       var_nm char(32) label='Name of the derived variable',
-      var_order num label='Evaluation order (integer, lowest first)',
+      var_dependencies char(4000) label='Columns and derived variables this uses',
       var_type char(1) label='Either (C)haracter or (N)umeric',
       var_len num label='Length of the derived variable',
       var_fmt char(32) label='SAS format, eg DATE9.',

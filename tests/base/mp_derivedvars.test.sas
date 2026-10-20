@@ -23,20 +23,25 @@ run;
 
 proc sql;
 insert into work.dvcfg
-  set libref='WORK',dsn='CLASS',var_nm='band',var_order=10
+  set libref='WORK',dsn='CLASS',var_nm='band',var_dependencies='AGE'
     ,var_type='C',var_len=8,var_fmt='',active=1
     ,var_logic="ifc(AGE>13,'TEEN','JUNIOR')";
 insert into work.dvcfg
-  set libref='WORK',dsn='CLASS',var_nm='band_age',var_order=20
+  set libref='WORK',dsn='CLASS',var_nm='band_age',var_dependencies='BAND AGE'
     ,var_type='C',var_len=16,var_fmt='',active=1
     ,var_logic="cats(BAND,'-',AGE)";
 insert into work.dvcfg
-  set libref='WORK',dsn='CLASS',var_nm='double_age',var_order=30
+  set libref='WORK',dsn='CLASS',var_nm='double_age',var_dependencies='AGE'
     ,var_type='N',var_len=8,var_fmt='',active=1
     ,var_logic='AGE * 2';
+/* loaded first, so the dependency order cannot come from the row order */
+insert into work.dvcfg
+  set libref='WORK',dsn='CLASS',var_nm='band_label',var_dependencies='BAND SEX'
+    ,var_type='C',var_len=32,var_fmt='',active=1
+    ,var_logic="cats(BAND,'-',SEX)";
 /* inactive - should be excluded by the where clause */
 insert into work.dvcfg
-  set libref='WORK',dsn='CLASS',var_nm='ignored',var_order=40
+  set libref='WORK',dsn='CLASS',var_nm='ignored',var_dependencies=''
     ,var_type='C',var_len=8,var_fmt='',active=0
     ,var_logic="'X'";
 quit;
@@ -54,13 +59,13 @@ quit;
 /* one row per variable, names upcased, inactive row excluded */
 %mp_assertdsobs(work.dvnames,
   desc=Only the active variables are returned,
-  test=EQUALS 3,
+  test=EQUALS 4,
   outds=work.test_results
 )
 
 %mp_assertcols(work.vw_dv,
   desc=The view carries the derived columns,
-  cols=BAND BAND_AGE DOUBLE_AGE,
+  cols=BAND BAND_AGE DOUBLE_AGE BAND_LABEL,
   test=ALL,
   outds=work.test_results
 )
@@ -77,6 +82,7 @@ data work.chk;
   where band='TEEN';
   if band_age ne cats(band,'-',AGE) then output;
   if double_age ne AGE*2 then output;
+  if band_label ne cats(band,'-',SEX) then output;
 run;
 
 %mp_assertdsobs(work.chk,
@@ -114,6 +120,27 @@ run;
 %mp_assert(
   iftrue=("%mf_existds(libds=work.vw_dv)"="1"),
   desc=The view was built,
+  outds=work.test_results
+)
+
+/* the statements are generated in dependency order, not in the order the
+  rows were loaded - BAND must be assigned before BAND_AGE */
+data work.stmts;
+  infile derref truncover;
+  input line $4000.;
+  seq=_n_;
+run;
+
+%let band_seq=;
+%let bandage_seq=;
+proc sql noprint;
+  select min(seq) into: band_seq from work.stmts where substr(line,1,6)='BAND =';
+  select min(seq) into: bandage_seq from work.stmts where substr(line,1,9)='BAND_AGE ';
+quit;
+
+%mp_assert(
+  iftrue=(&band_seq < &bandage_seq),
+  desc=BAND is assigned before BAND_AGE, whatever order the rows were loaded,
   outds=work.test_results
 )
 

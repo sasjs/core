@@ -148,6 +148,47 @@ quit;
   outds=work.test_results
 )
 
+/* a derived variable may shadow a physical column - the expression reads the
+  physical value, and the view carries the derived one under the same name */
+data work.class_orig;
+  set sashelp.class;
+run;
+
+%mddl_derivedvars(libds=work.dvcfg_shadow)
+
+proc sql;
+insert into work.dvcfg_shadow
+  set libref='WORK',dsn='CLASS',var_nm='age',var_deps='AGE'
+    ,var_type='N',var_len=8,var_fmt='',active=1
+    ,var_logic='AGE + 1';
+quit;
+
+%mp_derivedvars(
+  libds=work.class,
+  control=work.dvcfg_shadow,
+  outref=derref6,
+  outview=work.vw_shadow
+)
+
+data work.chkshadow;
+  merge work.vw_shadow(keep=name age rename=(age=age_shadow))
+    work.class_orig(keep=name age);
+  by name;
+  if age_shadow ne age + 1 then output;
+run;
+
+%mp_assertdsobs(work.chkshadow,
+  desc=A derived variable can shadow a physical column, reading the old value,
+  test=EQUALS 0,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=(%mf_existvar(work.vw_shadow,AGE)=1),
+  desc=The shadowed name is in the view,
+  outds=work.test_results
+)
+
 /* the default outvars name must not overwrite a control table that uses the
   mddl_derivedvars default - this is the pair of defaults a caller is likely
   to use */

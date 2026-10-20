@@ -5224,10 +5224,7 @@ run;
       REGION = <expression>;
 
   Type and length are declared in the control table, so the result is
-  deterministic.  A derived variable may shadow a physical column - the
-  expression then reads the physical value, eg SUMMER = SUMMER + 1 - in which
-  case VAR_TYPE and VAR_LEN must match the column, as attrib cannot change
-  either on an existing variable.  The label is the variable name, an equals sign and the
+  deterministic.  The label is the variable name, an equals sign and the
   expression - so a reader can see both what the column is and where it comes
   from.
 
@@ -5241,7 +5238,10 @@ run;
   is referenced must be declared, a declared name that is not referenced is an
   error, and a declared name must be a column of the target table or a derived
   variable defined for it.  Semicolons, macro triggers and comments are
-  rejected, so a row can only ever be an expression.
+  rejected, so a row can only ever be an expression.  A derived variable may
+  not reuse the name of a physical column, and may not reference itself: an
+  intra-row calculation would imply a retained value, which depends on the
+  order rows happen to arrive in.
 
   The control table is created by mddl_derivedvars.sas, and must carry LIBREF,
   DSN, VAR_NM, VAR_DEPS, VAR_TYPE, VAR_LEN, VAR_FMT and VAR_LOGIC.  Extra
@@ -5253,7 +5253,7 @@ run;
   <h4> SAS Macros </h4>
   @li mf_existds.sas
   @li mf_getuniquename.sas
-  @li mp_getcols.sas
+  @li mf_getvarlist.sas
   @li mf_nobs.sas
   @li mp_abort.sas
 
@@ -5285,7 +5285,7 @@ run;
 %local physlist derived_err resv_list i w left nready nplaced
   cyc_start cyc_cur cyc_next cyc_path cyc_seen cyc_i
   ds_cfg ds_byname ds_bad ds_baddep ds_dup ds_dep ds_ref ds_stale
-  ds_undecl ds_self ds_shadow ds_cols ds_edge ds_todo ds_ready ds_placed ds_srt;
+  ds_undecl ds_self ds_edge ds_todo ds_ready ds_placed ds_srt;
 
 /* every working table gets its own name, so a caller with tables of the same
   name in WORK cannot collide with this macro's intermediates */
@@ -5299,8 +5299,6 @@ run;
 %let ds_stale=%mf_getuniquename(prefix=dvstl);
 %let ds_undecl=%mf_getuniquename(prefix=dvund);
 %let ds_self=%mf_getuniquename(prefix=dvsfl);
-%let ds_shadow=%mf_getuniquename(prefix=dvshw);
-%let ds_cols=%mf_getuniquename(prefix=dvcol);
 %let ds_edge=%mf_getuniquename(prefix=dvedg);
 %let ds_todo=%mf_getuniquename(prefix=dvtd);
 %let ds_ready=%mf_getuniquename(prefix=dvrdy);
@@ -5359,18 +5357,7 @@ proc sort data=work.&ds_cfg. out=work.&ds_byname.;
   by name;
 run;
 
-/* one contents pass gives the names, types and lengths.  The type and length
-  matter when a derived variable shadows a physical column. */
-%mp_getcols(&libds, outds=work.&ds_cols)
-
-%let physlist=;
-proc sql noprint;
-select quote(name) into: physlist separated by ','
-  from work.&ds_cols;
-quit;
-/* a table with no columns still has to compile into a valid in-list */
-%if %length(&physlist)=0 %then %let physlist=%str(%'%');
-%let physlist=%upcase(&physlist);
+%let physlist=%upcase(%mf_getvarlist(&libds,dlm=%str(,),quote=SINGLE));
 
 /* build a quoted list of reserved names, or an empty list */
 %let resv_list=;
@@ -5394,6 +5381,10 @@ data work.&ds_bad.;
     then reason='VAR_NM must be a valid SAS name';
   else if verify(substr(name,1,1),'0123456789')=0
     then reason='VAR_NM must not start with a digit';
+  %if %length(&physlist)>0 %then %do;
+  else if name in (%unquote(&physlist))
+    then reason='VAR_NM collides with a column in the target table';
+  %end;
   %if %length(&resv_list)>0 %then %do;
   else if name in (%unquote(&resv_list))
     then reason='VAR_NM is reserved';
@@ -5497,19 +5488,7 @@ create table work.&ds_undecl. as
 /* a variable may not depend on itself */
 create table work.&ds_self. as
   select name, dep_nm from work.&ds_dep.
-  where name=dep_nm
-    and name not in (%unquote(&physlist));
-
-/* a derived variable may shadow a physical column, but the two must agree on
-  type and length - attrib cannot change either on an existing variable */
-create table work.&ds_shadow. as
-  select c.name, c.type, c.len, p.type as ptype, p.length as plen
-  from work.&ds_byname. c
-  inner join work.&ds_cols. p
-    on c.name=p.name
-  where c.type ne p.type
-    or (c.type='C' and c.len gt p.length)
-    or (c.type='N' and c.len ne p.length);
+  where name=dep_nm;
 quit;
 
 %if %mf_nobs(work.&ds_baddep.)>0 %then %do;
@@ -5518,16 +5497,6 @@ quit;
     call symputx('derived_err'
       ,cats(name,': VAR_DEPS lists ',dep_nm
         ,', which is not a column of the table or a derived variable'));
-  run;
-  %mp_abort(iftrue=1,mac=&sysmacroname,msg=%superq(derived_err))
-%end;
-
-%if %mf_nobs(work.&ds_shadow.)>0 %then %do;
-  data _null_;
-    set work.&ds_shadow.(obs=1);
-    call symputx('derived_err'
-      ,cats(name,': VAR_NM shadows a column of the table, so VAR_TYPE and'
-        ,' VAR_LEN must match it - the column is ',ptype,'(',plen,')'));
   run;
   %mp_abort(iftrue=1,mac=&sysmacroname,msg=%superq(derived_err))
 %end;
@@ -5585,8 +5554,7 @@ proc sql;
 create table work.&ds_edge. as
   select d.name as child, d.dep_nm as parent
   from work.&ds_dep. d
-  where d.dep_nm in (select name from work.&ds_byname.)
-    and d.dep_nm ne d.name;
+  where d.dep_nm in (select name from work.&ds_byname.);
 quit;
 
 data work.&ds_todo.(keep=name);

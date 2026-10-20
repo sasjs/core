@@ -23,25 +23,25 @@ run;
 
 proc sql;
 insert into work.dvcfg
-  set libref='WORK',dsn='CLASS',var_nm='band',var_dependencies='AGE'
+  set libref='WORK',dsn='CLASS',var_nm='band',var_deps='AGE'
     ,var_type='C',var_len=8,var_fmt='',active=1
     ,var_logic="ifc(AGE>13,'TEEN','JUNIOR')";
 insert into work.dvcfg
-  set libref='WORK',dsn='CLASS',var_nm='band_age',var_dependencies='BAND AGE'
+  set libref='WORK',dsn='CLASS',var_nm='band_age',var_deps='BAND AGE'
     ,var_type='C',var_len=16,var_fmt='',active=1
     ,var_logic="cats(BAND,'-',AGE)";
 insert into work.dvcfg
-  set libref='WORK',dsn='CLASS',var_nm='double_age',var_dependencies='AGE'
+  set libref='WORK',dsn='CLASS',var_nm='double_age',var_deps='AGE'
     ,var_type='N',var_len=8,var_fmt='',active=1
     ,var_logic='AGE * 2';
 /* loaded first, so the dependency order cannot come from the row order */
 insert into work.dvcfg
-  set libref='WORK',dsn='CLASS',var_nm='band_label',var_dependencies='BAND SEX'
+  set libref='WORK',dsn='CLASS',var_nm='band_label',var_deps='BAND SEX'
     ,var_type='C',var_len=32,var_fmt='',active=1
     ,var_logic="cats(BAND,'-',SEX)";
 /* inactive - should be excluded by the where clause */
 insert into work.dvcfg
-  set libref='WORK',dsn='CLASS',var_nm='ignored',var_dependencies=''
+  set libref='WORK',dsn='CLASS',var_nm='ignored',var_deps=''
     ,var_type='C',var_len=8,var_fmt='',active=0
     ,var_logic="'X'";
 quit;

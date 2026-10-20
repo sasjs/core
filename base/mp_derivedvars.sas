@@ -32,7 +32,7 @@
   expression - so a reader can see both what the column is and where it comes
   from.
 
-  VAR_DEPENDENCIES lists every input the expression uses - physical columns
+  VAR_DEPS lists every input the expression uses - physical columns
   and derived variables alike.  The order the statements are generated in is
   the dependency order (variables with no unsatisfied dependency first, ties
   broken by name), so a derived variable may build on another one without the
@@ -45,7 +45,7 @@
   rejected, so a row can only ever be an expression.
 
   The control table is created by mddl_derivedvars.sas, and must carry LIBREF,
-  DSN, VAR_NM, VAR_DEPENDENCIES, VAR_TYPE, VAR_LEN, VAR_FMT and VAR_LOGIC.
+  DSN, VAR_NM, VAR_DEPS, VAR_TYPE, VAR_LEN, VAR_FMT and VAR_LOGIC.
   Extra columns - such as a bitemporal TX_FROM / TX_TO pair - are ignored, and
   can be excluded with the where= clause.
 
@@ -125,7 +125,7 @@ data work.derived_cfg;
   type=upcase(strip(var_type));
   len=var_len;
   fmt=strip(upcase(var_fmt));
-  deps=upcase(strip(var_dependencies));
+  deps=upcase(strip(var_deps));
 run;
 
 %if %mf_nobs(work.derived_cfg)=0 %then %return;
@@ -270,7 +270,7 @@ quit;
   data _null_;
     set work.derived_bad_dep(obs=1);
     call symputx('derived_err'
-      ,cats(name,': VAR_DEPENDENCIES lists ',dep_nm
+      ,cats(name,': VAR_DEPS lists ',dep_nm
         ,', which is not a column of the table or a derived variable'));
   run;
   %mp_abort(iftrue=1,mac=&sysmacroname,msg=%superq(derived_err))
@@ -279,7 +279,7 @@ quit;
 %if %mf_nobs(work.derived_self)>0 %then %do;
   data _null_;
     set work.derived_self(obs=1);
-    call symputx('derived_err',cats(name,': VAR_DEPENDENCIES may not list itself'));
+    call symputx('derived_err',cats(name,': VAR_DEPS may not list itself'));
   run;
   %mp_abort(iftrue=1,mac=&sysmacroname,msg=%superq(derived_err))
 %end;
@@ -289,7 +289,7 @@ quit;
     set work.derived_undeclared(obs=1);
     call symputx('derived_err'
       ,cats(name,': VAR_LOGIC references ',dep_nm
-        ,', which is not in VAR_DEPENDENCIES'));
+        ,', which is not in VAR_DEPS'));
   run;
   %mp_abort(iftrue=1,mac=&sysmacroname,msg=%superq(derived_err))
 %end;
@@ -298,7 +298,7 @@ quit;
   data _null_;
     set work.derived_stale(obs=1);
     call symputx('derived_err'
-      ,cats(name,': VAR_DEPENDENCIES lists ',dep_nm
+      ,cats(name,': VAR_DEPS lists ',dep_nm
         ,', which VAR_LOGIC does not reference'));
   run;
   %mp_abort(iftrue=1,mac=&sysmacroname,msg=%superq(derived_err))
@@ -388,7 +388,7 @@ run;
     %end;
     %mp_abort(iftrue=1
       ,mac=&sysmacroname
-      ,msg=%str(VAR_DEPENDENCIES contains a cycle: &cyc_path)
+      ,msg=%str(VAR_DEPS contains a cycle: &cyc_path)
     )
   %end;
 

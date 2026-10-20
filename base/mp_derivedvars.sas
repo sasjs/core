@@ -53,6 +53,7 @@
 
   <h4> SAS Macros </h4>
   @li mf_existds.sas
+  @li mf_getuniquename.sas
   @li mf_getvarlist.sas
   @li mf_nobs.sas
   @li mp_abort.sas
@@ -83,7 +84,27 @@
 );
 
 %local physlist derived_err resv_list i w left nready nplaced
-  cyc_start cyc_cur cyc_next cyc_path cyc_seen cyc_i;
+  cyc_start cyc_cur cyc_next cyc_path cyc_seen cyc_i
+  ds_cfg ds_byname ds_bad ds_baddep ds_dup ds_dep ds_ref ds_stale
+  ds_undecl ds_self ds_edge ds_todo ds_ready ds_placed ds_srt;
+
+/* every working table gets its own name, so a caller with tables of the same
+  name in WORK cannot collide with this macro's intermediates */
+%let ds_cfg=%mf_getuniquename(prefix=dvcfg);
+%let ds_byname=%mf_getuniquename(prefix=dvbyn);
+%let ds_bad=%mf_getuniquename(prefix=dvbad);
+%let ds_baddep=%mf_getuniquename(prefix=dvbdp);
+%let ds_dup=%mf_getuniquename(prefix=dvdup);
+%let ds_dep=%mf_getuniquename(prefix=dvdep);
+%let ds_ref=%mf_getuniquename(prefix=dvref);
+%let ds_stale=%mf_getuniquename(prefix=dvstl);
+%let ds_undecl=%mf_getuniquename(prefix=dvund);
+%let ds_self=%mf_getuniquename(prefix=dvsfl);
+%let ds_edge=%mf_getuniquename(prefix=dvedg);
+%let ds_todo=%mf_getuniquename(prefix=dvtd);
+%let ds_ready=%mf_getuniquename(prefix=dvrdy);
+%let ds_placed=%mf_getuniquename(prefix=dvpld);
+%let ds_srt=%mf_getuniquename(prefix=dvsrt);
 
 %mp_abort(iftrue= (%length(&libds)=0 or %length(&control)=0)
   ,mac=&sysmacroname
@@ -115,7 +136,7 @@ run;
   %return;
 %end;
 
-data work.derived_cfg;
+data work.&ds_cfg.;
   set &control;
   %if "&where" ne "0" and %length(&where)>0 %then %do;
     where &where;
@@ -131,9 +152,9 @@ data work.derived_cfg;
   deps=upcase(strip(var_deps));
 run;
 
-%if %mf_nobs(work.derived_cfg)=0 %then %return;
+%if %mf_nobs(work.&ds_cfg.)=0 %then %return;
 
-proc sort data=work.derived_cfg out=work.derived_byname;
+proc sort data=work.&ds_cfg. out=work.&ds_byname.;
   by name;
 run;
 
@@ -151,8 +172,8 @@ run;
   * Reject anything that could break the generated data step, or that would
   * produce a variable we cannot describe to the caller
   */
-data work.derived_bad;
-  set work.derived_byname;
+data work.&ds_bad.;
+  set work.&ds_byname.;
   length reason $200;
   call missing(reason);
 
@@ -194,22 +215,22 @@ data work.derived_bad;
   if missing(reason)=0 then output;
 run;
 
-data work.derived_dup;
-  set work.derived_byname;
+data work.&ds_dup.;
+  set work.&ds_byname.;
   by name;
   length reason $200;
   if first.name and not last.name;
   reason='VAR_NM is defined more than once';
 run;
 
-proc append base=work.derived_bad data=work.derived_dup;
+proc append base=work.&ds_bad. data=work.&ds_dup.;
 run;
 
 /**
   * The declared dependencies, one row per word
   */
-data work.derived_dep;
-  set work.derived_byname;
+data work.&ds_dep.;
+  set work.&ds_byname.;
   length dep_nm $32;
   do i=1 to countw(deps,' ');
     dep_nm=scan(deps,i,' ');
@@ -222,8 +243,8 @@ run;
   * The identifiers the expression actually references - quoted strings are
   * removed first, so a name inside a literal is not mistaken for a reference
   */
-data work.derived_ref;
-  set work.derived_byname;
+data work.&ds_ref.;
+  set work.&ds_byname.;
   length l $4000 tok $32;
   l=prxchange("s/'([^']|'')*'//",-1,logic);
   l=prxchange('s/"([^"]|"")*"//',-1,l);
@@ -238,42 +259,42 @@ run;
 /* a declared name must resolve - to a column of the target, or to a variable
   in this configuration */
 proc sql noprint;
-create table work.derived_bad_dep as
+create table work.&ds_baddep. as
   select d.name, d.dep_nm
-  from work.derived_dep d
+  from work.&ds_dep. d
   where d.dep_nm not in (%unquote(&physlist))
-    and d.dep_nm not in (select name from work.derived_byname);
+    and d.dep_nm not in (select name from work.&ds_byname.);
 
 /* every declared name must actually appear in the expression */
-create table work.derived_stale as
+create table work.&ds_stale. as
   select d.name, d.dep_nm
-  from work.derived_dep d
+  from work.&ds_dep. d
   where not exists (
-    select 1 from work.derived_ref r
+    select 1 from work.&ds_ref. r
     where r.name=d.name and r.tok=d.dep_nm
   );
 
 /* a derived variable referenced by the expression must be declared, otherwise
   the statement order would be wrong and the value would be silently missing */
-create table work.derived_undeclared as
+create table work.&ds_undecl. as
   select distinct r.name, r.tok as dep_nm
-  from work.derived_ref r
-  where r.tok in (select name from work.derived_byname)
+  from work.&ds_ref. r
+  where r.tok in (select name from work.&ds_byname.)
     and r.tok ne r.name
     and not exists (
-      select 1 from work.derived_dep d
+      select 1 from work.&ds_dep. d
       where d.name=r.name and d.dep_nm=r.tok
     );
 
 /* a variable may not depend on itself */
-create table work.derived_self as
-  select name, dep_nm from work.derived_dep
+create table work.&ds_self. as
+  select name, dep_nm from work.&ds_dep.
   where name=dep_nm;
 quit;
 
-%if %mf_nobs(work.derived_bad_dep)>0 %then %do;
+%if %mf_nobs(work.&ds_baddep.)>0 %then %do;
   data _null_;
-    set work.derived_bad_dep(obs=1);
+    set work.&ds_baddep.(obs=1);
     call symputx('derived_err'
       ,cats(name,': VAR_DEPS lists ',dep_nm
         ,', which is not a column of the table or a derived variable'));
@@ -281,17 +302,17 @@ quit;
   %mp_abort(iftrue=1,mac=&sysmacroname,msg=%superq(derived_err))
 %end;
 
-%if %mf_nobs(work.derived_self)>0 %then %do;
+%if %mf_nobs(work.&ds_self.)>0 %then %do;
   data _null_;
-    set work.derived_self(obs=1);
+    set work.&ds_self.(obs=1);
     call symputx('derived_err',cats(name,': VAR_DEPS may not list itself'));
   run;
   %mp_abort(iftrue=1,mac=&sysmacroname,msg=%superq(derived_err))
 %end;
 
-%if %mf_nobs(work.derived_undeclared)>0 %then %do;
+%if %mf_nobs(work.&ds_undecl.)>0 %then %do;
   data _null_;
-    set work.derived_undeclared(obs=1);
+    set work.&ds_undecl.(obs=1);
     call symputx('derived_err'
       ,cats(name,': VAR_LOGIC references ',dep_nm
         ,', which is not in VAR_DEPS'));
@@ -299,9 +320,9 @@ quit;
   %mp_abort(iftrue=1,mac=&sysmacroname,msg=%superq(derived_err))
 %end;
 
-%if %mf_nobs(work.derived_stale)>0 %then %do;
+%if %mf_nobs(work.&ds_stale.)>0 %then %do;
   data _null_;
-    set work.derived_stale(obs=1);
+    set work.&ds_stale.(obs=1);
     call symputx('derived_err'
       ,cats(name,': VAR_DEPS lists ',dep_nm
         ,', which VAR_LOGIC does not reference'));
@@ -309,13 +330,13 @@ quit;
   %mp_abort(iftrue=1,mac=&sysmacroname,msg=%superq(derived_err))
 %end;
 
-%if %mf_nobs(work.derived_bad)>0 %then %do;
+%if %mf_nobs(work.&ds_bad.)>0 %then %do;
   data _null_;
-    set work.derived_bad;
+    set work.&ds_bad.;
     putlog 'ERR' 'OR: derived variable config: ' name= reason=;
   run;
   data _null_;
-    set work.derived_bad(obs=1);
+    set work.&ds_bad.(obs=1);
     call symputx('derived_err',cats(name,': ',reason));
   run;
   %mp_abort(iftrue=1
@@ -331,45 +352,45 @@ quit;
   * if a round places nothing, what is left is a cycle.
   */
 proc sql;
-create table work.derived_edge as
+create table work.&ds_edge. as
   select d.name as child, d.dep_nm as parent
-  from work.derived_dep d
-  where d.dep_nm in (select name from work.derived_byname);
+  from work.&ds_dep. d
+  where d.dep_nm in (select name from work.&ds_byname.);
 quit;
 
-data work.derived_todo(keep=name);
-  set work.derived_byname;
+data work.&ds_todo.(keep=name);
+  set work.&ds_byname.;
 run;
 
-data work.derived_placed(keep=name seq);
+data work.&ds_placed.(keep=name seq);
   length name $32;
   name='';
   seq=0;
   if 0;
 run;
 
-%let left=%mf_nobs(work.derived_todo);
+%let left=%mf_nobs(work.&ds_todo.);
 %let nplaced=0;
 
 %do %while (&left>0);
   proc sql;
-  create table work.derived_ready as
+  create table work.&ds_ready. as
     select t.name
-    from work.derived_todo t
+    from work.&ds_todo. t
     where not exists (
-      select 1 from work.derived_edge e
-      inner join work.derived_todo t2 on e.parent=t2.name
+      select 1 from work.&ds_edge. e
+      inner join work.&ds_todo. t2 on e.parent=t2.name
       where e.child=t.name
     )
     order by t.name;
   quit;
 
-  %let nready=%mf_nobs(work.derived_ready);
+  %let nready=%mf_nobs(work.&ds_ready.);
   %if &nready=0 %then %do;
     /* walk the edges, so the message names the cycle rather than just the
       names that could not be placed */
     data _null_;
-      set work.derived_todo(obs=1);
+      set work.&ds_todo.(obs=1);
       call symputx('cyc_start',name);
     run;
     %let cyc_path=&cyc_start;
@@ -379,9 +400,9 @@ run;
       %let cyc_next=;
       proc sql noprint;
         select e.parent into: cyc_next
-        from work.derived_edge e
+        from work.&ds_edge. e
         where e.child="&cyc_cur"
-          and e.parent in (select name from work.derived_todo);
+          and e.parent in (select name from work.&ds_todo.);
       quit;
       %if %length(&cyc_next)=0 %then %let cyc_i=&left;
       %else %do;
@@ -401,33 +422,33 @@ run;
 
   /* seq carries the dependency order - the placement rounds are not name
     ordered, so the final merge must not rely on by name alone */
-  data work.derived_ready;
-    set work.derived_ready;
+  data work.&ds_ready.;
+    set work.&ds_ready.;
     seq=_n_+&nplaced;
   run;
-  proc append base=work.derived_placed data=work.derived_ready force;
+  proc append base=work.&ds_placed. data=work.&ds_ready. force;
   run;
   %let nplaced=%eval(&nplaced+&nready);
 
   proc sql;
-  delete from work.derived_todo
-    where name in (select name from work.derived_ready);
+  delete from work.&ds_todo.
+    where name in (select name from work.&ds_ready.);
   quit;
 
-  %let left=%mf_nobs(work.derived_todo);
+  %let left=%mf_nobs(work.&ds_todo.);
 %end;
 
-proc sort data=work.derived_placed;
+proc sort data=work.&ds_placed.;
   by name;
 run;
 
-data work.derived_srt;
-  merge work.derived_placed(in=in1) work.derived_byname(in=in2);
+data work.&ds_srt.;
+  merge work.&ds_placed.(in=in1) work.&ds_byname.(in=in2);
   by name;
   if in1 and in2;
 run;
 
-proc sort data=work.derived_srt;
+proc sort data=work.&ds_srt.;
   by seq;
 run;
 
@@ -436,7 +457,7 @@ run;
   */
 data _null_;
   file &outref;
-  set work.derived_srt;
+  set work.&ds_srt.;
   length stmt $4100 label $256 fmt2 $49;
   /* labels cannot contain single quotes, and are limited to 256 chars */
   label=cats(name,'=',translate(logic,' ','0D0A'x));
@@ -466,7 +487,7 @@ run;
 )
 
 data &outvars(keep=name);
-  set work.derived_srt;
+  set work.&ds_srt.;
 run;
 
 %if %length(&outview)>0 and &outview ne 0 %then %do;

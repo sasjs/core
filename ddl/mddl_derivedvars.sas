@@ -16,9 +16,6 @@
 
   @version 5.6
   @author 4GL Apps Ltd
-  @copyright 4GL Apps Ltd.  This code may only be used within Data Controller
-    and may not be re-distributed or re-sold without the express permission of
-    4GL Apps Ltd.
 
 **/
 

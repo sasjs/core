@@ -6,12 +6,16 @@
   @li mddl_derivedvars.sas
   @li mf_existds.sas
   @li mf_existvar.sas
+  @li mf_nobs.sas
   @li mp_assert.sas
   @li mp_assertcols.sas
   @li mp_assertdsobs.sas
+  @li mp_assertscope.sas
   @li mp_derivedvars.sas
 
 **/
+
+%mp_assertscope(SNAPSHOT)
 
 /* the target table */
 data work.class;
@@ -144,6 +148,37 @@ quit;
   outds=work.test_results
 )
 
+/* the default outvars name must not overwrite a control table that uses the
+  mddl_derivedvars default - this is the pair of defaults a caller is likely
+  to use */
+%mddl_derivedvars(libds=work.derived_vars)
+
+proc sql;
+insert into work.derived_vars
+  set libref='WORK',dsn='CLASS',var_nm='band',var_deps='AGE'
+    ,var_type='C',var_len=8,var_fmt='',active=1
+    ,var_logic="ifc(AGE>13,'TEEN','JUNIOR')";
+quit;
+
+%mp_derivedvars(
+  libds=work.class,
+  control=work.derived_vars,
+  outref=derref5,
+  outview=work.vw_default
+)
+
+%mp_assertdsobs(work.vw_default,
+  desc=The default outvars does not overwrite the control table,
+  test=HASOBS,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=(%mf_nobs(work.derived_vars)=1),
+  desc=The control table survives the default outvars name,
+  outds=work.test_results
+)
+
 /* a control table with no rows for the target leaves everything empty */
 %mddl_derivedvars(libds=work.dvcfg_empty)
 
@@ -180,3 +215,5 @@ quit;
   test=EQUALS 0,
   outds=work.test_results
 )
+
+%mp_assertscope(COMPARE, outds=work.test_results)

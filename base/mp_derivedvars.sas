@@ -45,9 +45,11 @@
   rejected, so a row can only ever be an expression.
 
   The control table is created by mddl_derivedvars.sas, and must carry LIBREF,
-  DSN, VAR_NM, VAR_DEPS, VAR_TYPE, VAR_LEN, VAR_FMT and VAR_LOGIC.
-  Extra columns - such as a bitemporal TX_FROM / TX_TO pair - are ignored, and
-  can be excluded with the where= clause.
+  DSN, VAR_NM, VAR_DEPS, VAR_TYPE, VAR_LEN, VAR_FMT and VAR_LOGIC.  Extra
+  columns are ignored, but a control table that holds several versions of the
+  same VAR_NM - for example a bitemporal TX_FROM / TX_TO pair - must be
+  narrowed with where= (typically to the current versions), because two rows
+  with the same name are rejected as a configuration error.
 
   <h4> SAS Macros </h4>
   @li mf_existds.sas
@@ -62,15 +64,12 @@
   @param [in] control= The control table holding the variable definitions
   @param [in] where= (0) Optional additional filter for the control table
   @param [out] outref= (0) Fileref to receive the generated statements
-  @param [out] outvars= (work.derived_vars) Dataset of derived variable names
+  @param [out] outvars= (work.derived_varlist) Dataset of derived variable names
   @param [in] outview= (0) Optional two-level name for the derived view
   @param [in] reserved= (0) Space separated list of names that may not be used
 
   @version 5.6
   @author 4GL Apps Ltd
-  @copyright 4GL Apps Ltd.  This code may only be used within Data Controller
-    and may not be re-distributed or re-sold without the express permission of
-    4GL Apps Ltd.
 
 **/
 
@@ -78,12 +77,12 @@
   control=,
   where=0,
   outref=0,
-  outvars=work.derived_vars,
+  outvars=work.derived_varlist,
   outview=0,
   reserved=0
 );
 
-%local physlist derived_err resv_list i w left nready
+%local physlist derived_err resv_list i w left nready nplaced
   cyc_start cyc_cur cyc_next cyc_path cyc_seen cyc_i;
 
 %mp_abort(iftrue= (%length(&libds)=0 or %length(&control)=0)
@@ -93,6 +92,10 @@
 %mp_abort(iftrue= (&outref = 0)
   ,mac=&sysmacroname
   ,msg=%str(Please provide an outref for the generated statements)
+)
+%mp_abort(iftrue= (%mf_existds(libds=&libds) ne 1)
+  ,mac=&sysmacroname
+  ,msg=%str(Target table not found: &libds)
 )
 
 filename &outref temp;
@@ -158,8 +161,10 @@ data work.derived_bad;
     then reason='VAR_NM must be a valid SAS name';
   else if verify(substr(name,1,1),'0123456789')=0
     then reason='VAR_NM must not start with a digit';
+  %if %length(&physlist)>0 %then %do;
   else if name in (%unquote(&physlist))
     then reason='VAR_NM collides with a column in the target table';
+  %end;
   %if %length(&resv_list)>0 %then %do;
   else if name in (%unquote(&resv_list))
     then reason='VAR_NM is reserved';
@@ -336,13 +341,15 @@ data work.derived_todo(keep=name);
   set work.derived_byname;
 run;
 
-data work.derived_placed(keep=name);
+data work.derived_placed(keep=name seq);
   length name $32;
   name='';
+  seq=0;
   if 0;
 run;
 
 %let left=%mf_nobs(work.derived_todo);
+%let nplaced=0;
 
 %do %while (&left>0);
   proc sql;
@@ -392,8 +399,15 @@ run;
     )
   %end;
 
+  /* seq carries the dependency order - the placement rounds are not name
+    ordered, so the final merge must not rely on by name alone */
+  data work.derived_ready;
+    set work.derived_ready;
+    seq=_n_+&nplaced;
+  run;
   proc append base=work.derived_placed data=work.derived_ready force;
   run;
+  %let nplaced=%eval(&nplaced+&nready);
 
   proc sql;
   delete from work.derived_todo
@@ -403,11 +417,18 @@ run;
   %let left=%mf_nobs(work.derived_todo);
 %end;
 
+proc sort data=work.derived_placed;
+  by name;
+run;
+
 data work.derived_srt;
   merge work.derived_placed(in=in1) work.derived_byname(in=in2);
   by name;
   if in1 and in2;
-  seq=_n_;
+run;
+
+proc sort data=work.derived_srt;
+  by seq;
 run;
 
 /**

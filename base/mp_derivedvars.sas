@@ -127,7 +127,9 @@
   ,msg=%str(Target table not found: &libds)
 )
 
-filename &outref temp;
+/* a long label can push a statement past the default record length, which
+  would wrap it and break the generated code */
+filename &outref temp lrecl=32767;
 
 /* ensure the outputs exist, and are empty */
 data _null_;

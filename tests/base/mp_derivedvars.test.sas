@@ -265,4 +265,189 @@ quit;
   outds=work.test_results
 )
 
+/* a diamond graph - two variables built on one, then a fourth on both, then a
+  fifth on that.  Rows are loaded in reverse name order so nothing but the
+  dependency sort can produce the right sequence */
+%mddl_derivedvars(libds=work.dvcfg_diamond)
+
+proc sql;
+insert into work.dvcfg_diamond
+  set libref='WORK',dsn='CLASS',var_nm='v5',var_deps='SEX V4'
+    ,var_type='C',var_len=40,var_fmt='',var_logic="cats(SEX,'-',put(V4,best12.))"
+    ,active=1;
+insert into work.dvcfg_diamond
+  set libref='WORK',dsn='CLASS',var_nm='v4',var_deps='V2 V3'
+    ,var_type='N',var_len=8,var_fmt='',var_logic='V2 + V3',active=1;
+insert into work.dvcfg_diamond
+  set libref='WORK',dsn='CLASS',var_nm='v3',var_deps='V1'
+    ,var_type='N',var_len=8,var_fmt='',var_logic='V1 + 1',active=1;
+insert into work.dvcfg_diamond
+  set libref='WORK',dsn='CLASS',var_nm='v2',var_deps='V1'
+    ,var_type='N',var_len=8,var_fmt='',var_logic='V1 * 2',active=1;
+insert into work.dvcfg_diamond
+  set libref='WORK',dsn='CLASS',var_nm='v1',var_deps='AGE'
+    ,var_type='N',var_len=8,var_fmt='',var_logic='AGE + 0',active=1;
+quit;
+
+%mp_derivedvars(
+  libds=work.class,
+  control=work.dvcfg_diamond,
+  outref=derref8,
+  outview=work.vw_diamond
+)
+
+%mp_assertcols(work.vw_diamond,
+  desc=The diamond graph is fully materialised,
+  cols=V1 V2 V3 V4 V5,
+  test=ALL,
+  outds=work.test_results
+)
+
+data work.chkdiamond;
+  set work.vw_diamond;
+  if v1 ne age then output;
+  if v2 ne age*2 then output;
+  if v3 ne age+1 then output;
+  if v4 ne age*3+1 then output;
+  if v5 ne cats(sex,'-',put(age*3+1,best12.)) then output;
+run;
+
+%mp_assertdsobs(work.chkdiamond,
+  desc=Every variable in the diamond graph resolves to the right value,
+  test=EQUALS 0,
+  outds=work.test_results
+)
+
+/* the assignment order must be v1, then v2 and v3, then v4, then v5 */
+data work.chkorder;
+  infile derref8 truncover;
+  input line $4000.;
+  seq=_n_;
+  length nm $32;
+  if prxmatch('/^V\d+\s*=/',strip(line)) then nm=scan(strip(line),1,'=');
+  else nm='';
+run;
+
+data work.chkorder2;
+  set work.chkorder end=eof;
+  retain s1 s2 s3 s4 s5;
+  if nm='V1' then s1=seq;
+  if nm='V2' then s2=seq;
+  if nm='V3' then s3=seq;
+  if nm='V4' then s4=seq;
+  if nm='V5' then s5=seq;
+  if eof;
+  if missing(s1) or missing(s2) or missing(s3) or missing(s4) or missing(s5)
+    then output;
+  else if s1 ge min(s2,s3) then output;
+  else if max(s2,s3) ge s4 then output;
+  else if s4 ge s5 then output;
+run;
+
+%mp_assertdsobs(work.chkorder2,
+  desc=The diamond graph is assigned in dependency order,
+  test=EQUALS 0,
+  outds=work.test_results
+)
+
+/* a label longer than the 256 limit, containing quotes, must still produce a
+  literal SAS can parse - the truncation cannot split a doubled quote */
+%mddl_derivedvars(libds=work.dvcfg_long)
+
+data work.longcfg;
+  length logic $4000;
+  logic=cats("ifc(AGE>13,'",repeat('a',300),"','short')");
+run;
+
+proc sql;
+insert into work.dvcfg_long
+  (libref,dsn,var_nm,var_deps,var_type,var_len,var_fmt,var_logic,active)
+  select 'WORK','CLASS','LONG_LABEL','AGE','C',400,'',logic,1
+  from work.longcfg;
+quit;
+
+%mp_derivedvars(
+  libds=work.class,
+  control=work.dvcfg_long,
+  outref=derref9,
+  outview=work.vw_long
+)
+
+data work.chkquotes;
+  infile derref9 truncover;
+  input line $4000.;
+  if index(line,"label='")>0 and mod(count(line,"'"),2) ne 0 then output;
+run;
+
+%mp_assertdsobs(work.chkquotes,
+  desc=A truncated label keeps an even quote count,
+  test=EQUALS 0,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=(%mf_existds(libds=work.vw_long)=1),
+  desc=A label longer than the limit still builds the view,
+  outds=work.test_results
+)
+
+/* one control table can serve several tables - the LIBREF/DSN pair scopes the
+  definitions, so the same name means different things on each */
+data work.class2;
+  set sashelp.class;
+run;
+
+%mddl_derivedvars(libds=work.dvcfg_multi)
+
+proc sql;
+insert into work.dvcfg_multi
+  set libref='WORK',dsn='CLASS',var_nm='scaled',var_deps='AGE'
+    ,var_type='N',var_len=8,var_fmt='',var_logic='AGE + 100',active=1;
+insert into work.dvcfg_multi
+  set libref='WORK',dsn='CLASS2',var_nm='scaled',var_deps='AGE'
+    ,var_type='N',var_len=8,var_fmt='dollar12.2',var_logic='AGE + 200',active=1;
+quit;
+
+%mp_derivedvars(
+  libds=work.class,
+  control=work.dvcfg_multi,
+  outref=derref10,
+  outview=work.vw_multi1
+)
+
+%mp_derivedvars(
+  libds=work.class2,
+  control=work.dvcfg_multi,
+  outref=derref10,
+  outview=work.vw_multi2
+)
+
+data work.chkmulti;
+  merge work.vw_multi1(keep=name age scaled rename=(scaled=scaled1))
+    work.vw_multi2(keep=name age scaled rename=(scaled=scaled2));
+  by name;
+  if scaled1 ne age + 100 then output;
+  if scaled2 ne age + 200 then output;
+run;
+
+%mp_assertdsobs(work.chkmulti,
+  desc=The same variable name means different things per table,
+  test=EQUALS 0,
+  outds=work.test_results
+)
+
+/* a configured format is applied as given - asserted on the statement the
+  macro emits, which is what the view is built from */
+data work.chkfmt;
+  infile derref10 truncover;
+  input line $4000.;
+  if index(line,'format=DOLLAR12.2')>0 then output;
+run;
+
+%mp_assertdsobs(work.chkfmt,
+  desc=A configured format is applied,
+  test=EQUALS 1,
+  outds=work.test_results
+)
+
 %mp_assertscope(COMPARE,ignorelist=_SASJS_WEBOUT_HEADERS,outds=work.test_results)

@@ -148,7 +148,10 @@ run;
 
 data work.&ds_cfg.;
   set &control;
-  %if "&where" ne "0" and %length(&where)>0 %then %do;
+  /* %superq, because a filter can legitimately contain quotes - a datetime
+    literal such as "21OCT2026:09:00:00"dt is the usual case, and quoting it
+    again inside a %if condition breaks the evaluation */
+  %if %superq(where) ne 0 %then %do;
     where &where;
   %end;
   where also upcase(libref)="%upcase(%scan(&libds,1,.))"

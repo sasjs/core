@@ -228,6 +228,29 @@ quit;
   outds=work.test_results
 )
 
+/* a filter containing quotes must not break the macro - a datetime literal
+  is the usual case, and quoting it again inside an %if condition does */
+%mp_derivedvars(
+  libds=work.class,
+  control=work.derived_vars,
+  where=%str(var_nm ne "NOPE"),
+  outref=derref11,
+  outvars=work.dvnames11,
+  outview=work.vw_wherequote
+)
+
+%mp_assertdsobs(work.dvnames11,
+  desc=A filter containing quotes is applied,
+  test=EQUALS 1,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=(0 < %mf_existvar(work.vw_wherequote,BAND)),
+  desc=The view is still built when the filter contains quotes,
+  outds=work.test_results
+)
+
 /* a control table with no rows for the target leaves everything empty */
 %mddl_derivedvars(libds=work.dvcfg_empty)
 

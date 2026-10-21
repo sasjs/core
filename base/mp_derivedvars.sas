@@ -265,8 +265,13 @@ proc sql noprint;
 create table work.&ds_baddep. as
   select d.name, d.dep_nm
   from work.&ds_dep. d
-  where d.dep_nm not in (%unquote(&physlist))
-    and d.dep_nm not in (select name from work.&ds_byname.);
+  where d.dep_nm not in (select name from work.&ds_byname.)
+  /* a table with no columns leaves physlist empty - fall back to the derived
+    names alone rather than compiling an empty in-list */
+  %if %length(&physlist)>0 %then %do;
+    and d.dep_nm not in (%unquote(&physlist))
+  %end;
+  ;
 
 /* every declared name must actually appear in the expression */
 create table work.&ds_stale. as

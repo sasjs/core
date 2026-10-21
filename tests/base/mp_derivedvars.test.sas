@@ -148,6 +148,42 @@ quit;
   outds=work.test_results
 )
 
+/* VAR_LABEL overrides the default label, and falls back when it is blank */
+%mddl_derivedvars(libds=work.dvcfg_label)
+
+proc sql;
+insert into work.dvcfg_label
+  set libref='WORK',dsn='CLASS',var_nm='band',var_deps='AGE'
+    ,var_type='C',var_len=8,var_fmt='',var_label='Age band'
+    ,var_logic="ifc(AGE>13,'TEEN','JUNIOR')",active=1;
+insert into work.dvcfg_label
+  set libref='WORK',dsn='CLASS',var_nm='double_age',var_deps='AGE'
+    ,var_type='N',var_len=8,var_fmt='',var_label=''
+    ,var_logic='AGE * 2',active=1;
+quit;
+
+%mp_derivedvars(
+  libds=work.class,
+  control=work.dvcfg_label,
+  outref=derref7,
+  outview=work.vw_label
+)
+
+proc contents noprint data=work.vw_label out=work.vcols7(keep=name label);
+run;
+
+data work.chklbl;
+  set work.vcols7;
+  where (name='BAND' and label='Age band')
+    or (name='DOUBLE_AGE' and label='DOUBLE_AGE=AGE * 2');
+run;
+
+%mp_assertdsobs(work.chklbl,
+  desc=VAR_LABEL is used when set, and defaults when blank,
+  test=EQUALS 2,
+  outds=work.test_results
+)
+
 /* the default outvars name must not overwrite a control table that uses the
   mddl_derivedvars default - this is the pair of defaults a caller is likely
   to use */

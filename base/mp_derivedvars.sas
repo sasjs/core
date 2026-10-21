@@ -28,9 +28,7 @@
       REGION = <expression>;
 
   Type and length are declared in the control table, so the result is
-  deterministic.  The label is the variable name, an equals sign and the
-  expression - so a reader can see both what the column is and where it comes
-  from.
+  deterministic.
 
   VAR_DEPS lists every input the expression uses - physical columns
   and derived variables alike.  The order the statements are generated in is
@@ -47,15 +45,22 @@
   intra-row calculation would imply a retained value, which depends on the
   order rows happen to arrive in.
 
+  VAR_LABEL is optional.  When it is missing or blank, the label is the
+  variable name, an equals sign and the expression - so a reader can see both
+  what the column is and where it comes from.  A configured label replaces
+  that, and is used as given.
+
   The control table is created by mddl_derivedvars.sas, and must carry LIBREF,
-  DSN, VAR_NM, VAR_DEPS, VAR_TYPE, VAR_LEN, VAR_FMT and VAR_LOGIC.  Extra
-  columns are ignored, but a control table that holds several versions of the
-  same VAR_NM - for example a bitemporal TX_FROM / TX_TO pair - must be
-  narrowed with where= (typically to the current versions), because two rows
-  with the same name are rejected as a configuration error.
+  DSN, VAR_NM, VAR_DEPS, VAR_TYPE, VAR_LEN, VAR_FMT and VAR_LOGIC, with
+  VAR_LABEL optional.  Extra columns are ignored, but a control table that
+  holds several versions of the same VAR_NM - for example a bitemporal
+  TX_FROM / TX_TO pair - must be narrowed with where= (typically to the
+  current versions), because two rows with the same name are rejected as a
+  configuration error.
 
   <h4> SAS Macros </h4>
   @li mf_existds.sas
+  @li mf_existvar.sas
   @li mf_getuniquename.sas
   @li mf_getvarlist.sas
   @li mf_nobs.sas
@@ -146,13 +151,20 @@ data work.&ds_cfg.;
   %end;
   where also upcase(libref)="%upcase(%scan(&libds,1,.))"
     and upcase(dsn)="%upcase(%scan(&libds,2,.))";
-  length name $32 logic $4000 fmt $32 deps $4000;
+  length name $32 logic $4000 fmt $32 deps $4000 lbl $256;
   name=upcase(strip(var_nm));
   logic=strip(var_logic);
   type=upcase(strip(var_type));
   len=var_len;
   fmt=strip(upcase(var_fmt));
   deps=upcase(strip(var_deps));
+  /* VAR_LABEL is optional - older control tables may not have the column */
+  %if %mf_existvar(&control,VAR_LABEL)=1 %then %do;
+    lbl=translate(strip(var_label),' ','0D0A'x);
+  %end;
+  %else %do;
+    lbl='';
+  %end;
 run;
 
 %if %mf_nobs(work.&ds_cfg.)=0 %then %return;
@@ -468,10 +480,13 @@ data _null_;
   set work.&ds_srt.;
   /* 512 so the doubled quotes fit before the 256 boundary is applied */
   length stmt $4600 label $512 fmt2 $49;
-  /* labels are limited to 256 chars.  The quotes are doubled first, then the
-    cut is made on an even quote boundary - truncating between the two halves of
-    an escape would leave the generated literal unterminated */
-  label=cats(name,'=',translate(logic,' ','0D0A'x));
+  /* the configured label wins when there is one, otherwise the label is the
+    name, an equals sign and the expression.  Labels are limited to 256 chars:
+    the quotes are doubled first, then the cut is made on an even quote
+    boundary - truncating between the two halves of an escape would leave the
+    generated literal unterminated */
+  if not missing(lbl) then label=lbl;
+  else label=cats(name,'=',translate(logic,' ','0D0A'x));
   label=tranwrd(label,"'","''");
   if length(label)>256 then do;
     label=substr(label,1,256);

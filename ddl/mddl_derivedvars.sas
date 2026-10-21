@@ -35,6 +35,7 @@
       var_type char(1) label='Either (C)haracter or (N)umeric',
       var_len num label='Length of the derived variable',
       var_fmt char(32) label='SAS format, eg DATE9.',
+      var_label char(256) label='Optional label; defaults to NAME=expression',
       var_logic char(4000) label='SAS expression that produces the value',
       active num label='Is the variable active? (1/0)'
   );

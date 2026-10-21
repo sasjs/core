@@ -318,58 +318,64 @@ create table work.&ds_self. as
   where name=dep_nm;
 quit;
 
-%if %mf_nobs(work.&ds_baddep.)>0 %then %do;
-  data _null_;
-    set work.&ds_baddep.(obs=1);
-    call symputx('derived_err'
-      ,cats(name,': VAR_DEPS lists ',dep_nm
-        ,', which is not a column of the table or a derived variable'));
-  run;
-  %mp_abort(iftrue=1,mac=&sysmacroname,msg=%superq(derived_err))
-%end;
+data _null_;
+  set work.&ds_baddep.(obs=1);
+  call symputx('derived_err'
+    ,cats(name,': VAR_DEPS lists ',dep_nm
+      ,', which is not a column of the table or a derived variable'));
+run;
 
-%if %mf_nobs(work.&ds_self.)>0 %then %do;
-  data _null_;
-    set work.&ds_self.(obs=1);
-    call symputx('derived_err',cats(name,': VAR_DEPS may not list itself'));
-  run;
-  %mp_abort(iftrue=1,mac=&sysmacroname,msg=%superq(derived_err))
-%end;
+%mp_abort(iftrue= (0 < %mf_nobs(work.&ds_baddep.))
+  ,mac=&sysmacroname
+  ,msg=%superq(derived_err)
+)
 
-%if %mf_nobs(work.&ds_undecl.)>0 %then %do;
-  data _null_;
-    set work.&ds_undecl.(obs=1);
-    call symputx('derived_err'
-      ,cats(name,': VAR_LOGIC references ',dep_nm
-        ,', which is not in VAR_DEPS'));
-  run;
-  %mp_abort(iftrue=1,mac=&sysmacroname,msg=%superq(derived_err))
-%end;
+data _null_;
+  set work.&ds_self.(obs=1);
+  call symputx('derived_err',cats(name,': VAR_DEPS may not list itself'));
+run;
 
-%if %mf_nobs(work.&ds_stale.)>0 %then %do;
-  data _null_;
-    set work.&ds_stale.(obs=1);
-    call symputx('derived_err'
-      ,cats(name,': VAR_DEPS lists ',dep_nm
-        ,', which VAR_LOGIC does not reference'));
-  run;
-  %mp_abort(iftrue=1,mac=&sysmacroname,msg=%superq(derived_err))
-%end;
+%mp_abort(iftrue= (0 < %mf_nobs(work.&ds_self.))
+  ,mac=&sysmacroname
+  ,msg=%superq(derived_err)
+)
 
-%if %mf_nobs(work.&ds_bad.)>0 %then %do;
-  data _null_;
-    set work.&ds_bad.;
-    putlog 'ERR' 'OR: derived variable config: ' name= reason=;
-  run;
-  data _null_;
-    set work.&ds_bad.(obs=1);
-    call symputx('derived_err',cats(name,': ',reason));
-  run;
-  %mp_abort(iftrue=1
-    ,mac=&sysmacroname
-    ,msg=%str(Invalid derived variable configuration - &derived_err)
-  )
-%end;
+data _null_;
+  set work.&ds_undecl.(obs=1);
+  call symputx('derived_err'
+    ,cats(name,': VAR_LOGIC references ',dep_nm
+      ,', which is not in VAR_DEPS'));
+run;
+
+%mp_abort(iftrue= (0 < %mf_nobs(work.&ds_undecl.))
+  ,mac=&sysmacroname
+  ,msg=%superq(derived_err)
+)
+
+data _null_;
+  set work.&ds_stale.(obs=1);
+  call symputx('derived_err'
+    ,cats(name,': VAR_DEPS lists ',dep_nm
+      ,', which VAR_LOGIC does not reference'));
+run;
+
+%mp_abort(iftrue= (0 < %mf_nobs(work.&ds_stale.))
+  ,mac=&sysmacroname
+  ,msg=%superq(derived_err)
+)
+
+data _null_;
+  set work.&ds_bad.;
+  putlog 'ERR' 'OR: derived variable config: ' name= reason=;
+run;
+data _null_;
+  set work.&ds_bad.(obs=1);
+  call symputx('derived_err',cats(name,': ',reason));
+run;
+%mp_abort(iftrue= (0 < %mf_nobs(work.&ds_bad.))
+  ,mac=&sysmacroname
+  ,msg=%str(Invalid derived variable configuration - &derived_err)
+)
 
 /**
   * Dependency order.  The edges are between derived variables only - a
@@ -397,6 +403,7 @@ run;
 
 %let left=%mf_nobs(work.&ds_todo.);
 %let nplaced=0;
+%let cyc_found=0;
 
 %do %while (&left>0);
   proc sql;
@@ -440,29 +447,36 @@ run;
         %end;
       %end;
     %end;
-    %mp_abort(iftrue=1
-      ,mac=&sysmacroname
-      ,msg=%str(VAR_DEPS contains a cycle: &cyc_path)
-    )
+    /* leave the loop before aborting - an abort cancels the step, and the
+      loop would re-enter with the ready count still zero */
+    %let cyc_found=1;
+    %let left=0;
   %end;
 
-  /* seq carries the dependency order - the placement rounds are not name
-    ordered, so the final merge must not rely on by name alone */
-  data work.&ds_ready.;
-    set work.&ds_ready.;
-    seq=_n_+&nplaced;
-  run;
-  proc append base=work.&ds_placed. data=work.&ds_ready. force;
-  run;
-  %let nplaced=%eval(&nplaced+&nready);
+  %if &cyc_found=0 %then %do;
+    /* seq carries the dependency order - the placement rounds are not name
+      ordered, so the final merge must not rely on by name alone */
+    data work.&ds_ready.;
+      set work.&ds_ready.;
+      seq=_n_+&nplaced;
+    run;
+    proc append base=work.&ds_placed. data=work.&ds_ready. force;
+    run;
+    %let nplaced=%eval(&nplaced+&nready);
 
-  proc sql;
-  delete from work.&ds_todo.
-    where name in (select name from work.&ds_ready.);
-  quit;
+    proc sql;
+    delete from work.&ds_todo.
+      where name in (select name from work.&ds_ready.);
+    quit;
 
-  %let left=%mf_nobs(work.&ds_todo.);
+    %let left=%mf_nobs(work.&ds_todo.);
+  %end;
 %end;
+
+%mp_abort(iftrue= (&cyc_found=1)
+  ,mac=&sysmacroname
+  ,msg=%str(VAR_DEPS contains a cycle: &cyc_path)
+)
 
 proc sort data=work.&ds_placed.;
   by name;

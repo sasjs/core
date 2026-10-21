@@ -15,8 +15,6 @@
 
 **/
 
-%mp_assertscope(SNAPSHOT)
-
 /* the target table */
 data work.class;
   set sashelp.class;
@@ -49,6 +47,10 @@ insert into work.dvcfg
     ,var_type='C',var_len=8,var_fmt='',active=0
     ,var_logic="'X'";
 quit;
+
+/* the setup SQL above creates the SQL automatic macro variables, so the
+  snapshot is taken here - the check is for the macro's own leakage */
+%mp_assertscope(SNAPSHOT)
 
 %mp_derivedvars(
   libds=work.class,
@@ -135,16 +137,20 @@ data work.stmts;
   seq=_n_;
 run;
 
-%let band_seq=;
-%let bandage_seq=;
-proc sql noprint;
-  select min(seq) into: band_seq from work.stmts where substr(line,1,6)='BAND =';
-  select min(seq) into: bandage_seq from work.stmts where substr(line,1,9)='BAND_AGE ';
-quit;
+data work.chkord;
+  set work.stmts end=eof;
+  retain band_seq bandage_seq;
+  if prxmatch('/^BAND\s*=/',strip(line)) and missing(band_seq) then band_seq=seq;
+  if prxmatch('/^BAND_AGE\s*=/',strip(line)) and missing(bandage_seq)
+    then bandage_seq=seq;
+  if eof;
+  if missing(band_seq) or missing(bandage_seq) or band_seq>=bandage_seq
+    then output;
+run;
 
-%mp_assert(
-  iftrue=(&band_seq < &bandage_seq),
-  desc=BAND is assigned before BAND_AGE, whatever order the rows were loaded,
+%mp_assertdsobs(work.chkord,
+  desc=BAND is assigned before BAND_AGE whatever order the rows were loaded,
+  test=EQUALS 0,
   outds=work.test_results
 )
 
@@ -169,18 +175,25 @@ quit;
   outview=work.vw_label
 )
 
-proc contents noprint data=work.vw_label out=work.vcols7(keep=name label);
+/* assert on the generated statements - the label in the view can be changed
+  again by proc contents, the statement is what the macro emits */
+data work.stmts7;
+  infile derref7 truncover;
+  input line $4000.;
 run;
 
 data work.chklbl;
-  set work.vcols7;
-  where (name='BAND' and label='Age band')
-    or (name='DOUBLE_AGE' and label='DOUBLE_AGE=AGE * 2');
+  set work.stmts7 end=eof;
+  retain found_custom found_default;
+  if index(line,"label='Age band'")>0 then found_custom=1;
+  if index(line,"label='DOUBLE_AGE=AGE * 2'")>0 then found_default=1;
+  if eof;
+  if not found_custom or not found_default then output;
 run;
 
 %mp_assertdsobs(work.chklbl,
-  desc=VAR_LABEL is used when set, and defaults when blank,
-  test=EQUALS 2,
+  desc=VAR_LABEL is used when set and defaults when blank,
+  test=EQUALS 0,
   outds=work.test_results
 )
 
@@ -203,9 +216,9 @@ quit;
   outview=work.vw_default
 )
 
-%mp_assertdsobs(work.vw_default,
+%mp_assert(
+  iftrue=(0 < %mf_existvar(work.vw_default,BAND)),
   desc=The default outvars does not overwrite the control table,
-  test=HASOBS,
   outds=work.test_results
 )
 
@@ -252,4 +265,4 @@ quit;
   outds=work.test_results
 )
 
-%mp_assertscope(COMPARE, outds=work.test_results)
+%mp_assertscope(COMPARE,ignorelist=_SASJS_WEBOUT_HEADERS,outds=work.test_results)

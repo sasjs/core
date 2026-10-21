@@ -159,7 +159,8 @@ data work.&ds_cfg.;
   fmt=strip(upcase(var_fmt));
   deps=upcase(strip(var_deps));
   /* VAR_LABEL is optional - older control tables may not have the column */
-  %if %mf_existvar(&control,VAR_LABEL)=1 %then %do;
+  /* mf_existvar returns the variable position, so 0 means absent */
+  %if %mf_existvar(&control,VAR_LABEL) gt 0 %then %do;
     lbl=translate(strip(var_label),' ','0D0A'x);
   %end;
   %else %do;

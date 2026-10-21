@@ -119,6 +119,20 @@
         "deployServicePack": true,
         "deployScripts": []
       }
+    },
+    {
+      "name": "nextviya",
+      "serverUrl": "https://nextviya.emea.sas.com",
+      "serverType": "SASVIYA",
+      "httpsAgentOptions": {
+        "allowInsecureRequests": false
+      },
+      "appLoc": "/Users/viyademo18/core",
+      "deployConfig": {
+        "deployServicePack": true,
+        "deployScripts": []
+      },
+      "contextName": "Compute Reusable"
     }
   ]
 }

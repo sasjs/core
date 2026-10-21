@@ -5662,11 +5662,17 @@ run;
 data _null_;
   file &outref;
   set work.&ds_srt.;
-  length stmt $4100 label $256 fmt2 $49;
-  /* labels cannot contain single quotes, and are limited to 256 chars */
+  /* 512 so the doubled quotes fit before the 256 boundary is applied */
+  length stmt $4600 label $512 fmt2 $49;
+  /* labels are limited to 256 chars.  The quotes are doubled first, then the
+    cut is made on an even quote boundary - truncating between the two halves of
+    an escape would leave the generated literal unterminated */
   label=cats(name,'=',translate(logic,' ','0D0A'x));
   label=tranwrd(label,"'","''");
-  label=substr(label,1,256);
+  if length(label)>256 then do;
+    label=substr(label,1,256);
+    if mod(count(label,"'"),2) ne 0 then label=substr(label,1,255);
+  end;
   if not missing(fmt) and index(fmt,'.')=0 then fmt=cats(fmt,'.');
   if type='C' then do;
     if missing(fmt) then fmt2=cats('$',len,'.');

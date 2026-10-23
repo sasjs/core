@@ -3,11 +3,11 @@
   @brief Deletes a physical file, if it exists
   @details Usage:
 
-      %mf_writefile(&sasjswork/myfile.txt,l1=some content)
+      %mf_writefile(&_sasjs_work/myfile.txt,l1=some content)
 
-      %mf_deletefile(&sasjswork/myfile.txt)
+      %mf_deletefile(&_sasjs_work/myfile.txt)
 
-      %mf_deletefile(&sasjswork/myfile.txt)
+      %mf_deletefile(&_sasjs_work/myfile.txt)
 
 
   @param [in] file Full path to the target file

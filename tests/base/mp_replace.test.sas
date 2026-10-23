@@ -10,7 +10,7 @@
 **/
 
 
-%let test1="&sasjswork/file.txt";
+%let test1="&_sasjs_work/file.txt";
 %let str=replace/me;
 %let rep=with/this;
 data _null_;
@@ -35,7 +35,7 @@ run;
 )
 
 
-%let test2="&sasjswork/file2.txt";
+%let test2="&_sasjs_work/file2.txt";
 %let str=%str(replacewith trailing spaces   );
 %let rep=%str( with more spaces  );
 data _null_;
@@ -65,7 +65,7 @@ run;
 )
 
 
-%let test3="&sasjswork/file3.txt";
+%let test3="&_sasjs_work/file3.txt";
 %let str=%str(replace.string.with.dots   );
 %let rep=%str( more.dots);
 data _null_;

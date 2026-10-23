@@ -8,9 +8,9 @@
 
 **/
 
-%mf_writefile(&sasjswork/myfile.txt,l1=some content,l2=more content)
+%mf_writefile(&_sasjs_work/myfile.txt,l1=some content,l2=more content)
 data _null_;
-  infile "&sasjswork/myfile.txt";
+  infile "&_sasjs_work/myfile.txt";
   input;
   if _n_=2 then call symputx('test1',_infile_);
 run;
@@ -26,9 +26,9 @@ run;
   outds=work.test_results
 )
 
-%mf_writefile(&sasjswork/myfile.txt,l1=some content,l2=different content)
+%mf_writefile(&_sasjs_work/myfile.txt,l1=some content,l2=different content)
 data _null_;
-  infile "&sasjswork/myfile.txt";
+  infile "&_sasjs_work/myfile.txt";
   input;
   if _n_=2 then call symputx('test2',_infile_);
 run;
@@ -45,13 +45,13 @@ run;
 )
 
 %global test3 test4;
-%mf_writefile(&sasjswork/myfile.txt
+%mf_writefile(&_sasjs_work/myfile.txt
   ,mode=a
   ,l1=%str(aah, content)
   ,l2=append content
 )
 data _null_;
-  infile "&sasjswork/myfile.txt";
+  infile "&_sasjs_work/myfile.txt";
   input;
   if _n_=2 then call symputx('test3',_infile_);
   if _n_=4 then call symputx('test4',_infile_);

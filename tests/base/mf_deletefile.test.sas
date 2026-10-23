@@ -10,7 +10,7 @@
 
 **/
 
-%let test1file=&sasjswork/myfile1.txt;
+%let test1file=&_sasjs_work/myfile1.txt;
 
 %mf_writefile(&test1file,l1=some content)
 

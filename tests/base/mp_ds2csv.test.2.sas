@@ -20,11 +20,11 @@ run;
   * Test 1 - default CSV
   */
 
-%mp_ds2csv(work.shortnum,outfile="&sasjswork/test1.csv",headerformat=SASJS)
+%mp_ds2csv(work.shortnum,outfile="&_sasjs_work/test1.csv",headerformat=SASJS)
 
 %let test1b=FAIL;
 data _null_;
-  infile "&sasjswork/test1.csv";
+  infile "&_sasjs_work/test1.csv";
   input;
   list;
   if _n_=1 then call symputx('test1a',_infile_);

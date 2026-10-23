@@ -29,9 +29,6 @@
   @li SUBGROUP_ID - only integers
   @li VARIABLE_NM - must be in the target table
   @li OPERATOR_NM - only =/>/</<=/>=/BETWEEN/IN/NOT IN/NE/CONTAINS
-  @li CONTAINS - only valid for character variables, and the value must be a
-    quoted string or a character variable - the engine rejects any other
-    operand type, so it is refused here rather than failing later
   @li RAW_VALUE - no unquoted values except integers, commas and spaces.  For
     numeric columns, SAS date, datetime and time literals are also accepted, eg
     '20APR2042'd, '01JAN1960:00:00:42'dt, '00:00:42't.
@@ -98,8 +95,9 @@ data &outds;
   /*length GROUP_LOGIC SUBGROUP_LOGIC $3 SUBGROUP_ID 8 VARIABLE_NM $32
     OPERATOR_NM $10 RAW_VALUE $4000;*/
   set &inds end=last;
-  length reason_cd $4032 vtype vtype2 $1 vnum dsid 8 tmp $4000 re_temporal 8;
-  drop tmp re_temporal;
+  length reason_cd $4032 vtype vtype2 $1 vnum dsid 8 tmp $4000 re_temporal 8
+    vref $64;
+  drop tmp re_temporal vref;
   retain re_temporal;
   /* SAS temporal literals - date, datetime and time */
   if _n_=1 then re_temporal=prxparse("/^'[^']*'(dt|d|t)$/i");
@@ -178,8 +176,9 @@ data &outds;
     operand, so catch the pairing here rather than letting the generated
     clause fail validation with no reference to the offending variable */
   if vtype='N' & OPERATOR_NM='CONTAINS' then do;
+    vref=cats("&targetds",'.',VARIABLE_NM);
     REASON_CD=catx(' ','CONTAINS is only valid for character variables -'
-      ,VARIABLE_NM,'is numeric');
+      ,vref,'is numeric');
     putlog REASON_CD= OPERATOR_NM=;
     call symputx('reason_cd',reason_cd,'l');
     call symputx('nobs',_n_,'l');
@@ -193,6 +192,7 @@ data &outds;
   if vtype='C' & OPERATOR_NM='CONTAINS'
     & subpad(strip(raw_value),1,1) not in ('"',"'")
   then do;
+    vref=cats("&targetds",'.',VARIABLE_NM);
     /* a bare value can only be a variable reference if it is a valid name */
     vnum=0;
     if prxmatch('/^[a-z_][a-z0-9_]*$/i',strip(raw_value))>0 then do;
@@ -202,10 +202,11 @@ data &outds;
       /* the name is a variable of this table - the type must be character */
       vtype2=vartype(dsid,vnum);
       if vtype2='C' then return;
-      REASON_CD=cats("Compared Type (",vtype2,") is not (C)");
+      REASON_CD=catx(' ',"Compared Type ("!!vtype2!!") is not (C) -"
+        ,vref,'CONTAINS',cats(raw_value));
     end;
     else REASON_CD=catx(' ','CONTAINS requires a quoted value or a character'
-      ,'variable -',cats(raw_value),'is neither');
+      ,'variable -',vref,'CONTAINS',cats(raw_value));
     putlog REASON_CD= OPERATOR_NM=;
     call symputx('reason_cd',reason_cd,'l');
     call symputx('nobs',_n_,'l');

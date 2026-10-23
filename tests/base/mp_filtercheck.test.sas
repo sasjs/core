@@ -355,17 +355,24 @@ run;
   outds=work.test_results
 )
 
-/* the regex id is a working variable - it must not leak into the output */
+/* the regex id and the qualified reference are working variables - they must
+  not leak into the output */
 %let re_temporal_col=1;
+%let vref_col=1;
 data _null_;
   dsid=open('work.badrecords','i');
   if dsid>0 then do;
     call symputx('re_temporal_col',(varnum(dsid,'RE_TEMPORAL')>0));
+    call symputx('vref_col',(varnum(dsid,'VREF')>0));
     rc=close(dsid);
   end;
 run;
 %mp_assert(iftrue=(&re_temporal_col=0),
   desc=re_temporal is not in the bad records table,
+  outds=work.test_results
+)
+%mp_assert(iftrue=(&vref_col=0),
+  desc=vref is not in the bad records table,
   outds=work.test_results
 )
 
@@ -419,7 +426,7 @@ run;
 data _null_;
   set work.badrecords;
   if index(REASON_CD,
-    'CONTAINS is only valid for character variables - Age is numeric')>0
+    'CONTAINS is only valid for character variables - work.class.Age is numeric')>0
     then call symputx('contains_reason',1);
 run;
 %mp_assert(iftrue=(&contains_reason=1),
@@ -454,7 +461,7 @@ run;
 data _null_;
   set work.badrecords;
   if index(REASON_CD,
-    'CONTAINS is only valid for character variables - Age is numeric')>0
+    'CONTAINS is only valid for character variables - work.class.Age is numeric')>0
     then call symputx('contains_single',1);
 run;
 %mp_assert(iftrue=(&contains_single=1),
@@ -489,7 +496,7 @@ run;
 data _null_;
   set work.badrecords;
   if index(REASON_CD,
-    'CONTAINS requires a quoted value or a character variable - 12 is neither')
+    'CONTAINS requires a quoted value or a character variable - work.class.Name CONTAINS 12')
     >0 then call symputx('contains_operand',1);
 run;
 %mp_assert(iftrue=(&contains_operand=1),
@@ -562,7 +569,8 @@ run;
 %let operand_type_reason=0;
 data _null_;
   set work.badrecords;
-  if index(REASON_CD,'Compared Type (N) is not (C)')>0
+  if index(REASON_CD,
+    'Compared Type (N) is not (C) - work.class.Name CONTAINS Age')>0
     then call symputx('operand_type_reason',1);
 run;
 %mp_assert(iftrue=(&operand_type_reason=1),

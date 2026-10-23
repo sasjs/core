@@ -67,6 +67,26 @@ Never invoke `%mp_abort` from inside an `%if/%else` block - as a procedural macr
 )
 ```
 
+The same applies to loops. An `%mp_abort` inside a `%do %while` or `%do %to` body can leave the loop running: the abort cancels the current step, and the macro processor then continues with the next iteration - which, when the loop is waiting for progress that will never come, is the abort itself again, so the job spins instead of failing. Set a flag, drop the loop's own counter, and abort once after the `%end`:
+
+```sas
+%let stuck=0;
+%do %while (&left>0);
+  /* ...work that may make no progress... */
+  %if &nready=0 %then %do;
+    %let stuck=1;
+    %let left=0;   /* the loop condition, so it cannot re-enter */
+  %end;
+%end;
+
+%mp_abort(iftrue= (&stuck=1)
+  ,mac=&sysmacroname
+  ,msg=%str(No progress could be made)
+)
+```
+
+The rule of thumb: an abort belongs at the end of a construct, never inside it - `%mp_abort` is a request to the step, not a `return` from the macro. A related shape is a validation abort wrapped in `%if <count> >0 %then %do ... %end` with `iftrue=1` inside; pass the count to `iftrue=` at the point of call instead, so the abort does not depend on an enclosing block.
+
 When `%mp_abort` is called from within a `%include` block, SAS cannot exit cleanly (e.g. to `_webout`). Call `%mp_abort(mode=INCLUDE)` after the include (OUTSIDE any macro wrapper) - it checks `work.mp_abort_errds` for an abort status:
 
 ```sas

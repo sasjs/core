@@ -23,9 +23,9 @@
 %macro mcf_init(func
 )/*/STORE SOURCE*/;
 
-%if not (%symexist(_SASJS_PREFIX)) %then %do;
-  %global _SASJS_PREFIX;
-  %let _SASJS_PREFIX=_SASJS;
+%if not (%symexist(_SASJS_INIT)) %then %do;
+  %global _SASJS_INIT;
+  %let _SASJS_INIT=1;
 %end;
 
 %let func=%upcase(&func);

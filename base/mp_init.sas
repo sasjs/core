@@ -37,10 +37,10 @@
 /* only run once. SASJS_PREFIX is the pre-rename marker and is still honoured:
   an autoexec that sets it is the documented way to skip this macro, and a
   second pass would re-apply the options below mid-session. */
-%if %symexist(_SASJS_PREFIX) or %symexist(SASJS_PREFIX) %then %return;
+%if %symexist(_SASJS_INIT) or %symexist(SASJS_PREFIX) %then %return;
 
 %global
-  _SASJS_PREFIX      /* the hard-coded prefix, and the "already run" marker   */
+  _SASJS_INIT        /* set to any value by this macro: "already initialised" */
   _SASJS_PROCESSMODE /* process mode, as the server's pre-program names it    */
   _SASJS_WEBOUT_HEADERS /* the server's webout header file location           */
   _SASJS_FUNCTIONS   /* used in mcf_init() to track core function compilation */
@@ -48,7 +48,7 @@
   _SASJS_INIT_DTTM   /* initialisation time in E8601DT26.6 format             */
   _SASJS_WORK        /* avoid typing %sysfunc(pathname(work)) every time      */
 ;
-%let _sasjs_prefix=_SASJS;
+%let _sasjs_init=1;
 
 data _null_;
   dttm=datetime();

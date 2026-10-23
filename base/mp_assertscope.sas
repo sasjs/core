@@ -19,7 +19,7 @@
   Global variables are initialised in mp_init.sas - which will also trigger
   "strict mode" in your SAS session.  Whilst this is a default in SASjs
   produced apps, if you prefer not to use this mode, simply instantiate the
-  following variable to prevent the macro from running:  `_SASJS_PREFIX`
+  following variable to prevent the macro from running:  `_SASJS_INIT`
 
   Example usage:
 
@@ -76,7 +76,7 @@
 /**
   * this sets up the global vars, it will also enter STRICT mode.  If this
   * behaviour is not desired, simply initiate the following global macro
-  * variable to prevent the macro from running: _SASJS_PREFIX
+  * variable to prevent the macro from running: _SASJS_INIT
   */
 %mp_init()
 

@@ -4062,7 +4062,7 @@ run;
   Global variables are initialised in mp_init.sas - which will also trigger
   "strict mode" in your SAS session.  Whilst this is a default in SASjs
   produced apps, if you prefer not to use this mode, simply instantiate the
-  following variable to prevent the macro from running:  `_SASJS_PREFIX`
+  following variable to prevent the macro from running:  `_SASJS_INIT`
 
   Example usage:
 
@@ -4119,7 +4119,7 @@ run;
 /**
   * this sets up the global vars, it will also enter STRICT mode.  If this
   * behaviour is not desired, simply initiate the following global macro
-  * variable to prevent the macro from running: _SASJS_PREFIX
+  * variable to prevent the macro from running: _SASJS_INIT
   */
 %mp_init()
 
@@ -10713,10 +10713,10 @@ filename &tempref clear;
 /* only run once. SASJS_PREFIX is the pre-rename marker and is still honoured:
   an autoexec that sets it is the documented way to skip this macro, and a
   second pass would re-apply the options below mid-session. */
-%if %symexist(_SASJS_PREFIX) or %symexist(SASJS_PREFIX) %then %return;
+%if %symexist(_SASJS_INIT) or %symexist(SASJS_PREFIX) %then %return;
 
 %global
-  _SASJS_PREFIX      /* the hard-coded prefix, and the "already run" marker   */
+  _SASJS_INIT        /* set to any value by this macro: "already initialised" */
   _SASJS_PROCESSMODE /* process mode, as the server's pre-program names it    */
   _SASJS_WEBOUT_HEADERS /* the server's webout header file location           */
   _SASJS_FUNCTIONS   /* used in mcf_init() to track core function compilation */
@@ -10724,7 +10724,7 @@ filename &tempref clear;
   _SASJS_INIT_DTTM   /* initialisation time in E8601DT26.6 format             */
   _SASJS_WORK        /* avoid typing %sysfunc(pathname(work)) every time      */
 ;
-%let _sasjs_prefix=_SASJS;
+%let _sasjs_init=1;
 
 data _null_;
   dttm=datetime();
@@ -32172,9 +32172,9 @@ endsub;
 %macro mcf_init(func
 )/*/STORE SOURCE*/;
 
-%if not (%symexist(_SASJS_PREFIX)) %then %do;
-  %global _SASJS_PREFIX;
-  %let _SASJS_PREFIX=_SASJS;
+%if not (%symexist(_SASJS_INIT)) %then %do;
+  %global _SASJS_INIT;
+  %let _SASJS_INIT=1;
 %end;
 
 %let func=%upcase(&func);

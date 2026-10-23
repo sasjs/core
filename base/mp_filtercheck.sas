@@ -95,8 +95,9 @@ data &outds;
   /*length GROUP_LOGIC SUBGROUP_LOGIC $3 SUBGROUP_ID 8 VARIABLE_NM $32
     OPERATOR_NM $10 RAW_VALUE $4000;*/
   set &inds end=last;
-  length reason_cd $4032 vtype vtype2 $1 vnum dsid 8 tmp $4000 re_temporal 8;
-  drop tmp re_temporal;
+  length reason_cd $4032 vtype vtype2 $1 vnum dsid 8 tmp $4000 re_temporal 8
+    vref $64;
+  drop tmp re_temporal vref;
   retain re_temporal;
   /* SAS temporal literals - date, datetime and time */
   if _n_=1 then re_temporal=prxparse("/^'[^']*'(dt|d|t)$/i");
@@ -169,6 +170,48 @@ data &outds;
     call symputx('reason_cd',reason_cd,'l');
     call symputx('nobs',_n_,'l');
     output;
+  end;
+
+  /* CONTAINS is a character-only operator - the engine rejects a numeric
+    operand, so catch the pairing here rather than letting the generated
+    clause fail validation with no reference to the offending variable */
+  if vtype='N' & OPERATOR_NM='CONTAINS' then do;
+    vref=cats("&targetds",'.',VARIABLE_NM);
+    REASON_CD=catx(' ','CONTAINS is only valid for character variables -'
+      ,vref,'is numeric');
+    putlog REASON_CD= OPERATOR_NM=;
+    call symputx('reason_cd',reason_cd,'l');
+    call symputx('nobs',_n_,'l');
+    output;
+    return;
+  end;
+
+  /* the operand must be a string literal or a character variable - the
+    engine rejects an unquoted numeric value even where the column is
+    character, eg 'name contains 12' */
+  if vtype='C' & OPERATOR_NM='CONTAINS'
+    & subpad(strip(raw_value),1,1) not in ('"',"'")
+  then do;
+    vref=cats("&targetds",'.',VARIABLE_NM);
+    /* a bare value can only be a variable reference if it is a valid name */
+    vnum=0;
+    if prxmatch('/^[a-z_][a-z0-9_]*$/i',strip(raw_value))>0 then do;
+      vnum=varnum(dsid,strip(raw_value));
+    end;
+    if vnum>=1 then do;
+      /* the name is a variable of this table - the type must be character */
+      vtype2=vartype(dsid,vnum);
+      if vtype2='C' then return;
+      REASON_CD=catx(' ',"Compared Type ("!!vtype2!!") is not (C) -"
+        ,vref,'CONTAINS',cats(raw_value));
+    end;
+    else REASON_CD=catx(' ','CONTAINS requires a quoted value or a character'
+      ,'variable -',vref,'CONTAINS',cats(raw_value));
+    putlog REASON_CD= OPERATOR_NM=;
+    call symputx('reason_cd',reason_cd,'l');
+    call symputx('nobs',_n_,'l');
+    output;
+    return;
   end;
 
   /* special missing logic */

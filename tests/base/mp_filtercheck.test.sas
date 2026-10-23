@@ -355,17 +355,226 @@ run;
   outds=work.test_results
 )
 
-/* the regex id is a working variable - it must not leak into the output */
+/* the regex id and the qualified reference are working variables - they must
+  not leak into the output */
 %let re_temporal_col=1;
+%let vref_col=1;
 data _null_;
   dsid=open('work.badrecords','i');
   if dsid>0 then do;
     call symputx('re_temporal_col',(varnum(dsid,'RE_TEMPORAL')>0));
+    call symputx('vref_col',(varnum(dsid,'VREF')>0));
     rc=close(dsid);
   end;
 run;
 %mp_assert(iftrue=(&re_temporal_col=0),
   desc=re_temporal is not in the bad records table,
+  outds=work.test_results
+)
+%mp_assert(iftrue=(&vref_col=0),
+  desc=vref is not in the bad records table,
+  outds=work.test_results
+)
+
+/* CONTAINS on a character column is valid */
+data work.inds;
+  infile datalines4 dsd;
+  input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
+datalines4;
+AND,AND,1,Name,CONTAINS,"'ar'"
+AND,AND,1,SEX,CONTAINS,"'F'"
+;;;;;
+run;
+
+%mp_filtercheck(work.inds,
+  targetds=work.class,
+  outds=work.badrecords,
+  abort=NO
+)
+%let syscc=0;
+%mp_assertdsobs(work.badrecords,
+  desc=CONTAINS on a character column,
+  test=EMPTY,
+  outds=work.test_results
+)
+
+/* CONTAINS on a numeric column is rejected before any SQL is generated */
+data work.inds;
+  infile datalines4 dsd;
+  input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
+datalines4;
+AND,AND,1,Age,CONTAINS,"'12'"
+;;;;;
+run;
+
+%mp_filtercheck(work.inds,
+  targetds=work.class,
+  outds=work.badrecords,
+  abort=NO
+)
+%let syscc=0;
+%mp_assertdsobs(work.badrecords,
+  desc=CONTAINS on a numeric column,
+  test=HASOBS,
+  outds=work.test_results
+)
+
+/* the rejection names the operator and the offending variable */
+%let contains_reason=0;
+data _null_;
+  set work.badrecords;
+  if index(REASON_CD,
+    'CONTAINS is only valid for character variables - work.class.Age is numeric')>0
+    then call symputx('contains_reason',1);
+run;
+%mp_assert(iftrue=(&contains_reason=1),
+  desc=CONTAINS rejection names the variable,
+  outds=work.test_results
+)
+
+/* a non numeric value on a numeric column is rejected once, with the
+  CONTAINS reason - the generic RAW_VALUE check must not overwrite it */
+data work.inds;
+  infile datalines4 dsd;
+  input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
+datalines4;
+AND,AND,1,Age,CONTAINS,abc
+;;;;;
+run;
+
+%mp_filtercheck(work.inds,
+  targetds=work.class,
+  outds=work.badrecords,
+  abort=NO
+)
+%let syscc=0;
+%mp_assertdsobs(work.badrecords,
+  desc=CONTAINS numeric rejection emits a single row,
+  test=EQUALS 1,
+  outds=work.test_results
+)
+
+%let contains_single=0;
+data _null_;
+  set work.badrecords;
+  if index(REASON_CD,
+    'CONTAINS is only valid for character variables - work.class.Age is numeric')>0
+    then call symputx('contains_single',1);
+run;
+%mp_assert(iftrue=(&contains_single=1),
+  desc=CONTAINS numeric rejection keeps its reason,
+  outds=work.test_results
+)
+
+/* a character column with an unquoted numeric value is also rejected - the
+  engine refuses a numeric operand however the column is typed */
+data work.inds;
+  infile datalines4 dsd;
+  input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
+datalines4;
+AND,AND,1,Name,CONTAINS,12
+;;;;;
+run;
+
+%mp_filtercheck(work.inds,
+  targetds=work.class,
+  outds=work.badrecords,
+  abort=NO
+)
+%let syscc=0;
+%mp_assertdsobs(work.badrecords,
+  desc=CONTAINS with an unquoted numeric value,
+  test=HASOBS,
+  outds=work.test_results
+)
+
+%let contains_operand=0;
+data _null_;
+  set work.badrecords;
+  if index(REASON_CD,
+    'CONTAINS requires a quoted value or a character variable - work.class.Name CONTAINS 12')
+    >0 then call symputx('contains_operand',1);
+run;
+%mp_assert(iftrue=(&contains_operand=1),
+  desc=CONTAINS operand rejection names the value,
+  outds=work.test_results
+)
+
+/* a character variable is a valid CONTAINS operand */
+data work.inds;
+  infile datalines4 dsd;
+  input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
+datalines4;
+AND,AND,1,Name,CONTAINS,SEX
+;;;;;
+run;
+
+%mp_filtercheck(work.inds,
+  targetds=work.class,
+  outds=work.badrecords,
+  abort=NO
+)
+%let syscc=0;
+%mp_assertdsobs(work.badrecords,
+  desc=CONTAINS with a character variable operand,
+  test=EMPTY,
+  outds=work.test_results
+)
+
+/* a quoted value with leading blanks is still a quoted value */
+data work.inds;
+  length GROUP_LOGIC $3 SUBGROUP_LOGIC $3 SUBGROUP_ID 8 VARIABLE_NM $32
+    OPERATOR_NM $10 RAW_VALUE $4000;
+  GROUP_LOGIC='AND';
+  SUBGROUP_LOGIC='AND';
+  SUBGROUP_ID=1;
+  VARIABLE_NM='Name';
+  OPERATOR_NM='CONTAINS';
+  RAW_VALUE=" 'ar'";
+run;
+
+%mp_filtercheck(work.inds,
+  targetds=work.class,
+  outds=work.badrecords,
+  abort=NO
+)
+%let syscc=0;
+%mp_assertdsobs(work.badrecords,
+  desc=CONTAINS with a leading blank before the quote,
+  test=EMPTY,
+  outds=work.test_results
+)
+
+/* a numeric variable operand is a type mismatch, not a missing variable */
+data work.inds;
+  infile datalines4 dsd;
+  input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
+datalines4;
+AND,AND,1,Name,CONTAINS,Age
+;;;;;
+run;
+
+%mp_filtercheck(work.inds,
+  targetds=work.class,
+  outds=work.badrecords,
+  abort=NO
+)
+%let syscc=0;
+%let operand_type_reason=0;
+data _null_;
+  set work.badrecords;
+  if index(REASON_CD,
+    'Compared Type (N) is not (C) - work.class.Name CONTAINS Age')>0
+    then call symputx('operand_type_reason',1);
+run;
+%mp_assert(iftrue=(&operand_type_reason=1),
+  desc=CONTAINS with a numeric variable operand,
   outds=work.test_results
 )
 

@@ -9,9 +9,9 @@
 
     Usage:
 
-        %mf_writefile(&sasjswork/myfile.txt,l1=some content,l2=more content)
+        %mf_writefile(&_sasjs_work/myfile.txt,l1=some content,l2=more content)
 
-        %put %mf_readfile(&sasjswork/myfile.txt);
+        %put %mf_readfile(&_sasjs_work/myfile.txt);
 
 
   @param [in] fpath Full path to file to be read

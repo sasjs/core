@@ -209,7 +209,7 @@ and %superq(SYSPROCESSNAME) ne %str(Compute Server)
     msg=cats('"',msg,'"');
     if symexist('_debug') then debug=quote(trim(symget('_debug')));
     else debug='""';
-    if symget('sasjsprocessmode')='Stored Program' then mode='SASJS';
+    if symget('_sasjs_processmode')='Stored Program' then mode='SASJS';
     if mode ne 'SASJS' then put '>>weboutBEGIN<<';
     put '{"SYSDATE" : "' "&SYSDATE" '"';
     put ',"SYSTIME" : "' "&SYSTIME" '"';

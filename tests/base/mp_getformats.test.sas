@@ -13,11 +13,11 @@
   * Test - setup
   */
 
-%mf_mkdir(&sasjswork/path1)
-%mf_mkdir(&sasjswork/path2)
+%mf_mkdir(&_sasjs_work/path1)
+%mf_mkdir(&_sasjs_work/path2)
 
-libname path1 "&sasjswork/path1";
-libname path2 "&sasjswork/path2";
+libname path1 "&_sasjs_work/path1";
+libname path2 "&_sasjs_work/path2";
 
 
 PROC FORMAT library=path1;

@@ -299,4 +299,4 @@ run;
 )
 
 
-%mp_assertscope(COMPARE,ignorelist=SASJS_FUNCTIONS)
+%mp_assertscope(COMPARE,ignorelist=_SASJS_FUNCTIONS)

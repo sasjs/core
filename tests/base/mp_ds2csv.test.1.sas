@@ -20,12 +20,12 @@ run;
   * Test 1 - default CSV
   */
 %mp_assertscope(SNAPSHOT)
-%mp_ds2csv(work.somedata,outfile="&sasjswork/test1.csv")
+%mp_ds2csv(work.somedata,outfile="&_sasjs_work/test1.csv")
 %mp_assertscope(COMPARE)
 
 %let test1b=FAIL;
 data _null_;
-  infile "&sasjswork/test1.csv";
+  infile "&_sasjs_work/test1.csv";
   input;
   list;
   if _n_=1 then call symputx('test1a',_infile_);
@@ -46,7 +46,7 @@ run;
 /**
   * Test 2 - NAME header with fileref and semicolons
   */
-filename test2 "&sasjswork/test2.csv";
+filename test2 "&_sasjs_work/test2.csv";
 %mp_ds2csv(work.somedata,outref=test2,dlm=SEMICOLON,headerformat=NAME)
 
 %let test2b=FAIL;
@@ -72,7 +72,7 @@ run;
 /**
   * Test 3 - SASjs format
   */
-filename test3 "&sasjswork/test3.csv";
+filename test3 "&_sasjs_work/test3.csv";
 %mp_ds2csv(work.somedata,outref=test3,headerformat=SASJS)
 
 %let test3b=FAIL;

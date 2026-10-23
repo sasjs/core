@@ -10,9 +10,9 @@
 
     Usage:
 
-        %mf_writefile(&sasjswork/myfile.txt,l1=some content,l2=more content)
+        %mf_writefile(&_sasjs_work/myfile.txt,l1=some content,l2=more content)
         data _null_;
-          infile "&sasjswork/myfile.txt";
+          infile "&_sasjs_work/myfile.txt";
           input;
           list;
         run;

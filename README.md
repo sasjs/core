@@ -209,7 +209,7 @@ When contributing to this library, it is therefore important to ensure that all 
 - Mandatory parameters should be positional, all optional parameters should be keyword (var=) style.
 - All dataset references must be 2 level (eg `work.blah`, not `blah`). This is to avoid contention when options [DATASTMTCHK](https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000279064.htm)=ALLKEYWORDS is in effect, or the [USER](https://documentation.sas.com/doc/en/pgmsascdc/9.4_3.5/lrcon/n18m1vkqmeo4esn1moikt23zhp8s.htm) library is active.
 - Avoid naming collisions! All macro variables should be local scope. Use system generated work tables where possible - eg `data ; set sashelp.class; run; data &output; set &syslast; run;`
-- Where global macro variables are absolutely necessary, they should make use of `&sasjs_prefix` - see mp_init.sas
+- Where global macro variables are absolutely necessary, they must use the hard-coded `_SASJS_` prefix and be declared in mp_init.sas - see mp_init.sas
 - The use of `quit;` for `proc sql` is essential, to avoid `WARNING: You cannot disconnect or terminate session XXXX until the procedure completes.` when terminating CAS sessions in Viya.
 - Use [sasjs lint](https://github.com/sasjs/lint)!
 
@@ -220,15 +220,10 @@ When contributing to this library, it is therefore important to ensure that all 
 
 ## Breaking Changes
 
-We are currently on major release v5.  The following breaking changes were applied as part of the v5 release:
+We are currently on major release v6.  The following breaking changes were applied as part of the v6 release:
 
-* mcf_xxx macros - the `insert_cmplib` option was removed (the option is now checked automatically with value inserted only if needed)
-* mcf_xxx macros - the `wrap=` option now defaults to YES for convenience.  Set this option explicitly to avoid issues.
-* mf_getuniquelibref.sas - the deprecated maxtries parameter was removed (no longer needed)
-* mp_abort.sas - the redundant type= parameter was removed.
-* mp_coretable.sas - removed, and replaced by the standalone macros in the `ddl` folder
-* mp_getddl.sas - renamed to mp_ds2ddl.sas (consistent with other ds2xxx macros).  The default for SHOWLOG is now YES instead of NO.
-* mp_testservice.sas - renamed to mx_execute.sas (as it doesn't actually test anything, and the mp_ suite should not reference mx_ macros)
+* all macros - the session macro variables were renamed to the `_SASJS_` prefix, matching the names sasjs/server sets in its pre-programs.  `SASJSWORK` is now `_SASJS_WORK`, `SASJS_INIT_NUM` is `_SASJS_INIT_NUM`, `SASJS_INIT_DTTM` is `_SASJS_INIT_DTTM`, `SASJSPROCESSMODE` is `_SASJS_PROCESSMODE` and `SASJS_FUNCTIONS` is `_SASJS_FUNCTIONS`.  Code that built paths, tests or ignore lists from the old names must read the new ones - core no longer creates the old names and no alias variables are declared.  The one name that still answers to its old form is the initialisation marker described in the next point, which is honoured rather than created.
+* mp_init.sas - the `prefix=` parameter was removed, and the prefix is hard-coded as `_SASJS_`.  Call `%mp_init()` with no arguments.  The "do not initialise" marker is renamed with everything else: set `_SASJS_INIT` (formerly `SASJS_PREFIX`) in the autoexec, to any value, to suppress initialisation.  `SASJS_PREFIX` still suppresses initialisation if it is already set, so an existing autoexec keeps working unchanged; core no longer sets it.
 
 ## Star Gazing
 

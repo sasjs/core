@@ -13,12 +13,18 @@
   * So lets test to make sure it will not run again
   */
 
-%let initial_value=&sasjs_init_num;
+%let initial_value=&_sasjs_init_num;
 
 %mp_init()
 
 %mp_assert(
-  iftrue=("&initial_value"="&sasjs_init_num"),
+  iftrue=("&initial_value"="&_sasjs_init_num"),
   desc=Check that mp_init() did not run twice,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=("&_SASJS_INIT"="1"),
+  desc=Check that mp_init() left the init marker set,
   outds=work.test_results
 )

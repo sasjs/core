@@ -11,7 +11,7 @@
 
 %mp_assertscope(SNAPSHOT)
 %mcf_getfmttype()
-%mp_assertscope(COMPARE,ignorelist=SASJS_FUNCTIONS)
+%mp_assertscope(COMPARE,ignorelist=_SASJS_FUNCTIONS)
 
 %mp_assert(
   iftrue=(%sysfunc(mcf_getfmttype(DATE9.))=DATE),

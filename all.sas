@@ -106,11 +106,11 @@ options noquotelenmax;
   @brief Deletes a physical file, if it exists
   @details Usage:
 
-      %mf_writefile(&sasjswork/myfile.txt,l1=some content)
+      %mf_writefile(&_sasjs_work/myfile.txt,l1=some content)
 
-      %mf_deletefile(&sasjswork/myfile.txt)
+      %mf_deletefile(&_sasjs_work/myfile.txt)
 
-      %mf_deletefile(&sasjswork/myfile.txt)
+      %mf_deletefile(&_sasjs_work/myfile.txt)
 
 
   @param [in] file Full path to the target file
@@ -956,8 +956,8 @@ or %index(&pgm,/tests/testteardown)
 )/*/STORE SOURCE*/;
 %local a b c;
 %if &switch.NONE=NONE %then %do;
-  %if %symexist(sasjsprocessmode) %then %do;
-    %if &sasjsprocessmode=Stored Program %then %do;
+  %if %symexist(_sasjs_processmode) %then %do;
+    %if &_sasjs_processmode=Stored Program %then %do;
       SASJS
       %return;
     %end;
@@ -2512,9 +2512,9 @@ Usage:
 
     Usage:
 
-        %mf_writefile(&sasjswork/myfile.txt,l1=some content,l2=more content)
+        %mf_writefile(&_sasjs_work/myfile.txt,l1=some content,l2=more content)
 
-        %put %mf_readfile(&sasjswork/myfile.txt);
+        %put %mf_readfile(&_sasjs_work/myfile.txt);
 
 
   @param [in] fpath Full path to file to be read
@@ -2814,9 +2814,9 @@ Usage:
 
     Usage:
 
-        %mf_writefile(&sasjswork/myfile.txt,l1=some content,l2=more content)
+        %mf_writefile(&_sasjs_work/myfile.txt,l1=some content,l2=more content)
         data _null_;
-          infile "&sasjswork/myfile.txt";
+          infile "&_sasjs_work/myfile.txt";
           input;
           list;
         run;
@@ -3079,7 +3079,7 @@ and %superq(SYSPROCESSNAME) ne %str(Compute Server)
     msg=cats('"',msg,'"');
     if symexist('_debug') then debug=quote(trim(symget('_debug')));
     else debug='""';
-    if symget('sasjsprocessmode')='Stored Program' then mode='SASJS';
+    if symget('_sasjs_processmode')='Stored Program' then mode='SASJS';
     if mode ne 'SASJS' then put '>>weboutBEGIN<<';
     put '{"SYSDATE" : "' "&SYSDATE" '"';
     put ',"SYSTIME" : "' "&SYSTIME" '"';
@@ -4057,12 +4057,12 @@ run;
   The following variables are NOT tested (as they are known, global variables
   used in SASjs):
 
-  @li &sasjs_prefix._FUNCTIONS
+  @li _SASJS_FUNCTIONS
 
   Global variables are initialised in mp_init.sas - which will also trigger
   "strict mode" in your SAS session.  Whilst this is a default in SASjs
   produced apps, if you prefer not to use this mode, simply instantiate the
-  following variable to prevent the macro from running:  `SASJS_PREFIX`
+  following variable to prevent the macro from running:  `_SASJS_INIT`
 
   Example usage:
 
@@ -4119,12 +4119,12 @@ run;
 /**
   * this sets up the global vars, it will also enter STRICT mode.  If this
   * behaviour is not desired, simply initiate the following global macro
-  * variable to prevent the macro from running: SASJS_PREFIX
+  * variable to prevent the macro from running: _SASJS_INIT
   */
 %mp_init()
 
 %local ds test_result test_comments del add mod ilist;
-%let ilist=%upcase(&sasjs_prefix._FUNCTIONS SYS_PROCHTTP_STATUS_CODE
+%let ilist=%upcase(&_SASJS_FUNCTIONS SYS_PROCHTTP_STATUS_CODE
   SYS_PROCHTTP_STATUS_CODE SYS_PROCHTTP_STATUS_PHRASE &ignorelist);
 
 /* get current variables */
@@ -10695,38 +10695,44 @@ filename &tempref clear;
     variable - feel free to [raise an issue](
     https://github.com/sasjs/core/issues/new)!
 
-    All global variables are prefixed with "SASJS" (unless modified with the
-    prefix parameter).
+    All the system variables this macro creates use the hard-coded `_SASJS_`
+    prefix - the same namespace sasjs/server uses in the pre-program it
+    generates for each session (`_SASJS_WEBOUT_HEADERS`, `_SASJS_TOKENFILE`,
+    `_SASJS_USERNAME` ...). There is no configurable prefix.
 
-  @param [in] prefix= (SASJS) The prefix to apply to the global macro variables
-
+    Setting `_SASJS_INIT` before this macro runs skips it, which is how an
+    autoexec opts out - a second pass would re-apply the options below.
 
   @version 9.2
   @author Allan Bowe
 
 **/
 
-%macro mp_init(prefix=SASJS
+%macro mp_init(
 )/*/STORE SOURCE*/;
 
-%if %symexist(SASJS_PREFIX) %then %return;  /* only run once */
+/* only run once. The guard is the marker: an autoexec that sets it is the
+  documented way to skip this macro, and a second pass would re-apply the
+  options below mid-session. SASJS_PREFIX is the name an existing autoexec
+  would set, so it suppresses initialisation too. */
+%if %symexist(_SASJS_INIT) or %symexist(SASJS_PREFIX) %then %return;
 
 %global
-  SASJS_PREFIX       /* the ONLY hard-coded global macro variable in SASjs    */
-  &prefix.PROCESSMODE /* SASjs server specific var                           */
-  _sasjs_webout_headers /* the server's webout header location - unprefixed  */
-  &prefix._FUNCTIONS /* used in mcf_init() to track core function compilation */
-  &prefix._INIT_NUM  /* initialisation time as numeric                        */
-  &prefix._INIT_DTTM /* initialisation time in E8601DT26.6 format             */
-  &prefix.WORK       /* avoid typing %sysfunc(pathname(work)) every time      */
+  _SASJS_INIT        /* set to any value by this macro: "already initialised" */
+  _SASJS_PROCESSMODE /* process mode, as the server's pre-program names it    */
+  _SASJS_WEBOUT_HEADERS /* the server's webout header file location           */
+  _SASJS_FUNCTIONS   /* used in mcf_init() to track core function compilation */
+  _SASJS_INIT_NUM    /* initialisation time as numeric                        */
+  _SASJS_INIT_DTTM   /* initialisation time in E8601DT26.6 format             */
+  _SASJS_WORK        /* avoid typing %sysfunc(pathname(work)) every time      */
 ;
-%let sasjs_prefix=&prefix;
+%let _sasjs_init=1;
 
 data _null_;
   dttm=datetime();
-  call symputx("&sasjs_prefix._init_num",dttm,'g');
-  call symputx("&sasjs_prefix._init_dttm",put(dttm,E8601DT26.6),'g');
-  call symputx("&sasjs_prefix.work",pathname('WORK'),'g');
+  call symputx('_SASJS_INIT_NUM',dttm,'g');
+  call symputx('_SASJS_INIT_DTTM',put(dttm,E8601DT26.6),'g');
+  call symputx('_SASJS_WORK',pathname('WORK'),'g');
 run;
 
 options
@@ -32168,21 +32174,16 @@ endsub;
 %macro mcf_init(func
 )/*/STORE SOURCE*/;
 
-%if not (%symexist(SASJS_PREFIX)) %then %do;
-  %global SASJS_PREFIX;
-  %let SASJS_PREFIX=SASJS;
-%end;
-
 %let func=%upcase(&func);
 
 /* the / character is just a seperator */
-%global &sasjs_prefix._FUNCTIONS;
-%if %index(&&&sasjs_prefix._FUNCTIONS,&func/)>0 %then %do;
+%global _SASJS_FUNCTIONS;
+%if %index(&_SASJS_FUNCTIONS,&func/)>0 %then %do;
   1
   %return;
 %end;
 %else %do;
-  %let &sasjs_prefix._FUNCTIONS=&&&sasjs_prefix._FUNCTIONS &func/;
+  %let _SASJS_FUNCTIONS=&_SASJS_FUNCTIONS &func/;
   0
 %end;
 

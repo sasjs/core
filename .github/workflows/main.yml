@@ -7,6 +7,10 @@ on:
   push:
     branches:
       - main
+  # a release can be re-fired without inventing a commit - useful when a
+  # push is skipped for a marker in its message, or when the run fails
+  # after the merge has landed
+  workflow_dispatch:
 
 jobs:
   release:

@@ -22,3 +22,9 @@
   desc=Check that mp_init() did not run twice,
   outds=work.test_results
 )
+
+%mp_assert(
+  iftrue=("&_SASJS_INIT"="1"),
+  desc=Check that mp_init() left the init marker set,
+  outds=work.test_results
+)

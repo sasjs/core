@@ -220,15 +220,10 @@ When contributing to this library, it is therefore important to ensure that all 
 
 ## Breaking Changes
 
-We are currently on major release v5.  The following breaking changes were applied as part of the v5 release:
+We are currently on major release v6.  The following breaking changes were applied as part of the v6 release:
 
-* mcf_xxx macros - the `insert_cmplib` option was removed (the option is now checked automatically with value inserted only if needed)
-* mcf_xxx macros - the `wrap=` option now defaults to YES for convenience.  Set this option explicitly to avoid issues.
-* mf_getuniquelibref.sas - the deprecated maxtries parameter was removed (no longer needed)
-* mp_abort.sas - the redundant type= parameter was removed.
-* mp_coretable.sas - removed, and replaced by the standalone macros in the `ddl` folder
-* mp_getddl.sas - renamed to mp_ds2ddl.sas (consistent with other ds2xxx macros).  The default for SHOWLOG is now YES instead of NO.
-* mp_testservice.sas - renamed to mx_execute.sas (as it doesn't actually test anything, and the mp_ suite should not reference mx_ macros)
+* all macros - the session macro variables were renamed to the `_SASJS_` prefix, matching the names sasjs/server sets in its pre-programs.  `SASJSWORK` is now `_SASJS_WORK`, `SASJS_INIT_NUM` is `_SASJS_INIT_NUM`, `SASJS_INIT_DTTM` is `_SASJS_INIT_DTTM`, `SASJSPROCESSMODE` is `_SASJS_PROCESSMODE` and `SASJS_FUNCTIONS` is `_SASJS_FUNCTIONS`.  Code that built paths, tests or ignore lists from the old names must read the new ones - the old names are gone, no aliases are declared.
+* mp_init.sas - the `prefix=` parameter was removed, and the prefix is hard-coded as `_SASJS_`.  Call `%mp_init()` with no arguments.  The "do not initialise" marker is renamed with everything else: set `_SASJS_INIT` (formerly `SASJS_PREFIX`) in the autoexec, to any value, to suppress initialisation.
 
 ## Star Gazing
 

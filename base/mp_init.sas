@@ -22,7 +22,7 @@
     All the system variables this macro creates use the hard-coded `_SASJS_`
     prefix - the same namespace sasjs/server uses in the pre-program it
     generates for each session (`_SASJS_WEBOUT_HEADERS`, `_SASJS_TOKENFILE`,
-    `_SASJS_USERNAME` ...). There is no configurable prefix.
+    `_SASJS_USERNAME` ...).
 
     Setting `_SASJS_INIT` before this macro runs skips it, which is how an
     autoexec opts out - a second pass would re-apply the options below.

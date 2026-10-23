@@ -369,3 +369,60 @@ run;
   outds=work.test_results
 )
 
+/* CONTAINS on a character column is valid */
+data work.inds;
+  infile datalines4 dsd;
+  input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
+datalines4;
+AND,AND,1,Name,CONTAINS,"'ar'"
+AND,AND,1,SEX,CONTAINS,"'F'"
+;;;;;
+run;
+
+%mp_filtercheck(work.inds,
+  targetds=work.class,
+  outds=work.badrecords,
+  abort=NO
+)
+%let syscc=0;
+%mp_assertdsobs(work.badrecords,
+  desc=CONTAINS on a character column,
+  test=EMPTY,
+  outds=work.test_results
+)
+
+/* CONTAINS on a numeric column is rejected before any SQL is generated */
+data work.inds;
+  infile datalines4 dsd;
+  input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
+datalines4;
+AND,AND,1,Age,CONTAINS,"'12'"
+;;;;;
+run;
+
+%mp_filtercheck(work.inds,
+  targetds=work.class,
+  outds=work.badrecords,
+  abort=NO
+)
+%let syscc=0;
+%mp_assertdsobs(work.badrecords,
+  desc=CONTAINS on a numeric column,
+  test=HASOBS,
+  outds=work.test_results
+)
+
+/* the rejection names the operator and the offending variable */
+%let contains_reason=0;
+data _null_;
+  set work.badrecords;
+  if index(REASON_CD,'CONTAINS is only valid for character variables')>0
+    and index(REASON_CD,'Age')>0 then call symputx('contains_reason',1);
+run;
+%mp_assert(iftrue=(&contains_reason=1),
+  desc=CONTAINS rejection names the variable,
+  outds=work.test_results
+)
+

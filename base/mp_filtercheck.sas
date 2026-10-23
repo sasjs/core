@@ -29,6 +29,8 @@
   @li SUBGROUP_ID - only integers
   @li VARIABLE_NM - must be in the target table
   @li OPERATOR_NM - only =/>/</<=/>=/BETWEEN/IN/NOT IN/NE/CONTAINS
+  @li CONTAINS - only valid for character variables (a numeric column is
+    rejected by the engine, so it is refused here rather than failing later)
   @li RAW_VALUE - no unquoted values except integers, commas and spaces.  For
     numeric columns, SAS date, datetime and time literals are also accepted, eg
     '20APR2042'd, '01JAN1960:00:00:42'dt, '00:00:42't.
@@ -58,7 +60,7 @@
   @li mp_filtergenerate.sas
   @li mp_filtervalidate.sas
 
-  @version 9.3
+  @version 9.4
   @author Allan Bowe
 
   @todo Support hex / name literals and exponents in RAW_VALUE field
@@ -165,6 +167,18 @@ data &outds;
   ('=','>','<','<=','>=','NE','GE','LE','BETWEEN','IN','NOT IN','CONTAINS')
   then do;
     REASON_CD='Invalid OPERATOR_NM: '!!cats(OPERATOR_NM);
+    putlog REASON_CD= OPERATOR_NM=;
+    call symputx('reason_cd',reason_cd,'l');
+    call symputx('nobs',_n_,'l');
+    output;
+  end;
+
+  /* CONTAINS is a character-only operator - the engine rejects a numeric
+    operand, so catch the pairing here rather than letting the generated
+    clause fail validation with no reference to the offending variable */
+  if vtype='N' & OPERATOR_NM='CONTAINS' then do;
+    REASON_CD=cats('CONTAINS is only valid for character variables - '
+      ,VARIABLE_NM,' is numeric');
     putlog REASON_CD= OPERATOR_NM=;
     call symputx('reason_cd',reason_cd,'l');
     call symputx('nobs',_n_,'l');

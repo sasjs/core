@@ -519,6 +519,30 @@ run;
   outds=work.test_results
 )
 
+/* a quoted value with leading blanks is still a quoted value */
+data work.inds;
+  length GROUP_LOGIC $3 SUBGROUP_LOGIC $3 SUBGROUP_ID 8 VARIABLE_NM $32
+    OPERATOR_NM $10 RAW_VALUE $4000;
+  GROUP_LOGIC='AND';
+  SUBGROUP_LOGIC='AND';
+  SUBGROUP_ID=1;
+  VARIABLE_NM='Name';
+  OPERATOR_NM='CONTAINS';
+  RAW_VALUE=" 'ar'";
+run;
+
+%mp_filtercheck(work.inds,
+  targetds=work.class,
+  outds=work.badrecords,
+  abort=NO
+)
+%let syscc=0;
+%mp_assertdsobs(work.badrecords,
+  desc=CONTAINS with a leading blank before the quote,
+  test=EMPTY,
+  outds=work.test_results
+)
+
 /* a numeric variable operand is a type mismatch, not a missing variable */
 data work.inds;
   infile datalines4 dsd;

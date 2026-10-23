@@ -191,7 +191,7 @@ data &outds;
     engine rejects an unquoted numeric value even where the column is
     character, eg 'name contains 12' */
   if vtype='C' & OPERATOR_NM='CONTAINS'
-    & subpad(raw_value,1,1) not in ('"',"'")
+    & subpad(strip(raw_value),1,1) not in ('"',"'")
   then do;
     /* a bare value can only be a variable reference if it is a valid name */
     vnum=0;

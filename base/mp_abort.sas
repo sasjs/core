@@ -66,7 +66,6 @@
   , mode=REGULAR
 )/*/STORE SOURCE*/;
 
-%global sysprocessmode sysprocessname _sasjs_webout_headers sasjsprocessmode;
 %local fref fid i;
 
 %if not(%eval(%unquote(&iftrue))) %then %return;
@@ -171,18 +170,24 @@ and %superq(SYSPROCESSNAME) ne %str(Compute Server)
         name="_webout.json" lrecl=999999 mod;
     %end;
   %end;
-  %else %if %sysfunc(filename(fref,&_sasjs_webout_headers))=0 %then %do;
-    options nobomfile;
-    /* set up http header for SASjs Server */
-    %let fid=%sysfunc(fopen(&fref,A));
-    %if &fid=0 %then %do;
-      %put %str(ERR)OR: %sysfunc(sysmsg());
-      %return;
+  %else %if %symexist(_sasjs_webout_headers) %then %do;
+    /* the header location is declared by mp_init, not here - a %global on the
+      abort path adds it to the caller's scope mid-session, which is the scope
+      leak mp_assertscope reports as Add:(_SASJS_WEBOUT_HEADERS). Guarded
+      because a session that never ran mp_init has no value to read. */
+    %if %sysfunc(filename(fref,&_sasjs_webout_headers))=0 %then %do;
+      options nobomfile;
+      /* set up http header for SASjs Server */
+      %let fid=%sysfunc(fopen(&fref,A));
+      %if &fid=0 %then %do;
+        %put %str(ERR)OR: %sysfunc(sysmsg());
+        %return;
+      %end;
+      %let rc=%sysfunc(fput(&fid,%str(Content-Type: application/json)));
+      %let rc=%sysfunc(fwrite(&fid));
+      %let rc=%sysfunc(fclose(&fid));
+      %let rc=%sysfunc(filename(&fref));
     %end;
-    %let rc=%sysfunc(fput(&fid,%str(Content-Type: application/json)));
-    %let rc=%sysfunc(fwrite(&fid));
-    %let rc=%sysfunc(fclose(&fid));
-    %let rc=%sysfunc(filename(&fref));
   %end;
 
   /* send response in SASjs JSON format */

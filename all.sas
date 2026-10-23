@@ -2936,7 +2936,6 @@ Usage:
   , mode=REGULAR
 )/*/STORE SOURCE*/;
 
-%global sysprocessmode sysprocessname _sasjs_webout_headers sasjsprocessmode;
 %local fref fid i;
 
 %if not(%eval(%unquote(&iftrue))) %then %return;
@@ -3041,18 +3040,24 @@ and %superq(SYSPROCESSNAME) ne %str(Compute Server)
         name="_webout.json" lrecl=999999 mod;
     %end;
   %end;
-  %else %if %sysfunc(filename(fref,&_sasjs_webout_headers))=0 %then %do;
-    options nobomfile;
-    /* set up http header for SASjs Server */
-    %let fid=%sysfunc(fopen(&fref,A));
-    %if &fid=0 %then %do;
-      %put %str(ERR)OR: %sysfunc(sysmsg());
-      %return;
+  %else %if %symexist(_sasjs_webout_headers) %then %do;
+    /* the header location is declared by mp_init, not here - a %global on the
+      abort path adds it to the caller's scope mid-session, which is the scope
+      leak mp_assertscope reports as Add:(_SASJS_WEBOUT_HEADERS). Guarded
+      because a session that never ran mp_init has no value to read. */
+    %if %sysfunc(filename(fref,&_sasjs_webout_headers))=0 %then %do;
+      options nobomfile;
+      /* set up http header for SASjs Server */
+      %let fid=%sysfunc(fopen(&fref,A));
+      %if &fid=0 %then %do;
+        %put %str(ERR)OR: %sysfunc(sysmsg());
+        %return;
+      %end;
+      %let rc=%sysfunc(fput(&fid,%str(Content-Type: application/json)));
+      %let rc=%sysfunc(fwrite(&fid));
+      %let rc=%sysfunc(fclose(&fid));
+      %let rc=%sysfunc(filename(&fref));
     %end;
-    %let rc=%sysfunc(fput(&fid,%str(Content-Type: application/json)));
-    %let rc=%sysfunc(fwrite(&fid));
-    %let rc=%sysfunc(fclose(&fid));
-    %let rc=%sysfunc(filename(&fref));
   %end;
 
   /* send response in SASjs JSON format */
@@ -10708,13 +10713,12 @@ filename &tempref clear;
 
 %global
   SASJS_PREFIX       /* the ONLY hard-coded global macro variable in SASjs    */
-  &prefix.PROCESSMODE &prefix._STPSRV_HEADER_LOC /* SASjs server specific vars*/
+  &prefix.PROCESSMODE /* SASjs server specific var                           */
+  _sasjs_webout_headers /* the server's webout header location - unprefixed  */
   &prefix._FUNCTIONS /* used in mcf_init() to track core function compilation */
   &prefix._INIT_NUM  /* initialisation time as numeric                        */
   &prefix._INIT_DTTM /* initialisation time in E8601DT26.6 format             */
   &prefix.WORK       /* avoid typing %sysfunc(pathname(work)) every time      */
-  &prefix.PROCESSMODE
-  &prefix._STPSRV_HEADER_LOC
 ;
 %let sasjs_prefix=&prefix;
 

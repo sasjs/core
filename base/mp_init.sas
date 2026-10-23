@@ -37,13 +37,12 @@
 
 %global
   SASJS_PREFIX       /* the ONLY hard-coded global macro variable in SASjs    */
-  &prefix.PROCESSMODE &prefix._STPSRV_HEADER_LOC /* SASjs server specific vars*/
+  &prefix.PROCESSMODE /* SASjs server specific var                           */
+  _sasjs_webout_headers /* the server's webout header location - unprefixed  */
   &prefix._FUNCTIONS /* used in mcf_init() to track core function compilation */
   &prefix._INIT_NUM  /* initialisation time as numeric                        */
   &prefix._INIT_DTTM /* initialisation time in E8601DT26.6 format             */
   &prefix.WORK       /* avoid typing %sysfunc(pathname(work)) every time      */
-  &prefix.PROCESSMODE
-  &prefix._STPSRV_HEADER_LOC
 ;
 %let sasjs_prefix=&prefix;
 

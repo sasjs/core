@@ -7754,7 +7754,7 @@ drop table &ds1, &ds2;
   @li mp_filtergenerate.sas
   @li mp_filtervalidate.sas
 
-  @version 9.4
+  @version 9.3
   @author Allan Bowe
 
   @todo Support hex / name literals and exponents in RAW_VALUE field
@@ -7877,6 +7877,7 @@ data &outds;
     call symputx('reason_cd',reason_cd,'l');
     call symputx('nobs',_n_,'l');
     output;
+    return;
   end;
 
   /* the operand must be a string literal or a character variable - the
@@ -7889,16 +7890,20 @@ data &outds;
     vnum=0;
     if prxmatch('/^[a-z_][a-z0-9_]*$/i',strip(raw_value))>0 then do;
       vnum=varnum(dsid,strip(raw_value));
-      if vnum>=1 then do;
-        if vartype(dsid,vnum)='C' then return;
-      end;
     end;
-    REASON_CD=catx(' ','CONTAINS requires a quoted value or a character'
+    if vnum>=1 then do;
+      /* the name is a variable of this table - the type must be character */
+      vtype2=vartype(dsid,vnum);
+      if vtype2='C' then return;
+      REASON_CD=cats("Compared Type (",vtype2,") is not (C)");
+    end;
+    else REASON_CD=catx(' ','CONTAINS requires a quoted value or a character'
       ,'variable -',cats(raw_value),'is neither');
     putlog REASON_CD= OPERATOR_NM=;
     call symputx('reason_cd',reason_cd,'l');
     call symputx('nobs',_n_,'l');
     output;
+    return;
   end;
 
   /* special missing logic */

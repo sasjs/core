@@ -10695,12 +10695,13 @@ filename &tempref clear;
     variable - feel free to [raise an issue](
     https://github.com/sasjs/core/issues/new)!
 
-    All the system variables this macro creates are hard-coded with the
-    `_SASJS_` prefix, the same namespace sasjs/server uses in the pre-program it
+    All the system variables this macro creates use the hard-coded `_SASJS_`
+    prefix - the same namespace sasjs/server uses in the pre-program it
     generates for each session (`_SASJS_WEBOUT_HEADERS`, `_SASJS_TOKENFILE`,
-    `_SASJS_USERNAME` ...). There is no configurable prefix: a name that can be
-    renamed at call time cannot be grepped for, and every macro in core has to
-    agree on it.
+    `_SASJS_USERNAME` ...). There is no configurable prefix.
+
+    Setting `_SASJS_INIT` before this macro runs skips it, which is how an
+    autoexec opts out - a second pass would re-apply the options below.
 
   @version 9.2
   @author Allan Bowe
@@ -10710,9 +10711,10 @@ filename &tempref clear;
 %macro mp_init(
 )/*/STORE SOURCE*/;
 
-/* only run once. SASJS_PREFIX is the pre-rename marker and is still honoured:
-  an autoexec that sets it is the documented way to skip this macro, and a
-  second pass would re-apply the options below mid-session. */
+/* only run once. The guard is the marker: an autoexec that sets it is the
+  documented way to skip this macro, and a second pass would re-apply the
+  options below mid-session. SASJS_PREFIX is the name an existing autoexec
+  would set, so it suppresses initialisation too. */
 %if %symexist(_SASJS_INIT) or %symexist(SASJS_PREFIX) %then %return;
 
 %global
@@ -32171,11 +32173,6 @@ endsub;
 
 %macro mcf_init(func
 )/*/STORE SOURCE*/;
-
-%if not (%symexist(_SASJS_INIT)) %then %do;
-  %global _SASJS_INIT;
-  %let _SASJS_INIT=1;
-%end;
 
 %let func=%upcase(&func);
 

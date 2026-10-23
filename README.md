@@ -225,6 +225,13 @@ We are currently on major release v6.  The following breaking changes were appli
 * all macros - the session macro variables were renamed to the `_SASJS_` prefix, matching the names sasjs/server sets in its pre-programs.  `SASJSWORK` is now `_SASJS_WORK`, `SASJS_INIT_NUM` is `_SASJS_INIT_NUM`, `SASJS_INIT_DTTM` is `_SASJS_INIT_DTTM`, `SASJSPROCESSMODE` is `_SASJS_PROCESSMODE` and `SASJS_FUNCTIONS` is `_SASJS_FUNCTIONS`.  Code that built paths, tests or ignore lists from the old names must read the new ones - core no longer creates the old names and no alias variables are declared.  The one name that still answers to its old form is the initialisation marker described in the next point, which is honoured rather than created.
 * mp_init.sas - the `prefix=` parameter was removed, and the prefix is hard-coded as `_SASJS_`.  Call `%mp_init()` with no arguments.  The "do not initialise" marker is renamed with everything else: set `_SASJS_INIT` (formerly `SASJS_PREFIX`) in the autoexec, to any value, to suppress initialisation.  `SASJS_PREFIX` still suppresses initialisation if it is already set, so an existing autoexec keeps working unchanged; core no longer sets it.
 
+### Cutting a release
+
+Releases are cut by `semantic-release` from the commit messages on `main`, so the squashed PR message is what decides the version:
+
+* a breaking change needs a `BREAKING CHANGE:` footer in the commit body.  The `!` after the type on its own did not bump the major on this pipeline - the v6 rename merged as `feat!:` and shipped as a patch release.
+* no commit that reaches `main` may carry a skip marker (`[skip ci]` and friends), including one copied in by the squashed commit list.  A skip marker suppresses every workflow for that push, the release job included, and nothing is published.
+
 ## Star Gazing
 
 If you find this library useful, please leave a [star](https://github.com/sasjs/core/stargazers) and help us grow our star graph!

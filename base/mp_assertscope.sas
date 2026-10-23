@@ -14,12 +14,12 @@
   The following variables are NOT tested (as they are known, global variables
   used in SASjs):
 
-  @li &sasjs_prefix._FUNCTIONS
+  @li _SASJS_FUNCTIONS
 
   Global variables are initialised in mp_init.sas - which will also trigger
   "strict mode" in your SAS session.  Whilst this is a default in SASjs
   produced apps, if you prefer not to use this mode, simply instantiate the
-  following variable to prevent the macro from running:  `SASJS_PREFIX`
+  following variable to prevent the macro from running:  `_SASJS_PREFIX`
 
   Example usage:
 
@@ -76,12 +76,12 @@
 /**
   * this sets up the global vars, it will also enter STRICT mode.  If this
   * behaviour is not desired, simply initiate the following global macro
-  * variable to prevent the macro from running: SASJS_PREFIX
+  * variable to prevent the macro from running: _SASJS_PREFIX
   */
 %mp_init()
 
 %local ds test_result test_comments del add mod ilist;
-%let ilist=%upcase(&sasjs_prefix._FUNCTIONS SYS_PROCHTTP_STATUS_CODE
+%let ilist=%upcase(&_SASJS_FUNCTIONS SYS_PROCHTTP_STATUS_CODE
   SYS_PROCHTTP_STATUS_CODE SYS_PROCHTTP_STATUS_PHRASE &ignorelist);
 
 /* get current variables */

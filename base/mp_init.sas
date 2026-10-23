@@ -19,38 +19,42 @@
     variable - feel free to [raise an issue](
     https://github.com/sasjs/core/issues/new)!
 
-    All global variables are prefixed with "SASJS" (unless modified with the
-    prefix parameter).
-
-  @param [in] prefix= (SASJS) The prefix to apply to the global macro variables
-
+    All the system variables this macro creates are hard-coded with the
+    `_SASJS_` prefix, the same namespace sasjs/server uses in the pre-program it
+    generates for each session (`_SASJS_WEBOUT_HEADERS`, `_SASJS_TOKENFILE`,
+    `_SASJS_USERNAME` ...). There is no configurable prefix: a name that can be
+    renamed at call time cannot be grepped for, and every macro in core has to
+    agree on it.
 
   @version 9.2
   @author Allan Bowe
 
 **/
 
-%macro mp_init(prefix=SASJS
+%macro mp_init(
 )/*/STORE SOURCE*/;
 
-%if %symexist(SASJS_PREFIX) %then %return;  /* only run once */
+/* only run once. SASJS_PREFIX is the pre-rename marker and is still honoured:
+  an autoexec that sets it is the documented way to skip this macro, and a
+  second pass would re-apply the options below mid-session. */
+%if %symexist(_SASJS_PREFIX) or %symexist(SASJS_PREFIX) %then %return;
 
 %global
-  SASJS_PREFIX       /* the ONLY hard-coded global macro variable in SASjs    */
-  &prefix.PROCESSMODE /* SASjs server specific var                           */
-  _sasjs_webout_headers /* the server's webout header location - unprefixed  */
-  &prefix._FUNCTIONS /* used in mcf_init() to track core function compilation */
-  &prefix._INIT_NUM  /* initialisation time as numeric                        */
-  &prefix._INIT_DTTM /* initialisation time in E8601DT26.6 format             */
-  &prefix.WORK       /* avoid typing %sysfunc(pathname(work)) every time      */
+  _SASJS_PREFIX      /* the hard-coded prefix, and the "already run" marker   */
+  _SASJS_PROCESSMODE /* process mode, as the server's pre-program names it    */
+  _SASJS_WEBOUT_HEADERS /* the server's webout header file location           */
+  _SASJS_FUNCTIONS   /* used in mcf_init() to track core function compilation */
+  _SASJS_INIT_NUM    /* initialisation time as numeric                        */
+  _SASJS_INIT_DTTM   /* initialisation time in E8601DT26.6 format             */
+  _SASJS_WORK        /* avoid typing %sysfunc(pathname(work)) every time      */
 ;
-%let sasjs_prefix=&prefix;
+%let _sasjs_prefix=_SASJS;
 
 data _null_;
   dttm=datetime();
-  call symputx("&sasjs_prefix._init_num",dttm,'g');
-  call symputx("&sasjs_prefix._init_dttm",put(dttm,E8601DT26.6),'g');
-  call symputx("&sasjs_prefix.work",pathname('WORK'),'g');
+  call symputx('_SASJS_INIT_NUM',dttm,'g');
+  call symputx('_SASJS_INIT_DTTM',put(dttm,E8601DT26.6),'g');
+  call symputx('_SASJS_WORK',pathname('WORK'),'g');
 run;
 
 options

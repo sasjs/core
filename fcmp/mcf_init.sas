@@ -23,21 +23,21 @@
 %macro mcf_init(func
 )/*/STORE SOURCE*/;
 
-%if not (%symexist(SASJS_PREFIX)) %then %do;
-  %global SASJS_PREFIX;
-  %let SASJS_PREFIX=SASJS;
+%if not (%symexist(_SASJS_PREFIX)) %then %do;
+  %global _SASJS_PREFIX;
+  %let _SASJS_PREFIX=_SASJS;
 %end;
 
 %let func=%upcase(&func);
 
 /* the / character is just a seperator */
-%global &sasjs_prefix._FUNCTIONS;
-%if %index(&&&sasjs_prefix._FUNCTIONS,&func/)>0 %then %do;
+%global _SASJS_FUNCTIONS;
+%if %index(&_SASJS_FUNCTIONS,&func/)>0 %then %do;
   1
   %return;
 %end;
 %else %do;
-  %let &sasjs_prefix._FUNCTIONS=&&&sasjs_prefix._FUNCTIONS &func/;
+  %let _SASJS_FUNCTIONS=&_SASJS_FUNCTIONS &func/;
   0
 %end;
 

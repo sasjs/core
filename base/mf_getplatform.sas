@@ -26,8 +26,8 @@
 )/*/STORE SOURCE*/;
 %local a b c;
 %if &switch.NONE=NONE %then %do;
-  %if %symexist(sasjsprocessmode) %then %do;
-    %if &sasjsprocessmode=Stored Program %then %do;
+  %if %symexist(_sasjs_processmode) %then %do;
+    %if &_sasjs_processmode=Stored Program %then %do;
       SASJS
       %return;
     %end;

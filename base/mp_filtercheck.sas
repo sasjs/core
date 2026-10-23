@@ -29,8 +29,9 @@
   @li SUBGROUP_ID - only integers
   @li VARIABLE_NM - must be in the target table
   @li OPERATOR_NM - only =/>/</<=/>=/BETWEEN/IN/NOT IN/NE/CONTAINS
-  @li CONTAINS - only valid for character variables (a numeric column is
-    rejected by the engine, so it is refused here rather than failing later)
+  @li CONTAINS - only valid for character variables, and the value must be a
+    quoted string or a character variable - the engine rejects any other
+    operand type, so it is refused here rather than failing later
   @li RAW_VALUE - no unquoted values except integers, commas and spaces.  For
     numeric columns, SAS date, datetime and time literals are also accepted, eg
     '20APR2042'd, '01JAN1960:00:00:42'dt, '00:00:42't.
@@ -177,8 +178,30 @@ data &outds;
     operand, so catch the pairing here rather than letting the generated
     clause fail validation with no reference to the offending variable */
   if vtype='N' & OPERATOR_NM='CONTAINS' then do;
-    REASON_CD=cats('CONTAINS is only valid for character variables - '
-      ,VARIABLE_NM,' is numeric');
+    REASON_CD=catx(' ','CONTAINS is only valid for character variables -'
+      ,VARIABLE_NM,'is numeric');
+    putlog REASON_CD= OPERATOR_NM=;
+    call symputx('reason_cd',reason_cd,'l');
+    call symputx('nobs',_n_,'l');
+    output;
+  end;
+
+  /* the operand must be a string literal or a character variable - the
+    engine rejects an unquoted numeric value even where the column is
+    character, eg 'name contains 12' */
+  if vtype='C' & OPERATOR_NM='CONTAINS'
+    & subpad(raw_value,1,1) not in ('"',"'")
+  then do;
+    /* a bare value can only be a variable reference if it is a valid name */
+    vnum=0;
+    if prxmatch('/^[a-z_][a-z0-9_]*$/i',strip(raw_value))>0 then do;
+      vnum=varnum(dsid,strip(raw_value));
+      if vnum>=1 then do;
+        if vartype(dsid,vnum)='C' then return;
+      end;
+    end;
+    REASON_CD=catx(' ','CONTAINS requires a quoted value or a character'
+      ,'variable -',cats(raw_value),'is neither');
     putlog REASON_CD= OPERATOR_NM=;
     call symputx('reason_cd',reason_cd,'l');
     call symputx('nobs',_n_,'l');

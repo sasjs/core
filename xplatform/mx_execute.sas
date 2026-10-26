@@ -31,9 +31,11 @@
     0 if the service output is not in JSON format.
   @param [out] outref= (0) Output fileref to create, to contain the full _webout
     response.
-  @param [out] outlogds= (_null_) Name of a dataset to receive the child's log.
-    SASjs Server only - the server appends the log to the response and
-    ms_testservice discards it unless this is set.
+  @param [out] outlogds= (_null_) Name of a dataset to receive the child's log
+    (one column, line).  Populated on Viya, from the job log mv_jobflow
+    collects, and on SASjs Server, from the log the server appends to the
+    response - ms_testservice discards that log unless this is set.  Not
+    populated on SAS 9, where proc stp returns no child log.
 
   <h4> SAS Macros </h4>
   @li mf_getplatform.sas
@@ -256,6 +258,14 @@ filename &webref "&webrefpath";
     input;
     putlog _infile_;
   run;
+  /* and keep it, if the caller asked */
+  %if &outlogds ne _null_ %then %do;
+    data &outlogds;
+      infile &fref1 lrecl=2000;
+      length line $2000;
+      line=_infile_;
+    run;
+  %end;
   /* get the uri to fetch results */
   data _null_;
     set work.results;

@@ -69,7 +69,7 @@
   viyaresult=WEBOUT_JSON,
   viyacontext=SAS Job Execution compute context
 );
-%local dbg pcnt fref1 fref2 webref webrefpath i webcount var platform;
+%local dbg pcnt fref1 fref2 webref webrefpath i webcount var platform jobds;
 %if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;
@@ -246,9 +246,11 @@ filename &webref "&webrefpath";
     putlog (_all_)(=);
   run;
 
+  /* the flow table is an internal detail: unique name, thrown away below */
+  %let jobds=%mf_getuniquename(prefix=mx_execute_);
   %mv_jobflow(inds=&ds1
     ,maxconcurrency=1
-    ,outds=work.results
+    ,outds=&jobds
     ,outref=&fref1
     ,mdebug=&mdebug
   )
@@ -268,10 +270,14 @@ filename &webref "&webrefpath";
   %end;
   /* get the uri to fetch results */
   data _null_;
-    set work.results;
+    set &jobds;
     call symputx('uri',uri);
     putlog "&sysmacroname: fetching results for " uri;
   run;
+  /* nothing else needs the flow table - do not leave it in the caller's WORK */
+  proc datasets lib=work nolist nowarn;
+    delete &jobds;
+  quit;
   /* fetch results from webout.json */
   %mv_getjobresult(uri=&uri,
     result=&viyaresult,

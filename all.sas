@@ -32886,6 +32886,9 @@ Usage:
     0 if the service output is not in JSON format.
   @param [out] outref= (0) Output fileref to create, to contain the full _webout
     response.
+  @param [out] outlogds= (_null_) Name of a dataset to receive the child's log.
+    SASjs Server only - the server appends the log to the response and
+    ms_testservice discards it unless this is set.
 
   <h4> SAS Macros </h4>
   @li mf_getplatform.sas
@@ -32915,6 +32918,7 @@ Usage:
   mdebug=0,
   outlib=0,
   outref=0,
+  outlogds=_null_,
   viyaresult=WEBOUT_JSON,
   viyacontext=SAS Job Execution compute context
 );
@@ -33132,6 +33136,7 @@ filename &webref "&webrefpath";
     ,mdebug=&mdebug
     ,outlib=&outlib
     ,outref=&outref
+    ,outlogds=&outlogds
   )
 
 %end;

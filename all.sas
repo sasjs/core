@@ -32876,7 +32876,8 @@ Usage:
     |stpmacname|some value|
     |mustbevalidname|can be anything, oops, %abort!!|
 
-  @param [in] debug= (log) Provide the _debug value
+  @param [in] debug= (131) Provide the _debug value.  Numeric, because the
+    server validates it as a number - see ms_runstp, whose own default is 131.
   @param [in] mdebug= (0) Set to 1 to provide macro debugging
   @param [in] viyaresult= (WEBOUT_JSON) The Viya result type to return.  For
     more info, see mv_getjobresult.sas
@@ -32923,7 +32924,7 @@ Usage:
   inputfiles=0,
   inputdatasets=0,
   inputparams=0,
-  debug=log,
+  debug=131,
   mdebug=0,
   outlib=0,
   outref=0,

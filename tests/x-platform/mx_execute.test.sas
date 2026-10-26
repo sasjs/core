@@ -131,3 +131,74 @@ quit;
   )
 %mend mp_test_log;
 %mp_test_log()
+
+/**
+  * Test 4 - the outcome of a clean run is reported, not left in WORK
+  */
+%mx_execute(&mcTestAppLoc/services/sendObj,
+  inputdatasets=work.somedata1,
+  outlib=testlib5,
+  outref=test5,
+  outstatus=work.status5
+)
+
+%let state5=NONE;
+data _null_;
+  if not exist('work.status5') then stop;
+  set work.status5;
+  call symputx('state5',state);
+run;
+
+%mp_assert(
+  iftrue=("&state5"="completed"),
+  desc=Test 4 - a clean run reports state=completed,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=(%sysfunc(exist(work.results))=0),
+  desc=Test 4 - no fixed-name table is left in the caller WORK,
+  outds=work.test_results
+)
+
+/**
+  * Test 5 - an aborted child is reported as canceled, with its message
+  */
+%macro mp_test_abort();
+  %if "%mf_getplatform()"=SASMETA %then %do;
+    %put NOTE: proc stp returns no job status - abort case skipped on SAS 9;
+    %return;
+  %end;
+
+  filename ft15f002 temp;
+  data _null_;
+    file ft15f002;
+    put '%mp_abort(iftrue=(1=1),msg=Deliberate abort);';
+  run;
+  %mx_createwebservice(path=&mcTestAppLoc/services,name=abortObj)
+
+  %mx_execute(&mcTestAppLoc/services/abortObj,
+    outref=test6,
+    outstatus=work.status6
+  )
+
+  %let state6=NONE;
+  %let msg6=;
+  data _null_;
+    if not exist('work.status6') then stop;
+    set work.status6;
+    call symputx('state6',state);
+    call symputx('msg6',errmsg);
+  run;
+  %mp_assert(
+    iftrue=("&state6"="canceled"),
+    desc=Test 5 - an aborted child reports state=canceled,
+    outds=work.test_results
+  )
+  %mp_assert(
+    iftrue=(%index("&msg6","Deliberate abort")>0),
+    desc=Test 5 - the child's abort message is reported,
+    outds=work.test_results
+  )
+%mend mp_test_abort;
+%mp_test_abort()

@@ -32891,6 +32891,13 @@ Usage:
     collects, and on SASjs Server, from the log the server appends to the
     response - ms_testservice discards that log unless this is set.  Not
     populated on SAS 9, where proc stp returns no child log.
+  @param [out] outstatus= (0) Name of a dataset to receive the outcome of each
+    child run - one row per program, with columns STATE, URI, ERRMSG and
+    PLATFORM.  STATE comes from the job flow on Viya and is derived from the
+    response (a sasjsAbort block means canceled) on SASjs Server; on SAS 9 it is
+    unknown, as the platform gives no way to tell.  This is the supported
+    replacement for the fixed work.results table the Viya branch used to leave
+    behind.
 
   <h4> SAS Macros </h4>
   @li mf_getplatform.sas
@@ -32921,10 +32928,11 @@ Usage:
   outlib=0,
   outref=0,
   outlogds=_null_,
+  outstatus=0,
   viyaresult=WEBOUT_JSON,
   viyacontext=SAS Job Execution compute context
 );
-%local dbg pcnt fref1 fref2 webref webrefpath i webcount var platform jobds;
+%local dbg pcnt fref1 fref2 webref webrefpath i webcount var platform jobds respref;
 %if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;
@@ -33044,6 +33052,17 @@ filename &webref "&webrefpath";
     %mp_binarycopy(inref=&webref,outref=&outref)
   %end;
 
+  /* proc stp gives no job status - say so rather than imply success */
+  %if "&outstatus" ne "0" %then %do;
+    data &outstatus;
+      length state $20 uri $256 errmsg $256 platform $10;
+      state='unknown';
+      uri='';
+      errmsg='proc stp returns no job status';
+      platform='SASMETA';
+    run;
+  %end;
+
 %end;
 %else %if &platform=SASVIYA %then %do;
 
@@ -33129,6 +33148,15 @@ filename &webref "&webrefpath";
     call symputx('uri',uri);
     putlog "&sysmacroname: fetching results for " uri;
   run;
+  /* the outcome, before the flow table goes away */
+  %if "&outstatus" ne "0" %then %do;
+    data &outstatus;
+      length state $20 uri $256 errmsg $256 platform $10;
+      platform='SASVIYA';
+      errmsg='';
+      set &jobds(keep=state uri);
+    run;
+  %end;
   /* nothing else needs the flow table - do not leave it in the caller's WORK */
   proc datasets lib=work nolist nowarn;
     delete &jobds;
@@ -33144,6 +33172,9 @@ filename &webref "&webrefpath";
 %end;
 %else %if &platform=SASJS %then %do;
 
+  /* the response is needed to judge the outcome, even if not requested */
+  %let respref=&outref;
+  %if "&respref"="0" and "&outstatus" ne "0" %then %let respref=%mf_getuniquefileref();
   %ms_testservice(&program
     ,inputfiles=&inputfiles
     ,inputdatasets=&inputdatasets
@@ -33151,9 +33182,25 @@ filename &webref "&webrefpath";
     ,debug=&debug
     ,mdebug=&mdebug
     ,outlib=&outlib
-    ,outref=&outref
+    ,outref=&respref
     ,outlogds=&outlogds
   )
+  %if "&outstatus" ne "0" %then %do;
+    data &outstatus;
+      length state $20 uri $256 errmsg $256 platform $10;
+      retain state 'completed' uri '' errmsg '' platform 'SASJS';
+      infile &respref end=eof lrecl=32767;
+      input;
+      if index(_infile_,'"sasjsAbort"')>0 then do;
+        state='canceled';
+        errmsg=prxchange('s/.*?"MSG":"([^"]*)".*/$1/',-1,_infile_);
+      end;
+      if eof then output;
+    run;
+  %end;
+  %if "&outref"="0" %then %do;
+    filename &respref clear;
+  %end;
 
 %end;
 %else %do;

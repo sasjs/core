@@ -166,6 +166,9 @@ run;
 filename ft15f002 temp;
 data _null_;
   file ft15f002;
+  /* open the webout first, as a real service does: an abort raised before the
+    * response is opened produces no abort block in the body */
+  put '%webout(OPEN)';
   put '%mp_abort(iftrue=(1=1),msg=Deliberate abort);';
 run;
 %mx_createwebservice(path=&mcTestAppLoc/services,name=abortObj)

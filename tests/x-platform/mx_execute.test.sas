@@ -6,6 +6,7 @@
   running in Studio
 
   <h4> SAS Macros </h4>
+  @li mf_getplatform.sas
   @li mx_createwebservice.sas
   @li mx_execute.sas
   @li mp_assert.sas
@@ -81,3 +82,52 @@ run;
   desc=somedata2 created correctly,
   outds=work.test_results
 )
+
+/**
+  * Test 2 - the default call writes no log dataset
+  */
+proc datasets lib=work nolist nowarn;
+  delete childlog;
+quit;
+%mx_execute(&mcTestAppLoc/services/sendObj,
+  inputdatasets=work.somedata1,
+  debug=log,
+  outlib=testlib3,
+  outref=test3
+)
+
+%mp_assert(
+  iftrue=(%sysfunc(exist(work.childlog))=0),
+  desc=Test 2 - no log dataset is written unless outlogds is asked for,
+  outds=work.test_results
+)
+
+/**
+  * Test 3 - the child log is kept when outlogds is supplied
+  */
+%macro mp_test_log();
+  %if "%mf_getplatform()"=SAS9 %then %do;
+    %put NOTE: proc stp returns no child log - outlogds case skipped on SAS 9;
+    %return;
+  %end;
+  %mx_execute(&mcTestAppLoc/services/sendObj,
+    inputdatasets=work.somedata1,
+    debug=log,
+    outlib=testlib4,
+    outref=test4,
+    outlogds=work.childlog
+  )
+  %let logcase=FAIL;
+  data _null_;
+    if not exist('work.childlog') then stop;
+    set work.childlog;
+    /* the service's first statement is a %put - it must be in the log */
+    if index(line,'Initialising sendObj') then call symputx('logcase','PASS');
+  run;
+  %mp_assert(
+    iftrue=("&logcase"="PASS"),
+    desc=Test 3 - the child log is captured when outlogds is supplied,
+    outds=work.test_results
+  )
+%mend mp_test_log;
+%mp_test_log()

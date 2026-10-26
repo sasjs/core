@@ -208,6 +208,6 @@ run;
 
 %mp_assert(
   iftrue=("&msgcase"="PASS"),
-  desc=Test 5 - the child's abort message is reported,
+  desc=Test 5 - the abort message from the child is reported,
   outds=work.test_results
 )

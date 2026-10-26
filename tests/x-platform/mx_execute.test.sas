@@ -171,7 +171,9 @@ data _null_;
   put '%webout(OPEN)';
   put '%mp_abort(iftrue=(1=1),msg=Deliberate abort);';
 run;
-%mx_createwebservice(path=&mcTestAppLoc/services,name=abortObj)
+/* code= must be named: mx_createwebservice defaults to ft15f001, which still
+  * holds the sendObj source, so the service would silently be a copy of it */
+%mx_createwebservice(path=&mcTestAppLoc/services,name=abortObj,code=ft15f002)
 
 %mx_execute(&mcTestAppLoc/services/abortObj,
   outref=test6,

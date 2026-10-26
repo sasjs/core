@@ -51,7 +51,6 @@ run;
 
 %mx_execute(&mcTestAppLoc/services/sendObj,
   inputdatasets=work.somedata1 work.somedata2,
-  debug=log,
   mdebug=1,
   outlib=testlib1,
   outref=test1
@@ -90,7 +89,6 @@ proc datasets lib=work nolist nowarn;
 quit;
 %mx_execute(&mcTestAppLoc/services/sendObj,
   inputdatasets=work.somedata1,
-  debug=log,
   outlib=testlib3,
   outref=test3
 )
@@ -106,7 +104,6 @@ quit;
   */
 %mx_execute(&mcTestAppLoc/services/sendObj,
   inputdatasets=work.somedata1,
-  debug=log,
   outlib=testlib4,
   outref=test4,
   outlogds=work.childlog

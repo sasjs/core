@@ -217,7 +217,7 @@ When contributing to this library, it is therefore important to ensure that all 
 ## General Notes
 
 - All macros should be compatible with SAS 9.4 (every maintenance release, 9.4M0 and later - including the releases in Limited Support) and with SAS Viya.
-- Where a macro needs a later release than that floor, it should say so in the header (`@version` is the EARLIEST SAS version in which the macro is known to work) and exit gracefully when it runs on an older one - `mm_createstp.sas` shows the `%if %sysevalf(&sysver lt 9.3)` pattern.
+- Where a macro needs a later release than that floor, it should say so in the header (`@version` is the EARLIEST SAS version in which the macro is known to work) and exit gracefully when it runs on an older one. The threshold is the macro's own, not the floor above: `mm_createstp.sas` checks `%if %sysevalf(&sysver lt 9.3)` because type 2 stored processes need 9.3, and `mf_fmtdttm.sas` shows the maintenance-level form - `("&sysver"="9.4" and "%substr(&SYSVLONG,9,1)" le "3")`.
 - It's [best to avoid](https://git.datacontroller.io/dc/dc/issues/50) special / non-ASCII characters for compatibility with the widest variety of SAS installations.
 
 ## Breaking Changes

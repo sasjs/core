@@ -23,6 +23,8 @@
 
   @param [in] debug= (131) Provide the _debug value.  Numeric, because the
     server validates it as a number - see ms_runstp, whose own default is 131.
+    Earlier releases defaulted to the string `log`, which the trigger rejects,
+    so callers relying on that default should pass debug= explicitly.
   @param [in] mdebug= (0) Set to 1 to provide macro debugging
   @param [in] viyaresult= (WEBOUT_JSON) The Viya result type to return.  For
     more info, see mv_getjobresult.sas
@@ -36,7 +38,9 @@
     (one column, line).  Populated on Viya, from the job log mv_jobflow
     collects, and on SASjs Server, from the log the server appends to the
     response - ms_testservice discards that log unless this is set.  Not
-    populated on SAS 9, where proc stp returns no child log.
+    populated on SAS 9, where proc stp returns no child log.  On SASjs Server
+    it is only populated when debug is 131 or above: the server appends the log
+    to the response in debug mode, so a lower value returns an empty dataset.
   @param [out] outstatus= (0) Name of a dataset to receive the outcome of each
     child run - one row per program, with columns STATE, URI, ERRMSG and
     PLATFORM.  STATE comes from the job flow on Viya and is derived from the
@@ -198,6 +202,11 @@ filename &webref "&webrefpath";
     %mp_binarycopy(inref=&webref,outref=&outref)
   %end;
 
+  %if "&outlogds" ne "_null_" %then %do;
+    %put NOTE: &sysmacroname: outlogds was requested, but SAS 9 returns no
+      child log, so &outlogds will be empty;
+  %end;
+
   /* proc stp gives no job status - say so rather than imply success */
   %if "&outstatus" ne "0" %then %do;
     data &outstatus;
@@ -281,7 +290,7 @@ filename &webref "&webrefpath";
     putlog _infile_;
   run;
   /* and keep it, if the caller asked */
-  %if "%outlogds" ne "_null_" %then %do;
+  %if "&outlogds" ne "_null_" %then %do;
     data &outlogds;
       infile &fref1 lrecl=32767 end=eof;
       length line $32767;
@@ -341,14 +350,18 @@ filename &webref "&webrefpath";
   %if "&outstatus" ne "0" %then %do;
     data &outstatus;
       length state $20 uri $256 errmsg $256 platform $10;
-      retain state 'completed' uri '' errmsg '' platform 'SASJS';
+      retain state 'completed' uri '' errmsg '' platform 'SASJS' abortseen 0;
       infile &respref end=eof lrecl=32767;
-      /* scan the whole response: the abort block is not always on its first
-        * line, and the message is on a line of its own */
+      /* scan the whole response - the abort block is not always on the first
+        * line - but only take a message from inside that block, so a service
+        * with its own MSG field does not look like an abort */
       do while(not eof);
         input;
-        if index(_infile_,'"sasjsAbort"')>0 then state='canceled';
-        if index(_infile_,'"MSG"')>0 then
+        if index(_infile_,'"sasjsAbort"')>0 then do;
+          state='canceled';
+          abortseen=1;
+        end;
+        if abortseen=1 and errmsg='' and index(_infile_,'"MSG"')>0 then
           errmsg=prxchange('s/.*"MSG" *: *"([^"]*)".*/$1/',-1,_infile_);
       end;
       /* one row, whatever the response contained */

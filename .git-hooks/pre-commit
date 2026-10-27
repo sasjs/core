@@ -36,12 +36,22 @@ if [ "$commit_size" -ge "$size_limit" ]; then
   exit 1
 fi
 
-# Ensure lint is passing
-LINT=`sasjs lint`
-if [[ "$LINT" != *"All matched files use @sasjs/lint code style!" ]]; then
-  echo "$LINT"
-  echo "To commit in spite of these warnings, use the -n parameter."
+# Ensure lint is passing. The CLI exits non-zero only when a diagnostic is an
+# ERROR (ReturnCode.LintError, exit 3), so this gate follows .sasjslint: a rule
+# is blocking once it is listed under severityLevel there, and a warning does
+# not hold up a commit. Any other exit code means lint never ran.
+LINT_OUTPUT=$(sasjs lint 2>&1)
+LINT_STATUS=$?
+if [ "$LINT_STATUS" -ne 0 ]; then
+  echo "$LINT_OUTPUT"
+  case "$LINT_STATUS" in
+    3) echo "❌ sasjs lint found errors - fix them, or commit with -n to bypass." ;;
+    *) echo "❌ sasjs lint could not run (exit $LINT_STATUS) - check that @sasjs/cli is on the PATH, or commit with -n to bypass." ;;
+  esac
   exit 1
+fi
+if [[ "$LINT_OUTPUT" == *"lint warnings"* ]]; then
+  echo "sasjs lint: warnings present, not blocking. Run 'sasjs lint' to see them."
 fi
 
 # Avoid commits to the master branch

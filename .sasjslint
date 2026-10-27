@@ -14,6 +14,17 @@
   "indentationMultiple": 2,
   "severityLevel": {
     "hasDoxygenHeader": "error",
-    "noNestedCommentsInHeader": "error"
+    "hasMacroNameInMend": "error",
+    "hasMacroParentheses": "error",
+    "lineEndings": "error",
+    "lowerCaseFileNames": "error",
+    "maxLineLength": "error",
+    "noEncodedPasswords": "error",
+    "noGremlins": "error",
+    "noNestedCommentsInHeader": "error",
+    "noSpacesInFileNames": "error",
+    "noTabs": "error",
+    "noTrailingSpaces": "error",
+    "strictMacroDefinition": "error"
   }
 }

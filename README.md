@@ -212,7 +212,7 @@ When contributing to this library, it is therefore important to ensure that all 
 - Where global macro variables are absolutely necessary, they must use the hard-coded `_SASJS_` prefix and be declared in mp_init.sas - see mp_init.sas
 - The use of `quit;` for `proc sql` is essential, to avoid `WARNING: You cannot disconnect or terminate session XXXX until the procedure completes.` when terminating CAS sessions in Viya.
 - Macro logic (`%if`, `%do`) belongs inside a macro definition - in open code it needs SAS 9.4M5, which is later than the 9.4M0 floor in General Notes.
-- Use [sasjs lint](https://github.com/sasjs/lint)!
+- Use [sasjs lint](https://github.com/sasjs/lint)! The pre-commit hook blocks a commit on lint **errors** and lets warnings through, so a rule becomes a gate the same day its last violation is cleared - add it to `severityLevel` in `.sasjslint` as `error` at that point.
 
 ## General Notes
 

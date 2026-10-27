@@ -14,6 +14,8 @@
     is used to create this file.
 
   @author Allan Bowe
+
+  @sasjslint {"noBannedStrings": false}
 **/
 options noquotelenmax;
 /**
@@ -218,6 +220,7 @@ options noquotelenmax;
   @warning Untested on tables registered in metadata but not physically present
   @version 9.2
   @author Allan Bowe
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mf_existds(libds
@@ -675,6 +678,7 @@ or %index(&pgm,/tests/testteardown)
   <h4> Related Macros </h4>
   @li mf_getxengine.sas
 
+  @sasjslint {"noBannedStrings": false}
 **/
 /** @cond */
 
@@ -1091,6 +1095,7 @@ or %index(&pgm,/tests/testteardown)
   @version 9.2
   @author Allan Bowe
   @cond
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mf_getschema(libref
@@ -1150,6 +1155,7 @@ or %index(&pgm,/tests/testteardown)
 
   @version 9.2
   @author Allan Bowe
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mf_getuniquefileref(prefix=_,maxtries=1000,lrecl=32767);
@@ -2695,6 +2701,7 @@ Usage:
   @version 9.2
   @author Allan Bowe
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 
@@ -2759,6 +2766,7 @@ Usage:
   @version 9.2
   @author Allan Bowe
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mf_wordsinstr1andstr2(
@@ -3470,6 +3478,7 @@ and %superq(SYSPROCESSNAME) ne %str(Compute Server)
   @version 9.2
   @author Allan Bowe
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mp_applyformats(inds,errds=0
@@ -5907,6 +5916,7 @@ run;
   @li mp_dirlist.test.sas
 
   @version 9.2
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mp_dirlist(path=%sysfunc(pathname(work))
@@ -8569,6 +8579,7 @@ run;
   @version 9.3
   @author Allan Bowe
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mp_filtervalidate(inref,targetds,abort=YES,outds=work.mp_filtervalidate);
@@ -16578,6 +16589,7 @@ run;
   @version 9.2
   @author Allan Bowe
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_assignlib(
@@ -16695,6 +16707,7 @@ run;
 
   @author Allan Bowe
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_createapplication(
@@ -19850,6 +19863,7 @@ run;
   @version 9.2
   @author Allan Bowe
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_getlibs(
@@ -19940,6 +19954,7 @@ libname _XML_ clear;
   @version 9.2
   @author Allan Bowe
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_getobjects(
@@ -20098,6 +20113,7 @@ quit;
   @version 9.2
   @author Allan Bowe
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_getrepos(
@@ -20238,6 +20254,7 @@ libname _XML_ clear;
   @version 9.3
   @author Allan Bowe
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_getroles(
@@ -20310,6 +20327,7 @@ libname _XML_ clear;
   @version 9.3
   @author Allan Bowe
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_getservercontexts(
@@ -21001,6 +21019,7 @@ run;
   @version 9.2
   @author Allan Bowe
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_gettypes(
@@ -21179,6 +21198,7 @@ libname _XML_ clear;
   @version 9.4
   @author Allan Bowe https://github.com/sasjs/core
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_getwebappsrvprops(
@@ -28806,6 +28826,7 @@ run;
   @li mf_getuniquefileref.sas
   @li mf_getuniquelibref.sas
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mv_getjoblog(uri=0,outref=0
@@ -30680,6 +30701,7 @@ data;run;%let jdswaitfor=&syslast;
   @li mf_nobs.sas
   @li mv_getjoblog.sas
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mv_jobwaitfor(action
@@ -32447,6 +32469,7 @@ endsub;
   @li mcf_stpsrv_header.test.sas
   @li mp_init.sas
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mcf_string2file(wrap=YES

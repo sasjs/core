@@ -19,6 +19,7 @@
   @li mp_abort.sas
   @li mp_assert.sas
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro test();

@@ -9,6 +9,7 @@
   @li mp_assertscope.sas
   @li mp_streamfile.sas
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %mp_assertscope(SNAPSHOT)

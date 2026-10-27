@@ -23,6 +23,7 @@
   @version 9.4
   @author Allan Bowe https://github.com/sasjs/core
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_getwebappsrvprops(

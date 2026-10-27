@@ -60,6 +60,7 @@
   @li mp_dirlist.test.sas
 
   @version 9.2
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mp_dirlist(path=%sysfunc(pathname(work))

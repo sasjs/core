@@ -48,6 +48,7 @@
   @version 9.3
   @author Allan Bowe
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mp_filtervalidate(inref,targetds,abort=YES,outds=work.mp_filtervalidate);

@@ -7,6 +7,7 @@
   @li mp_assert.sas
   @li mp_assertscope.sas
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 data work.somedata;

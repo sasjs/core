@@ -6,6 +6,7 @@
   @li mp_assert.sas
   @li mp_reseterror.sas
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 

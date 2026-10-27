@@ -17,6 +17,7 @@
   @version 9.2
   @author Allan Bowe
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_gettypes(

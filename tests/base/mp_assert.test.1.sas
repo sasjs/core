@@ -16,6 +16,7 @@
   <h4> SAS Macros </h4>
   @li mp_assert.sas
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 /* create the results dataset with the assertion macros, as any test does */

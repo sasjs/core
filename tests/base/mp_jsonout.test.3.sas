@@ -6,6 +6,7 @@
   @li mp_jsonout.sas
   @li mp_assert.sas
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 filename webref temp;

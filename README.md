@@ -211,11 +211,13 @@ When contributing to this library, it is therefore important to ensure that all 
 - Avoid naming collisions! All macro variables should be local scope. Use system generated work tables where possible - eg `data ; set sashelp.class; run; data &output; set &syslast; run;`
 - Where global macro variables are absolutely necessary, they must use the hard-coded `_SASJS_` prefix and be declared in mp_init.sas - see mp_init.sas
 - The use of `quit;` for `proc sql` is essential, to avoid `WARNING: You cannot disconnect or terminate session XXXX until the procedure completes.` when terminating CAS sessions in Viya.
+- Macro logic (`%if`, `%do`) belongs inside a macro definition - in open code it needs SAS 9.4M5, which is later than the 9.4M0 floor in General Notes.
 - Use [sasjs lint](https://github.com/sasjs/lint)!
 
 ## General Notes
 
-- All macros should be compatible with SAS versions from support level B and above (so currently 9.3 and later). If an earlier version is not supported, then the macro should say as such in the header documentation, and exit gracefully.
+- All macros should be compatible with SAS 9.4 (every maintenance release, 9.4M0 and later - including the releases in Limited Support) and with SAS Viya.
+- Where a macro needs a later release than that floor, it should say so in the header (`@version` is the EARLIEST SAS version in which the macro is known to work) and exit gracefully when it runs on an older one - `mm_createstp.sas` shows the `%if %sysevalf(&sysver lt 9.3)` pattern.
 - It's [best to avoid](https://git.datacontroller.io/dc/dc/issues/50) special / non-ASCII characters for compatibility with the widest variety of SAS installations.
 
 ## Breaking Changes

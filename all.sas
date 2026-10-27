@@ -33151,6 +33151,7 @@ filename &webref "&webrefpath";
       length line $32767;
       do while(not eof);
         input;
+        line=_infile_;
         output;
       end;
     run;

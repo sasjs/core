@@ -164,7 +164,7 @@ options noquotelenmax;
 %local type found;
 %let type=%upcase(&type);
 %let found=0;
-/* so an empty type reaches the abort below, rather than an %eval error */
+/* so an empty type reaches the abort below */
 %if %length(&type)=0 %then %let type=INVALID;
 
 %if &type=DATE %then %do;

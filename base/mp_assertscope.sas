@@ -81,7 +81,7 @@
 %mp_init()
 
 %local ds test_result test_comments del add mod ilist;
-%let ilist=%upcase(&_SASJS_FUNCTIONS SYS_PROCHTTP_STATUS_CODE
+%let ilist=%upcase(_SASJS_FUNCTIONS SYS_PROCHTTP_STATUS_CODE
   SYS_PROCHTTP_STATUS_CODE SYS_PROCHTTP_STATUS_PHRASE &ignorelist);
 
 /* get current variables */

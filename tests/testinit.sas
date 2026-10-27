@@ -3,6 +3,7 @@
   @brief init file for tests
 
   <h4> SAS Macros </h4>
+  @li mf_getplatform.sas
   @li mf_uid.sas
   @li mp_init.sas
   @li ms_webout.sas
@@ -36,6 +37,11 @@ run;
 options lrecl=80;
 
 %global _debug sasjs_mdebug;
+
+/* which platform the suite is running on - tests that can only assert
+  * something on some platforms express that as data, not as a platform %if */
+%global mcTestPlatform;
+%let mcTestPlatform=%mf_getplatform();
 
 %let sasjs_mdebug=0;
 

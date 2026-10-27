@@ -196,6 +196,7 @@ options &optval;
   data &outlogds;
     infile "&chopout" lrecl=2000;
     length line $2000;
+    input;
     line=_infile_;
   %if &mdebug=1 %then %do;
     putlog line=;

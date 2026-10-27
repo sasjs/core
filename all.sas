@@ -4124,7 +4124,7 @@ run;
 %mp_init()
 
 %local ds test_result test_comments del add mod ilist;
-%let ilist=%upcase(&_SASJS_FUNCTIONS SYS_PROCHTTP_STATUS_CODE
+%let ilist=%upcase(_SASJS_FUNCTIONS SYS_PROCHTTP_STATUS_CODE
   SYS_PROCHTTP_STATUS_CODE SYS_PROCHTTP_STATUS_PHRASE &ignorelist);
 
 /* get current variables */
@@ -24256,6 +24256,7 @@ options &optval;
   data &outlogds;
     infile "&chopout" lrecl=2000;
     length line $2000;
+    input;
     line=_infile_;
   %if &mdebug=1 %then %do;
     putlog line=;
@@ -32876,7 +32877,7 @@ Usage:
     |stpmacname|some value|
     |mustbevalidname|can be anything, oops, %abort!!|
 
-  @param [in] debug= (log) Provide the _debug value
+  @param [in] debug= (131) Provide the _debug value.
   @param [in] mdebug= (0) Set to 1 to provide macro debugging
   @param [in] viyaresult= (WEBOUT_JSON) The Viya result type to return.  For
     more info, see mv_getjobresult.sas
@@ -32886,6 +32887,17 @@ Usage:
     0 if the service output is not in JSON format.
   @param [out] outref= (0) Output fileref to create, to contain the full _webout
     response.
+  @param [out] outlogds= (_null_) Name of a dataset to receive the child's log
+    (one column, line).  Populated on Viya, from the job log mv_jobflow
+    collects, and on SASjs Server, from the log the server appends to the
+    response - ms_testservice discards that log unless this is set.  Not
+    populated on SAS 9, where proc stp returns no child log.  On SASjs Server
+    it is only populated when debug is 131 or above: the server appends the log
+    to the response in debug mode, so a lower value returns an empty dataset.
+  @param [out] outstatus= (0) Name of a dataset to receive the outcome of each
+    child run - one row per program, with columns STATE, URI, ERRMSG and
+    PLATFORM.  ERRMSG is only populated on SASjs Server, from the abort block;
+    the Viya job flow carries a state but no message, and SAS 9 gives neither.
 
   <h4> SAS Macros </h4>
   @li mf_getplatform.sas
@@ -32911,14 +32923,16 @@ Usage:
   inputfiles=0,
   inputdatasets=0,
   inputparams=0,
-  debug=log,
+  debug=131,
   mdebug=0,
   outlib=0,
   outref=0,
+  outlogds=_null_,
+  outstatus=0,
   viyaresult=WEBOUT_JSON,
   viyacontext=SAS Job Execution compute context
 );
-%local dbg pcnt fref1 fref2 webref webrefpath i webcount var platform;
+%local dbg pcnt fref1 fref2 webref webrefpath i webcount var platform jobds respref clearmeref;
 %if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;
@@ -33038,6 +33052,27 @@ filename &webref "&webrefpath";
     %mp_binarycopy(inref=&webref,outref=&outref)
   %end;
 
+  %if "&outlogds" ne "_null_" %then %do;
+    /* SAS 9 returns no child log.  Create the dataset all the same, so a caller
+      * that reads it gets no rows rather than a missing table. */
+    data &outlogds;
+      length line $32767;
+      stop;
+    run;
+  %end;
+
+  /* proc stp gives no job status - say so rather than imply success */
+  %if "&outstatus" ne "0" %then %do;
+    data &outstatus;
+      length state $20 uri $256 errmsg $256 platform $10;
+      state='unknown';
+      uri='';
+      errmsg='proc stp returns no job status';
+      platform='SASMETA';
+      output;
+    run;
+  %end;
+
 %end;
 %else %if &platform=SASVIYA %then %do;
 
@@ -33095,9 +33130,11 @@ filename &webref "&webrefpath";
     putlog (_all_)(=);
   run;
 
+  /* the flow table is an internal detail: unique name, thrown away below */
+  %let jobds=%mf_getuniquename(prefix=mx_execute_);
   %mv_jobflow(inds=&ds1
     ,maxconcurrency=1
-    ,outds=work.results
+    ,outds=&jobds
     ,outref=&fref1
     ,mdebug=&mdebug
   )
@@ -33107,12 +33144,36 @@ filename &webref "&webrefpath";
     input;
     putlog _infile_;
   run;
+  /* and keep it, if the caller asked */
+  %if "&outlogds" ne "_null_" %then %do;
+    data &outlogds;
+      infile &fref1 lrecl=32767 end=eof;
+      length line $32767;
+      do while(not eof);
+        input;
+        output;
+      end;
+    run;
+  %end;
   /* get the uri to fetch results */
   data _null_;
-    set work.results;
+    set &jobds;
     call symputx('uri',uri);
     putlog "&sysmacroname: fetching results for " uri;
   run;
+  /* the outcome, before the flow table goes away */
+  %if "&outstatus" ne "0" %then %do;
+    data &outstatus;
+      length state $20 uri $256 errmsg $256 platform $10;
+      platform='SASVIYA';
+      errmsg='';
+      set &jobds(keep=state uri);
+    run;
+  %end;
+  /* nothing else needs the flow table - do not leave it in the caller's WORK */
+  proc datasets lib=work nolist nowarn;
+    delete &jobds;
+  quit;
   /* fetch results from webout.json */
   %mv_getjobresult(uri=&uri,
     result=&viyaresult,
@@ -33124,6 +33185,13 @@ filename &webref "&webrefpath";
 %end;
 %else %if &platform=SASJS %then %do;
 
+  /* the response is needed to judge the outcome, even if not requested -
+    * and only a ref we create here may be cleared afterwards */
+  %let respref=&outref;
+  %if "&respref"="0" and "&outstatus" ne "0" %then %do;
+    %let respref=%mf_getuniquefileref();
+    %let clearmeref=1;
+  %end;
   %ms_testservice(&program
     ,inputfiles=&inputfiles
     ,inputdatasets=&inputdatasets
@@ -33131,8 +33199,37 @@ filename &webref "&webrefpath";
     ,debug=&debug
     ,mdebug=&mdebug
     ,outlib=&outlib
-    ,outref=&outref
+    ,outref=&respref
+    ,outlogds=&outlogds
   )
+  %if "&outstatus" ne "0" %then %do;
+    data &outstatus;
+      length state $20 uri $256 errmsg $256 platform $10;
+      retain state 'completed' uri '' errmsg '' platform 'SASJS' abortseen 0;
+      infile &respref end=eof lrecl=32767;
+      /* scan the whole response - the abort block is not always on the first
+        * line - but only take a message from inside that block, so a service
+        * with its own MSG field does not look like an abort */
+      do while(not eof);
+        input;
+        if index(_infile_,'"sasjsAbort"')>0 then do;
+          state='canceled';
+          abortseen=1;
+        end;
+        if abortseen=1 and errmsg='' and index(_infile_,'"MSG"')>0 then do;
+          /* prxchange returns its input untouched when nothing matches, which
+            * would put the whole line in errmsg */
+          if prxmatch('/"MSG" *: *"([^"]*)"/',_infile_) then
+            errmsg=prxchange('s/.*"MSG" *: *"([^"]*)".*/$1/',-1,_infile_);
+        end;
+      end;
+      /* one row, whatever the response contained */
+      output;
+    run;
+  %end;
+  %if %length(&clearmeref)>0 %then %do;
+    filename &respref clear;
+  %end;
 
 %end;
 %else %do;

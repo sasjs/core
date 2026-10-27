@@ -6,9 +6,9 @@
   running in Studio
 
   <h4> SAS Macros </h4>
+  @li mp_assert.sas
   @li mx_createwebservice.sas
   @li mx_execute.sas
-  @li mp_assert.sas
 
 **/
 
@@ -51,7 +51,6 @@ run;
 
 %mx_execute(&mcTestAppLoc/services/sendObj,
   inputdatasets=work.somedata1 work.somedata2,
-  debug=log,
   mdebug=1,
   outlib=testlib1,
   outref=test1
@@ -79,5 +78,187 @@ run;
 %mp_assert(
   iftrue=(&test2=PASS),
   desc=somedata2 created correctly,
+  outds=work.test_results
+)
+
+/**
+  * Test 2 - the default call writes no log dataset
+  */
+proc datasets lib=work nolist nowarn;
+  delete childlog;
+quit;
+%mx_execute(&mcTestAppLoc/services/sendObj,
+  inputdatasets=work.somedata1,
+  outlib=testlib3,
+  outref=test3
+)
+
+%mp_assert(
+  iftrue=(%sysfunc(exist(work.childlog))=0),
+  desc=Test 2 - no log dataset is written unless outlogds is asked for,
+  outds=work.test_results
+)
+
+/**
+  * Test 3 - the child log is kept when outlogds is supplied
+  */
+%mx_execute(&mcTestAppLoc/services/sendObj,
+  inputdatasets=work.somedata1,
+  outlib=testlib4,
+  outref=test4,
+  outlogds=work.childlog
+)
+
+/* The log arrives as text after the separator.  SAS 9 has no log to return, so
+  * the expectation is met there without one - expressed here rather than with a
+  * platform %if, so the test stays one program on every platform. */
+%let logcase=FAIL;
+%let logsize=FAIL;
+data _null_;
+  length line $32767;
+  retain found 0;
+  n=0;
+  if exist('work.childlog') then do;
+    /* count from the descriptor: a do-until loop runs once on an empty
+      * dataset, which would report the SAS 9 empty log as one line */
+    dsid=open('work.childlog');
+    n=attrn(dsid,'NOBS');
+    rc=close(dsid);
+    if n>0 then do until(eof);
+      set work.childlog(keep=line) end=eof;
+      /* the service's first statement is a %put - it must be in the log */
+      if index(line,'Initialising sendObj') then found=1;
+    end;
+  end;
+  call symputx('loglines',n);
+  if "&mcTestPlatform"="SASMETA" then do;
+    /* documented: SAS 9 returns no child log, so the dataset exists with no
+      * rows - anything else means something was captured from nowhere */
+    call symputx('logcase',ifc(n=0,'PASS','FAIL'));
+    call symputx('logsize','PASS');
+  end;
+  else do;
+    call symputx('logcase',ifc(found,'PASS','FAIL'));
+    /* a fragment that happens to contain the first line would still pass the
+      * marker test, so pin the volume too */
+    call symputx('logsize',ifc(n>50,'PASS','FAIL'));
+  end;
+run;
+
+%mp_assert(
+  iftrue=("&logcase"="PASS"),
+  desc=Test 3 - the child log is captured when outlogds is supplied,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=("&logsize"="PASS"),
+  desc=Test 3 - the captured log is the whole log, not a fragment (&loglines lines),
+  outds=work.test_results
+)
+
+/**
+  * Test 4 - the outcome of a clean run is reported, not left in WORK
+  */
+%mx_execute(&mcTestAppLoc/services/sendObj,
+  inputdatasets=work.somedata1,
+  outlib=testlib5,
+  outref=test5,
+  outstatus=work.status5
+)
+
+%let state5=NONE;
+data _null_;
+  if not exist('work.status5') then stop;
+  set work.status5;
+  call symputx('state5',state);
+run;
+
+%mp_assert(
+  iftrue=("&state5"="completed"),
+  desc=Test 4 - a clean run reports state=completed,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=(%sysfunc(exist(work.results))=0),
+  desc=Test 4 - no fixed-name table is left in the caller WORK,
+  outds=work.test_results
+)
+
+/**
+  * Test 5 - an aborted child is reported as canceled, with its message
+  */
+filename ft15f002 temp;
+data _null_;
+  file ft15f002;
+  /* open the webout first, as a real service does: an abort raised before the
+    * response is opened produces no abort block in the body */
+  put '%webout(OPEN)';
+  put '%mp_abort(iftrue=(1=1),msg=Deliberate abort);';
+run;
+/* code= must be named: mx_createwebservice defaults to ft15f001, which still
+  * holds the sendObj source, so the service would silently be a copy of it */
+%mx_createwebservice(path=&mcTestAppLoc/services,name=abortObj,code=ft15f002)
+
+%mx_execute(&mcTestAppLoc/services/abortObj,
+  outref=test6,
+  outstatus=work.status6
+)
+
+/* SAS 9 reports unknown - proc stp returns no job status - so that is the
+  * expected value there, and there is no child message to look for. */
+%let state6=NONE;
+%let msg6=;
+data _null_;
+  length expect $20;
+  if "&mcTestPlatform"="SASMETA" then expect='unknown';
+  else expect='canceled';
+  call symputx('expect6',expect);
+  if exist('work.status6') then do;
+    set work.status6;
+    call symputx('state6',state);
+    call symputx('msg6',errmsg);
+  end;
+run;
+
+%mp_assert(
+  iftrue=("&state6"="&expect6"),
+  desc=Test 5 - an aborted child reports its outcome,
+  outds=work.test_results
+)
+
+%let msgcase=FAIL;
+data _null_;
+  if "&mcTestPlatform"="SASMETA" then call symputx('msgcase','PASS');
+  else if %index("&msg6","Deliberate abort")>0 then call symputx('msgcase','PASS');
+run;
+
+%mp_assert(
+  iftrue=("&msgcase"="PASS"),
+  desc=Test 5 - the abort message from the child is reported,
+  outds=work.test_results
+)
+
+/**
+  * Test 6 - the plain default call, with no outref, outlib or outstatus
+  */
+/* clear what Test 3 left, so the assertion below is about this call only */
+proc datasets lib=work nolist nowarn;
+  delete childlog;
+quit;
+%mx_execute(&mcTestAppLoc/services/sendObj,
+  inputdatasets=work.somedata1
+)
+
+%mp_assert(
+  iftrue=(&syscc=0),
+  desc=Test 6 - the default call runs without error,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=(%sysfunc(exist(work.childlog))=0 and %sysfunc(exist(work.results))=0),
+  desc=Test 6 - the default call leaves no log or flow table behind,
   outds=work.test_results
 )

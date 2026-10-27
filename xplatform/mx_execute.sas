@@ -78,7 +78,7 @@
   viyaresult=WEBOUT_JSON,
   viyacontext=SAS Job Execution compute context
 );
-%local dbg pcnt fref1 fref2 webref webrefpath i webcount var platform jobds respref;
+%local dbg pcnt fref1 fref2 webref webrefpath i webcount var platform jobds respref clearmeref;
 %if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;
@@ -281,11 +281,14 @@ filename &webref "&webrefpath";
     putlog _infile_;
   run;
   /* and keep it, if the caller asked */
-  %if &outlogds ne _null_ %then %do;
+  %if "%outlogds" ne "_null_" %then %do;
     data &outlogds;
-      infile &fref1 lrecl=2000;
-      length line $2000;
-      line=_infile_;
+      infile &fref1 lrecl=32767 end=eof;
+      length line $32767;
+      do while(not eof);
+        input;
+        output;
+      end;
     run;
   %end;
   /* get the uri to fetch results */
@@ -318,9 +321,13 @@ filename &webref "&webrefpath";
 %end;
 %else %if &platform=SASJS %then %do;
 
-  /* the response is needed to judge the outcome, even if not requested */
+  /* the response is needed to judge the outcome, even if not requested -
+    * and only a ref we create here may be cleared afterwards */
   %let respref=&outref;
-  %if "&respref"="0" and "&outstatus" ne "0" %then %let respref=%mf_getuniquefileref();
+  %if "&respref"="0" and "&outstatus" ne "0" %then %do;
+    %let respref=%mf_getuniquefileref();
+    %let clearmeref=1;
+  %end;
   %ms_testservice(&program
     ,inputfiles=&inputfiles
     ,inputdatasets=&inputdatasets
@@ -336,15 +343,19 @@ filename &webref "&webrefpath";
       length state $20 uri $256 errmsg $256 platform $10;
       retain state 'completed' uri '' errmsg '' platform 'SASJS';
       infile &respref end=eof lrecl=32767;
-      input;
-      if index(_infile_,'"sasjsAbort"')>0 then do;
-        state='canceled';
-        errmsg=prxchange('s/.*?"MSG":"([^"]*)".*/$1/',-1,_infile_);
+      /* scan the whole response: the abort block is not always on its first
+        * line, and the message is on a line of its own */
+      do while(not eof);
+        input;
+        if index(_infile_,'"sasjsAbort"')>0 then state='canceled';
+        if index(_infile_,'"MSG"')>0 then
+          errmsg=prxchange('s/.*"MSG" *: *"([^"]*)".*/$1/',-1,_infile_);
       end;
-      if eof then output;
+      /* one row, whatever the response contained */
+      output;
     run;
   %end;
-  %if "&outref"="0" %then %do;
+  %if %length(&clearmeref)>0 %then %do;
     filename &respref clear;
   %end;
 

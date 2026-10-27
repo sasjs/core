@@ -114,10 +114,14 @@ quit;
   * platform %if, so the test stays one program on every platform. */
 %let logcase=FAIL;
 data _null_;
-  length line $2000;
+  length line $32767;
   retain found 0;
-  if "&mcTestPlatform"="SASMETA" then found=1;
-  if exist('work.childlog') then do until(eof);
+  if "&mcTestPlatform"="SASMETA" then do;
+    /* documented: proc stp returns no child log, so the honest assertion is
+      * that no log was produced rather than that one contains the marker */
+    if not exist('work.childlog') then found=1;
+  end;
+  else if exist('work.childlog') then do until(eof);
     set work.childlog(keep=line) end=eof;
     /* the service's first statement is a %put - it must be in the log */
     if index(line,'Initialising sendObj') then found=1;
@@ -211,5 +215,24 @@ run;
 %mp_assert(
   iftrue=("&msgcase"="PASS"),
   desc=Test 5 - the abort message from the child is reported,
+  outds=work.test_results
+)
+
+/**
+  * Test 6 - the plain default call, with no outref, outlib or outstatus
+  */
+%mx_execute(&mcTestAppLoc/services/sendObj,
+  inputdatasets=work.somedata1
+)
+
+%mp_assert(
+  iftrue=(&syscc=0),
+  desc=Test 6 - the default call runs without error,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=(%sysfunc(exist(work.childlog))=0 and %sysfunc(exist(work.results))=0),
+  desc=Test 6 - the default call leaves no log or flow table behind,
   outds=work.test_results
 )

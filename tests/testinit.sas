@@ -34,10 +34,6 @@ run;
 /* set defaults */
 %mp_init()
 
-/* TEMP - local run only, not for commit: this session cannot validate the
-  * estate's public certificate when it calls the API on itself. */
-%let _sasjs_apiserverurl=http://127.0.0.1:5000;
-
 options lrecl=80;
 
 %global _debug sasjs_mdebug;

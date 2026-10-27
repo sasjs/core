@@ -116,12 +116,19 @@ quit;
 %let logsize=FAIL;
 data _null_;
   length line $32767;
-  retain found 0 n 0;
-  if exist('work.childlog') then do until(eof);
-    set work.childlog(keep=line) end=eof;
-    n+1;
-    /* the service's first statement is a %put - it must be in the log */
-    if index(line,'Initialising sendObj') then found=1;
+  retain found 0;
+  n=0;
+  if exist('work.childlog') then do;
+    /* count from the descriptor: a do-until loop runs once on an empty
+      * dataset, which would report the SAS 9 empty log as one line */
+    dsid=open('work.childlog');
+    n=attrn(dsid,'NOBS');
+    rc=close(dsid);
+    if n>0 then do until(eof);
+      set work.childlog(keep=line) end=eof;
+      /* the service's first statement is a %put - it must be in the log */
+      if index(line,'Initialising sendObj') then found=1;
+    end;
   end;
   call symputx('loglines',n);
   if "&mcTestPlatform"="SASMETA" then do;

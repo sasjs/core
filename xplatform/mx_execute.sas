@@ -40,7 +40,8 @@
     to the response in debug mode, so a lower value returns an empty dataset.
   @param [out] outstatus= (0) Name of a dataset to receive the outcome of each
     child run - one row per program, with columns STATE, URI, ERRMSG and
-    PLATFORM.
+    PLATFORM.  ERRMSG is only populated on SASjs Server, from the abort block;
+    the Viya job flow carries a state but no message, and SAS 9 gives neither.
 
   <h4> SAS Macros </h4>
   @li mf_getplatform.sas

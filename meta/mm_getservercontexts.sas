@@ -21,6 +21,7 @@
   @version 9.3
   @author Allan Bowe
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_getservercontexts(

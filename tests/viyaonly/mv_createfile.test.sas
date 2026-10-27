@@ -10,6 +10,7 @@
   @li mv_createfile.sas
 
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 options mprint;

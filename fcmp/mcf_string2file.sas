@@ -44,6 +44,7 @@
   @li mcf_stpsrv_header.test.sas
   @li mp_init.sas
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mcf_string2file(wrap=YES

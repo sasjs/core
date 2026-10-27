@@ -9,6 +9,7 @@
   @li mp_ds2md.sas
   @li mp_stripdiffs.sas
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 /* make an adjustable base dataset */

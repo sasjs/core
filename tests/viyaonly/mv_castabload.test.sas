@@ -8,6 +8,7 @@
   @li mp_assertscope.sas
   @li mv_castabload.sas
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 options mprint;

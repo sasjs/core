@@ -18,6 +18,7 @@
   @version 9.2
   @author Allan Bowe
   @cond
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mf_getschema(libref

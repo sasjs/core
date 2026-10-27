@@ -97,6 +97,8 @@ header = """
     is used to create this file.
 
   @author Allan Bowe
+
+  @sasjslint {"noBannedStrings": false}
 **/
 options noquotelenmax;
 """

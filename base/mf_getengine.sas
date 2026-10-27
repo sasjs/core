@@ -26,6 +26,7 @@
   <h4> Related Macros </h4>
   @li mf_getxengine.sas
 
+  @sasjslint {"noBannedStrings": false}
 **/
 /** @cond */
 

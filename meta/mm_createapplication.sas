@@ -42,6 +42,7 @@
 
   @author Allan Bowe
 
+  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_createapplication(

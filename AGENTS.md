@@ -14,6 +14,9 @@ This repo is the SASjs Macro Core library — a collection of MIT-licensed, prod
 - Read and follow `.sasjslint`:
   - No trailing spaces.
   - Requires a Doxygen header on every macro (`@file`, `@brief`, etc.).
+  - The header closes with `**/` alone on its line, and holds no block comment of its
+    own - SAS ends a comment at the first `*/`, so either one truncates the header
+    (`hasDoxygenHeader`, `noNestedCommentsInHeader`, both at `error`).
   - Lowercase file names without spaces.
   - Lowercase macro names.
   - Macro definitions must use parentheses, e.g. `%macro x();` not `%macro x;`.

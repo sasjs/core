@@ -208,6 +208,7 @@ filename &webref "&webrefpath";
       uri='';
       errmsg='proc stp returns no job status';
       platform='SASMETA';
+      output;
     run;
   %end;
 

@@ -113,25 +113,40 @@ quit;
   * the expectation is met there without one - expressed here rather than with a
   * platform %if, so the test stays one program on every platform. */
 %let logcase=FAIL;
+%let logsize=FAIL;
 data _null_;
   length line $32767;
-  retain found 0;
-  if "&mcTestPlatform"="SASMETA" then do;
-    /* documented: proc stp returns no child log, so the honest assertion is
-      * that no log was produced rather than that one contains the marker */
-    if not exist('work.childlog') then found=1;
-  end;
-  else if exist('work.childlog') then do until(eof);
+  retain found 0 n 0;
+  if exist('work.childlog') then do until(eof);
     set work.childlog(keep=line) end=eof;
+    n+1;
     /* the service's first statement is a %put - it must be in the log */
     if index(line,'Initialising sendObj') then found=1;
   end;
-  call symputx('logcase',ifc(found,'PASS','FAIL'));
+  call symputx('loglines',n);
+  if "&mcTestPlatform"="SASMETA" then do;
+    /* documented: SAS 9 returns no child log, so the dataset exists with no
+      * rows - anything else means something was captured from nowhere */
+    call symputx('logcase',ifc(n=0,'PASS','FAIL'));
+    call symputx('logsize','PASS');
+  end;
+  else do;
+    call symputx('logcase',ifc(found,'PASS','FAIL'));
+    /* a fragment that happens to contain the first line would still pass the
+      * marker test, so pin the volume too */
+    call symputx('logsize',ifc(n>50,'PASS','FAIL'));
+  end;
 run;
 
 %mp_assert(
   iftrue=("&logcase"="PASS"),
   desc=Test 3 - the child log is captured when outlogds is supplied,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=("&logsize"="PASS"),
+  desc=Test 3 - the captured log is the whole log, not a fragment (&loglines lines),
   outds=work.test_results
 )
 

@@ -33052,8 +33052,12 @@ filename &webref "&webrefpath";
   %end;
 
   %if "&outlogds" ne "_null_" %then %do;
-    %put NOTE: &sysmacroname: outlogds was requested, but SAS 9 returns no
-      child log, so &outlogds will be empty;
+    /* SAS 9 returns no child log.  Create the dataset all the same, so a caller
+      * that reads it gets no rows rather than a missing table. */
+    data &outlogds;
+      length line $32767;
+      stop;
+    run;
   %end;
 
   /* proc stp gives no job status - say so rather than imply success */
@@ -33211,8 +33215,12 @@ filename &webref "&webrefpath";
           state='canceled';
           abortseen=1;
         end;
-        if abortseen=1 and errmsg='' and index(_infile_,'"MSG"')>0 then
-          errmsg=prxchange('s/.*"MSG" *: *"([^"]*)".*/$1/',-1,_infile_);
+        if abortseen=1 and errmsg='' and index(_infile_,'"MSG"')>0 then do;
+          /* prxchange returns its input untouched when nothing matches, which
+            * would put the whole line in errmsg */
+          if prxmatch('/"MSG" *: *"([^"]*)"/',_infile_) then
+            errmsg=prxchange('s/.*"MSG" *: *"([^"]*)".*/$1/',-1,_infile_);
+        end;
       end;
       /* one row, whatever the response contained */
       output;

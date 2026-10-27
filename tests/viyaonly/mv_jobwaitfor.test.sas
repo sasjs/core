@@ -22,10 +22,10 @@
 **/
 
 /* create the child job under the deployed appLoc (derived from
-   _program at runtime) so the test works whichever identity runs
-   it and whichever appLoc it is deployed to - the appLoc folder is
-   always writable by the test session, since the deploy itself
-   created it */
+  _program at runtime) so the test works whichever identity runs
+  it and whichever appLoc it is deployed to - the appLoc folder is
+  always writable by the test session, since the deploy itself
+  created it */
 %let testloc=%mf_getapploc(&_program)/tests/mv_jobwaitfor_test;
 
 filename testprog temp;
@@ -45,7 +45,7 @@ run;
 )
 
 /* keep only the state link, then strip the /state suffix - this
-   submits the plain job uri to mv_jobwaitfor */
+  submits the plain job uri to mv_jobwaitfor */
 data work.plainuri;
   set work.info;
   where method='GET' and rel='state';

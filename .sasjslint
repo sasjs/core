@@ -16,6 +16,7 @@
     "hasDoxygenHeader": "error",
     "hasMacroNameInMend": "error",
     "hasMacroParentheses": "error",
+    "indentationMultiple": "error",
     "lineEndings": "error",
     "lowerCaseFileNames": "error",
     "maxLineLength": "error",

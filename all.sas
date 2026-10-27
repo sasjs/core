@@ -3122,9 +3122,9 @@ and %superq(SYSPROCESSNAME) ne %str(Compute Server)
       put ',"_METAUSER": ' _METAUSER;
     end;
     /* _METAPERSON is not always set when _METAUSER is (e.g. Viya JES
-       sessions provide only _METAUSER) - guard it separately or SYMGET
-       raises "Invalid argument" and pollutes SYSERRORTEXT inside the
-       very abort JSON we are writing here. */
+      sessions provide only _METAUSER) - guard it separately or SYMGET
+      raises "Invalid argument" and pollutes SYSERRORTEXT inside the
+      very abort JSON we are writing here. */
     if symexist('_metaperson') then do;
       _METAPERSON=quote(trim(symget('_METAPERSON')));
       put ',"_METAPERSON": ' _METAPERSON;
@@ -24477,8 +24477,8 @@ run;
 
 
 /* execute the STP. _debug is forwarded to ms_runstp, whose own default is
-   131 - the log separator this macro chops on is only present when the
-   server runs in debug mode, so outlogds needs the default. */
+  131 - the log separator this macro chops on is only present when the
+  server runs in debug mode, so outlogds needs the default. */
 %let fref1=%mf_getuniquefileref();
 
 %ms_runstp(&program
@@ -30741,11 +30741,11 @@ data _null_;
   length jobparams $32767;
   set &inds end=last;
   /* strip any trailing /state suffix - the poll below GETs the plain
-     job uri (whose root object carries the state field), and
-     downstream consumers (mv_getjoblog, the outds) expect the plain
-     job uri.  Do not truncate: job uris are not a fixed length (a
-     definition uri passed in error must fail loudly, not be silently
-     corrupted into a 404). */
+    job uri (whose root object carries the state field), and
+    downstream consumers (mv_getjoblog, the outds) expect the plain
+    job uri.  Do not truncate: job uris are not a fixed length (a
+    definition uri passed in error must fail loudly, not be silently
+    corrupted into a 404). */
   if length(strip(uri))>6 and substr(strip(uri),length(strip(uri))-5)='/state'
     then uri=substr(strip(uri),1,length(strip(uri))-6);
   call symputx(cats('joburi',_n_),strip(uri),'l');
@@ -30803,7 +30803,7 @@ run;
 
     %if &status=completed or &status=failed or &status=canceled %then %do;
       /* &&joburi&i is already the plain job uri (any /state suffix was
-         stripped on input) - use it as-is. */
+        stripped on input) - use it as-is. */
       proc sql;
       insert into &outds set
         _program="&&jobname&i",

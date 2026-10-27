@@ -355,7 +355,8 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
 
 %mend mf_existfunction;
 
-/** @endcond *//**
+/** @endcond */
+/**
   @file
   @brief Checks if a variable exists in a data set.
   @details Returns 0 if the variable does NOT exist, and the position of the var
@@ -397,7 +398,8 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
 
 %mend mf_existvar;
 
-/** @endcond *//**
+/** @endcond */
+/**
   @file
   @brief Checks if a set of variables ALL exist in a data set.
   @details Returns 0 if ANY of the variables do not exist, or 1 if they ALL do.
@@ -455,7 +457,8 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
   %end;
 %mend mf_existvarlist;
 
-/** @endcond *//**
+/** @endcond */
+/**
   @file
   @brief Returns E8601DT26.6 if compatible else DATETIME19.3
   @details From our experience in [Data Controller for SAS]
@@ -575,7 +578,8 @@ or %index(&pgm,/tests/testteardown)
 %end;
 %else %put &sysmacroname: Could not find an app location from &pgm;
   &root
-%mend mf_getapploc ;/**
+%mend mf_getapploc ;
+/**
   @file
   @brief Returns a character attribute of a dataset.
   @details Can be used in open code, eg as follows:
@@ -608,7 +612,8 @@ or %index(&pgm,/tests/testteardown)
     %sysfunc(attrc(&dsid,&attr))
     %let rc=%sysfunc(close(&dsid));
   %end;
-%mend mf_getattrc;/**
+%mend mf_getattrc;
+/**
   @file
   @brief Returns a numeric attribute of a dataset.
   @details Can be used in open code, eg as follows:
@@ -641,7 +646,8 @@ or %index(&pgm,/tests/testteardown)
     %sysfunc(attrn(&dsid,&attr))
     %let rc=%sysfunc(close(&dsid));
   %end;
-%mend mf_getattrn;/**
+%mend mf_getattrn;
+/**
   @file
   @brief Returns the engine type of a SAS library
   @details Usage:
@@ -694,7 +700,8 @@ or %index(&pgm,/tests/testteardown)
 
 %mend mf_getengine;
 
-/** @endcond *//**
+/** @endcond */
+/**
   @file
   @brief Returns the size of a file in bytes.
   @details Provide full path/filename.extension to the file, eg:
@@ -757,7 +764,8 @@ or %index(&pgm,/tests/testteardown)
     %sysfunc(INPUTN(&bytes, best.),sizekmg.)
   %end;
 
-%mend mf_getfilesize ;/**
+%mend mf_getfilesize ;
+/**
   @file
   @brief Returns a distinct list of formats from a table
   @details Reads the dataset header and returns a distinct list of formats
@@ -816,7 +824,8 @@ or %index(&pgm,/tests/testteardown)
 %end;
 /* send them out without spaces or quote markers */
 %do;%unquote(&out)%end;
-%mend mf_getfmtlist;/**
+%mend mf_getfmtlist;
+/**
   @file
   @brief Extracts a format name from a fully defined format
   @details Converts formats in like $thi3. and th13.2 $THI and TH.
@@ -859,7 +868,8 @@ or %index(&pgm,/tests/testteardown)
 
 /* send them out without spaces or quote markers */
 %do;%unquote(%upcase(&fmt))%end;
-%mend mf_getfmtname;/**
+%mend mf_getfmtname;
+/**
   @file
   @brief Retrieves the current branch from a local GIT repo
   @details In a local git repository, the current branch is always available in
@@ -928,7 +938,8 @@ or %index(&pgm,/tests/testteardown)
   &valc
 %end;
 %else %put %str(ERR)OR: Unable to find key &key in ds &libds;
-%mend mf_getkeyvalue;/**
+%mend mf_getkeyvalue;
+/**
   @file mf_getplatform.sas
   @brief Returns platform specific variables
   @details Enables platform specific variables to be returned
@@ -1059,7 +1070,8 @@ or %index(&pgm,/tests/testteardown)
 
   &buffer
 
-%mend mf_getquotedstr;/**
+%mend mf_getquotedstr;
+/**
   @file mf_getschema.sas
   @brief Returns the database schema of a SAS library
   @details Usage:
@@ -1162,7 +1174,8 @@ or %index(&pgm,/tests/testteardown)
     %end;
     %put unable to find available fileref after &maxtries attempts;
   %end;
-%mend mf_getuniquefileref;/**
+%mend mf_getuniquefileref;
+/**
   @file
   @brief Returns an unused libref
   @details Use as follows:
@@ -1216,7 +1229,8 @@ or %index(&pgm,/tests/testteardown)
   %put %str(ERR)OR: No usable libref in range &prefix.0-&maxtries;
   %put %str(ERR)OR- Try reducing the prefix or deleting some libraries!;
   0
-%mend mf_getuniquelibref;/**
+%mend mf_getuniquelibref;
+/**
   @file mf_getuniquename.sas
   @brief Returns a shortened (32 char) GUID as a valid SAS name
   @details Use as follows:
@@ -1237,7 +1251,8 @@ or %index(&pgm,/tests/testteardown)
 
 %macro mf_getuniquename(prefix=MC);
 &prefix.%substr(%sysfunc(compress(%sysfunc(uuidgen()),-)),1,32-%length(&prefix))
-%mend mf_getuniquename;/**
+%mend mf_getuniquename;
+/**
   @file
   @brief Returns a userid according to session context
   @details In a workspace session, a user is generally represented by <code>
@@ -1405,7 +1420,8 @@ or %index(&pgm,/tests/testteardown)
     %let rc=%sysfunc(close(&dsid));
   %end;
   &outcnt
-%mend mf_getvarcount;/**
+%mend mf_getvarcount;
+/**
   @file
   @brief Returns the format of a variable
   @details Uses varfmt function to identify the format of a particular variable.
@@ -1477,7 +1493,8 @@ or %index(&pgm,/tests/testteardown)
   %let rc = %sysfunc(close(&dsid));
   /* Return variable format */
   &vformat
-%mend mf_getVarFormat;/**
+%mend mf_getVarFormat;
+/**
   @file
   @brief Returns the length of a variable
   @details Uses varlen function to identify the length of a particular variable.
@@ -1532,7 +1549,8 @@ or %index(&pgm,/tests/testteardown)
   %let rc = %sysfunc(close(&dsid));
   /* Return variable format */
   &vlen
-%mend mf_getVarLen;/**
+%mend mf_getVarLen;
+/**
   @file
   @brief Returns dataset variable list direct from header
   @details WAY faster than dictionary tables or sas views, and can
@@ -1605,7 +1623,8 @@ or %index(&pgm,/tests/testteardown)
     %let rc=%sysfunc(close(&dsid));
   %end;
   %do;%unquote(&outvar)%end;
-%mend mf_getvarlist;/**
+%mend mf_getvarlist;
+/**
   @file
   @brief Returns the position of a variable in dataset (varnum attribute).
   @details Uses varnum function to determine position.
@@ -1662,7 +1681,8 @@ returns:
   /* Return variable number */
     &vnum.
 
-%mend mf_getVarNum;/**
+%mend mf_getVarNum;
+/**
   @file
   @brief Returns variable type - Character (C) or Numeric (N)
   @details
@@ -1713,7 +1733,8 @@ Usage:
   %let rc = %sysfunc(close(&dsid));
   /* Return variable type */
   &vtype
-%mend mf_getvartype;/**
+%mend mf_getvartype;
+/**
   @file
   @brief Returns the engine type of a SAS fileref
   @details Queries sashelp.vextfl to get the xengine value.
@@ -1811,7 +1832,8 @@ Usage:
 
   %sysevalf(%superq(param)=,boolean)
 
-%mend mf_isblank;/**
+%mend mf_isblank;
+/**
   @file
   @brief Checks whether a path is a valid directory
   @details
@@ -1844,7 +1866,8 @@ Usage:
 
   &is_directory
 
-%mend mf_isdir;/**
+%mend mf_isdir;
+/**
   @file
   @brief Returns 1 if the variable contains only digits 0-9, else 0
   @details Note that numerics containing any punctuation (including decimals
@@ -1919,7 +1942,8 @@ Usage:
 
 %sysfunc(prxmatch(&regex,&libds))
 
-%mend mf_islibds;/**
+%mend mf_islibds;
+/**
   @file
   @brief Returns physical location of various SAS items
   @details Returns location of the PlatformObjectFramework tools
@@ -2388,7 +2412,8 @@ Usage:
 %else %if "&ext"="in" %then %do;%str(text/plain)%end;
 %else %do;%str(application/octet-stream)%end;
 
-%mend mf_mimetype;/**
+%mend mf_mimetype;
+/**
   @file
   @brief Creates a directory, including any intermediate directories
   @details Works on windows and unix environments via dcreate function.
@@ -2501,7 +2526,8 @@ Usage:
 %macro mf_nobs(libds
 )/*/STORE SOURCE*/;
   %mf_getattrn(&libds,NLOBS)
-%mend mf_nobs;/**
+%mend mf_nobs;
+/**
   @file
   @brief Reads the first line of a file using pure macro
   @details Reads the first line of a file and returns it.  Future versions may
@@ -2613,7 +2639,8 @@ Usage:
   &basestr
 %end;
 
-%mend mf_trimstr;/**
+%mend mf_trimstr;
+/**
   @file
   @brief Creates a unique ID based on system time in friendly format
   @details format = YYYYMMDD_HHMMSSmmm_<sysjobid>_<3randomDigits>
@@ -2633,7 +2660,8 @@ Usage:
 
   &today._&now._&sysjobid._%sysevalf(%sysfunc(ranuni(0))*999,CEIL)
 
-%mend mf_uid;/**
+%mend mf_uid;
+/**
   @file
   @brief Checks if a set of macro variables exist AND contain values.
   @details Writes ERROR to log if abortType is SOFT, else will call %mf_abort.
@@ -2868,7 +2896,8 @@ Usage:
 %let rc=%sysfunc(filename(&fref));
 
 %mend mf_writefile;
-/** @endcond *//**
+/** @endcond */
+/**
   @file
   @brief abort gracefully according to context
   @details Configures an abort mechanism according to site specific policies or
@@ -3368,7 +3397,8 @@ and %superq(SYSPROCESSNAME) ne %str(Compute Server)
   %mp_binarycopy(inref=%scan(&appendrefs,&i), outref=&baseref, mode=APPEND)
 %end;
 
-%mend mp_appendfile;/**
+%mend mp_appendfile;
+/**
   @file
   @brief Apply a set of formats to a table
   @details Applies a set of formats to the metadata of one or more SAS datasets.
@@ -3548,7 +3578,8 @@ run;
   drop table &outds;
 %end;
 
-%mend mp_applyformats;/**
+%mend mp_applyformats;
+/**
   @file
   @brief Generic assertion
   @details Useful in the context of writing sasjs tests.  The results of the
@@ -3604,7 +3635,8 @@ run;
   drop table &ds;
   quit;
 
-%mend mp_assert;/**
+%mend mp_assert;
+/**
   @file
   @brief Asserts the existence (or not) of columns
   @details Useful in the context of writing sasjs tests.  The results of the
@@ -3750,7 +3782,8 @@ run;
   proc sql;
   drop table &ds;
 
-%mend mp_assertcols;/**
+%mend mp_assertcols;
+/**
   @file
   @brief Asserts the values in a column
   @details Useful in the context of writing sasjs tests.  The results of the
@@ -3921,7 +3954,8 @@ run;
   proc sql;
   drop table &ds;
 
-%mend mp_assertcolvals;/**
+%mend mp_assertcolvals;
+/**
   @file
   @brief Asserts the number of observations in a dataset
   @details Useful in the context of writing sasjs tests.  The results of the
@@ -4041,7 +4075,8 @@ run;
   proc sql;
   drop table &ds;
 
-%mend mp_assertdsobs;/**
+%mend mp_assertdsobs;
+/**
   @file
   @brief Used to capture scope leakage of macro variables
   @details
@@ -4305,7 +4340,8 @@ run;
   run;
 %end;
 
-%mend mp_base64copy;/**
+%mend mp_base64copy;
+/**
   @file
   @brief Copy any file using binary input / output streams
   @details Reads in a file byte by byte and writes it back out.  Is an
@@ -4658,7 +4694,8 @@ run;
     end;
   run;
 %mend mp_cleancsv;
-/** @endcond *//**
+/** @endcond */
+/**
   @file mp_cntlout.sas
   @brief Creates a cntlout dataset in a consistent format
   @details The dataset produced by proc format in the cntlout option will vary
@@ -4751,7 +4788,8 @@ proc sql;
 drop table &ddlds,&cntlds;
 
 %mend mp_cntlout;
-/** @endcond *//**
+/** @endcond */
+/**
   @file
   @brief A macro to recursively copy a directory
   @details Performs a recursive directory listing then works from top to bottom
@@ -5077,7 +5115,8 @@ data &outds
   %end;
 run;
 
-%mend mp_csv2ds;/**
+%mend mp_csv2ds;
+/**
   @file mp_deleteconstraints.sas
   @brief Delete constraionts
   @details Takes the output from mp_getconstraints.sas as input
@@ -5130,7 +5169,8 @@ data &outds;
   end;
 run;
 
-%mend mp_deleteconstraints;/**
+%mend mp_deleteconstraints;
+/**
   @file
   @brief A macro to delete a directory
   @details Will delete all folder content (including subfolder content) and
@@ -5199,7 +5239,8 @@ run;
 
   %end;
   %else %put &sysmacroname: &folder: is not a valid / accessible folder. ;
-%mend mp_deletefolder;/**
+%mend mp_deletefolder;
+/**
   @file
   @brief Generates the SAS statements that create derived variables
   @details Derived (computed) variables are configured in a control table, one
@@ -6119,7 +6160,8 @@ drop table &out_ds;
     %end;
         as &outvar length=&varlen
     from &libds;
-%mend mp_distinctfmtvalues;/**
+%mend mp_distinctfmtvalues;
+/**
   @file
   @brief Drops tables / views (if they exist) without warnings in the log
   @details Useful for dropping tables when you're not sure they exist, or if
@@ -6164,7 +6206,8 @@ drop table &out_ds;
     delete &list;
     delete &list /mtype=view;
   run;
-%mend mp_dropmembers;/**
+%mend mp_dropmembers;
+/**
   @file
   @brief Create a CARDS file from a SAS dataset.
   @details Uses dataset attributes to convert all data into datalines.
@@ -6675,7 +6718,8 @@ data _null_;
   %end;
 run;
 
-%mend mp_ds2csv;/**
+%mend mp_ds2csv;
+/**
   @file mp_ds2ddl.sas
   @brief Extract DDL in various formats, by table or library
   @details Data Definition Language relates to a set of SQL instructions used
@@ -7080,7 +7124,8 @@ run;
   run;
 %end;
 
-%mend mp_ds2ddl;/**
+%mend mp_ds2ddl;
+/**
   @file
   @brief Converts every value in a dataset to formatted value
   @details Converts every value to it's formatted value.  All variables will
@@ -7184,7 +7229,8 @@ data &outds;
   if _error_ then call symputx('syscc',1012);
 run;
 
-%mend mp_ds2fmtds;/**
+%mend mp_ds2fmtds;
+/**
   @file
   @brief Export a dataset to SQL insert statements
   @details Converts dataset values to SQL insert statements for use across
@@ -7363,7 +7409,8 @@ data _null_;
   if _n_=&nobs then put /;
 run;
 
-%mend mp_ds2inserts;/**
+%mend mp_ds2inserts;
+/**
   @file
   @brief Create a Markdown Table from a dataset
   @details A markdown table is a simple table representation for use in
@@ -7586,7 +7633,8 @@ options varlenchk=&optval;
 %put &sysmacroname: &libds was &startsize;
 %put &sysmacroname: &outds is %mf_getfilesize(libds=&outds,format=yes);
 
-%mend mp_ds2squeeze;/**
+%mend mp_ds2squeeze;
+/**
   @file
   @brief Export dataset metadata to a single output table
   @details Exports the dataset attributes and enginehost information, then
@@ -8470,7 +8518,8 @@ run;
   ,msg=%str(syscc=&syscc on macro exit)
 )
 
-%mend mp_filterstore;/**
+%mend mp_filterstore;
+/**
   @file
   @brief Checks a generated filter query for validity
   @details Runs a generated filter in proc sql with the validate option.
@@ -8643,7 +8692,8 @@ data &outds(keep=name type length varnum format label ddtype fmtname);
 run;
 proc sql;
 drop table &dropds;
-%mend mp_getcols;/**
+%mend mp_getcols;
+/**
   @file mp_getconstraints.sas
   @brief Get constraint details at column level
   @details Useful for capturing constraints before they are dropped / reapplied
@@ -8757,7 +8807,8 @@ create table &outds as
   iftrue=(&mdebug=0)
 )
 
-%mend mp_getconstraints;/**
+%mend mp_getconstraints;
+/**
   @file
   @brief Extract DBML from SAS Libraries
   @details DBML is an open source markup format to represent databases.
@@ -9091,7 +9142,8 @@ run;
   run;
 %end;
 
-%mend mp_getdbml;/**
+%mend mp_getdbml;
+/**
   @file
   @brief Export format definitions
   @details Formats are exported from the first (if any) catalog entry in the
@@ -9224,7 +9276,8 @@ create table &outsummary as
   %end;
 %end;
 
-%mend mp_getformats;/**
+%mend mp_getformats;
+/**
   @file
   @brief Scans a dataset to find the max length of the variable values
   @details
@@ -9353,7 +9406,8 @@ create table &outds (rename=(
     out=&outds(rename=(_name_=NAME COL1=MAXLEN));
   run;
 
-%mend mp_getmaxvarlengths;/**
+%mend mp_getmaxvarlengths;
+/**
   @file
   @brief Extract the primary key fields from a table or library
   @details Examines the constraints to identify primary key fields - indicated
@@ -10314,7 +10368,8 @@ run;
   drop table &tmpds;
 %end;
 
-%mend mp_guesspk;/**
+%mend mp_guesspk;
+/**
   @file
   @brief Returns a unique hash for a dataset
   @details Ignores metadata attributes, used only to hash values. If used to
@@ -10674,7 +10729,8 @@ run;
 
 filename &tempref clear;
 
-%mend mp_include;/**
+%mend mp_include;
+/**
   @file
   @brief Initialise session with useful settings and variables
   @details Implements a "strict" set of SAS options for use in defensive
@@ -11242,7 +11298,8 @@ select distinct lowcase(memname)
   )
 %end;
 
-%mend mp_lib2cards;/**
+%mend mp_lib2cards;
+/**
   @file
   @brief Convert all data in a library to SQL insert statements
   @details Gets list of members then calls the <code>%mp_ds2inserts()</code>
@@ -11318,7 +11375,8 @@ select distinct lowcase(memname)
   )
 %end;
 
-%mend mp_lib2inserts;/**
+%mend mp_lib2inserts;
+/**
   @file
   @brief Loads a format catalog from a staging dataset
   @details When loading staged data, it is common to receive only the records
@@ -12062,7 +12120,8 @@ lock &libds clear;
   ,msg=%superq(msg)
 )
 
-%mend mp_lockfilecheck;/**
+%mend mp_lockfilecheck;
+/**
   @file
   @brief Create sample data based on the structure of an empty table
   @details Many SAS projects involve sensitive datasets.  One way to _ensure_
@@ -12167,7 +12226,8 @@ run;
 proc sql;
 drop table &ds1, &ds2;
 
-%mend mp_makedata;/**
+%mend mp_makedata;
+/**
   @file
   @brief Generates an md5 expression for hashing a set of variables
   @details This is the same algorithm used to hash records in
@@ -12274,7 +12334,8 @@ put(md5(
         ,dttm=%sysfunc(datetime());
   quit;
 
-%mend mp_perflog;/**
+%mend mp_perflog;
+/**
   @file
   @brief Enables previous observations to be re-instated
   @details Remembers the last X observations by storing them in a hash table.
@@ -12361,7 +12422,8 @@ put(md5(
     "with record &record and " _n_=;
 %end;
 
-%mend mp_prevobs;/**
+%mend mp_prevobs;
+/**
   @file
   @brief Returns all children from a hierarchy table for a specified parent
   @details Where data stores hierarchies in a simple parent / child mapping,
@@ -12631,7 +12693,8 @@ options obs=max replace nosyntaxcheck;
   run;
 %end;
 
-%mend mp_reseterror;/**
+%mend mp_reseterror;
+/**
   @file
   @brief Reset an option to original value
   @details Inspired by the SAS Jedi -
@@ -12669,7 +12732,8 @@ https://blogs.sas.com/content/sastraining/2012/08/14/jedi-sas-tricks-reset-sas-s
 %else %do;
   %put &sysmacroname: reset option feature unavailable on &sysvlong;
 %end;
-%mend mp_resetoption;/**
+%mend mp_resetoption;
+/**
   @file
   @brief Generate and apply retained key values to a staging table
   @details This macro will populate a staging table with a Retained Key based on
@@ -13057,7 +13121,8 @@ run;
 
 
 
-%mend mp_runddl;/**
+%mend mp_runddl;
+/**
   @file mp_searchcols.sas
   @brief Searches all columns in a library
   @details
@@ -13160,7 +13225,8 @@ proc sql;
 drop table &tempds;
 %put &sysmacroname process finished at %sysfunc(datetime(),datetime19.);
 
-%mend mp_searchcols;/**
+%mend mp_searchcols;
+/**
   @file
   @brief Searches all data in a library
   @details
@@ -13345,7 +13411,8 @@ select distinct memname into: table_list separated by ' '
 
   quit;
 
-%mend mp_setkeyvalue;/**
+%mend mp_setkeyvalue;
+/**
   @file
   @brief Sorts a SAS dataset in place, preserving constraints
   @details Generally if a dataset contains indexes, then it is not necessary to
@@ -13466,7 +13533,8 @@ proc datasets library=&lib;
 run;
 
 
-%mend mp_sortinplace;/**
+%mend mp_sortinplace;
+/**
   @file
   @brief Prepares an audit table for stacking (re-applying) the changes.
   @details When the underlying data from a Base Table is refreshed, it can be
@@ -14059,7 +14127,8 @@ select distinct tgtvar_nm into: missvars separated by ' '
   %put _local_;
 %end;
 %mend mp_stackdiffs;
-/** @endcond *//**
+/** @endcond */
+/**
   @file
   @brief Converts deletes/changes/appends into a single audit table.
   @details When tracking changes to data over time, it can be helpful to have
@@ -14288,7 +14357,8 @@ create table &outds as
 %end;
 
 %mend mp_storediffs;
-/** @endcond *//**
+/** @endcond */
+/**
   @file
   @brief Capture session start / finish times and request details
   @details For details, see
@@ -14362,7 +14432,8 @@ create table &outds as
   proc append base=&libds data=&syslast nowarn;run;
 
   options &etls_syntaxcheck;
-%mend mp_stprequests;/**
+%mend mp_stprequests;
+/**
   @file
   @brief Streams a file to _webout according to content type
   @details Will set headers using appropriate functions per the server type
@@ -14829,7 +14900,8 @@ run;
 %end;
 
 %mend mp_stripdiffs;
-/** @endcond *//**
+/** @endcond */
+/**
   @file
   @brief Runs arbitrary code for a specified amount of time
   @details Executes a series of procs and data steps to enable performance
@@ -14920,7 +14992,8 @@ quit;
 libname &lib clear;
 
 
-%mend mp_testjob;/**
+%mend mp_testjob;
+/**
   @file mp_testwritespeedlibrary.sas
   @brief Tests the write speed of a new table in a SAS library
   @details Will create a new table of a certain size in an
@@ -14978,7 +15051,8 @@ data &outds;
   duration_seconds=end_dttm-start_dttm;
 run;
 
-%mend mp_testwritespeedlibrary;/**
+%mend mp_testwritespeedlibrary;
+/**
   @file
   @brief Recursively scans a directory tree to get all subfolders and content
   @details
@@ -15048,7 +15122,8 @@ data &outds ;
   rc=filename('tmp');
 run;
 
-%mend mp_tree;/**
+%mend mp_tree;
+/**
   @file mp_unzip.sas
   @brief Unzips a zip file
   @details Opens the zip file and copies all the contents to another directory.
@@ -15393,7 +15468,8 @@ data _null_;
   end;
 run;
 
-%mend mp_wait4file;/**
+%mend mp_wait4file;
+/**
   @file
   @brief Fix the `_WEBIN` variables provided to SAS web services
   @details When uploading files to SAS Stored Processes or Viya Jobs a number
@@ -15451,7 +15527,8 @@ run;
 %end;
 
 
-%mend mp_webin;/**
+%mend mp_webin;
+/**
   @file
   @brief Creates a zip file
   @details For DIRECTORY usage, will ignore subfolders. For DATASET usage,
@@ -15535,7 +15612,8 @@ ods package publish archive properties
   (archive_name="&outname..zip" archive_path="&outpath");
 ods package close;
 
-%mend mp_zip;/**
+%mend mp_zip;
+/**
   @file
   @brief Difftable DDL
   @details Used to store changes to tables.  Used by mp_storediffs.sas
@@ -15578,7 +15656,8 @@ ods package close;
       /nomiss unique;
   quit;
 
-%mend mddl_dc_difftable;/**
+%mend mddl_dc_difftable;
+/**
   @file
   @brief Filtertable DDL
   @details For storing detailed filter values.  Used by
@@ -15617,7 +15696,8 @@ ods package close;
     index create pk_mpe_filterdetail=(filter_hash filter_line)/nomiss unique;
   quit;
 
-%mend mddl_dc_filterdetail;/**
+%mend mddl_dc_filterdetail;
+/**
   @file
   @brief Filtersummary DDL
   @details For storing summary filter values.  Used by
@@ -15651,7 +15731,8 @@ ods package close;
     index create filter_rk /nomiss unique;
   quit;
 
-%mend mddl_dc_filtersummary;/**
+%mend mddl_dc_filtersummary;
+/**
   @file
   @brief Locktable DDL
   @details For "locking" tables prior to multipass loads. Used by
@@ -15691,7 +15772,8 @@ ods package close;
       /nomiss unique;
   quit;
 
-%mend mddl_dc_locktable;/**
+%mend mddl_dc_locktable;
+/**
   @file
   @brief Maxkeytable DDL
   @details For storing the maximum retained key information.  Used
@@ -15723,7 +15805,8 @@ ods package close;
     index create keytable /nomiss unique;
   quit;
 
-%mend mddl_dc_maxkeytable;/**
+%mend mddl_dc_maxkeytable;
+/**
   @file
   @brief DDL for the derived variables control table
   @details Creates the table read by mp_derivedvars.sas.  One row defines one
@@ -16728,7 +16811,8 @@ run;
 %else %put NOTE: Application (&name) successfully created in (&tree)!;
 
 
-%mend mm_createapplication;/**
+%mend mm_createapplication;
+/**
   @file
   @brief Create an empty dataset from a metadata definition
   @details This macro was built to support viewing empty tables in
@@ -16819,7 +16903,8 @@ data _null_;
   if last then call execute('call missing(of _all_);stop;run;');
 run;
 
-%mend mm_createdataset;/**
+%mend mm_createdataset;
+/**
   @file
   @brief Create a Document object in a metadata folder
   @details Document objects are useful for storing properties in metadata.
@@ -16946,7 +17031,8 @@ run;
   run;
 %end;
 
-%mend mm_createdocument;/**
+%mend mm_createdocument;
+/**
   @file
   @brief Recursively create a metadata folder
   @details This macro was inspired by Paul Homes who wrote an early
@@ -17106,7 +17192,8 @@ run;
 %end;
 
 %put &sysmacroname: execution finished for &path;
-%mend mm_createfolder;/**
+%mend mm_createfolder;
+/**
   @file
   @brief Create a SAS Library
   @details Currently only supports BASE engine
@@ -17853,7 +17940,8 @@ run;
   %put %str(WARN)ING:  STPTYPE=*&stptype* not recognised!;
 %end;
 
-%mend mm_createstp;/**
+%mend mm_createstp;
+/**
   @file mm_createwebservice.sas
   @brief Create a Web Ready Stored Process
   @details This macro creates a Type 2 Stored Process with the mm_webout macro
@@ -18920,7 +19008,8 @@ create table &outds as
 %end;
 
 
-%mend mm_getauthinfo;/**
+%mend mm_getauthinfo;
+/**
   @file
   @brief Creates a dataset with all metadata columns for a particular table
   @details
@@ -18972,7 +19061,8 @@ proc sort;
   by colname;
 run;
 
-%mend mm_getcols;/**
+%mend mm_getcols;
+/**
   @file mm_getdetails.sas
   @brief extracts metadata attributes and associations for a particular uri
   @param [in] uri the metadata object for which to return
@@ -19042,7 +19132,8 @@ proc sort &sortoptions;
   by type name;
 run;
 
-%mend mm_getdetails;/**
+%mend mm_getdetails;
+/**
   @file
   @brief Returns a dataset with the meta directory object for a physical path
   @details Provide a file path to get matching directory objects, or leave
@@ -19605,7 +19696,8 @@ run;
   options metarepository=&oldrepo;
 %end;
 
-%mend mm_getGroups;/**
+%mend mm_getGroups;
+/**
   @file
   @brief Compares the metadata of a library with the physical tables
   @details Creates a series of output tables that show the differences between
@@ -19829,7 +19921,8 @@ filename sxlemap clear;
 filename response clear;
 libname _XML_ clear;
 
-%mend mm_getlibs;/**
+%mend mm_getlibs;
+/**
   @file
   @brief Creates a dataset with all metadata objects for a particular type
 
@@ -19898,7 +19991,8 @@ filename sxlemap clear;
 filename response clear;
 libname _XML_ clear;
 
-%mend mm_getobjects;/**
+%mend mm_getobjects;
+/**
   @file mm_getpublictypes.sas
   @brief Creates a dataset with all deployable public types
   @details More info:
@@ -19985,7 +20079,8 @@ insert into &outds values ('User');
 insert into &outds values ('UserGroup');
 quit;
 
-%mend mm_getpublictypes;/**
+%mend mm_getpublictypes;
+/**
   @file
   @brief Creates a dataset with all available repositories
 
@@ -20117,7 +20212,8 @@ filename sxlemap clear;
 filename response clear;
 libname _XML_ clear;
 
-%mend mm_getrepos;/**
+%mend mm_getrepos;
+/**
   @file mm_getroles.sas
   @brief Creates a table containing a list of roles
   @details
@@ -20282,7 +20378,8 @@ options metarepository=&repo;
 filename __mc1 clear;
 filename __mc2 clear;
 
-%mend mm_getservercontexts;/**
+%mend mm_getservercontexts;
+/**
   @file
   @brief Writes the code of an STP to an external file
   @details Fetches the SAS code from a Stored Process where the code is stored
@@ -20696,7 +20793,8 @@ data &outds;
   end;
 run;
 
-%mend mm_gettableid;/**
+%mend mm_gettableid;
+/**
   @file
   @brief Creates a dataset with all metadata tables for a particular library
   @details Will only show the tables for which the executing user has the
@@ -20815,7 +20913,8 @@ proc sort;
 by tablename tableuri;
 run;
 
-%mend mm_gettables;/**
+%mend mm_gettables;
+/**
   @file
   @brief Returns the metadata path and object from either the path or object
   @details Provide a metadata BIP tree path, or the uri for the bottom level
@@ -20882,7 +20981,8 @@ data &outds;
   if treeuri ne "" and treepath ne "" then output;
   stop;
 run;
-%mend mm_getTree;/**
+%mend mm_getTree;
+/**
   @file
   @brief Creates a dataset with all metadata types
   @details Usage:
@@ -20957,7 +21057,8 @@ filename sxlemap clear;
 filename response clear;
 libname _XML_ clear;
 
-%mend mm_gettypes;/**
+%mend mm_gettypes;
+/**
   @file mm_getusers.sas
   @brief Creates a table containing a list of all users
   @details Only shows a limited number of attributes as some sites will have a
@@ -21187,7 +21288,8 @@ filename __in clear;
 filename __out clear;
 filename __shake clear;
 
-%mend mm_getwebappsrvprops;/**
+%mend mm_getwebappsrvprops;
+/**
   @file mm_spkexport.sas
   @brief Creates an batch spk export command
   @details Creates a script that will export everything in a metadata folder to
@@ -21639,7 +21741,8 @@ run;
   run;
 %end;
 
-%mend mm_updateappextension;/**
+%mend mm_updateappextension;
+/**
   @file
   @brief Update the TextStore in a Document with the same name
   @details Enables arbitrary content to be stored in a document object
@@ -21754,7 +21857,8 @@ run;
   run;
 %end;
 
-%mend mm_updatedocument;/**
+%mend mm_updatedocument;
+/**
   @file
   @brief Updates a type 2 stored process to run on STP or WKS context
   @details Only works on Type 2 (9.3 compatible) STPs
@@ -22392,7 +22496,8 @@ run;
 
 %inc &fref1;
 
-%mend mmx_spkexport;/**
+%mend mmx_spkexport;
+/**
   @file
   @brief Sets the http headers in the SASjs/server response
   @details For GET requests, SASjs server will use the file generated by this
@@ -23763,7 +23868,8 @@ run;
 filename &binaryfref clear;
 filename &headref clear;
 
-%mend ms_getfile;/**
+%mend ms_getfile;
+/**
   @file
   @brief Fetches the list of groups from SASjs Server
   @details Fetches the list of groups from SASjs Server and writes them to an
@@ -24646,7 +24752,8 @@ run;
     %mp_dropmembers(&triggered_sid,libref=work);
   %end;
 
-%mend ms_triggerstp;/**
+%mend ms_triggerstp;
+/**
   @file
   @brief Send data to/from sasjs/server
   @details This macro should be added to the start of each web service,
@@ -24928,7 +25035,8 @@ run;
     %let syscc=0;
   %end;
 
-%mend mfv_existfile;/**
+%mend mfv_existfile;
+/**
   @file
   @brief Checks whether a folder exists in SAS Drive
   @details Returns 1 if the folder exists, and 0 if it doesn't.  Works by
@@ -24982,7 +25090,8 @@ run;
     msg=Cannot leave mfv_existfolder.sas with syscc=&syscc
   )
 
-%mend mfv_existfolder;/**
+%mend mfv_existfolder;
+/**
   @file mfv_existsashdat.sas
   @brief Checks whether a CAS sashdat dataset exists in persistent storage.
   @details Can be used in open code, eg as follows:
@@ -25130,7 +25239,8 @@ run;
     %let syscc=0;
   %end;
 
-%mend mfv_getfolderpath ;/**
+%mend mfv_getfolderpath ;
+/**
   @file
   @brief Returns the uri of a file or folder
   @details The automatic variable `_FILESRVC_[fref]_URI` is used after assigning
@@ -25185,7 +25295,8 @@ run;
     iftrue=(&syscc ne 0),
     msg=Cannot leave &sysmacroname with syscc=&syscc
   )
-%mend mfv_getpathuri;/**
+%mend mfv_getpathuri;
+/**
   @file mv_castabload.sas
   @brief Checks if a CAS table is loaded; if not, loads and promotes it
   @details Runs in SPRE against an active CAS session.  Accepts a
@@ -25921,7 +26032,8 @@ run;
   msg=Cannot leave &sysmacroname with syscc=&syscc
 )
 
-%mend mv_createfile;/**
+%mend mv_createfile;
+/**
   @file mv_createfolder.sas
   @brief Creates a viya folder if that folder does not already exist
   @details Creates a viya folder by checking if each parent folder exists, and
@@ -26137,7 +26249,8 @@ options noquotelenmax;
   iftrue=(&syscc ne 0),
   msg=Cannot leave &sysmacroname with syscc=&syscc
 )
-%mend mv_createfolder;/**
+%mend mv_createfolder;
+/**
   @file
   @brief Creates a Viya Job
   @details
@@ -27629,7 +27742,8 @@ libname &libref1 clear;
 filename &fname1a clear;
 libname &libref1a clear;
 
-%mend mv_deletefoldermember;/**
+%mend mv_deletefoldermember;
+/**
   @file
   @brief Deletes a Viya Job, if it exists
   @details If not executed in Studio 5+  will expect oauth token in a global
@@ -27781,7 +27895,8 @@ libname &libref1 clear;
 filename &fname1a clear;
 libname &libref1a clear;
 
-%mend mv_deletejes;/**
+%mend mv_deletejes;
+/**
   @file
   @brief Deletes a viya folder
   @details If not running in Studo 5 +, will expect an oauth token in a global
@@ -28033,7 +28148,8 @@ run;
 filename &fname1 clear;
 libname &libref1 clear;
 */
-%mend mv_getclients;/**
+%mend mv_getclients;
+/**
   @file
   @brief Gets a list of folder members (and ids) for a given root
   @details Returns all members for a particular Viya folder.  Works at both root
@@ -28172,7 +28288,8 @@ options noquotelenmax;
 filename &fname1 clear;
 libname &libref1 clear;
 
-%mend mv_getfoldermembers;/**
+%mend mv_getfoldermembers;
+/**
   @file mv_getgroupmembers.sas
   @brief Creates a dataset with a list of group members
   @details First, be sure you have an access token (which requires an app token)
@@ -28280,7 +28397,8 @@ run;
 /* clear refs */
 filename &fname1 clear;
 
-%mend mv_getgroupmembers;/**
+%mend mv_getgroupmembers;
+/**
   @file mv_getgroups.sas
   @brief Creates a dataset with a list of viya groups
   @details First, load the macros:
@@ -29472,7 +29590,8 @@ run;
 filename &fname1 clear;
 libname &libref1 clear;
 
-%mend mv_getusergroups;/**
+%mend mv_getusergroups;
+/**
   @file mv_getusers.sas
   @brief Creates a dataset with a list of users
   @details First, be sure you have an access token (which requires an app token)
@@ -29589,7 +29708,8 @@ run;
 filename &fname1 clear;
 libname &libref1 clear;
 
-%mend mv_getusers;/**
+%mend mv_getusers;
+/**
   @file mv_getviyafileextparms.sas
   @brief Reads the VIYA file-extension type definition and returns selected
     values in SAS macro variables
@@ -30029,7 +30149,8 @@ run;
   filename &fname1 clear;
   libname &libref;
 %end;
-%mend mv_jobexecute;/**
+%mend mv_jobexecute;
+/**
   @file
   @brief Execute a series of job flows
   @details Very (very) simple flow manager.  Jobs execute in sequential waves,
@@ -30736,7 +30857,8 @@ run;
   /* clear refs */
   filename &fname0 clear;
 %end;
-%mend mv_jobwaitfor;/**
+%mend mv_jobwaitfor;
+/**
   @file mv_registerclient.sas
   @brief Register Client and Secret (admin task)
   @details When building apps on SAS Viya, a client id and secret are usually
@@ -31171,7 +31293,8 @@ libname &libref clear;
 filename &fref1 clear;
 filename &fref2 clear;
 
-%mend mv_tokenauth;/**
+%mend mv_tokenauth;
+/**
   @file mv_tokenrefresh.sas
   @brief Get an additional access token using a refresh token
   @details Before an access token can be obtained, a refresh token is required
@@ -31304,7 +31427,8 @@ run;
 libname &libref clear;
 filename &fref1 clear;
 
-%mend mv_tokenrefresh;/**
+%mend mv_tokenrefresh;
+/**
   @file
   @brief Send data to/from the SAS Viya Job Execution Service
   @details This macro should be added to the start of each Job Execution
@@ -32150,7 +32274,8 @@ endsub;
   options insert=(CMPLIB=(&lib..&cat));
 %end;
 
-%mend mcf_getfmttype;/**
+%mend mcf_getfmttype;
+/**
   @file
   @brief Sets up the mcf_xx functions
   @details
@@ -32275,7 +32400,8 @@ endsub;
   options insert=(CMPLIB=(&lib..&cat));
 %end;
 
-%mend mcf_length;/**
+%mend mcf_length;
+/**
   @file
   @brief Adds a string to a file
   @details Creates an fcmp function for appending a string to an external file.
@@ -32366,7 +32492,8 @@ endsub;
   options insert=(CMPLIB=(&lib..&cat));
 %end;
 
-%mend mcf_string2file;/**
+%mend mcf_string2file;
+/**
   @file
   @brief Appends a text file to a SASjs Stored Program, Viya SAS program, or
     SAS 9 Stored Process

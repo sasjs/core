@@ -153,7 +153,7 @@ run;
 
 %mp_assert(
   iftrue=("&logsize"="PASS"),
-  desc=Test 3 - the captured log is the whole log, not a fragment (&loglines lines),
+  desc=Test 3 - the captured log is the whole log not a fragment (&loglines lines),
   outds=work.test_results
 )
 

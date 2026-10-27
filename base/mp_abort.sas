@@ -223,9 +223,9 @@ and %superq(SYSPROCESSNAME) ne %str(Compute Server)
       put ',"_METAUSER": ' _METAUSER;
     end;
     /* _METAPERSON is not always set when _METAUSER is (e.g. Viya JES
-       sessions provide only _METAUSER) - guard it separately or SYMGET
-       raises "Invalid argument" and pollutes SYSERRORTEXT inside the
-       very abort JSON we are writing here. */
+      sessions provide only _METAUSER) - guard it separately or SYMGET
+      raises "Invalid argument" and pollutes SYSERRORTEXT inside the
+      very abort JSON we are writing here. */
     if symexist('_metaperson') then do;
       _METAPERSON=quote(trim(symget('_METAPERSON')));
       put ',"_METAPERSON": ' _METAPERSON;

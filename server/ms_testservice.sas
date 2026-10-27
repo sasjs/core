@@ -95,8 +95,8 @@ run;
 
 
 /* execute the STP. _debug is forwarded to ms_runstp, whose own default is
-   131 - the log separator this macro chops on is only present when the
-   server runs in debug mode, so outlogds needs the default. */
+  131 - the log separator this macro chops on is only present when the
+  server runs in debug mode, so outlogds needs the default. */
 %let fref1=%mf_getuniquefileref();
 
 %ms_runstp(&program

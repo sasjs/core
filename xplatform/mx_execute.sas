@@ -21,10 +21,7 @@
     |stpmacname|some value|
     |mustbevalidname|can be anything, oops, %abort!!|
 
-  @param [in] debug= (131) Provide the _debug value.  Numeric, because the
-    server validates it as a number - see ms_runstp, whose own default is 131.
-    Earlier releases defaulted to the string `log`, which the trigger rejects,
-    so callers relying on that default should pass debug= explicitly.
+  @param [in] debug= (131) Provide the _debug value.
   @param [in] mdebug= (0) Set to 1 to provide macro debugging
   @param [in] viyaresult= (WEBOUT_JSON) The Viya result type to return.  For
     more info, see mv_getjobresult.sas
@@ -43,11 +40,7 @@
     to the response in debug mode, so a lower value returns an empty dataset.
   @param [out] outstatus= (0) Name of a dataset to receive the outcome of each
     child run - one row per program, with columns STATE, URI, ERRMSG and
-    PLATFORM.  STATE comes from the job flow on Viya and is derived from the
-    response (a sasjsAbort block means canceled) on SASjs Server; on SAS 9 it is
-    unknown, as the platform gives no way to tell.  This is the supported
-    replacement for the fixed work.results table the Viya branch used to leave
-    behind.
+    PLATFORM.
 
   <h4> SAS Macros </h4>
   @li mf_getplatform.sas

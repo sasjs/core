@@ -196,8 +196,6 @@ options &optval;
   data &outlogds;
     infile "&chopout" lrecl=2000;
     length line $2000;
-    /* without INPUT the file is never read: _infile_ stays empty and the step
-      * writes a single missing row instead of the log */
     input;
     line=_infile_;
   %if &mdebug=1 %then %do;

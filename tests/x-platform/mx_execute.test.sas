@@ -221,6 +221,10 @@ run;
 /**
   * Test 6 - the plain default call, with no outref, outlib or outstatus
   */
+/* clear what Test 3 left, so the assertion below is about this call only */
+proc datasets lib=work nolist nowarn;
+  delete childlog;
+quit;
 %mx_execute(&mcTestAppLoc/services/sendObj,
   inputdatasets=work.somedata1
 )

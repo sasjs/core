@@ -252,7 +252,11 @@ jobs:
           status=0
           collect() {
               if [ -f sasjsresults/testResults.csv ]; then
-              tail -n +2 sasjsresults/testResults.csv >> "$agg" || true
+              if [ -s "$agg" ]; then
+                tail -n +2 sasjsresults/testResults.csv >> "$agg" || true
+              else
+                cp sasjsresults/testResults.csv "$agg"
+              fi
             fi
           }
           if [ "$MODE" = "full" ]; then

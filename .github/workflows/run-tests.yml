@@ -53,16 +53,37 @@ jobs:
       - name: Check code style (aborts if errors found)
         run: npx @sasjs/cli lint
 
+      # The estate may be reachable from a runner without a tunnel; if it is,
+      # the VPN is dead weight and a failed handshake cannot block the run.
+      - name: Check the estate without the tunnel
+        id: direct
+        run: |
+          code=000
+          for attempt in 1 2 3; do
+            code=$(curl -sS -m 10 -o /dev/null -w '%{http_code}' \
+              "${{ secrets.SASJS_SERVER_URL }}/SASjsApi/info" || echo 000)
+            echo "attempt $attempt: HTTP $code"
+            [ "$code" = "200" ] && break
+            sleep 5
+          done
+          if [ "$code" = "200" ]; then
+            echo "reachable=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "reachable=false" >> "$GITHUB_OUTPUT"
+          fi
+
       # WireGuard, not openvpn3: wg-quick returns as soon as the tunnel is up,
       # where session-start attaches to the session and never returns.  The
       # config comes from the Cloudron WireGuard app and is a secret because it
       # carries the client private key - hence base64, so newlines survive.
       - name: Install WireGuard
+        if: steps.direct.outputs.reachable != 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y wireguard-tools resolvconf
 
       - name: Write WireGuard config
+        if: steps.direct.outputs.reachable != 'true'
         run: |
           sudo mkdir -p /etc/wireguard
           printf '%s\n' "$WG_CONF" | sudo tee /etc/wireguard/wg0.conf >/dev/null
@@ -71,32 +92,41 @@ jobs:
           WG_CONF: ${{ secrets.WG_CONF }}
 
       - name: Start WireGuard
+        if: steps.direct.outputs.reachable != 'true'
         timeout-minutes: 2
         run: |
           sudo wg-quick up wg0
+
+      # A session that is up is not a session that works: the handshake is what
+      # proves the peer answers, and until it completes the tunnel blackholes
+      # every packet, DNS included.
+      - name: Wait for the WireGuard handshake
+        if: steps.direct.outputs.reachable != 'true'
+        timeout-minutes: 2
+        run: |
+          for attempt in $(seq 1 12); do
+            hs=$(sudo wg show wg0 latest-handshakes | awk 'NR==1 {print $2}')
+            echo "attempt $attempt: latest handshake=[${hs:-none}]"
+            if [ -n "$hs" ] && [ "$hs" != "0" ]; then break; fi
+            sleep 5
+          done
           sudo wg show
           ip -brief addr show wg0
 
-      - name: Check VPN / DNS connectivity
+      - name: Check connectivity to the estate
         run: |
           sudo wg show || true
           echo "--- resolv.conf ---"
           cat /etc/resolv.conf
-          SASJS_HOST=$(echo "${{ secrets.SASJS_SERVER_URL }}" | sed -E 's|https?://([^/:]+).*|\1|')
-          echo "--- waiting for DNS resolution of ${SASJS_HOST} ---"
-          for i in $(seq 1 12); do
-            if getent hosts "${SASJS_HOST}"; then break; fi
-            echo "attempt $i: ${SASJS_HOST} not resolvable yet, retrying in 5s"
+          for attempt in $(seq 1 12); do
+            code=$(curl -sS -m 10 -o /dev/null -w '%{http_code}' \
+              "${{ secrets.SASJS_SERVER_URL }}/SASjsApi/info" || echo 000)
+            echo "attempt $attempt: HTTP $code"
+            if [ "$code" = "200" ]; then exit 0; fi
             sleep 5
           done
-          getent hosts "${SASJS_HOST}" || {
-            echo "::error::DNS resolution failed for ${SASJS_HOST} - VPN tunnel is likely down"
-            exit 1
-          }
-          echo "--- fetching server info ---"
-          curl -sS --retry 5 --retry-all-errors --retry-delay 5 \
-            -o /dev/null -w "HTTP %{http_code}\n" \
-            "${{ secrets.SASJS_SERVER_URL }}/SASjsApi/info"
+          echo "::error::the estate did not answer HTTP 200 - direct=${{ steps.direct.outputs.reachable }}"
+          exit 1
 
       - name: Fetch SASJS server
         run: curl ${{ secrets.SASJS_SERVER_URL }}/SASjsApi/info

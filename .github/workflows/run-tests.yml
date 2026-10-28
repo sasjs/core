@@ -61,7 +61,7 @@ jobs:
           code=000
           for attempt in 1 2 3; do
             code=$(curl -sS -m 10 -o /dev/null -w '%{http_code}' \
-              "${{ secrets.SASJS_SERVER_URL }}/SASjsApi/info" || echo 000)
+              "${{ secrets.SASJS_SERVER_URL }}/SASjsApi/info" 2>/dev/null) || code=000
             echo "attempt $attempt: HTTP $code"
             [ "$code" = "200" ] && break
             sleep 5
@@ -120,13 +120,33 @@ jobs:
           cat /etc/resolv.conf
           for attempt in $(seq 1 12); do
             code=$(curl -sS -m 10 -o /dev/null -w '%{http_code}' \
-              "${{ secrets.SASJS_SERVER_URL }}/SASjsApi/info" || echo 000)
+              "${{ secrets.SASJS_SERVER_URL }}/SASjsApi/info" 2>/dev/null) || code=000
             echo "attempt $attempt: HTTP $code"
             if [ "$code" = "200" ]; then exit 0; fi
             sleep 5
           done
           echo "::error::the estate did not answer HTTP 200 - direct=${{ steps.direct.outputs.reachable }}"
           exit 1
+
+      - name: Diagnose connectivity
+        if: failure()
+        run: |
+          HOST=$(echo "${{ secrets.SASJS_SERVER_URL }}" | sed -E 's|https?://([^/:]+).*|\1|')
+          echo "--- resolv.conf ---"; cat /etc/resolv.conf
+          echo "--- getent ---"; getent hosts "$HOST" || echo "getent failed"
+          echo "--- resolvectl ---"; resolvectl status 2>/dev/null | head -30 || true
+          echo "--- routes ---"; ip -brief route; ip rule
+          echo "--- curl -v ---"
+          curl -sv -m 15 -o /dev/null "${{ secrets.SASJS_SERVER_URL }}/SASjsApi/info" 2>&1 | head -30 || true
+          echo "--- curl by IP (no DNS) ---"
+          IP=$(getent hosts "$HOST" | awk 'NR==1 {print $1}')
+          if [ -n "$IP" ]; then
+            curl -sv -m 15 -o /dev/null --resolve "$HOST:443:$IP" \
+              "${{ secrets.SASJS_SERVER_URL }}/SASjsApi/info" 2>&1 | head -20 || true
+          else
+            echo "no address for $HOST"
+          fi
+          echo "--- wg ---"; sudo wg show || true
 
       - name: Fetch SASJS server
         run: curl ${{ secrets.SASJS_SERVER_URL }}/SASjsApi/info

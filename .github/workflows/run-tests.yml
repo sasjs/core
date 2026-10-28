@@ -143,7 +143,9 @@ jobs:
           SASJS_SERVER_URL: ${{ secrets.SASJS_SERVER_URL }}
           SASJS_USERNAME: ${{ secrets.SASJS_USERNAME }}
           SASJS_PASSWORD: ${{ secrets.SASJS_PASSWORD }}
-          SASJS_CLIENT: ${{ secrets.SAS9_4GL_IO_CLIENT }}
+          # A client id is not a credential - a repository variable is enough.
+          # Left unset, an admin login can read the first registered client.
+          SASJS_CLIENT: ${{ vars.SASJS_CLIENT }}
         run: python3 .github/scripts/mint-token.py
 
       - name: Build & Deploy Project to SAS server

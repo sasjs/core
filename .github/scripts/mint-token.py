@@ -80,14 +80,17 @@ def main():
         return 1
 
     if not client:
-        # An admin can read the registered clients; a non-admin cannot, and gets
-        # a 403 here rather than a confusing token failure later.
-        clients, _ = session.call('/SASjsApi/client')
-        if isinstance(clients, list) and clients:
-            client = clients[0].get('clientId', '')
+        # An admin can read the registered clients; anyone else gets 403, which
+        # is why the client id can also be supplied as a repository variable.
+        try:
+            clients, _ = session.call('/SASjsApi/client')
+            if isinstance(clients, list) and clients:
+                client = clients[0].get('clientId', '')
+        except urllib.error.HTTPError as err:
+            log('/SASjsApi/client -> {}'.format(err.code))
     if not client:
-        print('no clientId available - set SAS9_4GL_IO_CLIENT or use an admin user',
-              file=sys.stderr)
+        print('no clientId: set the SASJS_CLIENT repository variable, or run as an '
+              'admin so the first registered client can be read', file=sys.stderr)
         return 1
 
     authorized, _ = session.call('/SASLogon/authorize', {'clientId': client})

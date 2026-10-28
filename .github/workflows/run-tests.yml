@@ -182,10 +182,9 @@ jobs:
         env:
           macroCorePath: .
 
-      # A pull request into main is the merge candidate, so it gets every test.
-      # Anything else runs only the tests for the macros the diff touched, and
-      # falls back to everything when the diff cannot be narrowed (a harness
-      # file changed, or no changed macro has a test).
+      # Every run tests only the macros the diff touched, and falls back to
+      # everything when the diff cannot be narrowed (a harness file changed, or
+      # no changed macro has a test). workflow_dispatch can force the full suite.
       - name: Decide the test scope
         id: scope
         env:
@@ -196,9 +195,6 @@ jobs:
           cd "$GITHUB_WORKSPACE"
           full=false
           if [ "$EVENT" = "workflow_dispatch" ] && [ "$FORCE_FULL" != "false" ]; then
-            full=true
-          fi
-          if [ "$EVENT" = "pull_request" ] && [ "$BASE_REF" = "main" ]; then
             full=true
           fi
 

@@ -206,13 +206,10 @@ jobs:
 
       - name: Run tests
         env:
+          # The CLI reads the .env.server written above - CLIENT, ACCESS_TOKEN,
+          # REFRESH_TOKEN from the SAS9_4GL_IO_* secrets. Credentials passed as
+          # bare environment variables are not read by the adapter.
           CI: true
-          CLIENT: ${{secrets.CLIENT}}
-          SECRET: ${{secrets.SECRET}}
-          SAS_USERNAME: ${{secrets.SAS_USERNAME}}
-          SAS_PASSWORD: ${{secrets.SAS_PASSWORD}}
-          ACCESS_TOKEN: ${{secrets.ACCESS_TOKEN}}
-          REFRESH_TOKEN: ${{secrets.REFRESH_TOKEN}}
           MODE: ${{ steps.scope.outputs.mode }}
           TESTS: ${{ steps.scope.outputs.tests }}
         run: |

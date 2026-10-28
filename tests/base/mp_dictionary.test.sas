@@ -3,8 +3,9 @@
   @brief Testing mp_dictionary.sas macro
 
   <h4> SAS Macros </h4>
-  @li mp_dictionary.sas
+  @li mf_existds.sas
   @li mp_assert.sas
+  @li mp_dictionary.sas
 
 **/
 

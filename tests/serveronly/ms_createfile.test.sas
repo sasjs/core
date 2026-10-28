@@ -3,9 +3,9 @@
   @brief Testing ms_createfile.sas macro
 
   <h4> SAS Macros </h4>
-  @li ms_createfile.sas
-  @li mp_assert.sas
+  @li mf_getuniquename.sas
   @li mp_assertscope.sas
+  @li ms_createfile.sas
 
 **/
 

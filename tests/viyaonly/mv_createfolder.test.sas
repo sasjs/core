@@ -7,7 +7,6 @@
   @li mp_assert.sas
   @li mp_assertscope.sas
   @li mv_createfolder.sas
-  @li mv_deleteviyafolder.sas
   @li mv_getfoldermembers.sas
 
 **/

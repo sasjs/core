@@ -3,11 +3,13 @@
   @brief Testing ms_getusers.sas macro
 
   <h4> SAS Macros </h4>
-  @li ms_creategroup.sas
-  @li ms_adduser2group.sas
-  @li ms_getusers.sas
+  @li mf_getuniquename.sas
+  @li mp_assert.sas
   @li mp_assertdsobs.sas
   @li mp_assertscope.sas
+  @li ms_adduser2group.sas
+  @li ms_creategroup.sas
+  @li ms_getusers.sas
 
 **/
 

@@ -3,11 +3,12 @@
   @brief Testing ms_deletefile.sas macro
 
   <h4> SAS Macros </h4>
+  @li mf_getuniquename.sas
+  @li mp_assert.sas
+  @li mp_assertscope.sas
   @li ms_createfile.sas
   @li ms_deletefile.sas
   @li ms_getfile.sas
-  @li mp_assert.sas
-  @li mp_assertscope.sas
 
 **/
 

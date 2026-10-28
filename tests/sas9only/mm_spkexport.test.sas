@@ -5,7 +5,7 @@
   <h4> SAS Macros </h4>
   @li mm_spkexport.sas
   @li mp_assert.sas
-  @li mp_as
+  @li mp_assertscope.sas
 
 **/
 

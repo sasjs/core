@@ -3,7 +3,6 @@
   @brief Testing mp_getpk.sas macro
 
   <h4> SAS Macros </h4>
-  @li mf_nobs.sas
   @li mp_getpk.sas
   @li mp_assert.sas
   @li mp_assertdsobs.sas

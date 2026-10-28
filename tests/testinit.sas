@@ -6,7 +6,6 @@
   @li mf_getplatform.sas
   @li mf_uid.sas
   @li mp_init.sas
-  @li ms_webout.sas
 
 **/
 

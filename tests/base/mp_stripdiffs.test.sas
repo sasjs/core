@@ -7,6 +7,7 @@
   @li mp_assert.sas
   @li mp_assertscope.sas
   @li mp_ds2md.sas
+  @li mp_storediffs.sas
   @li mp_stripdiffs.sas
 
   @sasjslint {"noBannedStrings": false}

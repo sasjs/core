@@ -4,6 +4,7 @@
 
   <h4> SAS Macros </h4>
   @li mf_uid.sas
+  @li mfv_existfile.sas
   @li mfv_getpathuri.sas
   @li mp_assert.sas
   @li mv_createfile.sas

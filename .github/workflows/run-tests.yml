@@ -219,14 +219,13 @@ jobs:
               esac
             done | sort -u)
             for name in $names; do
-              # Only the folders this target deploys, and never a Viya or an
-              # x-platform macro: the estate is a SASjs Server, so a mv_/mx_
-              # test cannot pass there and would fail every unrelated change
-              # that happens to sit next to it.
+              # Only the folders this target compiles - the server target adds
+              # tests/serveronly to base, ddlonly and x-platform.  A Viya macro
+              # has no compiled test here, so skip the name outright.
               case "$name" in
-                mv_*|mfv_*|mvx_*|mx_*) echo "skipping $name (not this estate)"; continue ;;
+                mv_*|mfv_*|mvx_*) echo "skipping $name (no Viya test on this target)"; continue ;;
               esac
-              for dir in tests/base tests/ddlonly tests/serveronly; do
+              for dir in tests/base tests/ddlonly tests/serveronly tests/x-platform; do
                 if ls "$dir/$name".test*.sas >/dev/null 2>&1; then
                   tests="$tests $name"
                   break

@@ -223,7 +223,19 @@ jobs:
               esac
             done | sort -u)
             for name in $names; do
-              if ls tests/*/"$name".test*.sas >/dev/null 2>&1; then tests="$tests $name"; fi
+              # Only the folders this target deploys, and never a Viya or an
+              # x-platform macro: the estate is a SASjs Server, so a mv_/mx_
+              # test cannot pass there and would fail every unrelated change
+              # that happens to sit next to it.
+              case "$name" in
+                mv_*|mfv_*|mvx_*|mx_*) echo "skipping $name (not this estate)"; continue ;;
+              esac
+              for dir in tests/base tests/ddlonly tests/serveronly; do
+                if ls "$dir/$name".test*.sas >/dev/null 2>&1; then
+                  tests="$tests $name"
+                  break
+                fi
+              done
             done
           fi
           tests=$(echo "$tests" | xargs)

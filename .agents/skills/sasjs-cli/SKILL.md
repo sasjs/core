@@ -1,11 +1,13 @@
 ---
 name: sasjs-cli
-description: Using the SASjs CLI (@sasjs/cli) to create, compile, build, deploy, run, and test SASjs projects against SAS 9, Viya, and SASjs server targets. Use for any `sasjs <command>` usage, CI/CD pipelines, target/auth config, sasjsconfig.json, service packs, or frontend streaming builds.
+description: Using the SASjs CLI (@sasjs/cli) to create, compile (whole project or a single file), build, deploy, run, and test SASjs projects against SAS 9, Viya, and SASjs server targets. Use for any `sasjs <command>` usage, CI/CD pipelines, target/auth config, sasjsconfig.json, service packs, or frontend streaming builds.
 ---
 
 # @sasjs/cli
 
-The SASjs CLI (`npm i -g @sasjs/cli`, invoked as `sasjs`) automates compiling, building, and deploying SAS projects. All commands support `-t <target>` to select a target from `sasjsconfig.json`.
+The SASjs CLI (`npm i -g @sasjs/cli`, invoked as `sasjs`) automates compiling, building, and deploying SAS projects. Most commands take `-t <target>` to select a target from `sasjsconfig.json`, and fall back to the default target when it is omitted; the ones that never touch a server (`lint`, `db`, `create`, `init`, `doc init`) have no target option at all.
+
+Checked against `@sasjs/cli` 6.2.5. Flags are read from the installed CLI's own `--help`, so re-check `sasjs <command> --help` before relying on a flag that is not listed here.
 
 ## Targets and auth
 
@@ -18,36 +20,54 @@ The SASjs CLI (`npm i -g @sasjs/cli`, invoked as `sasjs`) automates compiling, b
 ```
 sasjs create myapp        # scaffold a new app (templates available)
 sasjs compile             # gather macros/services/jobs into per-file build outputs (sasjsbuild/)
+sasjs compile service -s sasjs/services/public/viewdata.sas   # compile one file only
 sasjs build               # produce deployable artefacts: JSON + .sas per target
 sasjs deploy              # deploy compiled/built artefacts to the target server
 sasjs cbd                 # compile + build + deploy in one step (-t viya etc.)
 ```
 
+## Compiling a single file
+
+`sasjs compile` also compiles one file at a time, without touching the rest of the project - the fastest way to check that a header edit resolves, or to see exactly what one service will contain:
+
+```
+sasjs compile <job|service|test|identify> --source <file.sas> [-o <dir>] [-t <target>]
+```
+
+- The subcommand names the file's type; `identify` works the type out from the file itself, so it is the safe choice when you do not know whether a file is a service or a job.
+- Output mirrors the source path below the type folder: `sasjs compile identify -s sasjs/services/public/viewdata.sas -o out/` writes `out/services/public/viewdata.sas`. Without `-o` it lands in `sasjsbuild/jobs` or `sasjsbuild/services` by type.
+- Both `-s`/`--source` and `-o`/`--output` are shown in the examples but only `--target` appears under `Options:` in `sasjs compile --help`; they work as documented in the examples.
+- The full compile prints a dependency coverage summary (`Services coverage: 26/57 (46%)`) - a low figure on a project whose services are mostly target-specific copies is normal, not an error.
+
 ## Command reference
 
 | Command | Purpose |
 |---|---|
-| `sasjs create / init` | Scaffold new app or add SASjs to existing repo |
-| `sasjs compile` | Resolve dependencies (`<h4> SAS Macros </h4>` etc.) into `sasjsbuild/` |
-| `sasjs build` | Create build JSON / service pack per target |
-| `sasjs deploy` / `cbd` | Deploy to server (servicepack or direct) |
-| `sasjs run <file.sas>` | Execute an arbitrary SAS file on the server, return log |
-| `sasjs request <path>` | Execute a deployed service/job with input data (`-d`) |
-| `sasjs job execute` | Run a deployed job |
-| `sasjs flow execute` | Run a sequence of jobs with dependencies (CSV-defined flows) |
-| `sasjs servicepack deploy` | Deploy from a JSON service pack |
+| `sasjs create / init` | Scaffold new app (`--template angular\|react\|minimal\|jobs\|sasonly`) or add SASjs to an existing repo |
+| `sasjs compile [job\|service\|test\|identify]` | Resolve dependencies (`<h4> SAS Macros </h4>` etc.) into `sasjsbuild/`; with a subcommand and `--source`, compile one file |
+| `sasjs build` | Collate the compiled output into a deployment `.sas` and `.json` per target |
+| `sasjs deploy` / `cbd` | Deploy to server (servicepack or direct). `cb` = compile + build |
+| `sasjs run <file.sas>` | Execute an arbitrary SAS file on the server, return log. `-c` compiles it first, `-s` supplies job variables as JSON, `-l` saves the log |
+| `sasjs request <path>` | Execute a deployed service/job with input data: `-d` data JSON, `-c` config JSON, `-l` log (implies waiting), `-o` output JSON |
+| `sasjs job execute <jobPath>` | Run a deployed job: `-w` wait, `-l` log, `-o` output, `-i` ignore warnings, `-v` verbose |
+| `sasjs flow execute` | Run a sequence of jobs with dependencies: `-s` flow JSON, `-l` log folder, `-c` CSV, `--streamLog` |
+| `sasjs servicepack deploy` | Deploy from a JSON service pack (`-s`, `-f` to overwrite) |
+| `sasjs context create/edit/delete/list/export` | Manage Viya compute contexts |
 | `sasjs web` | Build the frontend and stream it into the SAS web root (streamConfig) |
-| `sasjs db` | Build database DDL/data load scripts from `sasjs/db` |
-| `sasjs doc` | Generate doxygen documentation + lineage |
-| `sasjs folder create/delete/move` | Manage folders in SAS metadata / SAS Drive |
-| `sasjs fs` | File-system operations against the server (sync folders) |
-| `sasjs test` | Execute tests defined in `sasjs/tests` with init/term programs |
-| `sasjs lint` | Lint `.sas` files per `.sasjslint` config |
+| `sasjs db` | Concatenate the DDL/data scripts in `sasjs/db` into build output |
+| `sasjs doc [init\|lineage]` | Generate doxygen documentation, or the lineage `.dot` files (`-o` output dir) |
+| `sasjs snippets` | Generate VS Code snippets from the Doxygen headers of the project's macros |
+| `sasjs folder create/delete/list/move` | Manage folders in SAS metadata / SAS Drive (`create -f` force-recreates) |
+| `sasjs fs sync` / `sasjs fs compile` | Sync local and remote folders per `syncDirectories`; compile a remote folder into one program (`-o`) |
+| `sasjs test [filters..]` | Execute tests defined in `sasjs/tests` with init/term programs: `-s` test flow, `--out` results dir, `-f` never fail the pipeline |
+| `sasjs lint [init\|fix\|find]` | Lint `.sas` files per `.sasjslint`; a bare `sasjs lint` behaves as `find`. Details in the `sasjs-lint` skill |
 | `sasjs version` | Print/set version info |
+
+Aliases: `b` build, `c` compile, `cb` compilebuild, `cbd` compilebuilddeploy, `d` deploy, `docs` doc, `h` help, `rq` request, `r` run, `v` version, `w` web, `build-db`/`DB` db.
 
 ## Conventions
 
-- Test coverage is generated only from a `sasjs compile` (or `sasjs c`). It accepts a target (`-t <target>`), but nothing is deployed to that target - compilation and coverage are fully local/offline, so no server needs to be available or reachable. Missing macro dependencies (e.g. `mp_ds2csv.sas`) mean `@sasjs/core` isn't installed - run `npm i` first.
+- Test coverage is generated only from a `sasjs compile` (or `sasjs c`). It accepts a target (`-t <target>`), but nothing is deployed to that target - compilation and coverage are fully local/offline, so no server needs to be available or reachable. The CLI carries its own `@sasjs/core` dependency, so a macro that `@sasjs/core` provides (e.g. `mp_ds2csv.sas`) resolves even when the project has no `node_modules`; a macro that is missing from both is a genuinely missing dependency.
 
 - Dependencies are declared in doxygen headers: `<h4> SAS Macros </h4>`, `<h4> SAS Files </h4>`, `<h4> SAS Folders </h4>`, and `@li item` entries - the CLI builds the dependency tree from these.
 - The `@li` list is the compiler's only dependency source: a macro that is called in the code but not declared is not inlined into the build, and the deployed job fails at runtime with `Apparent invocation of macro X not resolved`. It can still work by accident when another declared macro's own `@li` chain happens to inline it (transitive resolution) - which breaks as soon as that macro's dependencies change. Declare every macro the code calls, indirect helpers (e.g. `mf_getuser.sas`) included; when editing an existing service, re-audit the `%macro()` calls in the body against the `@li` entries.
@@ -57,7 +77,10 @@ sasjs cbd                 # compile + build + deploy in one step (-t viya etc.)
 
 ## Gotchas
 
-- Run `npm i` before `sasjs cb` - macro dependency resolution needs `node_modules/@sasjs/core` present, and `@sasjs/core` (and `@sasjs/adapter` if used) must be listed in `package.json`.
+- **`npm i` is not a precondition for `sasjs compile`.** The CLI depends on `@sasjs/core` itself and resolves core macros from its own copy, so a fresh clone or worktree with no `node_modules` still compiles (verified on 6.2.5: a full project compile in a dependency-free worktree, and the generated service carried the core macros). Keep `@sasjs/core` (and `@sasjs/adapter` where used) in `package.json` anyway, so the version you build and test against is explicit and lockfiled instead of tracking whatever the installed CLI bundles.
+- **A `streamWeb` compile can log an ERROR and still exit 0.** With `streamConfig.streamWeb: true`, a missing `webSourcePath` (normally `client/dist`, absent until the frontend is built) prints `ERROR An error has occurred when compiling web app services. Error: webSourcePath: '...' doesn't exist.` and then `The project was successfully compiled ...` - exit code 0. A pipeline step keyed only on the exit code therefore passes while the web app was never built, so check the log for that line, or build the frontend before compiling.
+- **`sasjs lint` exits 0 when it only warns**, and a bare `sasjs lint` behaves as `sasjs lint find` even though `--help` shows the subcommand as required. To use it as a gate, promote the rules you care about via `severityLevel` (`"warn"` is the default for everything except `noEncodedPasswords`). Rule and config detail lives in the `sasjs-lint` skill.
+- **`sasjs folder --help` lists `create`, `delete` and `list` as its choices, while the top-level help also documents `move`.** Check `sasjs folder move --help` on your installed version before scripting it.
 - Credentials files are per-target: env files named `.env.<targetname>` (e.g. `.env.server`) with `CLIENT`, `ACCESS_TOKEN`, and `REFRESH_TOKEN` entries. Never commit them - gitignore `.env*`.
 
 ## Viya auth without a client/secret (`sasjs auth login`)
@@ -70,6 +93,17 @@ sasjs cbd                 # compile + build + deploy in one step (-t viya etc.)
 - Limitations: local/LDAP accounts only (no SSO/SAML/MFA estates); password grant must be enabled for `sas.cli` (default on Viya 3.5+/4); ROPC is deprecated in OAuth 2.1 - use a registered client/secret for CI/production.
 - `sasjs run` 403 on session creation = the account isn't authorised for the configured compute context - set `contextName: "SAS Studio compute context"` on the target. First run on a cold estate can take many minutes (compute pod spin-up) and may appear to hang.
 - Self-signed estates: use `--insecure` on `auth login`, or configure `httpsAgentOptions` on the target.
+
+### Non-interactive auth (CI and agents)
+
+`sasjs auth login` does not have to prompt. It reads `SAS_USERNAME` and `SAS_PASSWORD` from the environment when they are set, and `--passwordStdin` makes it read the password from stdin instead:
+
+```bash
+SAS_USERNAME=user SAS_PASSWORD=secret sasjs auth login -t <target>
+echo "$SAS_PASSWORD" | sasjs auth login --password-stdin -t <target>
+```
+
+`--password-stdin` keeps the password out of the process list and shell history, so prefer it whenever the value comes from a secret store. Without either, the CLI prompts, which hangs any unattended job waiting on a terminal.
 
 ## Limitations
 

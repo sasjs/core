@@ -263,6 +263,11 @@ jobs:
           echo "tests=$tests" >> "$GITHUB_OUTPUT"
 
       - name: Run tests
+        # A full run compiles and deploys the library before the first test, and a
+        # test that blocks on a SAS session never returns.  Without a step timeout
+        # that hang is only caught by the job backstop (30 minutes), which lands as
+        # a cancelled run with no log - so bound the step itself and report.
+        timeout-minutes: 20
         env:
           # The CLI reads the .env.server written above - CLIENT, ACCESS_TOKEN,
           # REFRESH_TOKEN from the SAS9_4GL_IO_* secrets. Credentials passed as

@@ -10,6 +10,11 @@ name: Node.js CI
 on:
   pull_request:
 
+# pull-requests: write is what lets the coverage step create and update its comment
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   test:
     runs-on: ubuntu-22.04
@@ -53,3 +58,129 @@ jobs:
         run: npx @sasjs/cli cb -t server
         env:
           macroCorePath: .
+
+      - name: Publish compile coverage as a PR comment
+        # Reads the coverage report `sasjs compile` writes into the build folder
+        # (`coverage.json`), so the figures come from the CLI's own numbers
+        # instead of being scraped back out of coloured console output.  The
+        # comment is found by its marker and edited, so re-runs and new pushes
+        # update one comment rather than stacking a new one on every run.
+        # Report only - it never fails the build, because coverage is a number
+        # to watch, not a gate.
+        if: >-
+          always() &&
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs')
+            const path = require('path')
+
+            const owner = context.repo.owner
+            const repo = context.repo.repo
+            const issue_number = context.payload.pull_request.number
+            const sha = context.payload.pull_request.head.sha.slice(0, 7)
+            const marker = '<!-- sasjs-compile-coverage -->'
+
+            // One comment per PR: the marker identifies ours, so the same body
+            // is rewritten on a re-run or a new push instead of adding another.
+            const findComment = async () => {
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner, repo, issue_number, per_page: 100
+              })
+              return comments.find(
+                (comment) => comment.body && comment.body.startsWith(marker)
+              )
+            }
+
+            const write = async (existing, text) => {
+              if (existing) {
+                await github.rest.issues.updateComment({
+                  owner, repo, comment_id: existing.id, body: text
+                })
+                core.info(`updated comment ${existing.id}`)
+              } else {
+                const created = await github.rest.issues.createComment({
+                  owner, repo, issue_number, body: text
+                })
+                core.info(`created comment ${created.data.id}`)
+              }
+            }
+
+            const reportPath = path.join('sasjsbuild', 'coverage.json')
+            if (!fs.existsSync(reportPath)) {
+              // An existing comment is overwritten rather than left alone: stale
+              // figures that still look current are worse than a line saying
+              // there are none.  With no comment yet there is nothing to correct.
+              core.info(`${reportPath} is absent - the compile produced no coverage report`)
+              const existing = await findComment()
+              if (existing) {
+                await write(
+                  existing,
+                  [
+                    marker,
+                    '### SASjs compile coverage',
+                    '',
+                    `\`sasjs compile\` produced no coverage report on \`${sha}\`, so this run has nothing to measure. See the "Compile and build every macro" step.`
+                  ].join('\n')
+                )
+              }
+              return
+            }
+
+            const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'))
+            const summary = report.summary || {}
+            const files = report.files || {}
+
+            const pct = (area) => (area.total ? `${area.percentage}%` : '-')
+            const areas = [
+              ['Services', summary.services],
+              ['Jobs', summary.jobs],
+              ['Macros', summary.macros],
+              ['Overall', summary.overall]
+            ].filter(([, area]) => area)
+
+            if (!areas.length) {
+              core.info('the coverage report carried no summary')
+              return
+            }
+
+            // "standalone" is a test file with no corresponding macro, not a gap
+            const uncovered = Object.keys(files).filter(
+              (file) =>
+                files[file].Coverage !== 'covered' &&
+                files[file].Coverage !== 'standalone'
+            )
+
+            const body = [
+              marker,
+              '### SASjs compile coverage',
+              '',
+              `Measured by \`sasjs compile\` on \`${sha}\`. This comment is edited in place, so it shows the latest run.`,
+              '',
+              '| Area | Covered | % |',
+              '| --- | --- | --- |',
+              ...areas.map(
+                ([label, area]) => `| ${label} | ${area.covered}/${area.total} | ${pct(area)} |`
+              )
+            ]
+
+            if (uncovered.length) {
+              const shown = uncovered.slice(0, 300)
+              body.push(
+                '',
+                `<details><summary>${uncovered.length} file(s) with no test</summary>`,
+                '',
+                '```',
+                ...shown,
+                ...(uncovered.length > shown.length
+                  ? [`... and ${uncovered.length - shown.length} more`]
+                  : []),
+                '```',
+                '',
+                '</details>'
+              )
+            }
+
+            await write(await findComment(), body.join('\n'))

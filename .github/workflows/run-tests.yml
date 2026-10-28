@@ -134,14 +134,17 @@ jobs:
       - name: Install Doxygen
         run: sudo apt-get install doxygen
 
-      - name: Add client
-        run: echo "CLIENT=${{secrets.SAS9_4GL_IO_CLIENT}}"> .env.server
-
-      - name: Add access token
-        run: echo "ACCESS_TOKEN=${{secrets.SAS9_4GL_IO_ACCESS_TOKEN}}" >> .env.server
-
-      - name: Add refresh token
-        run: echo "REFRESH_TOKEN=${{secrets.SAS9_4GL_IO_REFRESH_TOKEN}}" >> .env.server
+      # The tokens are minted from the estate's local login, so nothing that
+      # expires sits in a secret: an access token lives a day and a refresh
+      # token a month, and a job built on those starts failing long after the
+      # change that broke it.
+      - name: Mint the API tokens
+        env:
+          SASJS_SERVER_URL: ${{ secrets.SASJS_SERVER_URL }}
+          SASJS_USERNAME: ${{ secrets.SASJS_USERNAME }}
+          SASJS_PASSWORD: ${{ secrets.SASJS_PASSWORD }}
+          SASJS_CLIENT: ${{ secrets.SAS9_4GL_IO_CLIENT }}
+        run: python3 .github/scripts/mint-token.py
 
       - name: Build & Deploy Project to SAS server
         run: npx @sasjs/cli cbd -t server

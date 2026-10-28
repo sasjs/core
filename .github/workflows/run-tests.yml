@@ -75,8 +75,14 @@ jobs:
         # auth server down). When it hangs it never errors, so without a
         # step timeout the job sits silent until the platform timeout.
         # Healthy session-start completes in seconds.
-        timeout-minutes: 1
-        run: openvpn3 session-start --config .github/vpn/config.ovpn
+        timeout-minutes: 2
+        # --background: without it session-start attaches to the session and
+        # streams its log, so the step runs until the session ends - which is
+        # never, and the job dies on the step timeout having connected.  With
+        # it, the command returns as soon as the tunnel is up and the DNS check
+        # below confirms it.  --timeout makes a dead endpoint abort by itself
+        # rather than relying on the step timeout.
+        run: openvpn3 session-start --config .github/vpn/config.ovpn --background --timeout 60
 
       - name: Check VPN / DNS connectivity
         run: |

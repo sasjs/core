@@ -9,7 +9,6 @@
   <h4> SAS Macros </h4>
   @li mp_rowhash.sas
   @li mp_assert.sas
-  @li mp_assertdsobs.sas
   @li mp_assertscope.sas
 
 **/

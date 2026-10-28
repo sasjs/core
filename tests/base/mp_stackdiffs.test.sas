@@ -3,7 +3,6 @@
   @brief Testing mp_storediffs macro
 
   <h4> SAS Macros </h4>
-  @li mp_assert.sas
   @li mp_assertcolvals.sas
   @li mp_assertdsobs.sas
   @li mp_assertscope.sas

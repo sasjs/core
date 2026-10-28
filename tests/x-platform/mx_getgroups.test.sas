@@ -6,9 +6,10 @@
   running in Studio
 
   <h4> SAS Macros </h4>
-  @li mf_nobs.sas
   @li mf_getuser.sas
+  @li mf_nobs.sas
   @li mp_assert.sas
+  @li mp_assertcols.sas
   @li mx_getgroups.sas
 
 **/

@@ -5,8 +5,9 @@
   <h4> SAS Macros </h4>
   @li mf_deletefile.sas
   @li mf_writefile.sas
-  @li mp_gitstatus.sas
+  @li mp_assert.sas
   @li mp_assertdsobs.sas
+  @li mp_gitstatus.sas
 
 **/
 

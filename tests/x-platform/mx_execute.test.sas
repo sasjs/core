@@ -6,6 +6,7 @@
   running in Studio
 
   <h4> SAS Macros </h4>
+  @li mp_abort.sas
   @li mp_assert.sas
   @li mx_createwebservice.sas
   @li mx_execute.sas

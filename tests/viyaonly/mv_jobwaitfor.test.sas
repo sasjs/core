@@ -14,7 +14,6 @@
   @li mp_assert.sas
   @li mp_assertscope.sas
   @li mf_getapploc.sas
-  @li mf_getplatform.sas
   @li mv_createjob.sas
   @li mv_jobexecute.sas
   @li mv_jobwaitfor.sas

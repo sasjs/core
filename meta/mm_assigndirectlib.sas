@@ -16,7 +16,6 @@
 
   <h4> SAS Macros </h4>
   @li mf_getengine.sas
-  @li mp_abort.sas
 
   @param [in] libref the libref (not name) of the metadata library
   @param [in] open_passthrough= () Provide an alias to produce the CONNECT TO

@@ -40,7 +40,18 @@
   is referenced must be declared, a declared name that is not referenced is an
   error, and a declared name must be a column of the target table or a derived
   variable defined for it.  Semicolons, macro triggers and comments are
-  rejected, so a row can only ever be an expression.  A derived variable may
+  rejected, so a row can only ever be an expression.
+
+  A function that submits a program of its own (DOSUBL), or that reaches the
+  file system, the environment or the macro symbol table, is refused by name.
+  Blocking characters cannot do this job on its own: BYTE() builds a semicolon,
+  an ampersand or a percent at run time, so a payload carries none of them in
+  its source text, while the name of the function it calls is visible in the
+  expression and cannot be constructed.  The refused names are DOSUBL, JAVAOBJ,
+  JAVAMETA, SYMGET, SYMPUT, SYMPUTX, SYSGET, GETOPTION, PATHNAME, FILEEXIST,
+  FOPEN, FREAD, FGET, FCLOSE, DOPEN, DREAD, DNUM, MOPEN and SLEEP.
+
+  A derived variable may
   not reuse the name of a physical column, and may not reference itself: an
   intra-row calculation would imply a retained value, which depends on the
   order rows happen to arrive in.
@@ -76,6 +87,12 @@
   @param [out] outvars= (work.derived_varlist) Dataset of derived variable names
   @param [in] outview= (0) Optional two-level name for the derived view
   @param [in] reserved= (0) Space separated list of names that may not be used
+  @param [in] abort= (YES) Set to NO to return the validation failures in
+    errds= instead of aborting - for tests, and for a caller that wants to
+    report every failure rather than the first
+  @param [out] errds= (work.dv_errors) The validation failures when abort=NO:
+    one row per offending VAR_NM with the rule it broke in REASON.  Empty, not
+    absent, when the configuration is valid
 
   @version 5.6
   @author 4GL Apps Ltd
@@ -88,7 +105,9 @@
   outref=0,
   outvars=work.derived_varlist,
   outview=0,
-  reserved=0
+  reserved=0,
+  abort=YES,
+  errds=work.dv_errors
 );
 
 %local physlist derived_err resv_list i w left nready nplaced
@@ -138,6 +157,15 @@ run;
 data &outvars(keep=name);
   length name $32;
   name='';
+  if 0;
+run;
+
+/* the failures dataset exists even when the configuration is valid, so a
+  caller can test it without checking for existence first */
+data &errds(keep=name reason);
+  length name $32 reason $200;
+  name='';
+  reason='';
   if 0;
 run;
 
@@ -193,16 +221,23 @@ run;
   * Reject anything that could break the generated data step, or that would
   * produce a variable we cannot describe to the caller
   */
-data work.&ds_bad.;
+data work.&ds_bad.(keep=name reason);
   set work.&ds_byname.;
-  length reason $200;
+  length reason $200 l $4000;
   call missing(reason);
+  /* quoted literals are removed before the capability check, so a word that
+    is only data - inside a label or a value - is not read as a call.  The
+    reference check below does the same for the same reason. */
+  l=prxchange("s/'([^']|'')*'//",-1,logic);
+  l=prxchange('s/\"([^\"]|\"\")*\"//',-1,l);
 
   if name='' then reason='VAR_NM is required';
   else if verify(strip(name),'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_')>0
     then reason='VAR_NM must be a valid SAS name';
   else if verify(substr(name,1,1),'0123456789')=0
     then reason='VAR_NM must not start with a digit';
+  else if name in ('_N_','_ERROR_','_IORC_')
+    then reason='VAR_NM is an automatic variable of the data step';
   %if %length(&physlist)>0 %then %do;
   else if name in (%unquote(&physlist))
     then reason='VAR_NM collides with a column in the target table';
@@ -232,11 +267,16 @@ data work.&ds_bad.;
     then reason='VAR_LOGIC must not contain macro triggers';
   else if index(logic,'/*')>0 or index(logic,'*/')>0
     then reason='VAR_LOGIC must not contain comments';
+  else if prxmatch('/\b(DOSUBL|JAVAOBJ|JAVAMETA|SYMGET|SYMPUTX?|SYSGET'
+      ||'|GETOPTION|PATHNAME|FILEEXIST|FOPEN|FREAD|FGET|FCLOSE|DOPEN|DREAD'
+      ||'|DNUM|MOPEN|SLEEP)\s*\(/',upcase(l))>0
+    then reason='VAR_LOGIC may not call a function that submits code or'
+      ||' reaches the file system, the environment or the macro symbol table';
 
   if missing(reason)=0 then output;
 run;
 
-data work.&ds_dup.;
+data work.&ds_dup.(keep=name reason);
   set work.&ds_byname.;
   by name;
   length reason $200;
@@ -318,6 +358,17 @@ create table work.&ds_self. as
   where name=dep_nm;
 quit;
 
+%if "%upcase(&abort)"="NO" and %mf_nobs(work.&ds_baddep.)>0 %then %do;
+  data &errds;
+    set work.&ds_baddep.;
+    length reason $200;
+    reason=cats('VAR_DEPS lists ',dep_nm
+      ,', which is not a column of the table or a derived variable');
+    keep name reason;
+  run;
+  %return;
+%end;
+
 data _null_;
   set work.&ds_baddep.(obs=1);
   call symputx('derived_err'
@@ -330,6 +381,16 @@ run;
   ,msg=%superq(derived_err)
 )
 
+%if "%upcase(&abort)"="NO" and %mf_nobs(work.&ds_self.)>0 %then %do;
+  data &errds;
+    set work.&ds_self.;
+    length reason $200;
+    reason='VAR_DEPS may not list itself';
+    keep name reason;
+  run;
+  %return;
+%end;
+
 data _null_;
   set work.&ds_self.(obs=1);
   call symputx('derived_err',cats(name,': VAR_DEPS may not list itself'));
@@ -339,6 +400,16 @@ run;
   ,mac=&sysmacroname
   ,msg=%superq(derived_err)
 )
+
+%if "%upcase(&abort)"="NO" and %mf_nobs(work.&ds_undecl.)>0 %then %do;
+  data &errds;
+    set work.&ds_undecl.;
+    length reason $200;
+    reason=cats('VAR_LOGIC references ',dep_nm,', which is not in VAR_DEPS');
+    keep name reason;
+  run;
+  %return;
+%end;
 
 data _null_;
   set work.&ds_undecl.(obs=1);
@@ -352,6 +423,16 @@ run;
   ,msg=%superq(derived_err)
 )
 
+%if "%upcase(&abort)"="NO" and %mf_nobs(work.&ds_stale.)>0 %then %do;
+  data &errds;
+    set work.&ds_stale.;
+    length reason $200;
+    reason=cats('VAR_DEPS lists ',dep_nm,', which VAR_LOGIC does not reference');
+    keep name reason;
+  run;
+  %return;
+%end;
+
 data _null_;
   set work.&ds_stale.(obs=1);
   call symputx('derived_err'
@@ -363,6 +444,13 @@ run;
   ,mac=&sysmacroname
   ,msg=%superq(derived_err)
 )
+
+%if "%upcase(&abort)"="NO" and %mf_nobs(work.&ds_bad.)>0 %then %do;
+  data &errds;
+    set work.&ds_bad.(keep=name reason);
+  run;
+  %return;
+%end;
 
 data _null_;
   set work.&ds_bad.;
@@ -471,6 +559,16 @@ run;
 
     %let left=%mf_nobs(work.&ds_todo.);
   %end;
+%end;
+
+%if "%upcase(&abort)"="NO" and &cyc_found=1 %then %do;
+  data &errds;
+    length name $32 reason $200;
+    name="&cyc_start";
+    reason='VAR_DEPS contains a cycle';
+    keep name reason;
+  run;
+  %return;
 %end;
 
 %mp_abort(iftrue= (&cyc_found=1)

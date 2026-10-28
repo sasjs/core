@@ -14,7 +14,6 @@
   | completed | no    | Job finished - does not mean it was successful.  Check stateDetails|
   | failed    | no    | Job failed to execute, could be a problem when calling the apis|
 
-
   ## Example
 
   First, compile the macros:
@@ -102,7 +101,7 @@
   @li mf_nobs.sas
   @li mv_getjoblog.sas
 
-  @sasjslint {"noBannedStrings": false, "maxLineLength": 109}
+  @sasjslint {"maxLineLength": 109}
 **/
 
 %macro mv_jobwaitfor(action
@@ -167,7 +166,7 @@ data _null_;
     job uri (whose root object carries the state field), and
     downstream consumers (mv_getjoblog, the outds) expect the plain
     job uri.  Do not truncate: job uris are not a fixed length (a
-    definition uri passed in error must fail loudly, not be silently
+    definition uri passed in by mistake must fail loudly, not be silently
     corrupted into a 404). */
   if length(strip(uri))>6 and substr(strip(uri),length(strip(uri))-5)='/state'
     then uri=substr(strip(uri),1,length(strip(uri))-6);

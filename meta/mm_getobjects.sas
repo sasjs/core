@@ -7,7 +7,7 @@
 
   @returns outds  dataset containing all objects
 
-  @warning The following filenames are created and then de-assigned:
+  @note The following filenames are created and then de-assigned:
 
       filename sxlemap clear;
       filename response clear;
@@ -16,14 +16,12 @@
   @version 9.2
   @author Allan Bowe
 
-  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_getobjects(
   type=SASLibrary
   ,outds=work.mm_getobjects
 )/*/STORE SOURCE*/;
-
 
 * use a temporary fileref to hold the response;
 filename response temp;

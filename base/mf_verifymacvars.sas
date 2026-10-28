@@ -1,7 +1,8 @@
 /**
   @file
   @brief Checks if a set of macro variables exist AND contain values.
-  @details Writes ERROR to log if abortType is SOFT, else will call %mf_abort.
+  @details Reports a failure in the log if abortType is SOFT, else calls
+  %mf_abort.
   Usage:
 
       %let var1=x;
@@ -22,7 +23,7 @@
     Set to any other value to call mf_abort (which can be configured to abort in
     various fashions according to context).
 
-  @warning will not be able to verify the following variables due to
+  @note will not be able to verify the following variables due to
     naming clash!
       - verifyVars
       - verifyVar
@@ -32,9 +33,7 @@
   @version 9.2
   @author Allan Bowe
 
-  @sasjslint {"noBannedStrings": false}
 **/
-
 
 %macro mf_verifymacvars(
     verifyVars  /* list of macro variable NAMES */

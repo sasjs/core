@@ -7,7 +7,7 @@
 
   @returns outds  dataset containing all repositories
 
-  @warning The following filenames are created and then de-assigned:
+  @note The following filenames are created and then de-assigned:
 
       filename sxlemap clear;
       filename response clear;
@@ -16,13 +16,11 @@
   @version 9.2
   @author Allan Bowe
 
-  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_getrepos(
   outds=work.mm_getrepos
 )/*/STORE SOURCE*/;
-
 
 * use a temporary fileref to hold the response;
 filename response temp;

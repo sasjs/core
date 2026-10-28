@@ -8,7 +8,7 @@
   @li mp_assert.sas
   @li mp_assertscope.sas
 
-  @sasjslint {"noBannedStrings": false, "maxLineLength": 93}
+  @sasjslint {"maxLineLength": 93}
 **/
 
 /* set up test data */
@@ -204,11 +204,10 @@ run;
   abort=NO
 )
 %mp_assert(iftrue=(&syscc=42),
-  desc=Throw error if RAW_VALUE is incorrect,
+  desc=Throw a failure if RAW_VALUE is incorrect,
   outds=work.test_results
 )
 %let syscc=0;
-
 
 /* invalid IN value (cannot use var names) */
 data work.inds;

@@ -14,7 +14,7 @@
     - LibraryRef
     - Engine
 
-  @warning The following filenames are created and then de-assigned:
+  @note The following filenames are created and then de-assigned:
 
       filename sxlemap clear;
       filename response clear;
@@ -23,7 +23,6 @@
   @version 9.2
   @author Allan Bowe
 
-  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_getlibs(
@@ -88,7 +87,6 @@ libname _XML_ xml xmlfileref=response xmlmap=sxlemap;
 proc sort data=_XML_.saslibrary out=&outds;
   by libraryname;
 run;
-
 
 /* clear references */
 filename sxlemap clear;

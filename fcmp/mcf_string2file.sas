@@ -12,7 +12,7 @@
   | string  $  | string to add to the file |
   | mode $     | mode of the output - either APPEND (default) or CREATE |
 
-  It returns 0 if successful, or -1 if an error occured.
+  It returns 0 if successful, or -1 if it fails.
 
   Usage:
 
@@ -44,7 +44,6 @@
   @li mcf_stpsrv_header.test.sas
   @li mp_init.sas
 
-  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mcf_string2file(wrap=YES
@@ -73,7 +72,6 @@ function mcf_string2file(filepath $, string $, mode $);
   rc=filename(fref);
   return(0);
 endsub;
-
 
 %if &wrap=YES %then %do;
   quit;

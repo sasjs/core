@@ -82,12 +82,21 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y wireguard-tools resolvconf
 
+      # DNS= is dropped on purpose.  wg-quick would point the runner's resolver
+      # at Cloudron's, and that resolver does not answer for public names, so
+      # every lookup after the tunnel came up failed (resolv.conf mode: foreign,
+      # "Could not resolve host").  The tunnel is only here to change the source
+      # address the estate sees; the runner's own resolver is left in place.
       - name: Write WireGuard config
         if: steps.direct.outputs.reachable != 'true'
         run: |
           sudo mkdir -p /etc/wireguard
-          printf '%s\n' "$WG_CONF" | sudo tee /etc/wireguard/wg0.conf >/dev/null
+          printf '%s\n' "$WG_CONF" \
+            | sed '/^[[:space:]]*DNS[[:space:]]*=/d' \
+            | sudo tee /etc/wireguard/wg0.conf >/dev/null
           sudo chmod 600 /etc/wireguard/wg0.conf
+          grep -qi '^[[:space:]]*DNS' /etc/wireguard/wg0.conf \
+            && echo '::warning::DNS is still in the config' || true
         env:
           WG_CONF: ${{ secrets.WG_CONF }}
 

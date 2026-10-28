@@ -55,7 +55,9 @@ def build_body(rows, mode, tests, run_url):
     if mode == 'subset':
         lines.append('Tests: `{}`'.format(', '.join(tests) if tests else 'none - ran everything'))
     lines.append('')
-    total_fail = 1
+    # No results means the run failed before asserting anything; that step has
+    # already failed the job, so the comment reports it without failing again.
+    total_fail = 0
     if not suites:
         lines.append('No results were produced - the run failed before any assertion.')
     else:

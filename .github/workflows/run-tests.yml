@@ -55,6 +55,23 @@ jobs:
 
       # The estate may be reachable from a runner without a tunnel; if it is,
       # the VPN is dead weight and a failed handshake cannot block the run.
+      # A full compile on every run, whatever the tests are scoped to: it needs
+      # no estate, so a macro that no longer compiles is caught before the
+      # tunnel comes up, and it reports which of the macros the tests reach.
+      - name: Compile every macro
+        id: compile
+        run: |
+          set +e
+          npx @sasjs/cli cb -t server > compile.log 2>&1
+          status=$?
+          tail -25 compile.log
+          coverage=$(grep -oE 'Macros coverage: [0-9]+/[0-9]+ \([0-9]+%\)' compile.log | head -1)
+          uncovered=$(grep -c 'macro  not covered' compile.log)
+          echo "coverage=${coverage:-none}" >> "$GITHUB_OUTPUT"
+          echo "uncovered=${uncovered:-0}" >> "$GITHUB_OUTPUT"
+          echo "coverage: ${coverage:-none}, not covered: ${uncovered:-0}"
+          exit $status
+
       - name: Check the estate without the tunnel
         id: direct
         run: |
@@ -291,5 +308,7 @@ jobs:
           MODE: ${{ steps.scope.outputs.mode }}
           TESTS: ${{ steps.scope.outputs.tests }}
           RESULTS: sasjsresults/all-results.csv
+          COVERAGE: ${{ steps.compile.outputs.coverage }}
+          UNCOVERED: ${{ steps.compile.outputs.uncovered }}
         run: python3 .github/scripts/test-comment.py
 

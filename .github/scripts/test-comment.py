@@ -37,7 +37,7 @@ def read_results(path):
         return list(csv.DictReader(handle))
 
 
-def build_body(rows, mode, tests, run_url):
+def build_body(rows, mode, tests, run_url, coverage='', uncovered=''):
     suites = {}
     failures = []
     for row in rows:
@@ -54,6 +54,11 @@ def build_body(rows, mode, tests, run_url):
              'Mode: **{}**'.format(mode)]
     if mode == 'subset':
         lines.append('Tests: `{}`'.format(', '.join(tests) if tests else 'none - ran everything'))
+    if coverage:
+        line = 'Compile: {}'.format(coverage)
+        if uncovered and uncovered != '0':
+            line += ', {} macros never reached'.format(uncovered)
+        lines.append(line)
     lines.append('')
     # No results means the run failed before asserting anything; that step has
     # already failed the job, so the comment reports it without failing again.
@@ -92,7 +97,9 @@ def main():
     run_url = '{}/{}/actions/runs/{}'.format(
         os.environ['GITHUB_SERVER_URL'], repo, os.environ['GITHUB_RUN_ID'])
 
-    body, failures = build_body(read_results(results), mode, tests, run_url)
+    body, failures = build_body(read_results(results), mode, tests, run_url,
+                                os.environ.get('COVERAGE', ''),
+                                os.environ.get('UNCOVERED', ''))
     comments_url = 'https://api.github.com/repos/{}/issues/{}/comments'.format(repo, pr)
 
     existing = None

@@ -217,10 +217,9 @@ options noquotelenmax;
   <h4> Related Macros </h4>
   @li mf_existds.test.sas
 
-  @warning Untested on tables registered in metadata but not physically present
+  @note Untested on tables registered in metadata but not physically present
   @version 9.2
   @author Allan Bowe
-  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mf_existds(libds
@@ -250,6 +249,7 @@ options noquotelenmax;
 
   @version 8
   @author Allan Bowe
+  @sasjslint {"maxLineLength": 94}
 **/
 /** @cond */
 %macro mf_existfeature(feature
@@ -343,6 +343,7 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
   @param [in] name function name
 
   @author Allan Bowe
+  @sasjslint {"maxLineLength": 90}
 **/
 /** @cond */
 %macro mf_existfunction(name
@@ -598,6 +599,7 @@ or %index(&pgm,/tests/testteardown)
 
   @version 9.2
   @author Allan Bowe
+  @sasjslint {"maxLineLength": 101}
 **/
 
 %macro mf_getattrc(
@@ -632,6 +634,7 @@ or %index(&pgm,/tests/testteardown)
 
   @version 9.2
   @author Allan Bowe
+  @sasjslint {"maxLineLength": 98}
 **/
 
 %macro mf_getattrn(
@@ -669,7 +672,7 @@ or %index(&pgm,/tests/testteardown)
   @return output returns the library engine (uppercase) for the FIRST library
     encountered.
 
-  @warning will only return the FIRST library engine - for concatenated
+  @note will only return the FIRST library engine - for concatenated
     libraries, with different engines, inconsistent results may be encountered.
 
   @version 9.2
@@ -678,7 +681,6 @@ or %index(&pgm,/tests/testteardown)
   <h4> Related Macros </h4>
   @li mf_getxengine.sas
 
-  @sasjslint {"noBannedStrings": false}
 **/
 /** @cond */
 
@@ -1089,13 +1091,12 @@ or %index(&pgm,/tests/testteardown)
 
   @return output returns the library schema for the FIRST library encountered
 
-  @warning will only return the FIRST library schema - for concatenated
+  @note will only return the FIRST library schema - for concatenated
     libraries, with different schemas, inconsistent results may be encountered.
 
   @version 9.2
   @author Allan Bowe
   @cond
-  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mf_getschema(libref
@@ -1997,6 +1998,7 @@ Usage:
 
   @version 9.2
   @author Allan Bowe
+  @sasjslint {"maxLineLength": 82}
 **/
 
 %macro mf_mimetype(
@@ -2670,7 +2672,8 @@ Usage:
 /**
   @file
   @brief Checks if a set of macro variables exist AND contain values.
-  @details Writes ERROR to log if abortType is SOFT, else will call %mf_abort.
+  @details Reports a failure in the log if abortType is SOFT, else calls
+  %mf_abort.
   Usage:
 
       %let var1=x;
@@ -2691,7 +2694,7 @@ Usage:
     Set to any other value to call mf_abort (which can be configured to abort in
     various fashions according to context).
 
-  @warning will not be able to verify the following variables due to
+  @note will not be able to verify the following variables due to
     naming clash!
       - verifyVars
       - verifyVar
@@ -2701,9 +2704,7 @@ Usage:
   @version 9.2
   @author Allan Bowe
 
-  @sasjslint {"noBannedStrings": false}
 **/
-
 
 %macro mf_verifymacvars(
     verifyVars  /* list of macro variable NAMES */
@@ -2761,12 +2762,11 @@ Usage:
   @param [in] str1= () string containing words to extract
   @param [in] str2= () used to compare with the extract string
 
-  @warning CASE SENSITIVE!
+  @note CASE SENSITIVE!
 
   @version 9.2
   @author Allan Bowe
 
-  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mf_wordsinstr1andstr2(
@@ -3461,8 +3461,8 @@ and %superq(SYSPROCESSNAME) ne %str(Compute Server)
   |`WORK `|`EXAMPLE `|`YEAR `|`8. `|
 
   @param [out] errds= (0) Provide a libds reference here to export the
-    error messages to a table.  In this case, they will not be printed to the
-    log.
+    diagnostic messages to a table.  In this case, they will not be printed
+    to the log.
 
   <h4> SAS Macros </h4>
   @li mf_getengine.sas
@@ -3471,14 +3471,12 @@ and %superq(SYSPROCESSNAME) ne %str(Compute Server)
   @li mf_nobs.sas
   @li mp_validatecol.sas
 
-
   <h4> Related Macros </h4>
   @li mp_getformats.sas
 
   @version 9.2
   @author Allan Bowe
 
-  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mp_applyformats(inds,errds=0
@@ -5841,6 +5839,7 @@ run;
   @version 9.2
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 107}
 **/
 
 %macro mp_dictionary(lib=WORK)/*/STORE SOURCE*/;
@@ -5870,13 +5869,12 @@ run;
 
       %mp_dirlist(fref=MYFREF)
 
-  @warning In a Unix environment, the existence of a named pipe will cause this
+  @note In a Unix environment, the existence of a named pipe will cause this
   macro to hang.  Therefore this tool should be used with caution in a SAS 9 web
   application, as it can use up all available multibridge sessions if requests
   are resubmitted.
   If anyone finds a way to positively identify a named pipe using SAS (without
   X CMD) do please raise an issue!
-
 
   @param [in] path= (%sysfunc(pathname(work))) Path for which to return contents
   @param [in] fref= (0) Provide a DISK engine fileref as an alternative to PATH
@@ -5894,7 +5892,6 @@ run;
     attempt is made to get all properties whether a file or folder, but some
     files/folders cannot be accessed, and so not all properties can / will be
     populated.
-
 
   @returns outds contains the following variables:
     - directory (containing folder)
@@ -5916,7 +5913,7 @@ run;
   @li mp_dirlist.test.sas
 
   @version 9.2
-  @sasjslint {"noBannedStrings": false}
+  @sasjslint {"maxLineLength": 128}
 **/
 
 %macro mp_dirlist(path=%sysfunc(pathname(work))
@@ -6771,6 +6768,8 @@ run;
 
   @version 9.3
   @author Allan Bowe
+  @sasjslint {"noNestedMacros": false}
+
 **/
 
 %macro mp_ds2ddl(libref,ds,fref=getddl,flavour=SAS,showlog=YES,schema=
@@ -7707,6 +7706,7 @@ options varlenchk=&optval;
   @li mp_getpk.sas
   @li mp_guesspk.sas
 
+  @sasjslint {"maxLineLength": 95}
 **/
 
 %macro mp_dsmeta(libds,outds=work.dsmeta);
@@ -7818,6 +7818,7 @@ drop table &ds1, &ds2;
   @author Allan Bowe
 
   @todo Support hex / name literals and exponents in RAW_VALUE field
+  @sasjslint {"maxLineLength": 99}
 **/
 
 %macro mp_filtercheck(inds,targetds=,outds=work.badrecords,abort=YES);
@@ -8223,6 +8224,7 @@ run;
   @version 9.3
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 99}
 **/
 
 %macro mp_filtergenerate(inds,outref=filter);
@@ -8339,6 +8341,7 @@ filename &outref temp;
   @version 9.2
   @author [Allan Bowe](https://www.linkedin.com/in/allanbowe)
 
+  @sasjslint {"maxLineLength": 167}
 **/
 
 %macro mp_filterstore(libds=,
@@ -8556,7 +8559,6 @@ run;
 
       %mp_filtervalidate(myfilter,sashelp.class)
 
-
   @returns The SYSCC value will be 1008 if there are validation issues.
 
   @param [in] inref The input fileref to validate (generated by
@@ -8564,7 +8566,7 @@ run;
   @param [in] targetds The target dataset against which to verify the query
   @param [out] abort= (YES) If YES will call mp_abort.sas on any exceptions
   @param [out] outds= (work.mp_filtervalidate) Output dataset containing the
-    err / warning message, if one exists.  If this table contains any rows,
+    diagnostic message, if one exists.  If this table contains any rows,
     there are problems!
 
   <h4> SAS Macros </h4>
@@ -8579,7 +8581,6 @@ run;
   @version 9.3
   @author Allan Bowe
 
-  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mp_filtervalidate(inref,targetds,abort=YES,outds=work.mp_filtervalidate);
@@ -8669,6 +8670,7 @@ filename &fref1 clear;
   @version 9.2
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 94}
 **/
 
 %macro mp_getcols(ds, outds=work.cols);
@@ -8735,6 +8737,7 @@ drop table &dropds;
   @version 9.2
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 123}
 **/
 
 %macro mp_getconstraints(lib=WORK
@@ -9218,6 +9221,7 @@ https://support.sas.com/documentation/cdl/en/proc/61895/HTML/default/viewer.htm#
   @version 9.2
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 237}
 **/
 
 %macro mp_getformats(lib=0
@@ -9467,6 +9471,7 @@ create table &outds (rename=(
 
   @version 9.3
   @author Macro People Ltd
+  @sasjslint {"maxLineLength": 118}
 **/
 
 %macro mp_getpk(
@@ -9796,6 +9801,7 @@ https://documentation.sas.com/doc/ko/pgmsascdc/v_033/lefunctionsref/n1qo5miyvry1
   @li mp_gitreleaseinfo.sas
   @li mp_gitstatus.sas
 
+  @sasjslint {"maxLineLength": 100}
 **/
 
 %macro mp_gitlog(gitdir,outds=work.mp_gitlog,mdebug=0,filter=BRANCHONLY,nobs=0);
@@ -9959,6 +9965,7 @@ libname &outlib JSON fileref=&fref;
   @li mp_gitstatus.test.sas
   @li mp_gitadd.sas
 
+  @sasjslint {"maxLineLength": 96}
 **/
 
 %macro mp_gitstatus(gitdir,outds=work.mp_gitstatus,mdebug=0);
@@ -10090,6 +10097,7 @@ run;
   @version 9.3
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 90}
 **/
 
 %macro mp_guesspk(baseds
@@ -10701,6 +10709,7 @@ https://documentation.sas.com/doc/en/pgmsascdc/9.4_3.5/mcrolref/n1j5tcc0n2xczyn1
   @li mf_getuniquefileref.sas
   @li mp_abort.sas
 
+  @sasjslint {"maxLineLength": 96}
 **/
 
 %macro mp_include(fileref
@@ -11267,6 +11276,7 @@ options
 
   @version 9.2
   @author Allan Bowe
+  @sasjslint {"maxLineLength": 81}
 **/
 
 %macro mp_lib2cards(lib=
@@ -12723,6 +12733,7 @@ https://blogs.sas.com/content/sastraining/2012/08/14/jedi-sas-tricks-reset-sas-s
   @version 9.2
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 93}
 **/
 
 %macro mp_resetoption(option /* the option to reset */
@@ -13753,6 +13764,7 @@ run;
 
   @version 9.2
   @author Allan Bowe
+  @sasjslint {"maxLineLength": 164}
 **/
 /** @cond */
 
@@ -15094,6 +15106,7 @@ https://communities.sas.com/t5/SAS-Programming/listing-all-files-of-all-types-fr
     - `fullpath`: directory + file name
 
   @version 9.2
+  @sasjslint {"maxLineLength": 135}
 **/
 
 %macro mp_tree(dir=/tmp
@@ -15164,6 +15177,7 @@ run;
   @author Allan Bowe
   @source https://github.com/sasjs/core
 
+  @sasjslint {"maxLineLength": 107}
 **/
 
 %macro mp_unzip(
@@ -15463,6 +15477,7 @@ alter table &libds modify &var char(&len);
   @param [in] interval= (1) The wait period between sleeps, in seconds
 
 
+  @sasjslint {"maxLineLength": 100}
 **/
 
 %macro mp_wait4file(file, maxwait=0, interval=1);
@@ -15969,6 +15984,7 @@ ods package close;
   @version 9.3
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 101}
 **/
 
 %macro mm_adduser2group(user=
@@ -16677,7 +16693,7 @@ run;
         ,params= name1=value1&#x0a;name2=value2&#x0a;emptyvalue=
       )
 
-  @warning application components do not get deleted when removing the container
+  @note application components do not get deleted when removing the container
   folder!  be sure you have the administrative priviliges to remove this kind of
   metadata from the SMC plugin (or be ready to do to so programmatically).
 
@@ -16706,7 +16722,6 @@ run;
 
   @author Allan Bowe
 
-  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_createapplication(
@@ -16765,7 +16780,6 @@ run;
   ,msg=Application &name already exists in &tree!
 )
 
-
 /**
   * Now we can create the application
   */
@@ -16822,7 +16836,6 @@ run;
 %end;
 %else %put NOTE: Application (&name) successfully created in (&tree)!;
 
-
 %mend mm_createapplication;
 /**
   @file
@@ -16859,6 +16872,7 @@ run;
   @version 9.4
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 85}
 **/
 
 %macro mm_createdataset(libds=,tableuri=,outds=work.mm_createdataset,mDebug=0);
@@ -17069,6 +17083,7 @@ run;
   @version 9.4
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 82}
 **/
 
 %macro mm_createfolder(path=,mDebug=0);
@@ -18011,6 +18026,7 @@ Usage:
   @version 9.2
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 93}
 **/
 
 %macro mm_createwebservice(path=
@@ -18924,6 +18940,7 @@ run;
   @version 9.4
   @author Allan Bowe
 
+  @sasjslint {"noUnusedMacros": false}
 **/
 
 %macro mm_getauthinfo(outds=mm_getauthinfo
@@ -19797,6 +19814,7 @@ run;
   @version 9.3
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 112}
 **/
 
 %macro mm_getlibmetadiffs(
@@ -19853,7 +19871,7 @@ run;
     - LibraryRef
     - Engine
 
-  @warning The following filenames are created and then de-assigned:
+  @note The following filenames are created and then de-assigned:
 
       filename sxlemap clear;
       filename response clear;
@@ -19862,7 +19880,6 @@ run;
   @version 9.2
   @author Allan Bowe
 
-  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_getlibs(
@@ -19928,7 +19945,6 @@ proc sort data=_XML_.saslibrary out=&outds;
   by libraryname;
 run;
 
-
 /* clear references */
 filename sxlemap clear;
 filename response clear;
@@ -19944,7 +19960,7 @@ libname _XML_ clear;
 
   @returns outds  dataset containing all objects
 
-  @warning The following filenames are created and then de-assigned:
+  @note The following filenames are created and then de-assigned:
 
       filename sxlemap clear;
       filename response clear;
@@ -19953,14 +19969,12 @@ libname _XML_ clear;
   @version 9.2
   @author Allan Bowe
 
-  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_getobjects(
   type=SASLibrary
   ,outds=work.mm_getobjects
 )/*/STORE SOURCE*/;
-
 
 * use a temporary fileref to hold the response;
 filename response temp;
@@ -20024,6 +20038,7 @@ libname _XML_ clear;
   @version 9.3
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 115}
 **/
 
 %macro mm_getpublictypes(
@@ -20103,7 +20118,7 @@ quit;
 
   @returns outds  dataset containing all repositories
 
-  @warning The following filenames are created and then de-assigned:
+  @note The following filenames are created and then de-assigned:
 
       filename sxlemap clear;
       filename response clear;
@@ -20112,13 +20127,11 @@ quit;
   @version 9.2
   @author Allan Bowe
 
-  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_getrepos(
   outds=work.mm_getrepos
 )/*/STORE SOURCE*/;
-
 
 * use a temporary fileref to hold the response;
 filename response temp;
@@ -20244,7 +20257,7 @@ libname _XML_ clear;
     - uri
     - name
 
-  @warning The following filenames are created and then de-assigned:
+  @note The following filenames are created and then de-assigned:
 
       filename sxlemap clear;
       filename response clear;
@@ -20253,7 +20266,6 @@ libname _XML_ clear;
   @version 9.3
   @author Allan Bowe
 
-  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_getroles(
@@ -20314,7 +20326,7 @@ libname _XML_ clear;
   @param [out] outds= (work.mm_getrepos)
     the dataset to create that contains the list
 
-  @warning The following filenames are created and then de-assigned:
+  @note The following filenames are created and then de-assigned:
 
       filename __mc1 clear;
       filename __mc2 clear;
@@ -20326,7 +20338,6 @@ libname _XML_ clear;
   @version 9.3
   @author Allan Bowe
 
-  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_getservercontexts(
@@ -20586,6 +20597,7 @@ filename __getdoc clear;
   @li mm_createstp.sas
   @li mm_deletestp.sas
 
+  @sasjslint {"maxLineLength": 292}
 **/
 
 %macro mm_getstpinfo(pgm
@@ -21009,7 +21021,7 @@ run;
   @param [in] outds= (work.mm_gettypes)
     The dataset to create that contains the list of types
   @returns outds  dataset containing all types
-  @warning The following filenames are created and then de-assigned:
+  @note The following filenames are created and then de-assigned:
 
       filename sxlemap clear;
       filename response clear;
@@ -21018,7 +21030,6 @@ run;
   @version 9.2
   @author Allan Bowe
 
-  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_gettypes(
@@ -21068,7 +21079,6 @@ libname _XML_ xml xmlfileref=response xmlmap=sxlemap;
 proc sort data=_XML_.sastypes out=&outds;
   by id;
 run;
-
 
 /* clear references */
 filename sxlemap clear;
@@ -21188,7 +21198,7 @@ libname _XML_ clear;
 
   @returns outds  dataset containing all properties
 
-  @warning The following filenames are created and then de-assigned:
+  @note The following filenames are created and then de-assigned:
 
       filename __in clear;
       filename __out clear;
@@ -21197,7 +21207,6 @@ libname _XML_ clear;
   @version 9.4
   @author Allan Bowe https://github.com/sasjs/core
 
-  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_getwebappsrvprops(
@@ -22403,6 +22412,7 @@ run;
   @version 9.4
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 123}
 **/
 
 %macro mmx_deletemetafolder(loc=,user=,pass=);
@@ -23152,6 +23162,7 @@ options &optval;
   @version 9.2
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 93}
 **/
 
 %macro ms_createwebservice(path=0
@@ -24588,6 +24599,7 @@ run;
   @li mp_dropmembers.sas
   @li mf_nobs.sas
 
+  @sasjslint {"maxLineLength": 83}
 **/
 
 %macro ms_triggerstp(pgm
@@ -26334,6 +26346,7 @@ https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5p
   @version VIYA V.03.04
   @author [Allan Bowe](https://www.linkedin.com/in/allanbowe)
 
+  @sasjslint {"maxLineLength": 128}
 **/
 
 %macro mv_createjob(path=
@@ -26689,6 +26702,7 @@ https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5p
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
 
+  @sasjslint {"maxLineLength": 128}
 **/
 
 %macro mv_createwebservice(path=
@@ -27639,6 +27653,7 @@ run;
   @li mf_getuniquelibref.sas
   @li mf_isblank.sas
 
+  @sasjslint {"maxLineLength": 82}
 **/
 
 %macro mv_deletefoldermember(path=
@@ -27794,6 +27809,7 @@ libname &libref1a clear;
   @li mf_getuniquelibref.sas
   @li mf_isblank.sas
 
+  @sasjslint {"maxLineLength": 82}
 **/
 
 %macro mv_deletejes(path=
@@ -28107,6 +28123,7 @@ run;
   @li mf_getuniquelibref.sas
   @li mf_loc.sas
 
+  @sasjslint {"maxLineLength": 102}
 **/
 
 %macro mv_getclients(outds=work.mv_getclients
@@ -28207,6 +28224,7 @@ libname &libref1 clear;
   @li mv_deleteviyafolder.sas
   @li mv_getfoldermembers.test.sas
 
+  @sasjslint {"maxLineLength": 230}
 **/
 
 %macro mv_getfoldermembers(root=/
@@ -28813,7 +28831,6 @@ run;
   @param [out] outref= The output fileref to which to APPEND the log (is always
   appended).
 
-
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
 
@@ -28825,7 +28842,7 @@ run;
   @li mf_getuniquefileref.sas
   @li mf_getuniquelibref.sas
 
-  @sasjslint {"noBannedStrings": false}
+  @sasjslint {"maxLineLength": 118}
 **/
 
 %macro mv_getjoblog(uri=0,outref=0
@@ -28934,7 +28951,7 @@ run;
 /* A real loglocation is always a /files/files/<uuid> URI (48+ chars), so
   length<2 unambiguously means the job has no log (empty or SAS missing
   value) - the job likely failed before a compute session was created
-  (e.g. 403 on session creation). Read the error details from the job
+  (e.g. 403 on session creation). Read the failure details from the job
   response so the actual failure reason is reported instead of the
   opaque "URI is too short" message. */
 %if &mdebug=1 %then %do;
@@ -28948,7 +28965,7 @@ run;
       set &libref1..error;
       call symputx('err_httpcode',httpStatusCode,'l');
       call symputx('err_msg',message,'l');
-      putlog "&sysmacroname: Job &jobstate - error " httpStatusCode ": " message;
+      putlog "&sysmacroname: Job &jobstate - unexpected response " httpStatusCode ": " message;
       stop;
     run;
   %end;
@@ -28957,7 +28974,7 @@ run;
     or has zero observations).  Include the job URI so the full JSON
     response can be fetched directly via a GET to &base_uri&uri. */
   %let abortmsg=Job &jobstate, no log available. GET &uri;
-  %if %length(&err_msg)>0 %then %let abortmsg=Job &jobstate, no log available. Error &err_httpcode: &err_msg. GET &uri;
+  %if %length(&err_msg)>0 %then %let abortmsg=Job &jobstate, no log available. HTTP &err_httpcode: &err_msg. GET &uri;
   /* A canceled job does not always provide a loglocation (eg a job
     that was aborted by design, or canceled by the server before a
     compute session was created).  Aborting here would terminate the
@@ -29078,8 +29095,6 @@ run;
   %put _local_;
 %end;
 %mend mv_getjoblog;
-
-
 
 /**
   @file
@@ -29434,6 +29449,7 @@ run;
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
 
+  @sasjslint {"maxLineLength": 102}
 **/
 
 %macro mv_getjobstate(uri=0,outds=work.mv_getjobstate
@@ -30298,6 +30314,7 @@ run;
   @li mv_jobwaitfor.sas
   @li mv_jobexecute.sas
 
+  @sasjslint {"maxLineLength": 98}
 **/
 
 %macro mv_jobflow(inds=0,outds=work.mv_jobflow
@@ -30612,7 +30629,6 @@ data;run;%let jdswaitfor=&syslast;
   | completed | no    | Job finished - does not mean it was successful.  Check stateDetails|
   | failed    | no    | Job failed to execute, could be a problem when calling the apis|
 
-
   ## Example
 
   First, compile the macros:
@@ -30700,7 +30716,7 @@ data;run;%let jdswaitfor=&syslast;
   @li mf_nobs.sas
   @li mv_getjoblog.sas
 
-  @sasjslint {"noBannedStrings": false}
+  @sasjslint {"maxLineLength": 109}
 **/
 
 %macro mv_jobwaitfor(action
@@ -30765,7 +30781,7 @@ data _null_;
     job uri (whose root object carries the state field), and
     downstream consumers (mv_getjoblog, the outds) expect the plain
     job uri.  Do not truncate: job uris are not a fixed length (a
-    definition uri passed in error must fail loudly, not be silently
+    definition uri passed in by mistake must fail loudly, not be silently
     corrupted into a 404). */
   if length(strip(uri))>6 and substr(strip(uri),length(strip(uri))-5)='/state'
     then uri=substr(strip(uri),1,length(strip(uri))-6);
@@ -30964,6 +30980,7 @@ run;
   @li mf_getuser.sas
   @li mp_abort.sas
 
+  @sasjslint {"maxLineLength": 82}
 **/
 
 %macro mv_registerclient(client_id=
@@ -32436,7 +32453,7 @@ endsub;
   | string  $  | string to add to the file |
   | mode $     | mode of the output - either APPEND (default) or CREATE |
 
-  It returns 0 if successful, or -1 if an error occured.
+  It returns 0 if successful, or -1 if it fails.
 
   Usage:
 
@@ -32468,7 +32485,6 @@ endsub;
   @li mcf_stpsrv_header.test.sas
   @li mp_init.sas
 
-  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mcf_string2file(wrap=YES
@@ -32497,7 +32513,6 @@ function mcf_string2file(filepath $, string $, mode $);
   rc=filename(fref);
   return(0);
 endsub;
-
 
 %if &wrap=YES %then %do;
   quit;
@@ -33066,6 +33081,7 @@ Usage:
   @version 9.4
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 95}
 **/
 
 %macro mx_execute(program,

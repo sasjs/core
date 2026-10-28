@@ -643,4 +643,40 @@ quit;
   outds=work.test_results
 )
 
+/* abort=NO reports every rule a definition breaks, not just the first: one
+  row references an undeclared derived variable, the other carries a bad
+  field, and both are returned in the same pass */
+%mddl_derivedvars(libds=work.dvcfg_multi)
+
+proc sql;
+insert into work.dvcfg_multi
+  set libref='WORK',dsn='CLASS',var_nm='aaa',var_deps=''
+    ,var_type='N',var_len=8,var_fmt='',var_logic='zzz+1',active=1;
+insert into work.dvcfg_multi
+  set libref='WORK',dsn='CLASS',var_nm='zzz',var_deps='AGE'
+    ,var_type='X',var_len=8,var_fmt='',var_logic='AGE',active=1;
+quit;
+
+%mp_derivedvars(
+  libds=work.class,
+  control=work.dvcfg_multi,
+  outref=drefm,
+  outview=work.vw_multi,
+  outvars=work.dvn_multi,
+  abort=NO,
+  errds=work.dv_multi_err
+)
+
+%mp_assertdsobs(work.dv_multi_err,
+  desc=abort NO reports every broken rule not just the first,
+  test=EQUALS 2,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=(%mf_existds(libds=work.vw_multi)=0),
+  desc=abort NO builds no view when any rule fails,
+  outds=work.test_results
+)
+
 %mp_assertscope(COMPARE,ignorelist=_SASJS_WEBOUT_HEADERS,outds=work.test_results)

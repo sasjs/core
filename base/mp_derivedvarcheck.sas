@@ -19,7 +19,8 @@
     macro triggers and no comments, at most 4000 characters - the limit of the
     statement buffer and of the control table, so a longer value would be cut
     down silently
-  @li VAR_LABEL - optional, plain text of at most 256 characters
+  @li VAR_LABEL - optional, plain text of at most 256 characters.  A line
+    break is allowed and becomes a space when the label is used
 
   Extra columns are ignored, so a caller can scan the control table itself, a
   staged submission, or a table of expressions assembled from a program.
@@ -37,7 +38,8 @@
 
   The refused names are DOSUBL, JAVAOBJ, JAVAMETA, SYMGET, SYMPUT, SYMPUTX,
   SYSGET, GETOPTION, PATHNAME, FILEEXIST, FOPEN, FREAD, FGET, FCLOSE, DOPEN,
-  DREAD, DNUM, MOPEN and SLEEP.  Add your own with denyfuncs=.
+  DREAD, DNUM, MOPEN, SLEEP, FILENAME, FDELETE, FCOPY, DCREATE and DLCREATE.
+  Add your own with denyfuncs=.
 
   <h4> SAS Macros </h4>
   @li mf_existds.sas
@@ -56,8 +58,10 @@
     Supplied, a VAR_NM that collides with one of them is refused; when the
     target is not at hand, leave it at 0 and that rule is not applied
   @param [in] reserved= (0) Space separated list of names that may not be used
-  @param [in] denyfuncs= (0) Space separated list of further function names to
-    refuse, for a site that allows more of the SAS vocabulary than the default
+  @param [in] denyfuncs= (0) Space separated list of further function names
+    to refuse, for a site that allows more of the SAS vocabulary than the
+    default.  Each entry must be a function name - letters, digits and
+    underscores - so the pattern the check builds stays a pattern of names
 
   @version 1.0
   @author 4GL Apps Ltd
@@ -71,7 +75,7 @@
   denyfuncs=0
 );
 
-%local deny denycnt physcnt resv_list phys_list i w;
+%local deny denycnt physcnt resv_list phys_list i w bad_deny denyrx w_ok;
 
 %mp_abort(iftrue= (%length(&inds)=0)
   ,mac=&sysmacroname
@@ -83,14 +87,29 @@
 )
 
 /* the capabilities that are refused - a function name cannot be assembled at
-  run time, so naming them is a control the expression cannot evade */
+  run time, so naming them is a control the expression cannot evade.  The
+  file system is covered in both directions: the read vocabulary (FOPEN,
+  FREAD, FGET, FCLOSE) and the write, copy and delete vocabulary
+  (FILENAME, FDELETE, FCOPY, DCREATE, DLCREATE) */
 %let deny=DOSUBL|JAVAOBJ|JAVAMETA|SYMGET|SYMPUTX?|SYSGET|GETOPTION;
 %let deny=&deny.|PATHNAME|FILEEXIST|FOPEN|FREAD|FGET|FCLOSE;
 %let deny=&deny.|DOPEN|DREAD|DNUM|MOPEN|SLEEP;
+%let deny=&deny.|FILENAME|FDELETE|FCOPY|DCREATE|DLCREATE;
+%let bad_deny=0;
+/* a token has to be a function name: a pattern metacharacter here would make
+  the PRXMATCH below fail, and a failed match passes every row */
+%let denyrx=%str(/^[A-Z][A-Z0-9_]*$/);
 %let denycnt=%sysfunc(countw(&denyfuncs,%str( )));
 %if "%upcase(&denyfuncs)" ne "0" %then %do i=1 %to &denycnt;
-  %let deny=&deny.|%upcase(%scan(&denyfuncs,&i,%str( )));
+  %let w=%upcase(%scan(&denyfuncs,&i,%str( )));
+  %let w_ok=%sysfunc(prxmatch(&denyrx,&w));
+  %if &w_ok=0 %then %let bad_deny=1;
+  %else %let deny=&deny.|&w;
 %end;
+%mp_abort(iftrue= (&bad_deny=1)
+  ,mac=&sysmacroname
+  ,msg=%str(denyfuncs must be a space separated list of function names)
+)
 
 /* the target columns, as a quoted list - supplied only when the caller has the
   table to hand */
@@ -153,11 +172,11 @@ data &outds(keep=name reason);
     then reason='VAR_FMT must be a format name';
   %if %mf_existvar(&inds,VAR_LABEL) gt 0 %then %do;
   /* VAR_LABEL is free text - any script, any character - because the quotes
-    in it are escaped when the attrib statement is built.  What cannot be a
-    single line column label is a control character or a line break */
-  else if anycntrl(var_label)>0
-    then reason='VAR_LABEL must be plain text - no line breaks or'
-      ||' control characters';
+    in it are escaped when the attrib statement is built.  A line break is
+    flattened to a space, which is what a label has always become, so only
+    the remaining control characters are refused */
+  else if anycntrl(translate(var_label,' ','0D0A'x))>0
+    then reason='VAR_LABEL must be plain text - no control characters';
   else if klength(var_label)>256
     then reason='VAR_LABEL exceeds 256 characters';
   %end;

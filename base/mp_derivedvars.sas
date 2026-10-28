@@ -86,12 +86,15 @@
   @param [in] reserved= (0) Space separated list of names that may not be used
   @param [in] abort= (YES) Set to NO to return the validation failures in
     errds= instead of aborting - for tests, and for a caller that wants to
-    report every failure rather than the first
+    report every failure rather than the first.  No statement is generated
+    when any row is returned
   @param [out] errds= (work.dv_errors) The validation failures when abort=NO:
-    one row per offending VAR_NM with the rule it broke in REASON.  Empty, not
-    absent, when the configuration is valid
+    one row per offending VAR_NM per rule broken, so a definition that breaks
+    two rules appears twice, with the rule in REASON.  Empty, not absent, when
+    the configuration is valid.  The cycle in VAR_DEPS is reported as a single
+    row, because one member identifies the cycle
 
-  @version 5.6
+  @version 5.7
   @author 4GL Apps Ltd
 
 **/
@@ -110,7 +113,7 @@
 %local physlist phys_sp derived_err left nready nplaced
   cyc_start cyc_cur cyc_next cyc_path cyc_seen cyc_i
   ds_cfg ds_byname ds_bad ds_baddep ds_dup ds_dep ds_ref ds_stale
-  ds_undecl ds_self ds_edge ds_todo ds_ready ds_placed ds_srt;
+  ds_undecl ds_self ds_edge ds_todo ds_ready ds_placed ds_srt ds_errpart;
 
 /* every working table gets its own name, so a caller with tables of the same
   name in WORK cannot collide with this macro's intermediates */
@@ -129,6 +132,7 @@
 %let ds_ready=%mf_getuniquename(prefix=dvrdy);
 %let ds_placed=%mf_getuniquename(prefix=dvpld);
 %let ds_srt=%mf_getuniquename(prefix=dvsrt);
+%let ds_errpart=%mf_getuniquename(prefix=dverr);
 
 %mp_abort(iftrue= (%length(&libds)=0 or %length(&control)=0)
   ,mac=&sysmacroname
@@ -302,16 +306,58 @@ create table work.&ds_self. as
   where name=dep_nm;
 quit;
 
-%if "%upcase(&abort)"="NO" and %mf_nobs(work.&ds_baddep.)>0 %then %do;
-  data &errds;
+/* abort=NO reports every failure rather than the first: one row per offending
+  definition per rule broken.  Every rule has been evaluated by this point, so
+  the whole set is assembled here and nothing is generated while it is not
+  empty - the dependency graph below only runs on a configuration whose edges
+  resolve */
+%if "%upcase(&abort)"="NO" %then %do;
+  data work.&ds_errpart.;
     set work.&ds_baddep.;
     length reason $200;
     reason=cats('VAR_DEPS lists ',dep_nm
       ,', which is not a column of the table or a derived variable');
     keep name reason;
   run;
-  %return;
+  proc append base=&errds data=work.&ds_errpart. force;
+  run;
+
+  data work.&ds_errpart.;
+    set work.&ds_self.;
+    length reason $200;
+    reason='VAR_DEPS may not list itself';
+    keep name reason;
+  run;
+  proc append base=&errds data=work.&ds_errpart. force;
+  run;
+
+  data work.&ds_errpart.;
+    set work.&ds_undecl.;
+    length reason $200;
+    reason=cats('VAR_LOGIC references ',dep_nm,', which is not in VAR_DEPS');
+    keep name reason;
+  run;
+  proc append base=&errds data=work.&ds_errpart. force;
+  run;
+
+  data work.&ds_errpart.;
+    set work.&ds_stale.;
+    length reason $200;
+    reason=cats('VAR_DEPS lists ',dep_nm,', which VAR_LOGIC does not'
+      ,' reference');
+    keep name reason;
+  run;
+  proc append base=&errds data=work.&ds_errpart. force;
+  run;
+
+  data work.&ds_errpart.(keep=name reason);
+    set work.&ds_bad.;
+  run;
+  proc append base=&errds data=work.&ds_errpart. force;
+  run;
 %end;
+
+%if "%upcase(&abort)"="NO" and %mf_nobs(&errds)>0 %then %return;
 
 data _null_;
   set work.&ds_baddep.(obs=1);
@@ -325,16 +371,6 @@ run;
   ,msg=%superq(derived_err)
 )
 
-%if "%upcase(&abort)"="NO" and %mf_nobs(work.&ds_self.)>0 %then %do;
-  data &errds;
-    set work.&ds_self.;
-    length reason $200;
-    reason='VAR_DEPS may not list itself';
-    keep name reason;
-  run;
-  %return;
-%end;
-
 data _null_;
   set work.&ds_self.(obs=1);
   call symputx('derived_err',cats(name,': VAR_DEPS may not list itself'));
@@ -344,16 +380,6 @@ run;
   ,mac=&sysmacroname
   ,msg=%superq(derived_err)
 )
-
-%if "%upcase(&abort)"="NO" and %mf_nobs(work.&ds_undecl.)>0 %then %do;
-  data &errds;
-    set work.&ds_undecl.;
-    length reason $200;
-    reason=cats('VAR_LOGIC references ',dep_nm,', which is not in VAR_DEPS');
-    keep name reason;
-  run;
-  %return;
-%end;
 
 data _null_;
   set work.&ds_undecl.(obs=1);
@@ -367,17 +393,6 @@ run;
   ,msg=%superq(derived_err)
 )
 
-%if "%upcase(&abort)"="NO" and %mf_nobs(work.&ds_stale.)>0 %then %do;
-  data &errds;
-    set work.&ds_stale.;
-    length reason $200;
-    reason=cats('VAR_DEPS lists ',dep_nm,', which VAR_LOGIC does not'
-      ,' reference');
-    keep name reason;
-  run;
-  %return;
-%end;
-
 data _null_;
   set work.&ds_stale.(obs=1);
   call symputx('derived_err'
@@ -389,13 +404,6 @@ run;
   ,mac=&sysmacroname
   ,msg=%superq(derived_err)
 )
-
-%if "%upcase(&abort)"="NO" and %mf_nobs(work.&ds_bad.)>0 %then %do;
-  data &errds;
-    set work.&ds_bad.(keep=name reason);
-  run;
-  %return;
-%end;
 
 data _null_;
   set work.&ds_bad.;

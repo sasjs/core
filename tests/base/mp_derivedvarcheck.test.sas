@@ -6,6 +6,7 @@
   @li mddl_derivedvars.sas
   @li mp_assertcols.sas
   @li mp_assertdsobs.sas
+  @li mp_assertscope.sas
   @li mp_derivedvarcheck.sas
 
 **/
@@ -34,6 +35,12 @@ insert into work.cases
   set libref='WORK',dsn='CLASS',var_nm='ok_label',var_deps='AGE'
     ,var_type='N',var_len=8,var_fmt='best12.',var_logic='AGE*2'
     ,var_label='Age - doubled',active=1;
+/* a line break in the label is flattened to a space rather than refused, so a
+  control table that carries a wrapped label keeps working */
+insert into work.cases
+  set libref='WORK',dsn='CLASS',var_nm='ok_multiline',var_deps='AGE'
+    ,var_type='N',var_len=8,var_fmt='',var_logic='AGE*3'
+    ,var_label='line one'||byte(10)||'line two',active=1;
 insert into work.cases
   set libref='WORK',dsn='CLASS',var_nm='bad name',var_deps='AGE'
     ,var_type='N',var_len=8,var_fmt='',var_logic='AGE',active=1;
@@ -61,7 +68,7 @@ insert into work.cases
 insert into work.cases
   set libref='WORK',dsn='CLASS',var_nm='bad_label',var_deps='AGE'
     ,var_type='N',var_len=8,var_fmt='',var_logic='AGE'
-    ,var_label='line one'||byte(10)||'line two',active=1;
+    ,var_label='bell'||byte(1)||'here',active=1;
 insert into work.cases
   set libref='WORK',dsn='CLASS',var_nm='semicolon',var_deps='AGE'
     ,var_type='N',var_len=8,var_fmt='',var_logic='AGE;',active=1;
@@ -71,8 +78,22 @@ insert into work.cases
 insert into work.cases
   (libref,dsn,var_nm,var_deps,var_type,var_len,var_fmt,var_logic,active)
   select 'WORK','CLASS','pwn','','N',8,'',var_logic,1 from work.payload;
+/* the file system is refused in both directions - assigning a fileref,
+  copying a file and deleting one are all names in the expression */
+insert into work.cases
+  set libref='WORK',dsn='CLASS',var_nm='fs_name',var_deps='AGE'
+    ,var_type='N',var_len=8,var_fmt=''
+    ,var_logic="filename('c1','/tmp/x.txt')",active=1;
+insert into work.cases
+  set libref='WORK',dsn='CLASS',var_nm='fs_del',var_deps='AGE'
+    ,var_type='N',var_len=8,var_fmt='',var_logic="fdelete('c1')",active=1;
+insert into work.cases
+  set libref='WORK',dsn='CLASS',var_nm='fs_copy',var_deps='AGE'
+    ,var_type='N',var_len=8,var_fmt=''
+    ,var_logic="fcopy('c1','c2')",active=1;
 quit;
 
+%mp_assertscope(SNAPSHOT)
 %mp_derivedvarcheck(
   inds=work.cases,
   outds=work.fails,
@@ -81,10 +102,10 @@ quit;
   denyfuncs=%str(mydeniedfunc)
 )
 
-/* 15 rows: 3 valid, 12 that break a rule */
+/* 19 rows: 4 valid, 15 that break a rule */
 %mp_assertdsobs(work.fails,
   desc=One row is reported per invalid definition,
-  test=EQUALS 12,
+  test=EQUALS 15,
   outds=work.test_results
 )
 
@@ -97,7 +118,7 @@ quit;
 
 data work.chk;
   set work.fails;
-  where name in ('OK_BAND','OK_LITERAL','OK_LABEL');
+  where name in ('OK_BAND','OK_LITERAL','OK_LABEL','OK_MULTILINE');
 run;
 
 %mp_assertdsobs(work.chk,
@@ -118,7 +139,7 @@ run;
 )
 
 /* the two rules that need a list from the caller are skipped when it is not
-  supplied - the other ten still fire */
+  supplied - the other thirteen still fire */
 %mp_derivedvarcheck(
   inds=work.cases,
   outds=work.fails2
@@ -126,7 +147,7 @@ run;
 
 %mp_assertdsobs(work.fails2,
   desc=The optional lists change only their own rules,
-  test=EQUALS 10,
+  test=EQUALS 13,
   outds=work.test_results
 )
 
@@ -163,5 +184,9 @@ quit;
 %mp_assertdsobs(work.fails5,
   desc=Without denyfuncs only the built-in name is refused,
   test=EQUALS 1,
+  outds=work.test_results
+)
+
+%mp_assertscope(COMPARE,ignorelist=_SASJS_WEBOUT_HEADERS,
   outds=work.test_results
 )

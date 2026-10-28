@@ -42,7 +42,7 @@ data _null_;
   call symputx('flags',flags,'l');
 run;
 
-* use a temporary fileref to hold the response;
+/* use a temporary fileref to hold the response */
 filename response temp;
 /* get list of libraries */
 proc metadata in=

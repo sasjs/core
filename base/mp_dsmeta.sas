@@ -83,7 +83,7 @@ data &outds (keep=ods_table name value);
     value cvalue cvalue1 cvalue2 $1000
     nvalue nvalue1 nvalue2 8;
   if _n_=1 then call missing (of _all_);
-  * putlog (_all_)(=);
+  /*putlog (_all_)(=);*/
   set &ds1 (in=atrs) &ds2 (in=eng);
   if atrs then do;
     ods_table='ATTRIBUTES';

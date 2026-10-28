@@ -182,7 +182,7 @@ run;
     /* Create Unique Indexes, but only if they were not already defined within
       the Constraints section. */
     data _null_;
-      *length ds $128;
+      /*length ds $128;*/
       set &idxinfo(
         where=(
           memname="&curds"
@@ -200,7 +200,7 @@ run;
           put '  ' name ;
       end;
       else put '  ,' name ;
-      *else put '    ,' name ;
+      /*else put '    ,' name;*/
       if last.indxname then do;
         put ');';
       end;
@@ -259,7 +259,7 @@ run;
     /* Create Unique Indexes, but only if they were not already defined within
       the Constraints section. */
     data _null_;
-      *length ds $128;
+      /*length ds $128;*/
       set &idxinfo(
         where=(
           memname="&curds"
@@ -271,7 +271,7 @@ run;
       );
       file &fref mod;
       by idxusage indxname;
-      *ds=cats(libname,'.',memname);
+      /*ds=cats(libname,'.',memname);*/
       if first.indxname then do;
         /* add nonclustered in case of multiple unique indexes */
         put '   ,index [' indxname +(-1) '] UNIQUE NONCLUSTERED (';
@@ -372,7 +372,7 @@ run;
       /* Create Unique Indexes, but only if they were not already defined within
         the Constraints section. */
       data _null_;
-        *length ds $128;
+        /*length ds $128;*/
         set &idxinfo(
           where=(
             memname="&curds"

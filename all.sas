@@ -7161,7 +7161,7 @@ run;
     /* Create Unique Indexes, but only if they were not already defined within
       the Constraints section. */
     data _null_;
-      *length ds $128;
+      /*length ds $128;*/
       set &idxinfo(
         where=(
           memname="&curds"
@@ -7179,7 +7179,7 @@ run;
           put '  ' name ;
       end;
       else put '  ,' name ;
-      *else put '    ,' name ;
+      /*else put '    ,' name;*/
       if last.indxname then do;
         put ');';
       end;
@@ -7238,7 +7238,7 @@ run;
     /* Create Unique Indexes, but only if they were not already defined within
       the Constraints section. */
     data _null_;
-      *length ds $128;
+      /*length ds $128;*/
       set &idxinfo(
         where=(
           memname="&curds"
@@ -7250,7 +7250,7 @@ run;
       );
       file &fref mod;
       by idxusage indxname;
-      *ds=cats(libname,'.',memname);
+      /*ds=cats(libname,'.',memname);*/
       if first.indxname then do;
         /* add nonclustered in case of multiple unique indexes */
         put '   ,index [' indxname +(-1) '] UNIQUE NONCLUSTERED (';
@@ -7351,7 +7351,7 @@ run;
       /* Create Unique Indexes, but only if they were not already defined within
         the Constraints section. */
       data _null_;
-        *length ds $128;
+        /*length ds $128;*/
         set &idxinfo(
           where=(
             memname="&curds"
@@ -7979,7 +7979,7 @@ data &outds (keep=ods_table name value);
     value cvalue cvalue1 cvalue2 $1000
     nvalue nvalue1 nvalue2 8;
   if _n_=1 then call missing (of _all_);
-  * putlog (_all_)(=);
+  /*putlog (_all_)(=);*/
   set &ds1 (in=atrs) &ds2 (in=eng);
   if atrs then do;
     ods_table='ATTRIBUTES';
@@ -17357,42 +17357,42 @@ data _null_;
   call missing (of _all_);
   folderPath = "%trim(&path)";
 
-  * remove any trailing slash ;
+  /* remove any trailing slash */
   if ( substr(folderPath,length(folderPath),1) = '/' ) then
     folderPath=substr(folderPath,1,length(folderPath)-1);
 
-  * name must not be blank;
+  /* name must not be blank */
   if ( folderPath = '' ) then do;
     put 'ERR' +(-1) "OR: &sysmacroname PATH parameter value must be non-blank";
   end;
 
-  * must have a starting slash ;
+  /* must have a starting slash */
   if ( substr(folderPath,1,1) ne '/' ) then do;
     put 'ERR' +(-1) "OR: &sysmacroname PATH param value must have starting slash";
     stop;
   end;
 
-  * check if folder already exists ;
+  /* check if folder already exists */
   rc=metadata_pathobj('',cats(folderPath,"(Folder)"),"",objType,objId);
   if rc ge 1 then do;
     put "NOTE: Folder " folderPath " already exists!";
     stop;
   end;
 
-  * do not create a root (one level) folder ;
+  /* do not create a root (one level) folder */
   if countc(folderPath,'/')=1 then do;
     put 'ERR' +(-1) "OR: &sysmacroname will not create a new ROOT folder";
     stop;
   end;
 
-  * check that root folder exists ;
+  /* check that root folder exists */
   root=cats('/',scan(folderpath,1,'/'),"(Folder)");
   if metadata_pathobj('',root,"",objType,parentId)<1 then do;
     put 'ERR' +(-1) "OR: " root " does not exist!";
     stop;
   end;
 
-  * check that parent folder exists ;
+  /* check that parent folder exists */
   child=scan(folderPath,-1,'/');
   parent=substr(folderpath,1,length(folderpath)-length(child)-1);
   rc=metadata_pathobj('',cats(parent,"(Folder)"),"",objType,parentId);
@@ -18302,7 +18302,7 @@ Usage:
 %&mD.put Executing mm_createwebservice.sas;
 %&mD.put _local_;
 
-* remove any trailing slash ;
+/* remove any trailing slash */
 %if "%substr(&path,%length(&path),1)" = "/" %then
   %let path=%substr(&path,1,%length(&path)-1);
 
@@ -19848,18 +19848,18 @@ run;
     drop uriGrp uriMem rcGrp rcMem rc i j arc ;
 
     i=1;
-    * Grab the URI for the first Group ;
+    /* Grab the URI for the first Group */
     %if &id=NO %then %do;
       rcGrp=metadata_getnobj("omsobj:IdentityGroup?@Name='&group'",i,uriGrp);
     %end;
     %else %do;
       rcGrp=metadata_getnobj("omsobj:IdentityGroup?@Id='&group'",i,uriGrp);
     %end;
-    * If Group found, enter do loop ;
+    /* If Group found, enter do loop */
     if rcGrp>0 then do;
       call missing (rcMem,uriMem,GroupId,GroupName,Group_or_Role
         ,MemberName,MemberType);
-      * get group info ;
+      /* get group info */
       rc = metadata_getattr(uriGrp,"Id",GroupId);
       rc = metadata_getattr(uriGrp,"Name",GroupName);
       rc = metadata_getattr(uriGrp,"PublicType",Group_or_Role);
@@ -20150,7 +20150,7 @@ data _null_;
   call symputx('flags',flags,'l');
 run;
 
-* use a temporary fileref to hold the response;
+/* use a temporary fileref to hold the response */
 filename response temp;
 /* get list of libraries */
 proc metadata in=
@@ -20227,7 +20227,7 @@ libname _XML_ clear;
   ,outds=work.mm_getobjects
 )/*/STORE SOURCE*/;
 
-* use a temporary fileref to hold the response;
+/* use a temporary fileref to hold the response */
 filename response temp;
 /* get list of libraries */
 proc metadata in=
@@ -20384,7 +20384,7 @@ quit;
   outds=work.mm_getrepos
 )/*/STORE SOURCE*/;
 
-* use a temporary fileref to hold the response;
+/* use a temporary fileref to hold the response */
 filename response temp;
 /* get list of libraries */
 proc metadata in=
@@ -20755,7 +20755,7 @@ data _null_;
   start=index(_infile_,'StoredText="');
   if start then do;
     call symputx("start",start+11);
-    *putlog '"' _infile_ '"';
+    /*putlog '"' _infile_ '"';*/
   end;
   stop;
 
@@ -21287,7 +21287,7 @@ run;
     outds=work.mm_gettypes
 )/*/STORE SOURCE*/;
 
-* use a temporary fileref to hold the response;
+/* use a temporary fileref to hold the response */
 filename response temp;
 /* get list of libraries */
 proc metadata in=
@@ -21797,7 +21797,7 @@ options noquotelenmax;
   drop table &tempds;
 %end;
 
-* use a temporary fileref to hold the response;
+/* use a temporary fileref to hold the response */
 filename response temp;
 /* get list of libraries */
 proc metadata in=
@@ -26644,7 +26644,7 @@ https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5p
 
 options noquotelenmax;
 
-* remove any trailing slash ;
+/* remove any trailing slash */
 %if "%substr(&path,%length(&path),1)" = "/" %then
   %let path=%substr(&path,1,%length(&path)-1);
 
@@ -27008,7 +27008,7 @@ https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5p
 
 options noquotelenmax;
 
-* remove any trailing slash ;
+/* remove any trailing slash */
 %if "%substr(&path,%length(&path),1)" = "/" %then
   %let path=%substr(&path,1,%length(&path)-1);
 

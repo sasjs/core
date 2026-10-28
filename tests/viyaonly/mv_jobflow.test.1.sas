@@ -53,7 +53,7 @@ data work.inputjobs;
   end;
 run;
 
-* Trigger the flow ;
+/* Trigger the flow */
 
 %put NOTE: &=syscc;
 

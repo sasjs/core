@@ -95,7 +95,7 @@ data _null_;
   start=index(_infile_,'StoredText="');
   if start then do;
     call symputx("start",start+11);
-    *putlog '"' _infile_ '"';
+    /*putlog '"' _infile_ '"';*/
   end;
   stop;
 

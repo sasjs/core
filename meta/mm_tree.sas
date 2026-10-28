@@ -81,7 +81,7 @@ options noquotelenmax;
   drop table &tempds;
 %end;
 
-* use a temporary fileref to hold the response;
+/* use a temporary fileref to hold the response */
 filename response temp;
 /* get list of libraries */
 proc metadata in=

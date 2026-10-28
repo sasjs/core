@@ -45,7 +45,7 @@ data work.inputjobs;
   quoteval=symget('quoteval');
 run;
 
-* Trigger the flow ;
+/* Trigger the flow */
 
 %mv_jobflow(inds=work.inputjobs
   ,maxconcurrency=1

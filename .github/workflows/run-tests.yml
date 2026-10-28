@@ -5,6 +5,16 @@ name: Node.js CI
 
 on:
   pull_request:
+  workflow_dispatch:
+    inputs:
+      full:
+        description: Run every test even if the diff touches only a few
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
   test:
@@ -19,6 +29,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v2
         with:
@@ -53,10 +65,10 @@ jobs:
       - name: Write WireGuard config
         run: |
           sudo mkdir -p /etc/wireguard
-          printf '%s' "$WG_CONF_B64" | base64 -d | sudo tee /etc/wireguard/wg0.conf >/dev/null
+          printf '%s\n' "$WG_CONF" | sudo tee /etc/wireguard/wg0.conf >/dev/null
           sudo chmod 600 /etc/wireguard/wg0.conf
         env:
-          WG_CONF_B64: ${{ secrets.WG_CONF_B64 }}
+          WG_CONF: ${{ secrets.WG_CONF }}
 
       - name: Start WireGuard
         timeout-minutes: 2
@@ -106,8 +118,63 @@ jobs:
         env:
           macroCorePath: .
 
-      - name: Run all tests
-        run: npx @sasjs/cli test -t server
+      # A pull request into main is the merge candidate, so it gets every test.
+      # Anything else runs only the tests for the macros the diff touched, and
+      # falls back to everything when the diff cannot be narrowed (a harness
+      # file changed, or no changed macro has a test).
+      - name: Decide the test scope
+        id: scope
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          FORCE_FULL: ${{ github.event.inputs.full }}
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          full=false
+          if [ "$EVENT" = "workflow_dispatch" ] && [ "$FORCE_FULL" != "false" ]; then
+            full=true
+          fi
+          if [ "$EVENT" = "pull_request" ] && [ "$BASE_REF" = "main" ]; then
+            full=true
+          fi
+
+          if [ "$full" = false ]; then
+            git fetch --quiet origin "$BASE_REF" || true
+            changed=$(git diff --name-only "origin/$BASE_REF"...HEAD || true)
+            echo "--- changed ---"; echo "$changed"
+            if echo "$changed" | grep -Eq '^(\.sasjslint|\.github/|sasjs/sasjsconfig\.json|tests/testinit\.sas|tests/testterm\.sas|package(-lock)?\.json)'; then
+              echo "harness file changed - running everything"
+              full=true
+            fi
+          fi
+
+          tests=""
+          if [ "$full" = false ]; then
+            names=$(echo "$changed" | while read -r file; do
+              case "$file" in
+                tests/*/*.test.sas|tests/*/*.test.*.sas)
+                  base=$(basename "$file"); echo "${base%%.test*}" ;;
+                */*.sas)
+                  basename "$file" .sas ;;
+              esac
+            done | sort -u)
+            for name in $names; do
+              if ls tests/*/"$name".test*.sas >/dev/null 2>&1; then tests="$tests $name"; fi
+            done
+          fi
+          tests=$(echo "$tests" | xargs)
+          if [ "$full" = false ] && [ -z "$tests" ]; then
+            echo "no changed macro has a test - running everything"
+            full=true
+          fi
+
+          if [ "$full" = true ]; then mode=full; else mode=subset; fi
+          echo "mode=$mode"
+          echo "tests=$tests"
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "tests=$tests" >> "$GITHUB_OUTPUT"
+
+      - name: Run tests
         env:
           CI: true
           CLIENT: ${{secrets.CLIENT}}
@@ -116,4 +183,41 @@ jobs:
           SAS_PASSWORD: ${{secrets.SAS_PASSWORD}}
           ACCESS_TOKEN: ${{secrets.ACCESS_TOKEN}}
           REFRESH_TOKEN: ${{secrets.REFRESH_TOKEN}}
+          MODE: ${{ steps.scope.outputs.mode }}
+          TESTS: ${{ steps.scope.outputs.tests }}
+        run: |
+          agg="$RUNNER_TEMP/results.csv"
+          : > "$agg"
+          status=0
+          collect() {
+              if [ -f sasjsresults/testResults.csv ]; then
+              tail -n +2 sasjsresults/testResults.csv >> "$agg" || true
+            fi
+          }
+          if [ "$MODE" = "full" ]; then
+            npx @sasjs/cli test -t server || status=1
+            collect
+          else
+            for name in $TESTS; do
+              echo "::group::sasjs test $name"
+              npx @sasjs/cli test "$name" -t server || status=1
+              collect
+              echo "::endgroup::"
+            done
+          fi
+          cp "$agg" sasjsresults/all-results.csv 2>/dev/null || true
+          exit $status
+
+      - name: Comment the results on the pull request
+        if: always() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          MODE: ${{ steps.scope.outputs.mode }}
+          TESTS: ${{ steps.scope.outputs.tests }}
+          RESULTS: sasjsresults/all-results.csv
+        run: python3 .github/scripts/test-comment.py
 

@@ -29,6 +29,7 @@
   @version 9.2
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 123}
 **/
 
 %macro mp_getconstraints(lib=WORK

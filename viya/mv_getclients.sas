@@ -36,6 +36,7 @@
   @li mf_getuniquelibref.sas
   @li mf_loc.sas
 
+  @sasjslint {"maxLineLength": 102}
 **/
 
 %macro mv_getclients(outds=work.mv_getclients

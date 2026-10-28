@@ -11,6 +11,7 @@
   @li mx_createwebservice.sas
   @li mx_execute.sas
 
+  @sasjslint {"maxLineLength": 84, "noUnusedMacros": false}
 **/
 
 filename ft15f001 temp;

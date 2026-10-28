@@ -19,6 +19,7 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
   @param [in] name function name
 
   @author Allan Bowe
+  @sasjslint {"maxLineLength": 90}
 **/
 /** @cond */
 %macro mf_existfunction(name

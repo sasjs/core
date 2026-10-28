@@ -32,6 +32,7 @@
   @version 9.2
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 94}
 **/
 
 %macro mp_getcols(ds, outds=work.cols);

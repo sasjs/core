@@ -63,6 +63,7 @@ https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5p
   @version VIYA V.03.04
   @author [Allan Bowe](https://www.linkedin.com/in/allanbowe)
 
+  @sasjslint {"maxLineLength": 128}
 **/
 
 %macro mv_createjob(path=

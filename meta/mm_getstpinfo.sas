@@ -18,6 +18,7 @@
   @li mm_createstp.sas
   @li mm_deletestp.sas
 
+  @sasjslint {"maxLineLength": 292}
 **/
 
 %macro mm_getstpinfo(pgm

@@ -12,6 +12,7 @@ https://communities.sas.com/t5/SAS-Programming/Removing-embedded-carriage-return
   @li mp_assert.sas
   @li mp_assertscope.sas
 
+  @sasjslint {"maxLineLength": 100}
 **/
 
 /* test 1 - cope with empty rows on CR formatted file */

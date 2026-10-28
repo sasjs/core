@@ -16,6 +16,7 @@
   @param [in] interval= (1) The wait period between sleeps, in seconds
 
 
+  @sasjslint {"maxLineLength": 100}
 **/
 
 %macro mp_wait4file(file, maxwait=0, interval=1);

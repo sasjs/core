@@ -49,6 +49,7 @@ https://documentation.sas.com/doc/ko/pgmsascdc/v_033/lefunctionsref/n1qo5miyvry1
   @li mp_gitreleaseinfo.sas
   @li mp_gitstatus.sas
 
+  @sasjslint {"maxLineLength": 100}
 **/
 
 %macro mp_gitlog(gitdir,outds=work.mp_gitlog,mdebug=0,filter=BRANCHONLY,nobs=0);

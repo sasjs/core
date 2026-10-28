@@ -102,7 +102,7 @@
   @li mf_nobs.sas
   @li mv_getjoblog.sas
 
-  @sasjslint {"noBannedStrings": false}
+  @sasjslint {"noBannedStrings": false, "maxLineLength": 109}
 **/
 
 %macro mv_jobwaitfor(action

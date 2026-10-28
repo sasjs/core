@@ -90,7 +90,7 @@
   @li mf_getuniquefileref.sas
   @li mf_getuniquelibref.sas
 
-  @sasjslint {"noBannedStrings": false}
+  @sasjslint {"noBannedStrings": false, "maxLineLength": 119}
 **/
 
 %macro mv_getjoblog(uri=0,outref=0

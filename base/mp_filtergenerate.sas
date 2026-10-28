@@ -65,6 +65,7 @@
   @version 9.3
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 99}
 **/
 
 %macro mp_filtergenerate(inds,outref=filter);

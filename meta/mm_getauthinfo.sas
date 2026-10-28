@@ -20,6 +20,7 @@
   @version 9.4
   @author Allan Bowe
 
+  @sasjslint {"noUnusedMacros": false}
 **/
 
 %macro mm_getauthinfo(outds=mm_getauthinfo

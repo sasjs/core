@@ -6,9 +6,9 @@
   "hasMacroParentheses": true,
   "lineEndings": "lf",
   "noGremlins": true,
-  "noNestedMacros": false,
+  "noNestedMacros": true,
   "noSpacesInFileNames": true,
-  "maxLineLength": 300,
+  "maxLineLength": 80,
   "lowerCaseFileNames": true,
   "noTabs": true,
   "indentationMultiple": 2,
@@ -29,6 +29,13 @@
     "noTrailingSpaces": "error",
     "noUndeclaredMacros": "error",
     "noUnusedMacros": "error",
-    "strictMacroDefinition": "error"
-  }
+    "strictMacroDefinition": "error",
+    "noBannedStrings": "error",
+    "noSingleAsteriskComments": "error",
+    "noUnusedLibnames": "error",
+    "hasRequiredMacroOptions": "error"
+  },
+  "ignoreList": [
+    "all.sas"
+  ]
 }

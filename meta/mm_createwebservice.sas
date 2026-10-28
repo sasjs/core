@@ -56,6 +56,7 @@ Usage:
   @version 9.2
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 93}
 **/
 
 %macro mm_createwebservice(path=

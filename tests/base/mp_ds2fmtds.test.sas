@@ -6,6 +6,7 @@
   @li mp_ds2fmtds.sas
   @li mp_assert.sas
 
+  @sasjslint {"noUnusedMacros": false}
 **/
 
 proc sql;

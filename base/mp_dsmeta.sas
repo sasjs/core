@@ -61,6 +61,7 @@
   @li mp_getpk.sas
   @li mp_guesspk.sas
 
+  @sasjslint {"maxLineLength": 95}
 **/
 
 %macro mp_dsmeta(libds,outds=work.dsmeta);

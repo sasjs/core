@@ -41,43 +41,33 @@ jobs:
       - name: Check code style (aborts if errors found)
         run: npx @sasjs/cli lint
 
-      - name: Write VPN Files
+      # WireGuard, not openvpn3: wg-quick returns as soon as the tunnel is up,
+      # where session-start attaches to the session and never returns.  The
+      # config comes from the Cloudron WireGuard app and is a secret because it
+      # carries the client private key - hence base64, so newlines survive.
+      - name: Install WireGuard
         run: |
-          echo "$CA_CRT" > .github/vpn/ca.crt
-          echo "$USER_CRT" > .github/vpn/user.crt
-          echo "$USER_KEY" > .github/vpn/user.key
-          echo "$TLS_KEY" > .github/vpn/tls.key
-        shell: bash
+          sudo apt-get update
+          sudo apt-get install -y wireguard-tools resolvconf
+
+      - name: Write WireGuard config
+        run: |
+          sudo mkdir -p /etc/wireguard
+          printf '%s' "$WG_CONF_B64" | base64 -d | sudo tee /etc/wireguard/wg0.conf >/dev/null
+          sudo chmod 600 /etc/wireguard/wg0.conf
         env:
-          CA_CRT: ${{ secrets.CA_CRT}}
-          USER_CRT: ${{ secrets.USER_CRT }}
-          USER_KEY: ${{ secrets.USER_KEY }}
-          TLS_KEY: ${{ secrets.TLS_KEY }}
+          WG_CONF_B64: ${{ secrets.WG_CONF_B64 }}
 
-      - name: Chmod VPN files
+      - name: Start WireGuard
+        timeout-minutes: 2
         run: |
-          chmod 600 .github/vpn/ca.crt .github/vpn/user.crt .github/vpn/user.key .github/vpn/tls.key
-
-      - name: Install Open VPN
-        run: |
-          sudo apt install apt-transport-https
-          sudo wget https://swupdate.openvpn.net/repos/openvpn-repo-pkg-key.pub
-          sudo apt-key add openvpn-repo-pkg-key.pub
-          sudo wget -O /etc/apt/sources.list.d/openvpn3.list https://swupdate.openvpn.net/community/openvpn3/repos/openvpn3-jammy.list
-          sudo apt update
-          sudo apt install openvpn3=17~betaUb22042+jammy
-
-      - name: Start Open VPN 3
-        # session-start can hang indefinitely (VPN endpoint unreachable,
-        # auth server down). When it hangs it never errors, so without a
-        # step timeout the job sits silent until the platform timeout.
-        # Healthy session-start completes in seconds.
-        timeout-minutes: 1
-        run: openvpn3 session-start --config .github/vpn/config.ovpn
+          sudo wg-quick up wg0
+          sudo wg show
+          ip -brief addr show wg0
 
       - name: Check VPN / DNS connectivity
         run: |
-          openvpn3 sessions-list || true
+          sudo wg show || true
           echo "--- resolv.conf ---"
           cat /etc/resolv.conf
           SASJS_HOST=$(echo "${{ secrets.SASJS_SERVER_URL }}" | sed -E 's|https?://([^/:]+).*|\1|')

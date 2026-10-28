@@ -297,8 +297,10 @@ jobs:
           cp "$agg" sasjsresults/all-results.csv 2>/dev/null || true
           exit $status
 
+      # Not on cancel: a cancelled run has no results, and its comment would
+      # replace the last real one with "no results were produced".
       - name: Comment the results on the pull request
-        if: always() && github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && !cancelled()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}

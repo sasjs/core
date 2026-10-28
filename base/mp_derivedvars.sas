@@ -40,7 +40,14 @@
   is referenced must be declared, a declared name that is not referenced is an
   error, and a declared name must be a column of the target table or a derived
   variable defined for it.  Semicolons, macro triggers and comments are
-  rejected, so a row can only ever be an expression.  A derived variable may
+  rejected, so a row can only ever be an expression.
+
+  The field level rules are not here - they are in mp_derivedvarcheck, which
+  reads the same control table and writes one row per definition that breaks
+  one.  This macro adds the two checks that need the target table, and the
+  dependency graph, then generates the statements.
+
+  A derived variable may
   not reuse the name of a physical column, and may not reference itself: an
   intra-row calculation would imply a retained value, which depends on the
   order rows happen to arrive in.
@@ -65,6 +72,7 @@
   @li mf_getvarlist.sas
   @li mf_nobs.sas
   @li mp_abort.sas
+  @li mp_derivedvarcheck.sas
 
   <h4> Related Macros </h4>
   @li mddl_derivedvars.sas
@@ -76,8 +84,17 @@
   @param [out] outvars= (work.derived_varlist) Dataset of derived variable names
   @param [in] outview= (0) Optional two-level name for the derived view
   @param [in] reserved= (0) Space separated list of names that may not be used
+  @param [in] abort= (YES) Set to NO to return the validation failures in
+    errds= instead of aborting - for tests, and for a caller that wants to
+    report every failure rather than the first.  No statement is generated
+    when any row is returned
+  @param [out] errds= (work.dv_errors) The validation failures when abort=NO:
+    one row per offending VAR_NM per rule broken, so a definition that breaks
+    two rules appears twice, with the rule in REASON.  Empty, not absent, when
+    the configuration is valid.  The cycle in VAR_DEPS is reported as a single
+    row, because one member identifies the cycle
 
-  @version 5.6
+  @version 5.7
   @author 4GL Apps Ltd
 
 **/
@@ -88,13 +105,15 @@
   outref=0,
   outvars=work.derived_varlist,
   outview=0,
-  reserved=0
+  reserved=0,
+  abort=YES,
+  errds=work.dv_errors
 );
 
-%local physlist derived_err resv_list i w left nready nplaced
+%local physlist phys_sp derived_err left nready nplaced
   cyc_start cyc_cur cyc_next cyc_path cyc_seen cyc_i
   ds_cfg ds_byname ds_bad ds_baddep ds_dup ds_dep ds_ref ds_stale
-  ds_undecl ds_self ds_edge ds_todo ds_ready ds_placed ds_srt;
+  ds_undecl ds_self ds_edge ds_todo ds_ready ds_placed ds_srt ds_errpart;
 
 /* every working table gets its own name, so a caller with tables of the same
   name in WORK cannot collide with this macro's intermediates */
@@ -113,6 +132,7 @@
 %let ds_ready=%mf_getuniquename(prefix=dvrdy);
 %let ds_placed=%mf_getuniquename(prefix=dvpld);
 %let ds_srt=%mf_getuniquename(prefix=dvsrt);
+%let ds_errpart=%mf_getuniquename(prefix=dverr);
 
 %mp_abort(iftrue= (%length(&libds)=0 or %length(&control)=0)
   ,mac=&sysmacroname
@@ -138,6 +158,15 @@ run;
 data &outvars(keep=name);
   length name $32;
   name='';
+  if 0;
+run;
+
+/* the failures dataset exists even when the configuration is valid, so a
+  caller can test it without checking for existence first */
+data &errds(keep=name reason);
+  length name $32 reason $200;
+  name='';
+  reason='';
   if 0;
 run;
 
@@ -179,64 +208,23 @@ proc sort data=work.&ds_cfg. out=work.&ds_byname.;
   by name;
 run;
 
+/* the columns of the target, twice - as an in-list for the SQL below, and as
+  the space separated form mp_derivedvarcheck takes */
 %let physlist=%upcase(%mf_getvarlist(&libds,dlm=%str(,),quote=SINGLE));
+%let phys_sp=%upcase(%mf_getvarlist(&libds));
 
-/* build a quoted list of reserved names, or an empty list */
-%let resv_list=;
-%if "&reserved" ne "0" %then %do i=1 %to %sysfunc(countw(&reserved,%str( )));
-  %let w=%scan(&reserved,&i,%str( ));
-  %let resv_list=&resv_list.%str(,)%str(%")%upcase(&w)%str(%");
-%end;
-%if %length(&resv_list)>0 %then %let resv_list=%substr(&resv_list,2);
+/* the field level rules live in mp_derivedvarcheck, so the same scan can be
+  run before a definition is ever used - at submit time, or over a table of
+  expressions in a code scanning tool.  The engine supplies what only it can
+  know: the columns of the target table, which is what the collision and the
+  dependency checks are compared against. */
+%mp_derivedvarcheck(inds=work.&ds_byname.
+  ,outds=work.&ds_bad.
+  ,physlist=&phys_sp
+  ,reserved=&reserved
+)
 
-/**
-  * Reject anything that could break the generated data step, or that would
-  * produce a variable we cannot describe to the caller
-  */
-data work.&ds_bad.;
-  set work.&ds_byname.;
-  length reason $200;
-  call missing(reason);
-
-  if name='' then reason='VAR_NM is required';
-  else if verify(strip(name),'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_')>0
-    then reason='VAR_NM must be a valid SAS name';
-  else if verify(substr(name,1,1),'0123456789')=0
-    then reason='VAR_NM must not start with a digit';
-  %if %length(&physlist)>0 %then %do;
-  else if name in (%unquote(&physlist))
-    then reason='VAR_NM collides with a column in the target table';
-  %end;
-  %if %length(&resv_list)>0 %then %do;
-  else if name in (%unquote(&resv_list))
-    then reason='VAR_NM is reserved';
-  %end;
-  else if type not in ('C','N')
-    then reason='VAR_TYPE must be C or N';
-  else if missing(len) or len ne int(len) or len<1
-    then reason='VAR_LEN must be a positive integer';
-  else if type='C' and len>32767
-    then reason='VAR_LEN exceeds 32767 for a character variable';
-  else if type='N' and len>8
-    then reason='VAR_LEN exceeds 8 for a numeric variable';
-  else if index(fmt,';')>0 or indexc(fmt,'&%')>0
-    or index(fmt,'/*')>0 or index(fmt,'*/')>0
-    then reason='VAR_FMT must be a format name, without ; & % or //*';
-  else if verify(strip(fmt),'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_$.')>0
-    then reason='VAR_FMT must be a format name';
-  else if missing(logic)
-    then reason='VAR_LOGIC is required';
-  else if index(logic,';')>0
-    then reason='VAR_LOGIC must be a single expression - remove the ;';
-  else if indexc(logic,'&%')>0
-    then reason='VAR_LOGIC must not contain macro triggers';
-  else if index(logic,'/*')>0 or index(logic,'*/')>0
-    then reason='VAR_LOGIC must not contain comments';
-
-  if missing(reason)=0 then output;
-run;
-
-data work.&ds_dup.;
+data work.&ds_dup.(keep=name reason);
   set work.&ds_byname.;
   by name;
   length reason $200;
@@ -317,6 +305,59 @@ create table work.&ds_self. as
   select name, dep_nm from work.&ds_dep.
   where name=dep_nm;
 quit;
+
+/* abort=NO reports every failure rather than the first: one row per offending
+  definition per rule broken.  Every rule has been evaluated by this point, so
+  the whole set is assembled here and nothing is generated while it is not
+  empty - the dependency graph below only runs on a configuration whose edges
+  resolve */
+%if "%upcase(&abort)"="NO" %then %do;
+  data work.&ds_errpart.;
+    set work.&ds_baddep.;
+    length reason $200;
+    reason=cats('VAR_DEPS lists ',dep_nm
+      ,', which is not a column of the table or a derived variable');
+    keep name reason;
+  run;
+  proc append base=&errds data=work.&ds_errpart. force;
+  run;
+
+  data work.&ds_errpart.;
+    set work.&ds_self.;
+    length reason $200;
+    reason='VAR_DEPS may not list itself';
+    keep name reason;
+  run;
+  proc append base=&errds data=work.&ds_errpart. force;
+  run;
+
+  data work.&ds_errpart.;
+    set work.&ds_undecl.;
+    length reason $200;
+    reason=cats('VAR_LOGIC references ',dep_nm,', which is not in VAR_DEPS');
+    keep name reason;
+  run;
+  proc append base=&errds data=work.&ds_errpart. force;
+  run;
+
+  data work.&ds_errpart.;
+    set work.&ds_stale.;
+    length reason $200;
+    reason=cats('VAR_DEPS lists ',dep_nm,', which VAR_LOGIC does not'
+      ,' reference');
+    keep name reason;
+  run;
+  proc append base=&errds data=work.&ds_errpart. force;
+  run;
+
+  data work.&ds_errpart.(keep=name reason);
+    set work.&ds_bad.;
+  run;
+  proc append base=&errds data=work.&ds_errpart. force;
+  run;
+%end;
+
+%if "%upcase(&abort)"="NO" and %mf_nobs(&errds)>0 %then %return;
 
 data _null_;
   set work.&ds_baddep.(obs=1);
@@ -471,6 +512,16 @@ run;
 
     %let left=%mf_nobs(work.&ds_todo.);
   %end;
+%end;
+
+%if "%upcase(&abort)"="NO" and &cyc_found=1 %then %do;
+  data &errds;
+    length name $32 reason $200;
+    name="&cyc_start";
+    reason='VAR_DEPS contains a cycle';
+    keep name reason;
+  run;
+  %return;
 %end;
 
 %mp_abort(iftrue= (&cyc_found=1)

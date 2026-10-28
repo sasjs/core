@@ -474,4 +474,209 @@ run;
   outds=work.test_results
 )
 
+/* VAR_LOGIC is inserted into a generated assignment, so anything that submits
+  code or reaches the file system or the macro symbol table has to be refused.
+  The character rules cannot see these payloads: BYTE(59) builds the semicolon
+  the source text must not contain.  Each payload below therefore passes every
+  character check and must still be refused by name. */
+
+/* A DOSUBL program built out of BYTE(59) - no literal semicolon, ampersand,
+  percent or comment in the stored value */
+data work.payload;
+  length logic $4000;
+  logic="dosubl(cats('data _null_',byte(59),'data work.pwn',byte(59)
+    ,'run',byte(59)))";
+run;
+
+%mddl_derivedvars(libds=work.dvcfg_inject)
+
+proc sql;
+insert into work.dvcfg_inject
+  (libref,dsn,var_nm,var_deps,var_type,var_len,var_fmt,var_logic,active)
+  select 'WORK','CLASS','pwn','','N',8,'',logic,1 from work.payload;
+quit;
+
+%mp_derivedvars(
+  libds=work.class,
+  control=work.dvcfg_inject,
+  outref=drefi,
+  outview=work.vw_inj,
+  outvars=work.dvn_inj,
+  abort=NO,
+  errds=work.dv_inj_err
+)
+
+%mp_assertdsobs(work.dv_inj_err,
+  desc=A DOSUBL payload is refused even though it carries no semicolon,
+  test=HASOBS,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=(%mf_existds(libds=work.vw_inj)=0),
+  desc=No view is built for a refused payload,
+  outds=work.test_results
+)
+
+/* the same for the file system and the macro symbol table */
+data work.payload2;
+  length logic $4000;
+  logic="fread(fopen('/etc/hostname'))";
+run;
+
+%mddl_derivedvars(libds=work.dvcfg_fread)
+
+proc sql;
+insert into work.dvcfg_fread
+  (libref,dsn,var_nm,var_deps,var_type,var_len,var_fmt,var_logic,active)
+  select 'WORK','CLASS','leak','','C',200,'',logic,1 from work.payload2;
+quit;
+
+%mp_derivedvars(
+  libds=work.class,
+  control=work.dvcfg_fread,
+  outref=dreff,
+  outview=work.vw_fr,
+  outvars=work.dvn_fr,
+  abort=NO,
+  errds=work.dv_fr_err
+)
+
+%mp_assertdsobs(work.dv_fr_err,
+  desc=A file read payload is refused,
+  test=HASOBS,
+  outds=work.test_results
+)
+
+data work.payload3;
+  length logic $4000;
+  logic="symputx('syscc',0)";
+run;
+
+%mddl_derivedvars(libds=work.dvcfg_symput)
+
+proc sql;
+insert into work.dvcfg_symput
+  (libref,dsn,var_nm,var_deps,var_type,var_len,var_fmt,var_logic,active)
+  select 'WORK','CLASS','sneaky','','N',8,'',logic,1 from work.payload3;
+quit;
+
+%mp_derivedvars(
+  libds=work.class,
+  control=work.dvcfg_symput,
+  outref=drefs,
+  outview=work.vw_sp,
+  outvars=work.dvn_sp,
+  abort=NO,
+  errds=work.dv_sp_err
+)
+
+%mp_assertdsobs(work.dv_sp_err,
+  desc=A macro symbol table write is refused,
+  test=HASOBS,
+  outds=work.test_results
+)
+
+/* a per row delay turns one read of the table into a denial of service */
+data work.payload4;
+  length logic $4000;
+  logic="sleep(10)";
+run;
+
+%mddl_derivedvars(libds=work.dvcfg_sleep)
+
+proc sql;
+insert into work.dvcfg_sleep
+  (libref,dsn,var_nm,var_deps,var_type,var_len,var_fmt,var_logic,active)
+select 'WORK','CLASS','slow','','N',8,'',logic,1 from work.payload4;
+quit;
+
+%mp_derivedvars(
+  libds=work.class,
+  control=work.dvcfg_sleep,
+  outref=drefz,
+  outview=work.vw_sl,
+  outvars=work.dvn_sl,
+  abort=NO,
+  errds=work.dv_sl_err
+)
+
+%mp_assertdsobs(work.dv_sl_err,
+  desc=A per row delay is refused,
+  test=HASOBS,
+  outds=work.test_results
+)
+
+/* the control: a refused word inside a quoted literal is data, not a call */
+data work.payload5;
+  length logic $4000;
+  logic="ifc(SEX='DOSUBL(','Y','N')";
+run;
+
+%mddl_derivedvars(libds=work.dvcfg_literal)
+
+proc sql;
+insert into work.dvcfg_literal
+  (libref,dsn,var_nm,var_deps,var_type,var_len,var_fmt,var_logic,active)
+  select 'WORK','CLASS','literal_ok','SEX','C',1,'',logic,1 from work.payload5;
+quit;
+
+%mp_derivedvars(
+  libds=work.class,
+  control=work.dvcfg_literal,
+  outref=drefc,
+  outview=work.vw_lit,
+  outvars=work.dvn_lit,
+  abort=NO,
+  errds=work.dv_lit_err
+)
+
+%mp_assertdsobs(work.dv_lit_err,
+  desc=A refused word inside a quoted literal is allowed,
+  test=EQUALS 0,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=(0 < %mf_existvar(work.vw_lit,LITERAL_OK)),
+  desc=The literal control still builds its view,
+  outds=work.test_results
+)
+
+/* abort=NO reports every rule a definition breaks, not just the first: one
+  row references an undeclared derived variable, the other carries a bad
+  field, and both are returned in the same pass */
+%mddl_derivedvars(libds=work.dvcfg_multi)
+
+proc sql;
+insert into work.dvcfg_multi
+  set libref='WORK',dsn='CLASS',var_nm='aaa',var_deps=''
+    ,var_type='N',var_len=8,var_fmt='',var_logic='zzz+1',active=1;
+insert into work.dvcfg_multi
+  set libref='WORK',dsn='CLASS',var_nm='zzz',var_deps='AGE'
+    ,var_type='X',var_len=8,var_fmt='',var_logic='AGE',active=1;
+quit;
+
+%mp_derivedvars(
+  libds=work.class,
+  control=work.dvcfg_multi,
+  outref=drefm,
+  outview=work.vw_multi,
+  outvars=work.dvn_multi,
+  abort=NO,
+  errds=work.dv_multi_err
+)
+
+%mp_assertdsobs(work.dv_multi_err,
+  desc=abort NO reports every broken rule not just the first,
+  test=EQUALS 2,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=(%mf_existds(libds=work.vw_multi)=0),
+  desc=abort NO builds no view when any rule fails,
+  outds=work.test_results
+)
+
 %mp_assertscope(COMPARE,ignorelist=_SASJS_WEBOUT_HEADERS,outds=work.test_results)

@@ -5249,6 +5249,206 @@ run;
 %mend mp_deletefolder;
 /**
   @file
+  @brief Validates derived variable definitions, one row per rule
+  @details Reads a table of derived variable definitions and writes one row per
+  definition that breaks a rule, with the reason in REASON.  Nothing is
+  executed, no view is built and no target table is needed: the macro is a
+  scan of definitions, so it can run at submit time - or against any table of
+  expressions in a code scanning tool - long before the definitions are used.
+
+  The input is the shape a control table carries, which is the shape
+  mddl_derivedvars.sas creates:
+
+  @li VAR_NM - the name of the variable to create
+  @li VAR_TYPE - C or N
+  @li VAR_LEN - a positive integer, at most 32767 for character and 8 for
+    numeric
+  @li VAR_FMT - an optional format name
+  @li VAR_LOGIC - the expression, which must be a single expression with no
+    macro triggers and no comments, at most 4000 characters - the limit of the
+    statement buffer and of the control table, so a longer value would be cut
+    down silently
+  @li VAR_LABEL - optional, plain text of at most 256 characters.  A line
+    break is allowed and becomes a space when the label is used
+
+  Extra columns are ignored, so a caller can scan the control table itself, a
+  staged submission, or a table of expressions assembled from a program.
+
+  <h4>Why a function name is refused and a character is not</h4>
+
+  VAR_LOGIC is concatenated into a generated assignment, so an expression that
+  can submit a program of its own (DOSUBL) or reach the file system, the
+  environment or the macro symbol table is a way into the session.  Blocked
+  characters cannot cover that: BYTE(59) builds the semicolon at run time, so
+  a payload carries no blocked character in its source text - while the name of
+  the function it calls is part of the expression this scan reads, and cannot
+  be constructed.  Quoted literals are removed before the check, so a refused
+  word that is only data is not read as a call.
+
+  The refused names are DOSUBL, JAVAOBJ, JAVAMETA, SYMGET, SYMPUT, SYMPUTX,
+  SYSGET, GETOPTION, PATHNAME, FILEEXIST, FOPEN, FREAD, FGET, FCLOSE, DOPEN,
+  DREAD, DNUM, MOPEN, SLEEP, FILENAME, FDELETE, FCOPY, DCREATE and DLCREATE.
+  Add your own with denyfuncs=.
+
+  <h4> SAS Macros </h4>
+  @li mf_existds.sas
+  @li mf_existvar.sas
+  @li mp_abort.sas
+
+  <h4> Related Macros </h4>
+  @li mp_derivedvars.sas
+  @li mddl_derivedvars.sas
+
+  @param [in] inds= The definitions to check
+  @param [out] outds= (work.dv_check) One row per definition that breaks a
+    rule: NAME (the upcased VAR_NM) and REASON.  Empty when every row is valid
+  @param [in] physlist= (0) Space separated list of the columns of the target
+    table, unquoted and case insensitive - what %mf_getvarlist(&libds) returns.
+    Supplied, a VAR_NM that collides with one of them is refused; when the
+    target is not at hand, leave it at 0 and that rule is not applied
+  @param [in] reserved= (0) Space separated list of names that may not be used
+  @param [in] denyfuncs= (0) Space separated list of further function names
+    to refuse, for a site that allows more of the SAS vocabulary than the
+    default.  Each entry must be a function name - letters, digits and
+    underscores - so the pattern the check builds stays a pattern of names
+
+  @version 1.0
+  @author 4GL Apps Ltd
+
+**/
+
+%macro mp_derivedvarcheck(inds=,
+  outds=work.dv_check,
+  physlist=0,
+  reserved=0,
+  denyfuncs=0
+);
+
+%local deny denycnt physcnt resv_list phys_list i w bad_deny denyrx w_ok;
+
+%mp_abort(iftrue= (%length(&inds)=0)
+  ,mac=&sysmacroname
+  ,msg=%str(Please provide the definitions to check in inds)
+)
+%mp_abort(iftrue= (%mf_existds(libds=&inds) ne 1)
+  ,mac=&sysmacroname
+  ,msg=%str(Definitions not found: &inds)
+)
+
+/* the capabilities that are refused - a function name cannot be assembled at
+  run time, so naming them is a control the expression cannot evade.  The
+  file system is covered in both directions: the read vocabulary (FOPEN,
+  FREAD, FGET, FCLOSE) and the write, copy and delete vocabulary
+  (FILENAME, FDELETE, FCOPY, DCREATE, DLCREATE) */
+%let deny=DOSUBL|JAVAOBJ|JAVAMETA|SYMGET|SYMPUTX?|SYSGET|GETOPTION;
+%let deny=&deny.|PATHNAME|FILEEXIST|FOPEN|FREAD|FGET|FCLOSE;
+%let deny=&deny.|DOPEN|DREAD|DNUM|MOPEN|SLEEP;
+%let deny=&deny.|FILENAME|FDELETE|FCOPY|DCREATE|DLCREATE;
+%let bad_deny=0;
+/* a token has to be a function name: a pattern metacharacter here would make
+  the PRXMATCH below fail, and a failed match passes every row */
+%let denyrx=%str(/^[A-Z][A-Z0-9_]*$/);
+%let denycnt=%sysfunc(countw(&denyfuncs,%str( )));
+%if "%upcase(&denyfuncs)" ne "0" %then %do i=1 %to &denycnt;
+  %let w=%upcase(%scan(&denyfuncs,&i,%str( )));
+  %let w_ok=%sysfunc(prxmatch(&denyrx,&w));
+  %if &w_ok=0 %then %let bad_deny=1;
+  %else %let deny=&deny.|&w;
+%end;
+%mp_abort(iftrue= (&bad_deny=1)
+  ,mac=&sysmacroname
+  ,msg=%str(denyfuncs must be a space separated list of function names)
+)
+
+/* the target columns, as a quoted list - supplied only when the caller has the
+  table to hand */
+%let phys_list=;
+%let physcnt=%sysfunc(countw(&physlist,%str( )));
+%if %length(&physlist)>0 and "%upcase(&physlist)" ne "0"
+  %then %do i=1 %to &physcnt;
+  %let w=%scan(&physlist,&i,%str( ));
+  %let phys_list=&phys_list.%str(,)%str(%")%upcase(&w)%str(%");
+%end;
+%if %length(&phys_list)>0 %then %let phys_list=%substr(&phys_list,2);
+
+/* build a quoted list of reserved names, or an empty list */
+%let resv_list=;
+%if "&reserved" ne "0" %then %do i=1 %to %sysfunc(countw(&reserved,%str( )));
+  %let w=%scan(&reserved,&i,%str( ));
+  %let resv_list=&resv_list.%str(,)%str(%")%upcase(&w)%str(%");
+%end;
+%if %length(&resv_list)>0 %then %let resv_list=%substr(&resv_list,2);
+
+data &outds(keep=name reason);
+  set &inds;
+  length name $32 reason $200 l $4000;
+  call missing(reason);
+  name=upcase(strip(var_nm));
+
+  /* quoted literals are data, not calls - strip them before the vocabulary
+    check so a label or a value that names a refused function is allowed */
+  l=prxchange("s/'([^']|'')*'//",-1,var_logic);
+  l=prxchange('s/\"([^\"]|\"\")*\"//',-1,l);
+
+  if name='' then reason='VAR_NM is required';
+  else if verify(strip(name),'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_')>0
+    then reason='VAR_NM must be a valid SAS name';
+  else if verify(substr(name,1,1),'0123456789')=0
+    then reason='VAR_NM must not start with a digit';
+  else if name in ('_N_','_ERROR_','_IORC_')
+    then reason='VAR_NM is an automatic variable of the data step';
+  %if %length(&phys_list)>0 %then %do;
+  else if name in (%unquote(&phys_list))
+    then reason='VAR_NM collides with a column in the target table';
+  %end;
+  %if %length(&resv_list)>0 %then %do;
+  else if name in (%unquote(&resv_list))
+    then reason='VAR_NM is reserved';
+  %end;
+  else if upcase(strip(var_type)) not in ('C','N')
+    then reason='VAR_TYPE must be C or N';
+  else if missing(var_len) or var_len ne int(var_len) or var_len<1
+    then reason='VAR_LEN must be a positive integer';
+  else if upcase(strip(var_type))='C' and var_len>32767
+    then reason='VAR_LEN exceeds 32767 for a character variable';
+  else if upcase(strip(var_type))='N' and var_len>8
+    then reason='VAR_LEN exceeds 8 for a numeric variable';
+  else if index(var_fmt,';')>0 or indexc(var_fmt,'&%')>0
+    or index(var_fmt,'/*')>0 or index(var_fmt,'*/')>0
+    then reason='VAR_FMT must be a format name, without ; & % or /* */';
+  else if verify(strip(upcase(var_fmt))
+      ,'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_$.')>0
+    then reason='VAR_FMT must be a format name';
+  %if %mf_existvar(&inds,VAR_LABEL) gt 0 %then %do;
+  /* VAR_LABEL is free text - any script, any character - because the quotes
+    in it are escaped when the attrib statement is built.  A line break is
+    flattened to a space, which is what a label has always become, so only
+    the remaining control characters are refused */
+  else if anycntrl(translate(var_label,' ','0D0A'x))>0
+    then reason='VAR_LABEL must be plain text - no control characters';
+  else if klength(var_label)>256
+    then reason='VAR_LABEL exceeds 256 characters';
+  %end;
+  else if missing(var_logic)
+    then reason='VAR_LOGIC is required';
+  else if klength(var_logic)>4000
+    then reason='VAR_LOGIC exceeds 4000 characters';
+  else if index(var_logic,';')>0
+    then reason='VAR_LOGIC must be a single expression - remove the ;';
+  else if indexc(var_logic,'&%')>0
+    then reason='VAR_LOGIC must not contain macro triggers';
+  else if index(var_logic,'/*')>0 or index(var_logic,'*/')>0
+    then reason='VAR_LOGIC must not contain comments';
+  else if prxmatch("/\b(&deny)\s*\(/",upcase(l))>0
+    then reason='VAR_LOGIC may not call a function that submits code or'
+      ||' reaches the file system, the environment or the macro symbol table';
+
+  if missing(reason)=0 then output;
+run;
+
+%mend mp_derivedvarcheck;
+/**
+  @file
   @brief Generates the SAS statements that create derived variables
   @details Derived (computed) variables are configured in a control table, one
   row per variable.  The macro writes the statements that create them to a
@@ -5289,7 +5489,14 @@ run;
   is referenced must be declared, a declared name that is not referenced is an
   error, and a declared name must be a column of the target table or a derived
   variable defined for it.  Semicolons, macro triggers and comments are
-  rejected, so a row can only ever be an expression.  A derived variable may
+  rejected, so a row can only ever be an expression.
+
+  The field level rules are not here - they are in mp_derivedvarcheck, which
+  reads the same control table and writes one row per definition that breaks
+  one.  This macro adds the two checks that need the target table, and the
+  dependency graph, then generates the statements.
+
+  A derived variable may
   not reuse the name of a physical column, and may not reference itself: an
   intra-row calculation would imply a retained value, which depends on the
   order rows happen to arrive in.
@@ -5314,6 +5521,7 @@ run;
   @li mf_getvarlist.sas
   @li mf_nobs.sas
   @li mp_abort.sas
+  @li mp_derivedvarcheck.sas
 
   <h4> Related Macros </h4>
   @li mddl_derivedvars.sas
@@ -5325,8 +5533,17 @@ run;
   @param [out] outvars= (work.derived_varlist) Dataset of derived variable names
   @param [in] outview= (0) Optional two-level name for the derived view
   @param [in] reserved= (0) Space separated list of names that may not be used
+  @param [in] abort= (YES) Set to NO to return the validation failures in
+    errds= instead of aborting - for tests, and for a caller that wants to
+    report every failure rather than the first.  No statement is generated
+    when any row is returned
+  @param [out] errds= (work.dv_errors) The validation failures when abort=NO:
+    one row per offending VAR_NM per rule broken, so a definition that breaks
+    two rules appears twice, with the rule in REASON.  Empty, not absent, when
+    the configuration is valid.  The cycle in VAR_DEPS is reported as a single
+    row, because one member identifies the cycle
 
-  @version 5.6
+  @version 5.7
   @author 4GL Apps Ltd
 
 **/
@@ -5337,13 +5554,15 @@ run;
   outref=0,
   outvars=work.derived_varlist,
   outview=0,
-  reserved=0
+  reserved=0,
+  abort=YES,
+  errds=work.dv_errors
 );
 
-%local physlist derived_err resv_list i w left nready nplaced
+%local physlist phys_sp derived_err left nready nplaced
   cyc_start cyc_cur cyc_next cyc_path cyc_seen cyc_i
   ds_cfg ds_byname ds_bad ds_baddep ds_dup ds_dep ds_ref ds_stale
-  ds_undecl ds_self ds_edge ds_todo ds_ready ds_placed ds_srt;
+  ds_undecl ds_self ds_edge ds_todo ds_ready ds_placed ds_srt ds_errpart;
 
 /* every working table gets its own name, so a caller with tables of the same
   name in WORK cannot collide with this macro's intermediates */
@@ -5362,6 +5581,7 @@ run;
 %let ds_ready=%mf_getuniquename(prefix=dvrdy);
 %let ds_placed=%mf_getuniquename(prefix=dvpld);
 %let ds_srt=%mf_getuniquename(prefix=dvsrt);
+%let ds_errpart=%mf_getuniquename(prefix=dverr);
 
 %mp_abort(iftrue= (%length(&libds)=0 or %length(&control)=0)
   ,mac=&sysmacroname
@@ -5387,6 +5607,15 @@ run;
 data &outvars(keep=name);
   length name $32;
   name='';
+  if 0;
+run;
+
+/* the failures dataset exists even when the configuration is valid, so a
+  caller can test it without checking for existence first */
+data &errds(keep=name reason);
+  length name $32 reason $200;
+  name='';
+  reason='';
   if 0;
 run;
 
@@ -5428,64 +5657,23 @@ proc sort data=work.&ds_cfg. out=work.&ds_byname.;
   by name;
 run;
 
+/* the columns of the target, twice - as an in-list for the SQL below, and as
+  the space separated form mp_derivedvarcheck takes */
 %let physlist=%upcase(%mf_getvarlist(&libds,dlm=%str(,),quote=SINGLE));
+%let phys_sp=%upcase(%mf_getvarlist(&libds));
 
-/* build a quoted list of reserved names, or an empty list */
-%let resv_list=;
-%if "&reserved" ne "0" %then %do i=1 %to %sysfunc(countw(&reserved,%str( )));
-  %let w=%scan(&reserved,&i,%str( ));
-  %let resv_list=&resv_list.%str(,)%str(%")%upcase(&w)%str(%");
-%end;
-%if %length(&resv_list)>0 %then %let resv_list=%substr(&resv_list,2);
+/* the field level rules live in mp_derivedvarcheck, so the same scan can be
+  run before a definition is ever used - at submit time, or over a table of
+  expressions in a code scanning tool.  The engine supplies what only it can
+  know: the columns of the target table, which is what the collision and the
+  dependency checks are compared against. */
+%mp_derivedvarcheck(inds=work.&ds_byname.
+  ,outds=work.&ds_bad.
+  ,physlist=&phys_sp
+  ,reserved=&reserved
+)
 
-/**
-  * Reject anything that could break the generated data step, or that would
-  * produce a variable we cannot describe to the caller
-  */
-data work.&ds_bad.;
-  set work.&ds_byname.;
-  length reason $200;
-  call missing(reason);
-
-  if name='' then reason='VAR_NM is required';
-  else if verify(strip(name),'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_')>0
-    then reason='VAR_NM must be a valid SAS name';
-  else if verify(substr(name,1,1),'0123456789')=0
-    then reason='VAR_NM must not start with a digit';
-  %if %length(&physlist)>0 %then %do;
-  else if name in (%unquote(&physlist))
-    then reason='VAR_NM collides with a column in the target table';
-  %end;
-  %if %length(&resv_list)>0 %then %do;
-  else if name in (%unquote(&resv_list))
-    then reason='VAR_NM is reserved';
-  %end;
-  else if type not in ('C','N')
-    then reason='VAR_TYPE must be C or N';
-  else if missing(len) or len ne int(len) or len<1
-    then reason='VAR_LEN must be a positive integer';
-  else if type='C' and len>32767
-    then reason='VAR_LEN exceeds 32767 for a character variable';
-  else if type='N' and len>8
-    then reason='VAR_LEN exceeds 8 for a numeric variable';
-  else if index(fmt,';')>0 or indexc(fmt,'&%')>0
-    or index(fmt,'/*')>0 or index(fmt,'*/')>0
-    then reason='VAR_FMT must be a format name, without ; & % or //*';
-  else if verify(strip(fmt),'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_$.')>0
-    then reason='VAR_FMT must be a format name';
-  else if missing(logic)
-    then reason='VAR_LOGIC is required';
-  else if index(logic,';')>0
-    then reason='VAR_LOGIC must be a single expression - remove the ;';
-  else if indexc(logic,'&%')>0
-    then reason='VAR_LOGIC must not contain macro triggers';
-  else if index(logic,'/*')>0 or index(logic,'*/')>0
-    then reason='VAR_LOGIC must not contain comments';
-
-  if missing(reason)=0 then output;
-run;
-
-data work.&ds_dup.;
+data work.&ds_dup.(keep=name reason);
   set work.&ds_byname.;
   by name;
   length reason $200;
@@ -5566,6 +5754,59 @@ create table work.&ds_self. as
   select name, dep_nm from work.&ds_dep.
   where name=dep_nm;
 quit;
+
+/* abort=NO reports every failure rather than the first: one row per offending
+  definition per rule broken.  Every rule has been evaluated by this point, so
+  the whole set is assembled here and nothing is generated while it is not
+  empty - the dependency graph below only runs on a configuration whose edges
+  resolve */
+%if "%upcase(&abort)"="NO" %then %do;
+  data work.&ds_errpart.;
+    set work.&ds_baddep.;
+    length reason $200;
+    reason=cats('VAR_DEPS lists ',dep_nm
+      ,', which is not a column of the table or a derived variable');
+    keep name reason;
+  run;
+  proc append base=&errds data=work.&ds_errpart. force;
+  run;
+
+  data work.&ds_errpart.;
+    set work.&ds_self.;
+    length reason $200;
+    reason='VAR_DEPS may not list itself';
+    keep name reason;
+  run;
+  proc append base=&errds data=work.&ds_errpart. force;
+  run;
+
+  data work.&ds_errpart.;
+    set work.&ds_undecl.;
+    length reason $200;
+    reason=cats('VAR_LOGIC references ',dep_nm,', which is not in VAR_DEPS');
+    keep name reason;
+  run;
+  proc append base=&errds data=work.&ds_errpart. force;
+  run;
+
+  data work.&ds_errpart.;
+    set work.&ds_stale.;
+    length reason $200;
+    reason=cats('VAR_DEPS lists ',dep_nm,', which VAR_LOGIC does not'
+      ,' reference');
+    keep name reason;
+  run;
+  proc append base=&errds data=work.&ds_errpart. force;
+  run;
+
+  data work.&ds_errpart.(keep=name reason);
+    set work.&ds_bad.;
+  run;
+  proc append base=&errds data=work.&ds_errpart. force;
+  run;
+%end;
+
+%if "%upcase(&abort)"="NO" and %mf_nobs(&errds)>0 %then %return;
 
 data _null_;
   set work.&ds_baddep.(obs=1);
@@ -5720,6 +5961,16 @@ run;
 
     %let left=%mf_nobs(work.&ds_todo.);
   %end;
+%end;
+
+%if "%upcase(&abort)"="NO" and &cyc_found=1 %then %do;
+  data &errds;
+    length name $32 reason $200;
+    name="&cyc_start";
+    reason='VAR_DEPS contains a cycle';
+    keep name reason;
+  run;
+  %return;
 %end;
 
 %mp_abort(iftrue= (&cyc_found=1)

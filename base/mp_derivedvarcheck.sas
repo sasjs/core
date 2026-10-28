@@ -71,7 +71,7 @@
   denyfuncs=0
 );
 
-%local deny resv_list phys_list i w;
+%local deny denycnt physcnt resv_list phys_list i w;
 
 %mp_abort(iftrue= (%length(&inds)=0)
   ,mac=&sysmacroname
@@ -84,15 +84,20 @@
 
 /* the capabilities that are refused - a function name cannot be assembled at
   run time, so naming them is a control the expression cannot evade */
-%let deny=DOSUBL|JAVAOBJ|JAVAMETA|SYMGET|SYMPUTX?|SYSGET|GETOPTION|PATHNAME|FILEEXIST|FOPEN|FREAD|FGET|FCLOSE|DOPEN|DREAD|DNUM|MOPEN|SLEEP;
-%if "%upcase(&denyfuncs)" ne "0" %then %do i=1 %to %sysfunc(countw(&denyfuncs,%str( )));
+%let deny=DOSUBL|JAVAOBJ|JAVAMETA|SYMGET|SYMPUTX?|SYSGET|GETOPTION;
+%let deny=&deny.|PATHNAME|FILEEXIST|FOPEN|FREAD|FGET|FCLOSE;
+%let deny=&deny.|DOPEN|DREAD|DNUM|MOPEN|SLEEP;
+%let denycnt=%sysfunc(countw(&denyfuncs,%str( )));
+%if "%upcase(&denyfuncs)" ne "0" %then %do i=1 %to &denycnt;
   %let deny=&deny.|%upcase(%scan(&denyfuncs,&i,%str( )));
 %end;
 
 /* the target columns, as a quoted list - supplied only when the caller has the
   table to hand */
 %let phys_list=;
-%if %length(&physlist)>0 and "%upcase(&physlist)" ne "0" %then %do i=1 %to %sysfunc(countw(&physlist,%str( )));
+%let physcnt=%sysfunc(countw(&physlist,%str( )));
+%if %length(&physlist)>0 and "%upcase(&physlist)" ne "0"
+  %then %do i=1 %to &physcnt;
   %let w=%scan(&physlist,&i,%str( ));
   %let phys_list=&phys_list.%str(,)%str(%")%upcase(&w)%str(%");
 %end;
@@ -143,14 +148,16 @@ data &outds(keep=name reason);
   else if index(var_fmt,';')>0 or indexc(var_fmt,'&%')>0
     or index(var_fmt,'/*')>0 or index(var_fmt,'*/')>0
     then reason='VAR_FMT must be a format name, without ; & % or /* */';
-  else if verify(strip(upcase(var_fmt)),'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_$.')>0
+  else if verify(strip(upcase(var_fmt))
+      ,'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_$.')>0
     then reason='VAR_FMT must be a format name';
   %if %mf_existvar(&inds,VAR_LABEL) gt 0 %then %do;
   /* VAR_LABEL is free text - any script, any character - because the quotes
     in it are escaped when the attrib statement is built.  What cannot be a
     single line column label is a control character or a line break */
   else if anycntrl(var_label)>0
-    then reason='VAR_LABEL must be plain text - no line breaks or control characters';
+    then reason='VAR_LABEL must be plain text - no line breaks or'
+      ||' control characters';
   else if klength(var_label)>256
     then reason='VAR_LABEL exceeds 256 characters';
   %end;

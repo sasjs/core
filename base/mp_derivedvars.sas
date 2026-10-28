@@ -371,7 +371,8 @@ run;
   data &errds;
     set work.&ds_stale.;
     length reason $200;
-    reason=cats('VAR_DEPS lists ',dep_nm,', which VAR_LOGIC does not reference');
+    reason=cats('VAR_DEPS lists ',dep_nm,', which VAR_LOGIC does not'
+      ,' reference');
     keep name reason;
   run;
   %return;

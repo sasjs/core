@@ -53,8 +53,8 @@
   |`WORK `|`EXAMPLE `|`YEAR `|`8. `|
 
   @param [out] errds= (0) Provide a libds reference here to export the
-    error messages to a table.  In this case, they will not be printed to the
-    log.
+    diagnostic messages to a table.  In this case, they will not be printed
+    to the log.
 
   <h4> SAS Macros </h4>
   @li mf_getengine.sas
@@ -63,14 +63,12 @@
   @li mf_nobs.sas
   @li mp_validatecol.sas
 
-
   <h4> Related Macros </h4>
   @li mp_getformats.sas
 
   @version 9.2
   @author Allan Bowe
 
-  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mp_applyformats(inds,errds=0

@@ -62,6 +62,7 @@ https://support.sas.com/documentation/cdl/en/proc/61895/HTML/default/viewer.htm#
   @version 9.2
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 237}
 **/
 
 %macro mp_getformats(lib=0

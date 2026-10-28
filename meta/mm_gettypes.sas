@@ -8,7 +8,7 @@
   @param [in] outds= (work.mm_gettypes)
     The dataset to create that contains the list of types
   @returns outds  dataset containing all types
-  @warning The following filenames are created and then de-assigned:
+  @note The following filenames are created and then de-assigned:
 
       filename sxlemap clear;
       filename response clear;
@@ -17,7 +17,6 @@
   @version 9.2
   @author Allan Bowe
 
-  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_gettypes(
@@ -67,7 +66,6 @@ libname _XML_ xml xmlfileref=response xmlmap=sxlemap;
 proc sort data=_XML_.sastypes out=&outds;
   by id;
 run;
-
 
 /* clear references */
 filename sxlemap clear;

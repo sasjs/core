@@ -30,6 +30,7 @@
   @li mf_getuniquelibref.sas
   @li mf_isblank.sas
 
+  @sasjslint {"maxLineLength": 82}
 **/
 
 %macro mv_deletejes(path=

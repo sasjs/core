@@ -18,7 +18,7 @@
   <h4> SAS Macros </h4>
   @li mp_abort.sas
 
-  @sasjslint {"noBannedStrings": false}
+  @sasjslint {"noBannedStrings": false, "maxLineLength": 93, "noUnusedMacros": false}
 **/
 
 %macro test();

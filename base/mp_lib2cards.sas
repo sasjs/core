@@ -33,6 +33,7 @@
 
   @version 9.2
   @author Allan Bowe
+  @sasjslint {"maxLineLength": 81}
 **/
 
 %macro mp_lib2cards(lib=

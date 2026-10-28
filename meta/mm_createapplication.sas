@@ -13,7 +13,7 @@
         ,params= name1=value1&#x0a;name2=value2&#x0a;emptyvalue=
       )
 
-  @warning application components do not get deleted when removing the container
+  @note application components do not get deleted when removing the container
   folder!  be sure you have the administrative priviliges to remove this kind of
   metadata from the SMC plugin (or be ready to do to so programmatically).
 
@@ -42,7 +42,6 @@
 
   @author Allan Bowe
 
-  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_createapplication(
@@ -101,7 +100,6 @@ run;
   ,msg=Application &name already exists in &tree!
 )
 
-
 /**
   * Now we can create the application
   */
@@ -157,6 +155,5 @@ run;
   %return;
 %end;
 %else %put NOTE: Application (&name) successfully created in (&tree)!;
-
 
 %mend mm_createapplication;

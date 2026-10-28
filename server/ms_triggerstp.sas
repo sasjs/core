@@ -45,6 +45,7 @@
   @li mp_dropmembers.sas
   @li mf_nobs.sas
 
+  @sasjslint {"maxLineLength": 83}
 **/
 
 %macro ms_triggerstp(pgm

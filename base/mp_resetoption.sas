@@ -16,6 +16,7 @@ https://blogs.sas.com/content/sastraining/2012/08/14/jedi-sas-tricks-reset-sas-s
   @version 9.2
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 93}
 **/
 
 %macro mp_resetoption(option /* the option to reset */

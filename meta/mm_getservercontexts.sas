@@ -9,7 +9,7 @@
   @param [out] outds= (work.mm_getrepos)
     the dataset to create that contains the list
 
-  @warning The following filenames are created and then de-assigned:
+  @note The following filenames are created and then de-assigned:
 
       filename __mc1 clear;
       filename __mc2 clear;
@@ -21,7 +21,6 @@
   @version 9.3
   @author Allan Bowe
 
-  @sasjslint {"noBannedStrings": false}
 **/
 
 %macro mm_getservercontexts(

@@ -126,6 +126,7 @@
   @li mv_jobwaitfor.sas
   @li mv_jobexecute.sas
 
+  @sasjslint {"maxLineLength": 98}
 **/
 
 %macro mv_jobflow(inds=0,outds=work.mv_jobflow

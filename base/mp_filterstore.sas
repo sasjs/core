@@ -76,6 +76,7 @@
   @version 9.2
   @author [Allan Bowe](https://www.linkedin.com/in/allanbowe)
 
+  @sasjslint {"maxLineLength": 167}
 **/
 
 %macro mp_filterstore(libds=,

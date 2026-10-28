@@ -6,7 +6,6 @@
   @li mp_jsonout.sas
   @li mp_assert.sas
 
-  @sasjslint {"noBannedStrings": false}
 **/
 
 filename webref temp;
@@ -41,7 +40,7 @@ libname web JSON fileref=webref;
 
 %mp_assert(
   iftrue=(&syscc=0),
-  desc=Checking for error condition with special chars export,
+  desc=Checking for the failure condition with special chars export,
   outds=work.test_results
 )
 

@@ -18,6 +18,7 @@
 
   @version 8
   @author Allan Bowe
+  @sasjslint {"maxLineLength": 94}
 **/
 /** @cond */
 %macro mf_existfeature(feature

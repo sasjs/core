@@ -9,7 +9,6 @@
   @li mp_assertscope.sas
   @li mp_streamfile.sas
 
-  @sasjslint {"noBannedStrings": false}
 **/
 
 %mp_assertscope(SNAPSHOT)
@@ -23,7 +22,7 @@
 
 %mp_assert(
   iftrue=(&syscc=0),
-  desc=Checking error condition,
+  desc=Checking the failure condition,
   outds=work.test_results
 )
 

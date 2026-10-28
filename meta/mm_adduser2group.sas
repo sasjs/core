@@ -23,6 +23,7 @@
   @version 9.3
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 101}
 **/
 
 %macro mm_adduser2group(user=

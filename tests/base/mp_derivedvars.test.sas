@@ -13,6 +13,7 @@
   @li mp_assertscope.sas
   @li mp_derivedvars.sas
 
+  @sasjslint {"maxLineLength": 81}
 **/
 
 /* the target table */

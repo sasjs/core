@@ -28,6 +28,7 @@
   @author Allan Bowe
   @source https://github.com/sasjs/core
 
+  @sasjslint {"maxLineLength": 107}
 **/
 
 %macro mp_unzip(

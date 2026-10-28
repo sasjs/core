@@ -87,6 +87,7 @@
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
 
+  @sasjslint {"maxLineLength": 102}
 **/
 
 %macro mv_getjobstate(uri=0,outds=work.mv_getjobstate

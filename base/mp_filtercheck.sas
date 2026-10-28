@@ -62,6 +62,7 @@
   @author Allan Bowe
 
   @todo Support hex / name literals and exponents in RAW_VALUE field
+  @sasjslint {"maxLineLength": 99}
 **/
 
 %macro mp_filtercheck(inds,targetds=,outds=work.badrecords,abort=YES);

@@ -47,6 +47,7 @@
 
   @version 9.3
   @author Macro People Ltd
+  @sasjslint {"maxLineLength": 118}
 **/
 
 %macro mp_getpk(

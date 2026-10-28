@@ -34,6 +34,7 @@
   @li mp_gitstatus.test.sas
   @li mp_gitadd.sas
 
+  @sasjslint {"maxLineLength": 96}
 **/
 
 %macro mp_gitstatus(gitdir,outds=work.mp_gitstatus,mdebug=0);

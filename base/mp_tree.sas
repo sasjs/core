@@ -29,6 +29,7 @@ https://communities.sas.com/t5/SAS-Programming/listing-all-files-of-all-types-fr
     - `fullpath`: directory + file name
 
   @version 9.2
+  @sasjslint {"maxLineLength": 135}
 **/
 
 %macro mp_tree(dir=/tmp

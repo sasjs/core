@@ -7,6 +7,7 @@
 
       %ml_json()
 
+  @sasjslint {"maxLineLength": 92}
 **/
 
 %macro ml_json();

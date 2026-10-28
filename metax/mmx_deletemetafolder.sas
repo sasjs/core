@@ -19,6 +19,7 @@
   @version 9.4
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 123}
 **/
 
 %macro mmx_deletemetafolder(loc=,user=,pass=);

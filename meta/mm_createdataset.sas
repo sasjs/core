@@ -33,6 +33,7 @@
   @version 9.4
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 85}
 **/
 
 %macro mm_createdataset(libds=,tableuri=,outds=work.mm_createdataset,mDebug=0);

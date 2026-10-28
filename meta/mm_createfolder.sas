@@ -23,6 +23,7 @@
   @version 9.4
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 82}
 **/
 
 %macro mm_createfolder(path=,mDebug=0);

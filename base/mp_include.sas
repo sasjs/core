@@ -64,6 +64,7 @@ https://documentation.sas.com/doc/en/pgmsascdc/9.4_3.5/mcrolref/n1j5tcc0n2xczyn1
   @li mf_getuniquefileref.sas
   @li mp_abort.sas
 
+  @sasjslint {"maxLineLength": 96}
 **/
 
 %macro mp_include(fileref

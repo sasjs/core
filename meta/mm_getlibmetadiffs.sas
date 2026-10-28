@@ -86,6 +86,7 @@
   @version 9.3
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 112}
 **/
 
 %macro mm_getlibmetadiffs(

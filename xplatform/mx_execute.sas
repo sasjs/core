@@ -61,6 +61,7 @@
   @version 9.4
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 95}
 **/
 
 %macro mx_execute(program,

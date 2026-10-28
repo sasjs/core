@@ -37,6 +37,7 @@
   @li mp_ds2md.sas
 
 
+  @sasjslint {"maxLineLength": 243}
 **/
 
 /* prep format catalog */

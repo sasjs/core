@@ -9,8 +9,6 @@
   @li mp_assertscope.sas
   @li mv_createfile.sas
 
-
-  @sasjslint {"noBannedStrings": false}
 **/
 
 options mprint;
@@ -76,12 +74,10 @@ run;
   desc=Check if created sas program exists
 )
 
-
-
 %put TEST 5 - reading from files service and writing back;
 filename sendfrom filesrvc folderpath="&mcTestAppLoc" filename='test4.sas';
 
-OPTIONS MERROR SYMBOLGEN MLOGIC MPRINT;
+OPTIONS SYMBOLGEN MLOGIC MPRINT MERROR;
 
 %mv_createfile(path=&mcTestAppLoc,name=test5.sas,inref=sendfrom,mdebug=1) ;
 

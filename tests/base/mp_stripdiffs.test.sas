@@ -10,7 +10,6 @@
   @li mp_storediffs.sas
   @li mp_stripdiffs.sas
 
-  @sasjslint {"noBannedStrings": false}
 **/
 
 /* make an adjustable base dataset */
@@ -75,7 +74,7 @@ run;
 
 %mp_assert(
   iftrue=(&syscc=0),
-  desc=Checking error condition,
+  desc=Checking the failure condition,
   outds=work.test_results
 )
 

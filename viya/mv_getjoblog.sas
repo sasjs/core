@@ -78,7 +78,6 @@
   @param [out] outref= The output fileref to which to APPEND the log (is always
   appended).
 
-
   @version VIYA V.03.04
   @author Allan Bowe, source: https://github.com/sasjs/core
 
@@ -90,7 +89,7 @@
   @li mf_getuniquefileref.sas
   @li mf_getuniquelibref.sas
 
-  @sasjslint {"noBannedStrings": false}
+  @sasjslint {"maxLineLength": 118}
 **/
 
 %macro mv_getjoblog(uri=0,outref=0
@@ -199,7 +198,7 @@ run;
 /* A real loglocation is always a /files/files/<uuid> URI (48+ chars), so
   length<2 unambiguously means the job has no log (empty or SAS missing
   value) - the job likely failed before a compute session was created
-  (e.g. 403 on session creation). Read the error details from the job
+  (e.g. 403 on session creation). Read the failure details from the job
   response so the actual failure reason is reported instead of the
   opaque "URI is too short" message. */
 %if &mdebug=1 %then %do;
@@ -213,7 +212,7 @@ run;
       set &libref1..error;
       call symputx('err_httpcode',httpStatusCode,'l');
       call symputx('err_msg',message,'l');
-      putlog "&sysmacroname: Job &jobstate - error " httpStatusCode ": " message;
+      putlog "&sysmacroname: Job &jobstate - unexpected response " httpStatusCode ": " message;
       stop;
     run;
   %end;
@@ -222,7 +221,7 @@ run;
     or has zero observations).  Include the job URI so the full JSON
     response can be fetched directly via a GET to &base_uri&uri. */
   %let abortmsg=Job &jobstate, no log available. GET &uri;
-  %if %length(&err_msg)>0 %then %let abortmsg=Job &jobstate, no log available. Error &err_httpcode: &err_msg. GET &uri;
+  %if %length(&err_msg)>0 %then %let abortmsg=Job &jobstate, no log available. HTTP &err_httpcode: &err_msg. GET &uri;
   /* A canceled job does not always provide a loglocation (eg a job
     that was aborted by design, or canceled by the server before a
     compute session was created).  Aborting here would terminate the
@@ -343,6 +342,4 @@ run;
   %put _local_;
 %end;
 %mend mv_getjoblog;
-
-
 

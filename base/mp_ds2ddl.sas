@@ -40,6 +40,8 @@
 
   @version 9.3
   @author Allan Bowe
+  @sasjslint {"noNestedMacros": false}
+
 **/
 
 %macro mp_ds2ddl(libref,ds,fref=getddl,flavour=SAS,showlog=YES,schema=

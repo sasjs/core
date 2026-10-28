@@ -14,13 +14,12 @@
 
       %mp_dirlist(fref=MYFREF)
 
-  @warning In a Unix environment, the existence of a named pipe will cause this
+  @note In a Unix environment, the existence of a named pipe will cause this
   macro to hang.  Therefore this tool should be used with caution in a SAS 9 web
   application, as it can use up all available multibridge sessions if requests
   are resubmitted.
   If anyone finds a way to positively identify a named pipe using SAS (without
   X CMD) do please raise an issue!
-
 
   @param [in] path= (%sysfunc(pathname(work))) Path for which to return contents
   @param [in] fref= (0) Provide a DISK engine fileref as an alternative to PATH
@@ -38,7 +37,6 @@
     attempt is made to get all properties whether a file or folder, but some
     files/folders cannot be accessed, and so not all properties can / will be
     populated.
-
 
   @returns outds contains the following variables:
     - directory (containing folder)
@@ -60,7 +58,7 @@
   @li mp_dirlist.test.sas
 
   @version 9.2
-  @sasjslint {"noBannedStrings": false}
+  @sasjslint {"maxLineLength": 128}
 **/
 
 %macro mp_dirlist(path=%sysfunc(pathname(work))

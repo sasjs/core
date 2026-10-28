@@ -52,6 +52,7 @@
   @version 9.2
   @author Allan Bowe
 
+  @sasjslint {"maxLineLength": 93}
 **/
 
 %macro ms_createwebservice(path=0

@@ -20,12 +20,15 @@
     "lineEndings": "error",
     "lowerCaseFileNames": "error",
     "maxLineLength": "error",
+    "minMacroNameLength": "error",
     "noEncodedPasswords": "error",
     "noGremlins": "error",
     "noNestedCommentsInHeader": "error",
     "noSpacesInFileNames": "error",
     "noTabs": "error",
     "noTrailingSpaces": "error",
+    "noUndeclaredMacros": "error",
+    "noUnusedMacros": "error",
     "strictMacroDefinition": "error"
   }
 }

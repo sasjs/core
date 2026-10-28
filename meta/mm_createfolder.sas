@@ -46,42 +46,42 @@ data _null_;
   call missing (of _all_);
   folderPath = "%trim(&path)";
 
-  * remove any trailing slash ;
+  /* remove any trailing slash */
   if ( substr(folderPath,length(folderPath),1) = '/' ) then
     folderPath=substr(folderPath,1,length(folderPath)-1);
 
-  * name must not be blank;
+  /* name must not be blank */
   if ( folderPath = '' ) then do;
     put 'ERR' +(-1) "OR: &sysmacroname PATH parameter value must be non-blank";
   end;
 
-  * must have a starting slash ;
+  /* must have a starting slash */
   if ( substr(folderPath,1,1) ne '/' ) then do;
     put 'ERR' +(-1) "OR: &sysmacroname PATH param value must have starting slash";
     stop;
   end;
 
-  * check if folder already exists ;
+  /* check if folder already exists */
   rc=metadata_pathobj('',cats(folderPath,"(Folder)"),"",objType,objId);
   if rc ge 1 then do;
     put "NOTE: Folder " folderPath " already exists!";
     stop;
   end;
 
-  * do not create a root (one level) folder ;
+  /* do not create a root (one level) folder */
   if countc(folderPath,'/')=1 then do;
     put 'ERR' +(-1) "OR: &sysmacroname will not create a new ROOT folder";
     stop;
   end;
 
-  * check that root folder exists ;
+  /* check that root folder exists */
   root=cats('/',scan(folderpath,1,'/'),"(Folder)");
   if metadata_pathobj('',root,"",objType,parentId)<1 then do;
     put 'ERR' +(-1) "OR: " root " does not exist!";
     stop;
   end;
 
-  * check that parent folder exists ;
+  /* check that parent folder exists */
   child=scan(folderPath,-1,'/');
   parent=substr(folderpath,1,length(folderpath)-length(child)-1);
   rc=metadata_pathobj('',cats(parent,"(Folder)"),"",objType,parentId);

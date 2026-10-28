@@ -35,7 +35,8 @@ run;
 */
 options dlcreatedir;
 %let dirOut = %sysfunc(pathname(work))/package;
-libname _ "&dirOut.";
+/* create the folder the clone writes into */
+%mf_mkdir(&dirOut)
 
 %put tgt clone rc=%sysfunc(GITFN_CLONE(
   git@github.com:SASPAC/sasjscore.git,

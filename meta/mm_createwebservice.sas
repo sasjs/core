@@ -81,7 +81,7 @@ Usage:
 %&mD.put Executing mm_createwebservice.sas;
 %&mD.put _local_;
 
-* remove any trailing slash ;
+/* remove any trailing slash */
 %if "%substr(&path,%length(&path),1)" = "/" %then
   %let path=%substr(&path,1,%length(&path)-1);
 

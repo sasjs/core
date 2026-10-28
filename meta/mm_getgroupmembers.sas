@@ -44,18 +44,18 @@
     drop uriGrp uriMem rcGrp rcMem rc i j arc ;
 
     i=1;
-    * Grab the URI for the first Group ;
+    /* Grab the URI for the first Group */
     %if &id=NO %then %do;
       rcGrp=metadata_getnobj("omsobj:IdentityGroup?@Name='&group'",i,uriGrp);
     %end;
     %else %do;
       rcGrp=metadata_getnobj("omsobj:IdentityGroup?@Id='&group'",i,uriGrp);
     %end;
-    * If Group found, enter do loop ;
+    /* If Group found, enter do loop */
     if rcGrp>0 then do;
       call missing (rcMem,uriMem,GroupId,GroupName,Group_or_Role
         ,MemberName,MemberType);
-      * get group info ;
+      /* get group info */
       rc = metadata_getattr(uriGrp,"Id",GroupId);
       rc = metadata_getattr(uriGrp,"Name",GroupName);
       rc = metadata_getattr(uriGrp,"PublicType",Group_or_Role);

@@ -15,7 +15,10 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [lts/iron]
+        # lts/jod is Node 22: @sasjs/cli 6 declares node >=22, and on node 20 npx
+        # resolves 4.20.9 instead - an older linter, so a lint failure and a lint
+        # pass here are not the ones a developer sees locally.
+        node-version: [lts/jod]
 
     steps:
       - uses: actions/checkout@v6

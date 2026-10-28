@@ -10,10 +10,10 @@ name: Node.js CI
 on:
   pull_request:
 
-# checks: write is what lets the coverage step create and update its check run
+# pull-requests: write is what lets the coverage step create and update its comment
 permissions:
   contents: read
-  checks: write
+  pull-requests: write
 
 jobs:
   test:
@@ -55,17 +55,18 @@ jobs:
       # so an unresolvable dependency or a broken %macro fails here.  No server
       # is contacted - this is the same local build a maintainer runs.
       - name: Compile and build every macro
-        # teed to a file because the same run prints the compile coverage, which
-        # the next step reads rather than recomputing
-        run: npx @sasjs/cli cb -t server 2>&1 | tee compile-output.log
+        run: npx @sasjs/cli cb -t server
         env:
           macroCorePath: .
 
-      - name: Publish compile coverage status
-        # Creates the 'SASjs compile coverage' check run, or updates the one this
-        # workflow already created for the same commit, so a rebuilt PR shows one
-        # status rather than a stack of them.  Report only - it never fails the
-        # build, because coverage is a number to watch, not a gate.
+      - name: Publish compile coverage as a PR comment
+        # Reads the coverage report `sasjs compile` writes into the build folder
+        # (`coverage.json`), so the figures come from the CLI's own numbers
+        # instead of being scraped back out of coloured console output.  The
+        # comment is found by its marker and edited, so re-runs and new pushes
+        # update one comment rather than stacking a new one on every run.
+        # Report only - it never fails the build, because coverage is a number
+        # to watch, not a gate.
         if: >-
           always() &&
           github.event_name == 'pull_request' &&
@@ -74,59 +75,112 @@ jobs:
         with:
           script: |
             const fs = require('fs')
-            const logPath = 'compile-output.log'
-            if (!fs.existsSync(logPath)) {
-              core.info('no compile output to read')
-              return
-            }
-            // chalk colourises the percentage, so strip escapes before matching
-            const log = fs.readFileSync(logPath, 'utf8').replace(/\u001b\[[0-9;]*m/g, '')
-            const want = ['Services', 'Jobs', 'Macros', 'Overall']
-            const rows = []
-            for (const kind of want) {
-              const m = new RegExp(kind + ' coverage: (\\d+)/(\\d+) \\((\\d+)%\\)').exec(log)
-              if (m) rows.push({ kind, covered: +m[1], total: +m[2], pct: +m[3] })
-            }
-            if (!rows.length) {
-              core.info('the compile log carried no coverage lines')
-              return
-            }
+            const path = require('path')
 
-            const overall = rows.find((r) => r.kind === 'Overall') || rows[rows.length - 1]
-            const summary = [
-              '| Area | Covered | % |',
-              '| --- | --- | --- |',
-              ...rows.map((r) => `| ${r.kind} | ${r.covered}/${r.total} | ${r.pct}% |`)
-            ].join('\n')
-
-            const name = 'SASjs compile coverage'
             const owner = context.repo.owner
             const repo = context.repo.repo
-            const head_sha = context.payload.pull_request.head.sha
-            const payload = {
-              owner,
-              repo,
-              name,
-              head_sha,
-              status: 'completed',
-              conclusion: 'success',
-              output: {
-                title: `Overall ${overall.covered}/${overall.total} (${overall.pct}%)`,
-                summary
+            const issue_number = context.payload.pull_request.number
+            const sha = context.payload.pull_request.head.sha.slice(0, 7)
+            const marker = '<!-- sasjs-compile-coverage -->'
+
+            // One comment per PR: the marker identifies ours, so the same body
+            // is rewritten on a re-run or a new push instead of adding another.
+            const findComment = async () => {
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner, repo, issue_number, per_page: 100
+              })
+              return comments.find(
+                (comment) => comment.body && comment.body.startsWith(marker)
+              )
+            }
+
+            const write = async (existing, text) => {
+              if (existing) {
+                await github.rest.issues.updateComment({
+                  owner, repo, comment_id: existing.id, body: text
+                })
+                core.info(`updated comment ${existing.id}`)
+              } else {
+                const created = await github.rest.issues.createComment({
+                  owner, repo, issue_number, body: text
+                })
+                core.info(`created comment ${created.data.id}`)
               }
             }
 
-            // one status per commit: update the run this workflow created, if any
-            const existing = await github.rest.checks.listForRef({
-              owner, repo, ref: head_sha, check_name: name, per_page: 1
-            })
-            const run = (existing.data.check_runs || [])[0]
-            if (run) {
-              const updated = await github.rest.checks.update({
-                ...payload, check_run_id: run.id
-              })
-              core.info(`updated check run ${updated.data.id}`)
-            } else {
-              const created = await github.rest.checks.create(payload)
-              core.info(`created check run ${created.data.id}`)
+            const reportPath = path.join('sasjsbuild', 'coverage.json')
+            if (!fs.existsSync(reportPath)) {
+              // An existing comment is overwritten rather than left alone: stale
+              // figures that still look current are worse than a line saying
+              // there are none.  With no comment yet there is nothing to correct.
+              core.info(`${reportPath} is absent - the compile produced no coverage report`)
+              const existing = await findComment()
+              if (existing) {
+                await write(
+                  existing,
+                  [
+                    marker,
+                    '### SASjs compile coverage',
+                    '',
+                    `\`sasjs compile\` produced no coverage report on \`${sha}\`, so this run has nothing to measure. See the "Compile and build every macro" step.`
+                  ].join('\n')
+                )
+              }
+              return
             }
+
+            const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'))
+            const summary = report.summary || {}
+            const files = report.files || {}
+
+            const pct = (area) => (area.total ? `${area.percentage}%` : '-')
+            const areas = [
+              ['Services', summary.services],
+              ['Jobs', summary.jobs],
+              ['Macros', summary.macros],
+              ['Overall', summary.overall]
+            ].filter(([, area]) => area)
+
+            if (!areas.length) {
+              core.info('the coverage report carried no summary')
+              return
+            }
+
+            // "standalone" is a test file with no corresponding macro, not a gap
+            const uncovered = Object.keys(files).filter(
+              (file) =>
+                files[file].Coverage !== 'covered' &&
+                files[file].Coverage !== 'standalone'
+            )
+
+            const body = [
+              marker,
+              '### SASjs compile coverage',
+              '',
+              `Measured by \`sasjs compile\` on \`${sha}\`. This comment is edited in place, so it shows the latest run.`,
+              '',
+              '| Area | Covered | % |',
+              '| --- | --- | --- |',
+              ...areas.map(
+                ([label, area]) => `| ${label} | ${area.covered}/${area.total} | ${pct(area)} |`
+              )
+            ]
+
+            if (uncovered.length) {
+              const shown = uncovered.slice(0, 300)
+              body.push(
+                '',
+                `<details><summary>${uncovered.length} file(s) with no test</summary>`,
+                '',
+                '```',
+                ...shown,
+                ...(uncovered.length > shown.length
+                  ? [`... and ${uncovered.length - shown.length} more`]
+                  : []),
+                '```',
+                '',
+                '</details>'
+              )
+            }
+
+            await write(await findComment(), body.join('\n'))

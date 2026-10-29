@@ -51,9 +51,10 @@ run;
   outds=work.test_results
 )
 
-/* a missing member answers 0 without leaving a failed probe behind */
+/* a missing member answers 0 without dirtying the caller's status codes */
 %let existvarlist_missing=%mf_existvarlist(work.no_such_dataset,alpha);
 %let existvarlist_syserr=&syserr;
+%let existvarlist_syscc=&syscc;
 
 %mp_assert(
   iftrue=(&existvarlist_missing=0),
@@ -64,6 +65,12 @@ run;
 %mp_assert(
   iftrue=(&existvarlist_syserr=0),
   desc=Checking that a missing member leaves SYSERR untouched,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=(&existvarlist_syscc=0),
+  desc=Checking that a missing member leaves SYSCC untouched,
   outds=work.test_results
 )
 

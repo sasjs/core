@@ -448,6 +448,7 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
 
   %if %sysfunc(attrn(&dsid,NVARS))=0 %then %do;
     %put MF_EXISTVARLIST:  No variables in &libds ;
+    %let rc=%sysfunc(close(&dsid));
     0
     %return;
   %end;

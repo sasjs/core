@@ -40,3 +40,22 @@ run;
   desc=Checking that variable matching is case insensitive,
   outds=work.test_results
 )
+
+/* a member that exists but holds no variables */
+data work.existvarlist_empty;
+run;
+
+%mp_assert(
+  iftrue=(%mf_existvarlist(work.existvarlist_empty,alpha)=0),
+  desc=Checking that a dataset with no variables returns 0,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=(%mf_existvarlist(work.no_such_dataset,alpha)=0),
+  desc=Checking that a dataset that cannot be opened returns 0,
+  outds=work.test_results
+)
+
+/* the blank-parameter branch calls %mf_abort, so it stays uncovered: it ends
+  the session, which is not something a test can assert (see mp_abort.test) */

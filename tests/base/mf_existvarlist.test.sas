@@ -51,9 +51,19 @@ run;
   outds=work.test_results
 )
 
+/* a missing member answers 0 without leaving a failed probe behind */
+%let existvarlist_missing=%mf_existvarlist(work.no_such_dataset,alpha);
+%let existvarlist_syserr=&syserr;
+
 %mp_assert(
-  iftrue=(%mf_existvarlist(work.no_such_dataset,alpha)=0),
-  desc=Checking that a dataset that cannot be opened returns 0,
+  iftrue=(&existvarlist_missing=0),
+  desc=Checking that a dataset that does not exist returns 0,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=(&existvarlist_syserr=0),
+  desc=Checking that a missing member leaves SYSERR untouched,
   outds=work.test_results
 )
 

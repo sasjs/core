@@ -57,5 +57,15 @@ run;
   outds=work.test_results
 )
 
-/* the blank-parameter branch calls %mf_abort, so it stays uncovered: it ends
-  the session, which is not something a test can assert (see mp_abort.test) */
+/* blank input answers 0 - the caller decides what to do about it */
+%mp_assert(
+  iftrue=(%mf_existvarlist(work.existvarlist_test,)=0),
+  desc=Checking that a blank varlist returns 0,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=(%mf_existvarlist(,alpha)=0),
+  desc=Checking that a blank libds returns 0,
+  outds=work.test_results
+)

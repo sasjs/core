@@ -5,6 +5,7 @@
   <h4> SAS Macros </h4>
   @li mp_dropmembers.sas
   @li mf_existds.sas
+  @li mp_reseterror.sas
   @li mp_assert.sas
   @li mp_assertscope.sas
 
@@ -36,6 +37,21 @@ run;
 %mp_assert(
   iftrue=(%mf_existds(work.drop_b)=1),
   desc=Checking that an unlisted dataset is kept,
+  outds=work.test_results
+)
+
+/* a view is dropped by the /mtype=view pass, so the data-file pass has
+  nothing to delete - clear that expected message before asserting */
+proc sql;
+  create view work.drop_view as select * from work.drop_b;
+quit;
+
+%mp_dropmembers(list=drop_view)
+%mp_reseterror()
+
+%mp_assert(
+  iftrue=(%mf_existds(work.drop_view)=0),
+  desc=Checking that a listed view is dropped,
   outds=work.test_results
 )
 

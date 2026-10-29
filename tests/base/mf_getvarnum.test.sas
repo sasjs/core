@@ -4,6 +4,7 @@
 
   <h4> SAS Macros </h4>
   @li mf_getvarnum.sas
+  @li mf_isblank.sas
   @li mp_assert.sas
   @li mp_assertscope.sas
 
@@ -39,5 +40,14 @@ run;
 %mp_assert(
   iftrue=(%mf_getvarnum(work.varnum_test,third)=3),
   desc=Checking the third variable returns 3,
+  outds=work.test_results
+)
+
+/* a variable that does not exist returns a blank */
+%let varnum_missing=%mf_getvarnum(work.varnum_test,nosuchvar);
+
+%mp_assert(
+  iftrue=(%mf_isblank(&varnum_missing)=1),
+  desc=Checking that a variable that does not exist returns blank,
   outds=work.test_results
 )

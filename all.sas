@@ -418,9 +418,6 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
   @param [in] libds 2 part dataset or view reference
   @param [in] varlist space separated variable names
 
-  <h4> SAS Macros </h4>
-  @li mf_existds.sas
-
   @version 9.2
   @author Allan Bowe
   @cond
@@ -438,24 +435,13 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
   %end;
 
   %local dsid rc i var found;
-
-  /* a missing member is a negative answer, not a failed probe: checking it
-    first keeps the failed open, and the SYSERR it sets, out of the caller's
-    session */
-  %if %mf_existds(&libds)=0 %then %do;
-    %put %str(WARN)ING:  &libds does not exist in mf_existvarlist;
-    0
-    %return;
-  %end;
-
   %let dsid=%sysfunc(open(&libds,is));
 
-  /* backstop for a member that exists but cannot be opened (a lock, or a
-    permission the session does not hold) */
   %if &dsid=0 %then %do;
     %put %str(WARN)ING:  unable to open &libds in mf_existvarlist (&dsid);
-    /* ATTRN and VARNUM return a missing value for dsid 0, so probing further
-      would report a match */
+    /* the failed open reports through SYSMSG, not SYSERR or SYSCC, so the
+      return value is the whole signal - and ATTRN and VARNUM return a missing
+      value for dsid 0, which would report a match, so return before probing */
     0
     %return;
   %end;

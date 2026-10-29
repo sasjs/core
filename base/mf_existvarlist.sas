@@ -1,7 +1,8 @@
 /**
   @file
   @brief Checks if a set of variables ALL exist in a data set.
-  @details Returns 0 if ANY of the variables do not exist, or 1 if they ALL do.
+  @details Returns 0 if ANY of the variables do not exist, if the dataset
+  cannot be opened, or if it holds no variables.  Returns 1 if they ALL exist.
   Usage:
 
       %put %mf_existVarList(sashelp.class, age sex name dummyvar);
@@ -30,6 +31,11 @@
 
   %if &dsid=0 %then %do;
     %put %str(WARN)ING:  unable to open &libds in mf_existvarlist (&dsid);
+    /* no member means none of the variables exist - and ATTRN / VARNUM
+      return a missing value for dsid 0, so probing further would report
+      a match */
+    0
+    %return;
   %end;
 
   %if %sysfunc(attrn(&dsid,NVARS))=0 %then %do;

@@ -575,7 +575,14 @@ select distinct tgtvar_nm into: missvars separated by ' '
         qstr=quote(trim(NEWVAL_CHAR));
         put tgtvar_nm '=' qstr;
       end;
-      else put tgtvar_nm '=' newval_num;
+      else do;
+        /* the value becomes a SQL literal, so a special missing (.A-.Z, ._)
+          needs its leading period - PUT writes only the letter, which PROC SQL
+          reads as a column name */
+        put tgtvar_nm '=' @@;
+        if missing(newval_num) and newval_num ne . then put "." newval_num;
+        else put newval_num;
+      end;
       if comma='  ' then comma='  ,';
     end;
     if last.key_hash then put '  where key_hash=trim("' key_hash '");';

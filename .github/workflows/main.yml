@@ -108,5 +108,17 @@ jobs:
           echo 'core.sasjs.io' > CNAME
           git add .
           git commit -m "core pipeline build on $(date +%F:%H:%M:%S)"
+
+      - name: Generate sitemap and publish Docs Site
+        if: steps.makerelease.outputs.new_release_published == 'true'
+        working-directory: core.github.io
+        run: |
+          # The pages are committed before the sitemap is generated, so each
+          # <lastmod> is the commit date of the page it describes rather than
+          # the moment this run started.  The sitemap is committed in the same
+          # push as the pages, which is why no sitemap pull request exists.
+          python3 ../sasjs/utils/sitemap.py .
+          git add sitemap.xml
+          git diff --staged --quiet || git commit -m "chore: update sitemap"
           git push
           echo "check it out:  https://sasjs.github.io/core.github.io/files.html"

@@ -7651,9 +7651,15 @@ data _null_;
     %end;
     %if &vtype=N %then %do;
       %if &flavour=SAS %then %do;
-        put &var;
+        /* the value becomes a SQL literal, and PUT writes a special missing
+          (.A-.Z, ._) as its letter only - which PROC SQL reads as a column
+          name, so the leading period is written first */
+        if missing(&var) and &var ne . then put "." &var;
+        else put &var;
       %end;
       %else %if &flavour=PGSQL %then %do;
+        /* Postgres has no special missing values, so any missing numeric
+          (including ._ and .A-.Z) is written as NULL */
         if missing(&var) then put 'NULL';
         %if &applydttm=YES and "%substr(&vfmt.xxxxxxxx,1,8)"="DATETIME"
         %then %do;
@@ -14394,7 +14400,14 @@ select distinct tgtvar_nm into: missvars separated by ' '
         qstr=quote(trim(NEWVAL_CHAR));
         put tgtvar_nm '=' qstr;
       end;
-      else put tgtvar_nm '=' newval_num;
+      else do;
+        /* the value becomes a SQL literal, so a special missing (.A-.Z, ._)
+          needs its leading period - PUT writes only the letter, which PROC SQL
+          reads as a column name */
+        put tgtvar_nm '=' @@;
+        if missing(newval_num) and newval_num ne . then put "." newval_num;
+        else put newval_num;
+      end;
       if comma='  ' then comma='  ,';
     end;
     if last.key_hash then put '  where key_hash=trim("' key_hash '");';
@@ -15104,6 +15117,9 @@ create table &outds as select "No " as _____DELETE__THIS__RECORD_____
 ;
 
 /* create SAS code to apply to stage_ds */
+/* numeric values become SQL literals, so a special missing (.A-.Z, ._) must
+  carry its leading period - PUT writes only the letter, which PROC SQL reads
+  as a column name */
 data _null_;
   set &ds1;
   file &fref1 lrecl=33000;
@@ -15119,6 +15135,8 @@ data _null_;
       cnt=count(oldval_char,'"');
       charval=quote(trim(substr(oldval_char,1,32765-cnt)));
       if tgtvar_type='C' then put charval @@;
+      else if missing(oldval_num) and oldval_num ne .
+        then put "." oldval_num @@;
       else put oldval_num @@;
       if not last.is_pk then put ',';
     end;
@@ -15128,6 +15146,8 @@ data _null_;
       cnt=count(oldval_char,'"');
       charval=quote(trim(substr(oldval_char,1,32765-cnt)));
       if tgtvar_type='C' then put charval @@;
+      else if missing(oldval_num) and oldval_num ne .
+        then put "." oldval_num @@;
       else put oldval_num @@;
     end;
   end;
@@ -15141,6 +15161,8 @@ data _null_;
     cnt=count(newval_char,'"');
     charval=quote(trim(substr(newval_char,1,32765-cnt)));
     if tgtvar_type='C' then put charval @@;
+    else if missing(newval_num) and newval_num ne .
+      then put "." newval_num @@;
     else put newval_num @@;
   end;
   else if move_type='D' then do;
@@ -15152,6 +15174,8 @@ data _null_;
       cnt=count(oldval_char,'"');
       charval=quote(trim(substr(oldval_char,1,32765-cnt)));
       if tgtvar_type='C' then put charval @@;
+      else if missing(oldval_num) and oldval_num ne .
+        then put "." oldval_num @@;
       else put oldval_num @@;
     end;
     else do;
@@ -15160,6 +15184,8 @@ data _null_;
       cnt=count(oldval_char,'"');
       charval=quote(trim(substr(oldval_char,1,32765-cnt)));
       if tgtvar_type='C' then put charval @@;
+      else if missing(oldval_num) and oldval_num ne .
+        then put "." oldval_num @@;
       else put oldval_num @@;
     end;
   end;

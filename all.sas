@@ -7651,9 +7651,15 @@ data _null_;
     %end;
     %if &vtype=N %then %do;
       %if &flavour=SAS %then %do;
-        put &var;
+        /* the value becomes a SQL literal, and PUT writes a special missing
+          (.A-.Z, ._) as its letter only - which PROC SQL reads as a column
+          name, so the leading period is written first */
+        if missing(&var) and &var ne . then put "." &var;
+        else put &var;
       %end;
       %else %if &flavour=PGSQL %then %do;
+        /* Postgres has no special missing values, so any missing numeric
+          (including ._ and .A-.Z) is written as NULL */
         if missing(&var) then put 'NULL';
         %if &applydttm=YES and "%substr(&vfmt.xxxxxxxx,1,8)"="DATETIME"
         %then %do;

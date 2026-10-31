@@ -194,9 +194,8 @@ run;
 filename ft15f002 temp;
 data _null_;
   file ft15f002;
-  /* open the webout first, as a real service does: an abort raised before the
-    * response is opened produces no abort block in the body */
-  put '%webout(OPEN)';
+  /* the abort comes first, as it does in a real service: mp_abort opens the
+    * response itself, so nothing needs to precede it */
   put '%mp_abort(iftrue=(1=1),msg=Deliberate abort);';
 run;
 /* code= must be named: mx_createwebservice defaults to ft15f001, which still
@@ -239,6 +238,67 @@ run;
 %mp_assert(
   iftrue=("&msgcase"="PASS"),
   desc=Test 5 - the abort message from the child is reported,
+  outds=work.test_results
+)
+
+/**
+  * Test 5b - the abort message is the whole message, not what fits on one line
+  *
+  * The capture that fills errmsg stops at an escaped quote, and the variable
+  * held 256 bytes, so a message carrying either arrived truncated.  Both are
+  * reported in full now.
+  */
+filename ft15f003 temp;
+data _null_;
+  file ft15f003;
+  put '%mp_abort(iftrue=(1=1),msg=%nrstr(alpha "quoted" beta));';
+run;
+
+%mx_createwebservice(path=&mcTestAppLoc/services,name=abortQuote,code=ft15f003)
+
+%mx_execute(&mcTestAppLoc/services/abortQuote,
+  outref=testsq,
+  outstatus=work.statusq
+)
+
+filename ft15f004 temp;
+data _null_;
+  file ft15f004;
+  length big $400;
+  big=repeat('a message that runs on ',20);
+  put '%mp_abort(iftrue=(1=1),msg=' big +(-1) ');';
+run;
+
+%mx_createwebservice(path=&mcTestAppLoc/services,name=abortLong,code=ft15f004)
+
+%mx_execute(&mcTestAppLoc/services/abortLong,
+  outref=testlg,
+  outstatus=work.statuslg
+)
+
+%let quote6=NONE;
+%let long6=0;
+data _null_;
+  if exist('work.statusq') then do;
+    set work.statusq;
+    if index(errmsg,'quoted" beta')>0 then call symputx('quote6','PASS');
+    else call symputx('quote6','FAIL');
+  end;
+  if exist('work.statuslg') then do;
+    set work.statuslg;
+    call symputx('long6',length(errmsg));
+  end;
+run;
+
+%mp_assert(
+  iftrue=("&quote6"="PASS" or "&mcTestPlatform"="SASMETA"),
+  desc=Test 5b - a quote in the child message survives,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=(&long6>256 or "&mcTestPlatform"="SASMETA"),
+  desc=Test 5b - a long child message is reported in full (&long6 bytes),
   outds=work.test_results
 )
 

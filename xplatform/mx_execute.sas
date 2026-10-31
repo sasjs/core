@@ -350,7 +350,8 @@ filename &webref "&webrefpath";
   )
   %if "&outstatus" ne "0" %then %do;
     data &outstatus;
-      length state $20 uri $256 errmsg $256 platform $10;
+      length state $20 uri $256 errmsg $32767 platform $10;
+      length line $32767;
       retain state 'completed' uri '' errmsg '' platform 'SASJS' abortseen 0;
       infile &respref end=eof lrecl=32767;
       /* scan the whole response - the abort block is not always on the first
@@ -363,10 +364,15 @@ filename &webref "&webrefpath";
           abortseen=1;
         end;
         if abortseen=1 and errmsg='' and index(_infile_,'"MSG"')>0 then do;
-          /* prxchange returns its input untouched when nothing matches, which
-            * would put the whole line in errmsg */
-          if prxmatch('/"MSG" *: *"([^"]*)"/',_infile_) then
-            errmsg=prxchange('s/.*"MSG" *: *"([^"]*)".*/$1/',-1,_infile_);
+          /* a quote inside the message arrives escaped, and the capture below
+            * used to stop at it, returning the part before the first \" and
+            * dropping the rest.  The escaped pairs are unescaped first, so the
+            * value is captured whole: the match is greedy and runs to the
+            * closing quote of the value rather than to the first quote after
+            * the field name. */
+          line=tranwrd(_infile_,'\"','"');
+          if prxmatch('/"MSG" *: *"(.*)"/',line) then
+            errmsg=prxchange('s/.*"MSG" *: *"(.*)".*/$1/',-1,line);
         end;
       end;
       /* one row, whatever the response contained */

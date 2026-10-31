@@ -276,8 +276,25 @@ run;
   outstatus=work.statuslg
 )
 
+/* a comma and a percent sign: the two characters a message picks up from real
+  code, and the ones most likely to be lost on the way from the child's message
+  into a macro variable or a function argument */
+filename ft15f005 temp;
+data _null_;
+  file ft15f005;
+  put '%mp_abort(iftrue=(1=1),msg=%nrstr(alpha, beta 100% gamma));';
+run;
+
+%mx_createwebservice(path=&mcTestAppLoc/services,name=abortComma,code=ft15f005)
+
+%mx_execute(&mcTestAppLoc/services/abortComma,
+  outref=testcm,
+  outstatus=work.statuscm
+)
+
 %let quote6=NONE;
 %let long6=0;
+%let comma6=NONE;
 data _null_;
   if exist('work.statusq') then do;
     set work.statusq;
@@ -288,11 +305,22 @@ data _null_;
     set work.statuslg;
     call symputx('long6',length(errmsg));
   end;
+  if exist('work.statuscm') then do;
+    set work.statuscm;
+    if index(errmsg,'alpha, beta 100% gamma')>0 then call symputx('comma6','PASS');
+    else call symputx('comma6','FAIL');
+  end;
 run;
 
 %mp_assert(
   iftrue=("&quote6"="PASS" or "&mcTestPlatform"="SASMETA"),
   desc=Test 5b - a quote in the child message survives,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=("&comma6"="PASS" or "&mcTestPlatform"="SASMETA"),
+  desc=Test 5b - a comma and a percent sign in the child message survive,
   outds=work.test_results
 )
 

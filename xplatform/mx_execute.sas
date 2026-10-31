@@ -77,7 +77,8 @@
   viyaresult=WEBOUT_JSON,
   viyacontext=SAS Job Execution compute context
 );
-%local dbg pcnt fref1 fref2 webref webrefpath i webcount var platform jobds respref clearmeref;
+%local dbg pcnt fref1 fref2 webref webrefpath i webcount var platform jobds respref clearmeref
+  msgref abortmsg;
 %if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;
@@ -310,7 +311,7 @@ filename &webref "&webrefpath";
   /* the outcome, before the flow table goes away */
   %if "&outstatus" ne "0" %then %do;
     data &outstatus;
-      length state $20 uri $256 errmsg $256 platform $10;
+      length state $20 uri $256 errmsg $32767 platform $10;
       platform='SASVIYA';
       errmsg='';
       set &jobds(keep=state uri);
@@ -320,13 +321,55 @@ filename &webref "&webrefpath";
   proc datasets lib=work nolist nowarn;
     delete &jobds;
   quit;
+  /* the abort message is not in the job state, it is in the result - so a
+    * result file is needed to read it even when the caller did not ask for one */
+  %let msgref=&outref;
+  %if "&outstatus" ne "0" and "&outref"="0" %then %do;
+    %let msgref=%mf_getuniquefileref();
+    %let clearmeref=1;
+  %end;
   /* fetch results from webout.json */
   %mv_getjobresult(uri=&uri,
     result=&viyaresult,
-    outref=&outref,
+    outref=&msgref,
     outlib=&outlib,
     mdebug=&mdebug
   )
+  /* a job that did not complete carries the abort message in its result, so
+    * errmsg is filled from there rather than left blank */
+  %if "&outstatus" ne "0" %then %do;
+    %let abortmsg=;
+    data _null_;
+      length line $32767 msg $32767;
+      retain found 0;
+      set &outstatus(keep=state);
+      if state ne 'completed' then do;
+        infile &msgref end=eof lrecl=32767;
+        do while(not eof);
+          input;
+          if found=0 and index(_infile_,'"MSG"')>0 then do;
+            line=tranwrd(_infile_,'\"','"');
+            if prxmatch('/"MSG" *: *"(.*)"/',line) then do;
+              msg=prxchange('s/.*"MSG" *: *"(.*)".*/$1/',-1,line);
+              found=1;
+            end;
+          end;
+        end;
+      end;
+      if found then call symputx('abortmsg',msg,'l');
+    run;
+    %if %superq(abortmsg) ne %then %do;
+      data &outstatus;
+        modify &outstatus;
+        errmsg=symget('abortmsg');
+        replace;
+      end;
+    %end;
+  %end;
+  /* only a ref created here may be cleared */
+  %if %length(&clearmeref)>0 %then %do;
+    filename &msgref clear;
+  %end;
 
 %end;
 %else %if &platform=SASJS %then %do;

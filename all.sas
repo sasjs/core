@@ -15952,6 +15952,9 @@ alter table &libds modify &var char(&len);
     @li ISNUM - checks if the variable is numeric
     @li LIBDS - matches LIBREF.DATASET format
     @li FORMAT - checks if the provided format is syntactically valid
+    @li ISPATH - checks that the value is an absolute path this platform would
+      accept.  Shape only - whether the path exists is a different question
+      (mf_isdir / fileexist)
   @param [out] outcol The variable to create, with the results of the match
 
   <h4> SAS Macros </h4>
@@ -16027,6 +16030,38 @@ alter table &libds modify &var char(&len);
   end;
   if prxmatch(&tempcol, trim(&incol)) then &outcol=1;
   else &outcol=0;
+%end;
+%else %if &rule=ISPATH %then %do;
+  /*
+    An absolute path on the current platform.  This is a shape check: a path
+    that passes may still not exist, and one that fails would be rejected by
+    the operating system rather than read as a folder.
+  */
+  &outcol=0;
+  if length(trim(&incol))>0 and anycntrl(&incol)=0 then do;
+    %if "%upcase(&sysscp)"="WIN" or "%upcase(&sysscp)"="DNTHOST" %then %do;
+      /* a drive root (C:/folder) */
+      if substr(&incol,2,1)=':' and substr(&incol,3,1) in ('\','/') then
+        &outcol=1;
+      /* a UNC share needs both a host and a share - \\host\ is not openable */
+      if substr(&incol,1,2)='\\' and scan(&incol,2,'\') ne '' then
+        &outcol=1;
+      /* characters windows does not accept in a name, and a colon
+        anywhere but the drive separator */
+      if &outcol=1 then do;
+        if index(substr(&incol,3),':')>0 then &outcol=0;
+        if index(&incol,byte(34))>0 then &outcol=0;
+        if index(&incol,'<')>0 then &outcol=0;
+        if index(&incol,'>')>0 then &outcol=0;
+        if index(&incol,'|')>0 then &outcol=0;
+        if index(&incol,'?')>0 then &outcol=0;
+        if index(&incol,'*')>0 then &outcol=0;
+      end;
+    %end;
+    %else %do;
+      if substr(&incol,1,1)='/' then &outcol=1;
+    %end;
+  end;
 %end;
 %else %if &rule=FORMAT %then %do;
   /* match valid SAS format*/

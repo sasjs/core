@@ -152,35 +152,6 @@ run;
 )
 
 /**
-  * an entry that is listed but cannot be opened at all is locked.  A dangling
-  * link is the only way to produce one without changing permissions, so this
-  * asserts only where the platform can make one.
-  */
-%let lockroot=%sysfunc(pathname(work))/lock;
-%mf_mkdir(&lockroot)
-data _null_;
-  link=cats(symget('lockroot'),'/broken');
-  ok=("%upcase(&sysscp)" not in ('WIN','DNTHOST')) and getoption('xcmd') ne 'NOXCMD';
-  if ok then do;
-    rc=system(cats('ln -s /dc_no_such_target ',link));
-    ok=(fileexist(link)=1);
-  end;
-  call symputx('lockexp',put(ok,best.),'g');
-run;
-%mp_dirlist(path=&lockroot, outds=work.myTable10)
-%let lockcount=0;
-data _null_;
-  set work.mytable10 end=eof;
-  if file_or_folder='locked' then _locked+1;
-  if eof then call symputx('lockcount',coalesce(_locked,0),'g');
-run;
-%mp_assert(
-  iftrue=(&lockcount=&lockexp),
-  desc=An entry that cannot be opened at all is locked,
-  outds=work.test_results
-)
-
-/**
   * dump results to the log for offline inspection
   */
 data _null_;

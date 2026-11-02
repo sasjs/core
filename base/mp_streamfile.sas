@@ -17,6 +17,7 @@
     @li CSV
     @li EXCEL
     @li MARKDOWN
+    @li PDF
     @li TEXT
     @li ZIP
     Feel free to submit PRs to support more mime types!  The official list is
@@ -178,6 +179,23 @@ run;
     %mfs_httpheader(Content-Type
       ,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
     )
+    %mfs_httpheader(Content-disposition,%str(attachment; filename=&outname))
+  %end;
+%end;
+%else %if &contentype=PDF %then %do;
+  %if (&platform=SASMETA and &streamweb=1) %then %do;
+    data _null_;
+      rc=stpsrv_header('Content-Type','application/pdf');
+      rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
+    run;
+  %end;
+  %else %if &platform=SASVIYA %then %do;
+    filename &outref filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.pdf'
+      contenttype='application/pdf'
+      contentdisp="attachment; filename=&outname";
+  %end;
+  %else %if &platform=SASJS %then %do;
+    %mfs_httpheader(Content-Type,application/pdf)
     %mfs_httpheader(Content-disposition,%str(attachment; filename=&outname))
   %end;
 %end;

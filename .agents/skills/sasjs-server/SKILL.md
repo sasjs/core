@@ -1,6 +1,6 @@
 ---
 name: sasjs-server
-description: Installing, configuring, and running @sasjs/server - the open-source NodeJS wrapper around the SAS binary that provides a REST API, filesystem (SASjs Drive), Stored Program execution, and web app streaming. Covers desktop vs server modes, runtimes (SAS/JS/Python/R), env vars, auth (tokens, LDAP), and mock servers. Use when deploying, troubleshooting, or developing against sasjs/server.
+description: Installing, configuring, and running @sasjs/server - the open-source NodeJS wrapper around the SAS binary that provides a REST API, filesystem (SASjs Drive), Stored Program execution, and web app streaming. Covers desktop vs server modes, runtimes (SAS/JS/Python/R), env vars, minting an API token (SASLogon session -> code -> token) plus LDAP, and mock servers. Use when deploying, troubleshooting, or developing against sasjs/server.
 ---
 
 # @sasjs/server
@@ -56,6 +56,29 @@ Set in `/etc/environment`, exported, prepended to the command, or in a `.env` fi
 - The REST API is self-documented via Swagger on the running instance.
 - Server-side execution uses `ms_*` macros from @sasjs/core (e.g. `ms_createfile`, `ms_adduser2group`) - services/jobs deployed by the CLI work as on other platforms.
 - Repo layout (for contributors): `api/` (Express/TypeScript backend: controllers, routes, middlewares, model), `web/` (frontend), `restClient/` (REST examples), `mongo-seed/` (server-mode DB seed).
+
+### Getting a token
+
+There is no login route under `/SASjsApi`. A client-id-plus-secret call to `/SASjsApi/auth/token` is rejected with `"clientId" is required`, then with `"code" is required`, because that route only exchanges an authorization code. The code comes from a SASLogon session:
+
+1. `GET /` with a cookie jar - sets `XSRF-TOKEN` (and `connect.sid`). The token is not reliably in the HTML, so read the cookie.
+2. `POST /SASLogon/login` with `{"username": ..., "password": ...}` and the header `x-xsrf-token: <cookie value>`. The response is a session (`{"loggedIn": true, ...}`), not a token. Skipping step 1 gives `400 Invalid CSRF token!`.
+3. `POST /SASLogon/authorize` with `{"clientId": "clientID1"}` (session cookie plus the xsrf header) -> `{"code": ...}`.
+4. `POST /SASjsApi/auth/token` with `{"clientId": ..., "code": ...}` -> `{"accessToken": ..., "refreshToken": ...}`.
+
+`scripts/mint-tokens.py` runs the whole chain and writes the pair in the shape the CLI reads from `.env.<target>`:
+
+```
+SASJS_URL=https://example.com SASJS_USER=me SASJS_PASS=secret \
+  python3 scripts/mint-tokens.py --client clientID1 --out .env.mytarget
+```
+
+Two things that waste time when they surprise you:
+
+- **Access tokens are short-lived** (an hour by default on a stock install). An expired one surfaces as `Login callback called. Request failed.` from the CLI - with a zero exit code and no test output - or a plain 401 from any `/SASjsApi` route. Re-mint rather than debugging the deploy.
+- **The authorization code is single-use**, and `/SASjsApi/auth/refresh` accepts the refresh token if you want to rotate without a password (payload shape is in the instance's Swagger).
+
+None of this applies in desktop mode (`MODE=desktop`, the default): there is no auth and no header is needed.
 
 ## Mock services with the JS runtime (no SAS required)
 

@@ -21,8 +21,15 @@
 
   Handling of the ODS session: the macro opens its own PDF destination, sets
   titles and footnotes for the duration of the report and clears them on the
-  way out, so it can be called from a program that has its own titles. The
-  page orientation option is saved and restored around the report.
+  way out, so its own text does not leak into whatever the caller prints next.
+  A caller that has its own titles and footnotes must set them again after the
+  call: SAS offers no way to read the title or footnote text back (GETOPTION
+  does not report them), so they cannot be saved and restored the way the page
+  orientation is.
+
+  The page numbers are written with the `(*ESC*)` inline-function prefix
+  rather than with an escape character, so the report does not depend on the
+  caller having run `ods escapechar=`.
 
   @param [in] ds The dataset to print. A name without a libref is read from
     WORK.
@@ -46,11 +53,14 @@
   @param [in] pagenum= (PAGE) Numbering appended to the footnote. Supported
     values:
     @li PAGE - "Page n"
+    @li PAGEOF - "Page n of m"
     @li NO - no page number
-    A total ("Page n of m") is deliberately not offered: ODS PDF exposes the
-    current page but not the last one, and the page objects in the file are not
-    reliably countable without parsing it, so a total would mean rendering the
-    report twice and then guessing.
+    The numbers come from the ODS inline functions `{thispage}` and
+    `{lastpage}`, written behind the `(*ESC*)` prefix so no ODS ESCAPECHAR has
+    to be set. SAS documents `{lastpage}` as preproduction, and warns that
+    images and URL links can be dropped from a title or footnote that uses it -
+    this macro prints a table only, so the total is safe here, but that is why
+    it is not the default.
 
   @return The PDF is written to `outref`. No dataset is created.
 
@@ -77,7 +87,7 @@
   ,pagenum=PAGE
 )/*/STORE SOURCE*/;
 
-%local obsopt foot odsopts prev_orient;
+%local obsopt foot pagetxt odsopts prev_orient;
 
 %if %index(&ds,.)=0 %then %let ds=WORK.&ds;
 %let ds=%upcase(&ds);
@@ -99,11 +109,17 @@
 %let obsopt=;
 %if %eval(&maxobs)>0 %then %let obsopt=(obs=&maxobs);
 
-/* the caller's footnote keeps its own text; numbering is appended to it */
+/* the caller's footnote keeps its own text; numbering is appended to it.
+  (*ESC*) is used rather than an escape character so the inline functions work
+  without the caller having set ods escapechar. */
+%if &pagenum=PAGE %then %let pagetxt=Page (*ESC*){thispage};
+%else %if &pagenum=PAGEOF %then
+  %let pagetxt=Page (*ESC*){thispage} of (*ESC*){lastpage};
+
 %let foot=&footnote;
-%if &pagenum=PAGE %then %do;
-  %if %length(&foot) ne 0 %then %let foot=&foot ^{thispage};
-  %else %let foot=Page ^{thispage};
+%if %length(&pagetxt)>0 %then %do;
+  %if %length(&foot)>0 %then %let foot=&foot &pagetxt;
+  %else %let foot=&pagetxt;
 %end;
 
 %let odsopts=notoc;

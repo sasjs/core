@@ -11,6 +11,9 @@
 filename pdf1 temp;
 filename pdf2 temp;
 filename pdf3 temp;
+filename pdf4 temp;
+filename pdf5 temp;
+filename pdf6 temp;
 
 %mp_ds2pdf(sashelp.class, outref=pdf1
   ,title=Class listing
@@ -28,7 +31,19 @@ run;
 %mp_ds2pdf(work.classsex, outref=pdf3, by=SEX
   ,title=By group listing)
 
-%let titleopt=%sysfunc(getoption(title));
+/* the total form of the page number */
+%mp_ds2pdf(sashelp.class, outref=pdf4, pagenum=PAGEOF)
+
+/* and the same report with no numbering, so the two can be compared */
+%mp_ds2pdf(sashelp.class, outref=pdf5, pagenum=NO)
+
+/* the report must not depend on the caller's ODS escape character: with one
+  set, the same call has to produce the same file as pdf1 */
+ods escapechar='^';
+
+%mp_ds2pdf(sashelp.class, outref=pdf6
+  ,title=Class listing
+  ,footnote=Core test)
 
 data _null_;
   infile pdf1 recfm=f lrecl=8 obs=1;
@@ -44,20 +59,29 @@ data _null_;
   call symputx('sigby',substr(sig,1,5),'l');
 run;
 
+/* the byte size is read with finfo() rather than by counting records, so a
+  padded record length cannot stand in for the file size */
 data _null_;
-  infile pdf1 recfm=f lrecl=32767 end=eof;
-  retain sz 0;
-  input;
-  sz+length(_infile_);
-  if eof then call symputx('sizefull',sz,'l');
-run;
-
-data _null_;
-  infile pdf2 recfm=f lrecl=32767 end=eof;
-  retain sz 0;
-  input;
-  sz+length(_infile_);
-  if eof then call symputx('sizecapped',sz,'l');
+  fid=fopen('pdf1');
+  s1=finfo(fid,'File Size (bytes)');
+  rc=fclose(fid);
+  fid=fopen('pdf2');
+  s2=finfo(fid,'File Size (bytes)');
+  rc=fclose(fid);
+  fid=fopen('pdf4');
+  s4=finfo(fid,'File Size (bytes)');
+  rc=fclose(fid);
+  fid=fopen('pdf5');
+  s5=finfo(fid,'File Size (bytes)');
+  rc=fclose(fid);
+  fid=fopen('pdf6');
+  s6=finfo(fid,'File Size (bytes)');
+  rc=fclose(fid);
+  call symputx('size1',s1,'l');
+  call symputx('size2',s2,'l');
+  call symputx('size4',s4,'l');
+  call symputx('size5',s5,'l');
+  call symputx('size6',s6,'l');
 run;
 
 /* the signature is checked in a data step so the percent sign in the PDF
@@ -83,12 +107,17 @@ run;
   outds=work.test_results
 )
 %mp_assert(
-  iftrue=(&sizecapped < &sizefull),
+  iftrue=(&size2 < &size1),
   desc=Checking maxobs reduces the report,
   outds=work.test_results
 )
 %mp_assert(
-  iftrue=("&titleopt"=""),
-  desc=Checking the title is cleared after the report,
+  iftrue=(&size4 > &size5),
+  desc=Checking the page total is written to the page,
+  outds=work.test_results
+)
+%mp_assert(
+  iftrue=(&size6 = &size1),
+  desc=Checking a caller escape character does not change the report,
   outds=work.test_results
 )

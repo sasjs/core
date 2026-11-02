@@ -6119,9 +6119,6 @@ run;
   @brief Returns all files and subdirectories within a specified parent
   @details When used with getattrs=NO, is not OS specific (uses dopen / dread).
 
-  Credit for the rename approach:
-  https://communities.sas.com/t5/SAS-Programming/SAS-Function-to-convert-string-to-Legal-SAS-Name/m-p/27375/highlight/true#M5003
-
   Usage:
 
       %mp_dirlist(path=/some/location, outds=myTable, maxdepth=MAX)
@@ -6130,18 +6127,24 @@ run;
 
       %mp_dirlist(fref=MYFREF)
 
-  @note In a Unix environment, the existence of a named pipe will cause this
-  macro to hang.  Therefore this tool should be used with caution in a SAS 9 web
-  application, as it can use up all available multibridge sessions if requests
-  are resubmitted.
-  If anyone finds a way to positively identify a named pipe using SAS (without
-  X CMD) do please raise an issue!
+  Entries are classified with the dopen function alone.  The previous
+  implementation also used fopen - which blocks when the entry is a named pipe
+  (fifo), so a single fifo in a folder was enough to hang the whole session.
+  With getattrs=NO that hazard is gone; with getattrs=YES entries are opened to
+  read their attributes, so a fifo can still block that mode.
+
+  @note Symlinks are followed.  A symlink that points at one of its own parents
+  produces an endless path (a/b/link/b/link/...), so a browse service must
+  always pass a finite <code>maxdepth=</code>.
 
   @param [in] path= (%sysfunc(pathname(work))) Path for which to return contents
   @param [in] fref= (0) Provide a DISK engine fileref as an alternative to PATH
   @param [in] maxdepth= (0) Set to a positive integer to indicate the level of
     subdirectory scan recursion - eg 3, to go `./3/levels/deep`.  For unlimited
     recursion, set to MAX.
+  @param [in] maxobs= (0) Maximum number of rows to return.  Zero means no
+    limit.  Useful when the folder is expected to be huge and the caller only
+    needs a slice of it - no further levels are scanned once the cap is hit.
   @param [in] showparent= (NO) By default, the initial parent directory is not
     part of the results.  Set to YES to include it.  For this record only,
     directory=filepath.
@@ -6153,10 +6156,13 @@ run;
     attempt is made to get all properties whether a file or folder, but some
     files/folders cannot be accessed, and so not all properties can / will be
     populated.
+  @param [in] level= (0) Ignored - retained so that callers of previous versions
+    do not break.  Recursion is now done in a loop rather than by re-invoking
+    the macro.
 
   @returns outds contains the following variables:
     - directory (containing folder)
-    - file_or_folder (file / folder)
+    - file_or_folder (file / folder / locked)
     - filepath (path/to/file.name)
     - filename (just the file name)
     - ext (.extension)
@@ -6165,9 +6171,8 @@ run;
     - OS SPECIFIC variables, if <code>getattrs=</code> is used.
 
   <h4> SAS Macros </h4>
-  @li mf_existds.sas
-  @li mf_getvarlist.sas
-  @li mf_wordsinstr1butnotstr2.sas
+  @li mf_getuniquefileref.sas
+  @li mf_nobs.sas
   @li mp_dropmembers.sas
 
   <h4> Related Macros </h4>
@@ -6183,101 +6188,184 @@ run;
     , getattrs=NO
     , showparent=NO
     , maxdepth=0
-    , level=0 /* The level of recursion to perform.  For internal use only. */
+    , maxobs=0
+    , level=0 /* deprecated - ignored, kept for backwards compatibility */
 )/*/STORE SOURCE*/;
 %let getattrs=%upcase(&getattrs)XX;
+%let showparent=%upcase(&showparent)XX;
 
-/* temp table */
-%local out_ds;
-data;run;
-%let out_ds=%str(&syslast);
+%local lvl nfront total room done;
+%local fref1 fref2;
+
+/* the parent can be supplied as a fileref rather than a path */
+%if &fref ne 0 %then %let path=%sysfunc(pathname(&fref));
+
+/* MAX is not a number, so convert it (and anything not a digit) to an int */
+%if %length(&maxdepth)=0 or %sysfunc(verify(&maxdepth,0123456789))>0 %then %do;
+  %if "%upcase(&maxdepth)"="MAX" %then %let maxdepth=2147483647;
+  %else %let maxdepth=0;
+%end;
+%if %length(&maxobs)=0 or %sysfunc(verify(&maxobs,0123456789))>0 %then %let maxobs=0;
 
 /* drop main (top) table if it exists */
-%if &level=0 %then %do;
-  %mp_dropmembers(%scan(&outds,-1,.), libref=WORK)
-%end;
+%mp_dropmembers(%scan(&outds,-1,.), libref=WORK)
 
-data &out_ds(compress=no
-    keep=file_or_folder filepath filename ext msg directory level
-  );
-  length directory filepath $2000 fref fref2 $8 file_or_folder $6 filename $255
-    ext $20 msg $200 foption $16;
-  if _n_=1 then call missing(of _all_);
-  retain level &level;
-  %if &fref=0 %then %do;
-    rc = filename(fref, "&path");
-  %end;
-  %else %do;
-    fref="&fref";
-    rc=0;
-  %end;
-  if rc = 0 then do;
-    did = dopen(fref);
-    if did=0 then do;
-      putlog "NOTE: This directory is empty, or does not exist - &path";
-      msg=sysmsg();
-      put (_all_)(=);
-      stop;
-    end;
-    /* attribute is OS-dependent - could be "Directory" or "Directory Name" */
-    numopts=doptnum(did);
-    do i=1 to numopts;
-      foption=doptname(did,i);
-      if foption=:'Directory' then i=numopts;
-    end;
-    directory=dinfo(did,foption);
-    rc = filename(fref);
-  end;
-  else do;
-    msg=sysmsg();
-    put _all_;
-    stop;
-  end;
-  dnum = dnum(did);
-  do i = 1 to dnum;
-    filename = dread(did, i);
-    filepath=cats(directory,'/',filename);
-    rc = filename(fref2,filepath);
-    midd=dopen(fref2);
+/* an empty table with the target structure - each level is appended to it */
+data &outds;
+  length directory filepath $2000 file_or_folder $6 filename $255 ext $20
+    msg $200 level 8;
+  call missing(of _all_);
+  stop;
+run;
+
+/* a unique fileref per purpose, generated once - only macro vars are local */
+%let fref1=%mf_getuniquefileref();
+%let fref2=%mf_getuniquefileref();
+
+/* level 0 is the parent itself; the path is read with symget so that quotes
+  and macro triggers in a folder name are never evaluated as SAS code */
+data work.__mp_dirlist_frontier;
+  length filepath $2000 level 8;
+  filepath=symget('path');
+  level=0;
+run;
+
+%let lvl=0;
+%let nfront=1;
+%let done=0;
+
+%do %until(&nfront=0 or &lvl>&maxdepth or &done=1);
+
+  data work.__mp_dirlist_level;
+    set work.__mp_dirlist_frontier;
+    length directory filepath $2000 file_or_folder $6 filename $255 ext $20
+      msg $200 sep $1 prefix $2000 fname $255 dmsg $200;
+    drop sep prefix fname dmsg rc did mid i;
+    directory=filepath;
+    msg='';
+    file_or_folder='';
+    ext='';
+    filename='';
+    rc=filename("&fref1", directory);
+    did=dopen("&fref1");
     dmsg=sysmsg();
-    if did > 0 then file_or_folder='folder';
-    rc=dclose(midd);
-    midf=fopen(fref2);
-    fmsg=sysmsg();
-    if midf > 0 then file_or_folder='file';
-    rc=fclose(midf);
-
-    if index(fmsg,'File is in use') or index(dmsg,'is not a directory')
-      then file_or_folder='file';
-    else if index(fmsg,'Insufficient authorization') then file_or_folder='file';
-    else if file_or_folder='' then file_or_folder='locked';
-
-    if file_or_folder='file' then do;
-      ext = prxchange('s/.*\.{1,1}(.*)/$1/', 1, filename);
-      if filename = ext then ext = ' ';
+    if did=0 then do;
+      /* nothing to list - a parent that vanished between levels, or a path
+        that does not exist; the entries that pointed here are already marked
+        locked by the level that produced them */
     end;
     else do;
-      ext='';
-      file_or_folder='folder';
+      /* strip any trailing separator, keeping / and drive roots intact */
+      do while(length(directory)>1);
+        if substr(directory,length(directory),1) not in ('/','\') then leave;
+        if length(directory)=3 and substr(directory,2,1)=':' then leave;
+        directory=substr(directory,1,length(directory)-1);
+      end;
+      if index(directory,'\')>0 then sep='\';
+      else sep='/';
+      if directory='/' or (length(directory)=3 and substr(directory,2,1)=':')
+        then prefix=directory;
+      else prefix=cats(directory,sep);
+      do i=1 to dnum(did);
+        fname=dread(did,i);
+        filename=fname;
+        filepath=cats(prefix,fname);
+        msg='';
+        ext='';
+        /* dopen alone is enough to tell a folder from anything else, and it
+          returns immediately for a fifo - fopen would block until a writer
+          appeared */
+        rc=filename("&fref2",filepath);
+        mid=dopen("&fref2");
+        if mid>0 then do;
+          file_or_folder='folder';
+          rc=dclose(mid);
+        end;
+        else do;
+          dmsg=sysmsg();
+          if index(dmsg,'is not a directory')>0 then do;
+            file_or_folder='file';
+            ext=prxchange('s/.*\.{1,1}(.*)/$1/',1,filename);
+            if filename=ext then ext=' ';
+          end;
+          else do;
+            /* exists but cannot be read - permissions, broken link, fifo */
+            file_or_folder='locked';
+            msg=dmsg;
+          end;
+        end;
+        rc=filename("&fref2");
+        output;
+      end;
+      rc=dclose(did);
     end;
-    output;
-  end;
-  rc = dclose(did);
-  %if &showparent=YES and &level=0 %then %do;
+    rc=filename("&fref1");
+  run;
+
+  /* trim the level to what is left of the maxobs budget before appending */
+  %let total=%sysfunc(coalesce(%mf_nobs(&outds),0));
+  %let room=2147483647;
+  %if &maxobs>0 %then %let room=%eval(&maxobs-&total);
+  %if &room>0 %then %do;
+    data work.__mp_dirlist_level;
+      set work.__mp_dirlist_level(obs=&room);
+    run;
+    proc append base=&outds data=work.__mp_dirlist_level force nowarn;
+    run;
+  %end;
+
+  %let total=%sysfunc(coalesce(%mf_nobs(&outds),0));
+  %if &maxobs>0 and &total>=&maxobs %then %let done=1;
+
+  /* the folders of this level become the parents of the next one */
+  %let nfront=0;
+  %if &done=0 and &lvl<&maxdepth %then %do;
+    data work.__mp_dirlist_frontier;
+      set work.__mp_dirlist_level(where=(file_or_folder='folder'));
+      level=level+1;
+      keep filepath level;
+    run;
+    %let nfront=%sysfunc(coalesce(%mf_nobs(work.__mp_dirlist_frontier),0));
+  %end;
+
+  %let lvl=%eval(&lvl+1);
+
+%end;
+
+/* include the starting folder itself, when asked */
+%if %substr(&showparent,1,1)=Y %then %do;
+  data work.__mp_dirlist_level;
+    length directory filepath $2000 file_or_folder $6 filename $255 ext $20
+      msg $200 level 8;
+    /* the parent is only listed when it can be opened, so a path that does
+      not exist stays an empty result even with showparent=YES */
+    filepath=symget('path');
+    rc=filename("&fref1",filepath);
+    did=dopen("&fref1");
+    if did>0 then rc=dclose(did);
+    rc=filename("&fref1");
+    if did=0 then stop;
+    directory=filepath;
+    do while(length(directory)>1);
+      if substr(directory,length(directory),1) not in ('/','\') then leave;
+      if length(directory)=3 and substr(directory,2,1)=':' then leave;
+      directory=substr(directory,1,length(directory)-1);
+    end;
     filepath=directory;
     file_or_folder='folder';
     ext='';
     filename=scan(directory,-1,'/\');
     msg='';
-    level=&level;
+    level=0;
     output;
-  %end;
-  stop;
-run;
+  run;
+  proc append base=&outds data=work.__mp_dirlist_level force nowarn;
+  run;
+%end;
 
 %if %substr(&getattrs,1,1)=Y %then %do;
-  data &out_ds;
-    set &out_ds;
+  data &outds;
+    set &outds;
     length infoname infoval $60 fref $8;
     if _n_=1 then call missing(fref);
     rc=filename(fref,filepath);
@@ -6319,60 +6407,21 @@ run;
   run;
   proc sort;
     by filepath sasname;
-  proc transpose data=&out_ds out=&out_ds(drop=_:);
+  proc transpose data=&outds out=&outds(drop=_:);
     id sasname;
     var infoval;
     by filepath file_or_folder filename ext ;
   run;
 %end;
 
-data &out_ds;
-  set &out_ds(where=(filepath ne ''));
+data &outds;
+  set &outds(where=(filepath ne ''));
 run;
 
-/**
-  * The above transpose can mean that some updates create additional columns.
-  * This necessitates the occasional use of datastep over proc append.
-  */
-%if %mf_existds(&outds) %then %do;
-  %local basevars appvars newvars;
-  %let basevars=%mf_getvarlist(&outds);
-  %let appvars=%mf_getvarlist(&out_ds);
-  %let newvars=%length(%mf_wordsinstr1butnotstr2(Str1=&appvars,Str2=&basevars));
-  %if &newvars>0 %then %do;
-    data &outds;
-      set &outds &out_ds;
-    run;
-  %end;
-  %else %do;
-    proc append base=&outds data=&out_ds force nowarn;
-    run;
-  %end;
-%end;
-%else %do;
-  proc append base=&outds data=&out_ds;
-  run;
-%end;
-
-/* recursive call */
-%if &maxdepth>&level or &maxdepth=MAX %then %do;
-  data _null_;
-    set &out_ds;
-    where file_or_folder='folder';
-  %if &showparent=YES and &level=0 %then %do;
-    if filepath ne directory;
-  %end;
-    length code $10000;
-    code=cats('%nrstr(%mp_dirlist(path=',filepath,",outds=&outds"
-      ,",getattrs=&getattrs,level=%eval(&level+1),maxdepth=&maxdepth))");
-    put code=;
-    call execute(code);
-  run;
-%end;
-
 /* tidy up */
-proc sql;
-drop table &out_ds;
+proc sql noprint;
+drop table work.__mp_dirlist_frontier, work.__mp_dirlist_level;
+quit;
 
 %mend mp_dirlist;
 /**

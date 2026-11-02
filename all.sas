@@ -7814,10 +7814,12 @@ run;
   Handling of the ODS session: the macro opens its own PDF destination, sets
   titles and footnotes for the duration of the report and clears them on the
   way out, so its own text does not leak into whatever the caller prints next.
-  A caller that has its own titles and footnotes must set them again after the
-  call: SAS offers no way to read the title or footnote text back (GETOPTION
-  does not report them), so they cannot be saved and restored the way the page
-  orientation is.
+  It does not save and restore the caller's titles, even though they can be
+  read: SASHELP.VTITLE holds the current lines (TYPE T and F).  Re-emitting
+  them means rebuilding SAS statements out of free text that may contain
+  quotes, semicolons or macro triggers, which is a separate problem this macro
+  does not take on - so a caller that needs its own titles back after the
+  report should capture them from SASHELP.VTITLE and set them again.
 
   The page numbers are written with the `(*ESC*)` inline-function prefix
   rather than with an escape character, so the report does not depend on the

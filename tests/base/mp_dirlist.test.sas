@@ -5,8 +5,9 @@
   <h4> SAS Macros </h4>
   @li mf_nobs.sas
   @li mf_mkdir.sas
-  @li mp_dirlist.sas
   @li mp_assert.sas
+  @li mp_assertscope.sas
+  @li mp_dirlist.sas
 
 **/
 
@@ -26,7 +27,12 @@ data test.ds1;
   x=1;
 run;
 
+%mp_assertscope(SNAPSHOT)
 %mp_dirlist(path=&root, outds=myTable, maxdepth=MAX)
+%mp_assertscope(COMPARE,
+  desc=Test 1: mp_dirlist does not leak scope,
+  outds=work.test_results
+)
 
 %mp_assert(
   iftrue=(%mf_nobs(work.mytable)=6),
@@ -63,3 +69,121 @@ run;
   desc=Empty table for non-existing directory,
   outds=work.test_results
 )
+
+/**
+  * maxobs caps the rows returned, and the scan stops at the cap
+  */
+%mp_dirlist(path=&root, outds=work.myTable6, maxdepth=MAX, maxobs=3)
+%mp_assert(
+  iftrue=(%mf_nobs(work.mytable6)=3),
+  desc=Rows are capped by maxobs,
+  outds=work.test_results
+)
+
+%mp_dirlist(path=&root, outds=work.myTable7, maxdepth=MAX, maxobs=100)
+%mp_assert(
+  iftrue=(%mf_nobs(work.mytable7)=6),
+  desc=A maxobs above the tree size returns everything,
+  outds=work.test_results
+)
+
+/**
+  * showparent adds the starting folder itself
+  */
+%mp_dirlist(path=&root, outds=work.myTable8, maxdepth=0, showparent=YES)
+%mp_assert(
+  iftrue=(%mf_nobs(work.mytable8)=3),
+  desc=Showparent adds one row for the parent,
+  outds=work.test_results
+)
+
+/**
+  * the level column reports depth below the parent
+  */
+data _null_;
+  set work.mytable end=eof;
+  retain maxlevel 0;
+  if level>maxlevel then maxlevel=level;
+  if eof then call symputx('maxlevel',maxlevel,'l');
+run;
+%mp_assert(
+  iftrue=(&maxlevel=3),
+  desc=Deepest entry is three levels below the parent,
+  outds=work.test_results
+)
+
+/**
+  * a file is reported as a file and a folder as a folder
+  */
+data _null_;
+  set work.mytable;
+  if filename='a' then call symputx('type_a',file_or_folder,'l');
+  if filename='ds1.sas7bdat' then call symputx('type_ds1',file_or_folder,'l');
+run;
+%mp_assert(
+  iftrue=("%upcase(&type_a)"="FOLDER"),
+  desc=A directory entry is classified as a folder,
+  outds=work.test_results
+)
+%mp_assert(
+  iftrue=("%upcase(&type_ds1)"="FILE"),
+  desc=A dataset file is classified as a file,
+  outds=work.test_results
+)
+
+
+/**
+  * a blank path is the platform roots - drives on Windows, / on Unix
+  */
+%mp_dirlist(path=, outds=work.myTable9)
+%mp_assert(
+  iftrue=(%mf_nobs(work.mytable9)>=1),
+  desc=A blank path returns the platform roots,
+  outds=work.test_results
+)
+data _null_;
+  set work.mytable9(obs=1);
+  call symputx('rootpath',filepath,'l');
+run;
+%mp_assert(
+  iftrue=(%length(&rootpath)>=1),
+  desc=The root entry carries a path,
+  outds=work.test_results
+)
+
+/**
+  * an entry that is listed but cannot be opened at all is locked.  A dangling
+  * link is the only way to produce one without changing permissions, so this
+  * asserts only where the platform can make one.
+  */
+%let lockroot=%sysfunc(pathname(work))/lock;
+%mf_mkdir(&lockroot)
+data _null_;
+  link=cats(symget('lockroot'),'/broken');
+  ok=("%upcase(&sysscp)" not in ('WIN','DNTHOST')) and getoption('xcmd') ne 'NOXCMD';
+  if ok then do;
+    rc=system(cats('ln -s /dc_no_such_target ',link));
+    ok=(fileexist(link)=1);
+  end;
+  call symputx('lockexp',put(ok,best.),'g');
+run;
+%mp_dirlist(path=&lockroot, outds=work.myTable10)
+%let lockcount=0;
+data _null_;
+  set work.mytable10 end=eof;
+  if file_or_folder='locked' then _locked+1;
+  if eof then call symputx('lockcount',coalesce(_locked,0),'g');
+run;
+%mp_assert(
+  iftrue=(&lockcount=&lockexp),
+  desc=An entry that cannot be opened at all is locked,
+  outds=work.test_results
+)
+
+/**
+  * dump results to the log for offline inspection
+  */
+data _null_;
+  set work.test_results;
+  putlog 'TEST_RESULT_LINE: ' test_result ' - ' test_description;
+run;

@@ -59,7 +59,9 @@
     @li file_hash - the hash output
     @li hash_duration - how long the hash took (first hash always takes longer)
     @li file_path - /full/path/to/each/file.ext
-    @li file_or_folder - contains either "file" or "folder"
+    @li file_or_folder - "file", "folder", or "locked" for an entry that
+      is listed but cannot be opened at all (a broken link).  The hash is
+      built from files, so a locked entry contributes no row
     @li level - the depth of the directory (top level is 0)
 
   @version 9.4m6

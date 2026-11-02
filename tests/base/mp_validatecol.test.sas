@@ -195,3 +195,114 @@ run;
   test=EQUALS 5,
   outds=work.test_results
 )
+
+/**
+  * Test 5 - ISPATH
+  *
+  * Shape only: /tmp passes on Unix whether or not it is mounted, and a
+  * relative path never passes.  Both platform shapes are in the fixture so the
+  * branch that runs is always the one being asserted - four of these are
+  * Windows-only (drive, forward-slash drive, UNC, and a second drive), and on
+  * Windows none of the Unix absolutes pass.
+  */
+data test5;
+  infile datalines4 truncover;
+  length pathval $1000;
+  input pathval $char1000.;
+  %mp_validatecol(pathval,ISPATH,is_path)
+  if is_path=1;
+datalines4;
+/tmp
+/
+/tmp/a b/c-d_e.txt
+tmp
+./tmp
+a/b
+C:\folder
+C:/folder
+\\server\share
+D:\data\2024
+C:folder
+\folder
+C:\a?b
+C:\a"b
+;;;;
+run;
+
+data _null_;
+  if "%upcase(&sysscp)" in ('WIN','DNTHOST') then call symputx('pathexp',4,'g');
+  else call symputx('pathexp',3,'g');
+run;
+
+%mp_assertdsobs(work.test5,
+  desc=Test5 - ISPATH keeps only absolute paths,
+  test=EQUALS &pathexp,
+  outds=work.test_results
+)
+
+/**
+  * Test 6 - ISNAME
+  */
+data test6;
+  infile datalines4 dsd;
+  input;
+  inf=_infile_;
+  %mp_validatecol(inf,ISNAME,isname)
+  if isname=1;
+datalines4;
+somename
+_underscore_start
+name_with_32_characters_exactly_
+UPPERCASE
+MixedCase99
+above are ok - below are not ok
+name_with_33_characters_exactly_x
+!name
+%abort
+2fail
+.fail
+has spaces
+has-hyphen
+has.dot
+&badness
+;;;;
+run;
+%mp_assertdsobs(work.test6,
+  desc=Testing ISNAME,
+  test=EQUALS 5,
+  outds=work.test_results
+)
+
+/**
+  * Test 5 - ISPATH
+  *
+  * Shape only: /tmp passes on Unix whether or not it is mounted, and a
+  * relative path never passes.  The fixture is the same everywhere; the count
+  * differs by platform (a leading / is not absolute on Windows).
+  */
+data test5;
+  infile datalines4 dsd truncover;
+  length pathval $1000;
+  input pathval $char1000.;
+  %mp_validatecol(pathval,ISPATH,is_path)
+  if is_path=1;
+datalines4;
+/tmp
+/
+/tmp/a b/c-d_e.txt
+tmp
+./tmp
+a/b
+;;;;
+run;
+
+data _null_;
+  if "%upcase(&sysscp)" in ('WIN','DNTHOST') then call symputx('pathexp',0,'g');
+  else call symputx('pathexp',3,'g');
+run;
+
+%mp_assertdsobs(work.test5,
+  desc=Test5 - ISPATH keeps only absolute paths,
+  test=EQUALS &pathexp,
+  outds=work.test_results
+)

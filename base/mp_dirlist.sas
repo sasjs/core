@@ -21,7 +21,9 @@
   produces an endless path (a/b/link/b/link/...), so a browse service must
   always pass a finite <code>maxdepth=</code>.
 
-  @param [in] path= (%sysfunc(pathname(work))) Path for which to return contents
+  @param [in] path= (%sysfunc(pathname(work))) Path for which to return contents.
+    Pass a blank value to list the platform roots instead - the drives that
+    exist on Windows, / on Unix.
   @param [in] fref= (0) Provide a DISK engine fileref as an alternative to PATH
   @param [in] maxdepth= (0) Set to a positive integer to indicate the level of
     subdirectory scan recursion - eg 3, to go `./3/levels/deep`.  For unlimited
@@ -46,7 +48,10 @@
 
   @returns outds contains the following variables:
     - directory (containing folder)
-    - file_or_folder (file / folder / locked)
+    - file_or_folder.  folder when it can be opened as a directory, file when
+      it is not a directory (or exists but is not readable, which the copy,
+      hash and zip tools treat as a file), and locked when it is listed but
+      cannot be opened at all - a broken link, for instance
     - filepath (path/to/file.name)
     - filename (just the file name)
     - ext (.extension)
@@ -78,7 +83,12 @@
 %let getattrs=%upcase(&getattrs)XX;
 %let showparent=%upcase(&showparent)XX;
 
-%local lvl nfront total room done;
+/* the separator belongs to the platform, not to the path text - a unix
+  directory name may contain a backslash without that being the separator */
+%if "%upcase(&sysscp)"="WIN" or "%upcase(&sysscp)"="DNTHOST" %then %let mpsep=\;
+%else %let mpsep=/;
+
+%local lvl nfront total room done mp_roots mpsep;
 %local fref1 fref2;
 
 /* the parent can be supplied as a fileref rather than a path */
@@ -106,16 +116,69 @@ run;
 %let fref1=%mf_getuniquefileref();
 %let fref2=%mf_getuniquefileref();
 
-/* level 0 is the parent itself; the path is read with symget so that quotes
-  and macro triggers in a folder name are never evaluated as SAS code */
-data work.__mp_dirlist_frontier;
-  length filepath $2000 level 8;
-  filepath=symget('path');
-  level=0;
-run;
+%let mp_roots=0;
+%if %length(&path)=0 %then %let mp_roots=1;
 
-%let lvl=0;
-%let nfront=1;
+%if &mp_roots=1 %then %do;
+  /*
+    A blank path is the platform roots: there is no filesystem root on Windows,
+    so the drives that exist are the top level, and / is that level on Unix.
+  */
+  data work.__mp_dirlist_level;
+    length directory filepath $2000 file_or_folder $6 filename $255
+      ext $20 msg $200 level 8;
+    length drive $3 letters $26;
+    call missing(of _all_);
+    %if "%upcase(&sysscp)"="WIN" or "%upcase(&sysscp)"="DNTHOST" %then %do;
+      letters='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      do i=1 to 26;
+        drive=cats(substr(letters,i,1),':');
+        rc=filename("&fref1",cats(drive,'\'));
+        did=dopen("&fref1");
+        if did>0 then do;
+          rc=dclose(did);
+          directory=drive;
+          filepath=cats(drive,'\');
+          filename=filepath;
+          file_or_folder='folder';
+          level=0;
+          output;
+        end;
+        rc=filename("&fref1");
+      end;
+    %end;
+    %else %do;
+      directory='';
+      filepath='/';
+      filename='/';
+      file_or_folder='folder';
+      level=0;
+      output;
+    %end;
+    keep directory filepath file_or_folder filename ext msg level;
+  run;
+  proc append base=&outds data=work.__mp_dirlist_level nowarn force;
+  run;
+  /* the roots are folders, so they are what the next level expands */
+  data work.__mp_dirlist_frontier;
+    set work.__mp_dirlist_level(where=(file_or_folder='folder'));
+    level=1;
+    keep filepath level;
+  run;
+  %let lvl=1;
+%end;
+%else %do;
+  /* level 0 is the parent itself; the path is read with symget so that quotes
+    and macro triggers in a folder name are never evaluated as SAS code */
+  data work.__mp_dirlist_frontier;
+    length filepath $2000 level 8;
+    filepath=symget('path');
+    level=0;
+  run;
+  %let lvl=0;
+%end;
+
+%let nfront=%sysfunc(coalesce(%mf_nobs(work.__mp_dirlist_frontier),0));
 %let done=0;
 
 %do %until(&nfront=0 or &lvl>&maxdepth or &done=1);
@@ -145,8 +208,7 @@ run;
         if length(directory)=3 and substr(directory,2,1)=':' then leave;
         directory=substr(directory,1,length(directory)-1);
       end;
-      if index(directory,'\')>0 then sep='\';
-      else sep='/';
+      sep=symget('mpsep');
       if directory='/' or (length(directory)=3 and substr(directory,2,1)=':')
         then prefix=directory;
       else prefix=cats(directory,sep);
@@ -172,8 +234,18 @@ run;
             ext=prxchange('s/.*\.{1,1}(.*)/$1/',1,filename);
             if filename=ext then ext=' ';
           end;
+          else if index(dmsg,'uthorization')>0 then do;
+            /* present but not readable.  It stays a file, as it was before the
+              entry test was fixed - the copy, hash and zip tools skip anything
+              that is not a file, and a backup that silently omits an unreadable
+              file is worse than one that fails on it */
+            file_or_folder='file';
+            ext=prxchange('s/.*\.{1,1}(.*)/$1/',1,filename);
+            if filename=ext then ext=' ';
+            msg=dmsg;
+          end;
           else do;
-            /* exists but cannot be read - permissions, broken link, fifo */
+            /* listed but not openable at all - a broken link, for instance */
             file_or_folder='locked';
             msg=dmsg;
           end;

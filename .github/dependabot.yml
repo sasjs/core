@@ -7,3 +7,14 @@ updates:
     open-pull-requests-limit: 3
     allow:
       - dependency-type: "production"
+
+  # The workflows pin their actions to a commit SHA (that is what the scorecard's
+  # Pinned-Dependencies check rewards, and it is what makes a compromised tag
+  # useless), so something has to move those pins - otherwise they rot. Weekly
+  # rather than monthly: an action is rarely a build-breaking bump, and a security
+  # fix in one should not wait a month.
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3

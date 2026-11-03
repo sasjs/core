@@ -1,23 +1,18 @@
-# Fails a pull request when an action is not pinned, or is pinned to something
-# that does not exist.
+# Fails a pull request - and a push to the default branch - when an action this
+# repository uses is not pinned to a commit, or is pinned to one that does not
+# exist.
 #
-# A pin can be wrong in two ways, and both are invisible until after the merge:
-#
-#   - it is not a commit at all (`uses: owner/repo@v1`, `@main`). The scorecard's
-#     Pinned-Dependencies check scores that on the next push to main - too late to
-#     be useful here, which is why this check fails it directly.
-#   - it is 40 hex but does not exist in that action's repository. The step then
-#     fails at action resolution the next time its workflow runs, and for the
-#     scorecard workflow that is the push to main that follows the merge. Pinning
-#     an annotated tag's own id rather than the commit it points to produces
-#     exactly this.
-#
-# Local (`./path`) and container (`docker://image`) refs are not actions from a
-# repository, so they are skipped.
+# The check itself is .github/scripts/check-action-pins.py: the rules, and the two
+# shapes it has to tell apart (a `uses:` inside a `run:` block scalar is shell text,
+# and a quoted ref carries its quotes), are documented there.
 name: Action pins
 
 on:
   pull_request:
+  # a direct push can add an unpinned action, and the next scorecard run is the
+  # only thing that would notice
+  push:
+    branches: [main]
 
 permissions:
   contents: read
@@ -25,64 +20,14 @@ permissions:
 jobs:
   resolve:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # the script retries a rate-limited or 5xx lookup (5s then 10s per ref), so
+    # the job has to outlast its own retry budget rather than being killed midway
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Every action is pinned to a commit, and that commit exists
-        run: |
-          set -euo pipefail
-          unpinned=0
-          unresolved=0
-          count=0
-
-          refs() {
-            grep -rhoE '^[[:space:]]*([-][[:space:]]+)?uses:[[:space:]]*[^[:space:]]+' .github/workflows \
-              | sed -E 's/.*uses:[[:space:]]*//' \
-              | grep -vE '^(\./|docker://)' \
-              || true
-          }
-
-          # 1. every external action must name a full commit SHA
-          while read -r ref; do
-            [ -n "$ref" ] || continue
-            if ! printf '%s' "${ref##*@}" | grep -qE '^[0-9a-f]{40}$'; then
-              echo "::error::'uses: $ref' is not pinned to a commit SHA"
-              unpinned=1
-            fi
-          done < <(refs)
-
-          # 2. and that commit must exist in the action's repository
-          while read -r ref; do
-            [ -n "$ref" ] || continue
-            sha=${ref##*@}
-            printf '%s' "$sha" | grep -qE '^[0-9a-f]{40}$' || continue
-            # owner/repo/path@ref -> owner/repo
-            repo=$(printf '%s' "$ref" | sed -E 's#^([^/@]+/[^/@]+).*#\1#')
-            count=$((count + 1))
-            status=$(curl -s -o /dev/null -w '%{http_code}' \
-              --retry 3 --retry-delay 2 --retry-connrefused --max-time 20 \
-              -H "Authorization: Bearer ${{ github.token }}" \
-              -H 'Accept: application/vnd.github+json' \
-              "https://api.github.com/repos/$repo/commits/$sha")
-            case "$status" in
-              200) echo "ok $repo@$sha" ;;
-              404|422)
-                echo "::error::$repo@$sha does not resolve (HTTP $status) - no such commit in that repository"
-                unresolved=1
-                ;;
-              401|403)
-                echo "::error::$repo@$sha could not be checked (HTTP $status) - API rate limit or token, not a bad pin"
-                unresolved=1
-                ;;
-              *)
-                echo "::error::$repo@$sha could not be checked (HTTP $status)"
-                unresolved=1
-                ;;
-            esac
-          done < <(refs)
-
-          echo "checked $count pinned action(s)"
-          [ "$unpinned" -eq 0 ] || echo "::error::at least one action is not pinned to a commit SHA"
-          [ "$unpinned" -eq 0 ] && [ "$unresolved" -eq 0 ]
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/check-action-pins.py

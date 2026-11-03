@@ -49,8 +49,11 @@ jobs:
       - name: Run analysis
         # Pinned by commit SHA rather than by tag on purpose: an unpinned action in
         # a supply-chain check is what the Pinned-Dependencies check deducts for.
-        # v2.5.0
-        uses: ossf/scorecard-action@46dc3187a971a9febf3aeb7f94ccde489f7bb46a
+        # The SHA must be the one the tag resolves TO, not the tag object's own id -
+        # an annotated tag has a second SHA and pinning that one fails at action
+        # resolution. `Check every pinned action resolves` in run-tests.yml is the
+        # step that catches the difference.
+        uses: ossf/scorecard-action@fa7117db83c52d787ae5a89f350999701505d78e # v2.5.0
         with:
           results_file: results.sarif
           results_format: sarif
@@ -67,6 +70,6 @@ jobs:
 
       - name: Upload to code scanning
         # v4
-        uses: github/codeql-action/upload-sarif@93a54aaef5ced74c8d9fae64bdfb97f6a18c21b4
+        uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4
         with:
           sarif_file: results.sarif

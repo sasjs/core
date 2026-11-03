@@ -103,17 +103,41 @@ def api(path, token):
         return json.load(response)
 
 
+def throttled(error):
+    """Whether a 403 is GitHub asking us to slow down rather than refusing us.
+
+    Both arrive as 403. A primary limit sends Retry-After; a secondary limit says
+    so in the body. Anything else is a refusal: the token cannot read that
+    repository, and retrying will not change it.
+    """
+    # the answer is cached on the error: a 403 whose body has already been read
+    # would otherwise look like a refusal on the retry of the same exception
+    cached = getattr(error, '_pkg_throttled', None)
+    if cached is not None:
+        return cached
+
+    if error.headers and error.headers.get('Retry-After'):
+        result = True
+    else:
+        try:
+            body = error.read().decode('utf-8', 'ignore')
+        except Exception:  # noqa: BLE001 - a body we cannot read is not evidence
+            body = ''
+        result = 'rate limit' in body.lower()
+
+    error._pkg_throttled = result
+    return result
+
+
 def resolves(repo, sha, token):
-    """'ok' when the commit exists, 'bad' when it does not, 'unknown' otherwise.
+    """'ok', 'bad', 'denied' or 'unknown'.
 
-    'bad' is 404 and 422 - the two answers that mean the commit is not in that
-    repository - and 401/403, which mean the token could not read it: a broken or
-    under-scoped GITHUB_TOKEN is a failure of the check itself, not a reason to
-    pass, so it fails with its own message rather than warning.
-
-    A rate limit (429), a 5xx or a network error is retried and then reported as
-    'unknown', which the caller turns into a warning: it says nothing about the
-    pin.
+    'bad'      - 404 or 422: the commit is not in that repository.
+    'denied'   - 401, or a 403 that is not throttling: the token cannot read it.
+                 Not retried - a refused token does not become accepted - and not
+                 a pass, because the check could not run at all.
+    'unknown'  - 429, 5xx, a throttling 403, or a network error that survived the
+                 retries: says nothing about the pin, so the caller warns.
     """
     for attempt in range(len(BACKOFF_SECONDS) + 1):
         try:
@@ -122,10 +146,11 @@ def resolves(repo, sha, token):
         except urllib.error.HTTPError as error:
             if error.code in (404, 422):
                 return 'bad'
-            if error.code in (401, 403):
-                # the token cannot read this repository - retrying will not help
-                return 'auth'
-            transient = error.code == 429 or error.code >= 500
+            if error.code == 401:
+                return 'denied'
+            if error.code == 403 and not throttled(error):
+                return 'denied'
+            transient = error.code == 403 or error.code == 429 or error.code >= 500
             if transient and attempt < len(BACKOFF_SECONDS):
                 time.sleep(BACKOFF_SECONDS[attempt])
                 continue
@@ -153,7 +178,7 @@ def main():
 
     unpinned = []
     unresolved = []
-    unauthorised = []
+    denied = []
     unknown = []
     checked = 0
 
@@ -181,8 +206,8 @@ def main():
             status = resolves(repo, sha, token)
             if status == 'bad':
                 unresolved.append((path, number, ref, f'no such commit in {repo}'))
-            elif status == 'auth':
-                unauthorised.append((path, number, ref, repo))
+            elif status == 'denied':
+                denied.append((path, number, ref, repo))
             elif status == 'unknown':
                 unknown.append((path, number, ref))
 
@@ -192,9 +217,9 @@ def main():
     for path, number, ref, why in unresolved:
         print(f'::error file={path},line={number}::uses: {ref} does not resolve - {why}')
 
-    for path, number, ref, repo in unauthorised:
+    for path, number, ref, repo in denied:
         print(f'::error file={path},line={number}::uses: {ref} could not be checked - '
-              f'the GITHUB_TOKEN cannot read {repo}. This is a token problem, not a pin problem')
+              f'the token was refused reading {repo}; check GITHUB_TOKEN, not the pin')
 
     for path, number, ref in unknown:
         print(f'::warning file={path},line={number}::uses: {ref} could not be checked - '
@@ -203,10 +228,10 @@ def main():
     print(
         f'checked {checked} pinned action(s) in {len(files)} file(s): '
         f'{len(unpinned)} unpinned, {len(unresolved)} unresolved, '
-        f'{len(unauthorised)} unauthorised, {len(unknown)} unverifiable'
+        f'{len(denied)} refused, {len(unknown)} unverifiable'
     )
 
-    return 1 if (unpinned or unresolved or unauthorised) else 0
+    return 1 if (unpinned or unresolved or denied) else 0
 
 
 if __name__ == '__main__':

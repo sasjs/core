@@ -82,6 +82,31 @@ run;
 
 
 
+/* a date literal is a valid value for a numeric date column */
+data work.dates;
+  length dt 8;
+  format dt date9.;
+  dt='01DEC2021'd;
+run;
+
+data work.inds;
+  infile datalines4 dsd;
+  input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
+datalines4;
+AND,AND,1,dt,=,"'01DEC2021'd"
+;;;;
+run;
+
+%mp_filtergenerate(work.inds,outref=myfilter)
+%mp_filtervalidate(myfilter,work.dates,outds=work.results,abort=NO)
+%let syscc=0;
+%mp_assertdsobs(work.results,
+  desc=Date literal against a numeric date column,
+  test=EMPTY,
+  outds=work.test_results
+)
+
 /* invalid filter - char var, num val */
 data work.inds;
   infile datalines4 dsd;

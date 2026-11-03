@@ -18,8 +18,8 @@
       ordinal_root num,
       ordinal_items num,
       version num,
-      id char(43),
-      name char(43),
+      id char(256),
+      name char(256),
       providerId char(5),
       implicit num
 
@@ -29,7 +29,11 @@
   @param [in] grant_type= (sas_services)
     valid values are "password" or "authorization_code" (unquoted).
   @param [out] outds= (work.viyagroupmembers)
-    The library.dataset to be created that contains the list of group members
+    The library.dataset to be created that contains the list of members
+
+  id and name are declared at $256, the longest active directory can hold for
+  a display name or a SAM account name.  The $43 they used to carry truncated
+  anything longer, and a truncation fails the step on some platforms.
 
 
   @version VIYA V.03.04
@@ -85,7 +89,7 @@ run;
 %if &SYS_PROCHTTP_STATUS_CODE=404 %then %do;
   %put NOTE:  Group &group not found!!;
   data &outds;
-    length id name $43;
+    length id name $256;
     call missing(of _all_);
   run;
 %end;
@@ -96,8 +100,14 @@ run;
   )
   %let libref1=%mf_getuniquelibref();
   libname &libref1 JSON fileref=&fname1;
+  /* id and name have to be declared, as a group with no members returns no
+    such columns to rename.  $256 is the longest active directory can hold for
+    a display name or a SAM account name: the JSON engine sizes the columns to
+    the longest value in the payload, so a shorter declaration truncates the
+    name and fails the step with "Multiple lengths were specified for the
+    variable ... by input data set(s)". */
   data &outds;
-    length id name $43;
+    length id name $256;
     set &libref1..items;
   run;
   libname &libref1 clear;

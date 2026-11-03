@@ -104,12 +104,10 @@
     ,outref=0
     ,outlib=0
   );
-%local dbg;
 %if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;
 %end;
-%else %let dbg=*;
 
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
@@ -185,19 +183,35 @@ run;
 %end;
 
 /* extract results link */
-%local lib1 resuri resname;
+%local lib1 resuri resname want;
+%let want=%upcase(_&result);
 %let lib1=%mf_getuniquelibref();
 libname &lib1 JSON fileref=&fname1;
+/* the member is located by name rather than referenced by name: a results
+  * table that has no such column cannot be addressed in a data step at all,
+  * and a binary webout registers itself as _webout.pdf / .xlsx / .zip, which
+  * result= cannot express. */
 data _null_;
   set &lib1..results;
-  call symputx('resuri',_&result,'l');
-  &dbg putlog "&sysmacroname results: " (_all_)(=);
+  array _chars{*} _character_;
+  length _name $32;
+  do _i=1 to dim(_chars);
+    _name=vname(_chars{_i});
+    if upcase(_name)=symget('want') then do;
+      call symputx('resuri',_chars{_i},'l');
+      call symputx('resname',_name,'l');
+      leave;
+    end;
+  end;
+  %if &mdebug=1 %then %do;
+    putlog "&sysmacroname results: " (_all_)(=);
+  %end;
 run;
-%if %length(&resuri)<7 %then %do;
-  /* A binary webout is registered under its own name - _webout.pdf,
-    * _webout.xlsx, _webout.zip - and a dotted key cannot be named through
-    * result=, so the requested member comes back empty even though the job
-    * produced one.  Take the first _WEBOUT* member holding a files uri. */
+%if "%superq(resuri)" eq "" or "%superq(resuri)" eq "." %then %do;
+  /* No member was requested or registered.  Take the first _WEBOUT* column
+    * holding a files uri, which is how a binary webout appears.  A job that
+    * registered more than one binary webout cannot steer this - only one
+    * binary member per job is supported. */
   data _null_;
     set &lib1..results;
     array _chars{*} _character_;
@@ -212,11 +226,11 @@ run;
       end;
     end;
   run;
-  %if %length(&resname)>0 %then %do;
+  %if &mdebug=1 and %length(&resname)>0 %then %do;
     %put &sysmacroname: _&result was not registered, using &resname;
   %end;
 %end;
-%if %length(&resuri)<7 %then %do;
+%if "%superq(resuri)" eq "" or "%superq(resuri)" eq "." %then %do;
   /* The requested result was not registered - typical for a canceled
     * job whose session ended before the result file was created (eg a
     * job aborted by design, or a job that failed on session creation).
@@ -246,10 +260,6 @@ run;
   %end;
   %return;
 %end;
-%mp_abort(iftrue=("&resuri"=".")
-  ,mac=&sysmacroname
-  ,msg=%str(Variable _&result did not exist in the response json)
-)
 
 /* extract results */
 %local fname2;

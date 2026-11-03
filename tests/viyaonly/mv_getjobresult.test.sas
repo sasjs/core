@@ -81,7 +81,9 @@ run;
   *
   * A job that streams a file registers its result under the file's own name
   * (_webout.pdf and friends).  A dotted key cannot be named through result=,
-  * so the macro has to find the member itself and copy the bytes back intact.
+  * so the macro has to find the member itself.  The payload carries the bytes
+  * a text-mode copy would damage - CR, LF and NUL - so the first nine bytes are
+  * compared exactly.
   */
 filename testref2 temp;
 data _null_;
@@ -89,8 +91,11 @@ data _null_;
   put 'filename binref filesrvc parenturi="&SYS_JES_JOB_URI"';
   put "  name='_webout.pdf' contenttype='application/pdf';";
   put 'data _null_;';
+  put '  length payload $9;';
+  put '  payload=cat(byte(71),byte(73),byte(70),byte(56),byte(57),byte(97)';
+  put '    ,byte(13),byte(10),byte(0));';
   put '  file binref recfm=n;';
-  put "  put 'GIF89a';";
+  put '  put payload $char9.;';
   put 'run;';
 run;
 %mv_createwebservice(
@@ -114,13 +119,19 @@ run;
 
 /* no result= on purpose - the caller cannot name a dotted member */
 %mv_getjobresult(uri=&uri2, outref=mybin)
+/* the first nine bytes are compared, which is also how DC's own download
+  * test reads a binary payload: a text-mode copy would drop the NUL and
+  * shift the rest, so the comparison fails rather than passing on a prefix */
 data _null_;
-  infile mybin recfm=f lrecl=6 obs=1;
-  input sig $6.;
-  call symputx('isbin',ifn(sig='GIF89a',1,0),'l');
+  infile mybin recfm=f lrecl=9 obs=1;
+  length sig $9 want $9;
+  input sig $9.;
+  want=cat(byte(71),byte(73),byte(70),byte(56),byte(57),byte(97)
+    ,byte(13),byte(10),byte(0));
+  call symputx('isbin',ifn(sig=want,1,0),'l');
 run;
 %mp_assert(
   iftrue=(&isbin=1),
-  desc=Test2 - binary webout is returned in full,
+  desc=Test2 - binary webout returned byte for byte (CR LF NUL intact),
   outds=work.test_results
 )

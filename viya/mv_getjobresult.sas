@@ -72,6 +72,11 @@
   engine.  Example values:
     @li WEBOUT_JSON
     @li WEBOUT_TXT
+  A job whose webout is a binary file registers it under its own name -
+  `_webout.pdf`, `_webout.xlsx` and so on - and a dotted key cannot be
+  requested through this parameter.  When the requested member is absent the
+  macro falls back to the first `_WEBOUT*` member of the results that holds a
+  files uri, so a binary webout is returned without the caller naming it.
 
   @param [out] outref= (0) The output fileref to which to write the results
   @param [out] outlib= (0) The output library to which to assign the results
@@ -99,12 +104,10 @@
     ,outref=0
     ,outlib=0
   );
-%local dbg;
 %if &mdebug=1 %then %do;
   %put &sysmacroname entry vars:;
   %put _local_;
 %end;
-%else %let dbg=*;
 
 %local oauth_bearer;
 %if &grant_type=detect %then %do;
@@ -180,15 +183,49 @@ run;
 %end;
 
 /* extract results link */
-%local lib1 resuri;
+%local lib1 resuri resname resfall want;
+%let resfall=0;
+%let want=%upcase(_&result);
 %let lib1=%mf_getuniquelibref();
 libname &lib1 JSON fileref=&fname1;
+/* The member is located by name rather than referenced by name: a results
+  * table with no such column cannot be addressed in a data step at all.  A
+  * binary webout registers itself as _webout.pdf / .xlsx / .zip, which
+  * result= cannot express, so when the requested member is missing the first
+  * _WEBOUT* column holding a files uri is taken instead - a job that
+  * registered more than one binary member cannot steer this, so only one
+  * binary member per job is supported. */
 data _null_;
   set &lib1..results;
-  call symputx('resuri',_&result,'l');
-  &dbg putlog "&sysmacroname results: " (_all_)(=);
+  array _chars{*} _character_;
+  length _name $32 _val $512;
+  do _i=1 to dim(_chars);
+    _name=vname(_chars{_i});
+    if upcase(_name)=symget('want') then do;
+      _val=_chars{_i};
+      leave;
+    end;
+  end;
+  if _val eq '' then do _i=1 to dim(_chars);
+    _name=vname(_chars{_i});
+    if _chars{_i}=:'/files/' and upcase(_name)=:'_WEBOUT' then do;
+      _val=_chars{_i};
+      call symputx('resfall',1,'l');
+      leave;
+    end;
+  end;
+  if _val ne '' then do;
+    call symputx('resuri',_val,'l');
+    call symputx('resname',_name,'l');
+  end;
+  %if &mdebug=1 %then %do;
+    putlog "&sysmacroname results: " (_all_)(=);
+  %end;
 run;
-%if "&resuri"="." %then %do;
+%if &mdebug=1 and &resfall=1 %then %do;
+  %put &sysmacroname: _&result was not registered, using &resname;
+%end;
+%if "%superq(resuri)" eq "" or "%superq(resuri)" eq "." %then %do;
   /* The requested result was not registered - typical for a canceled
     * job whose session ended before the result file was created (eg a
     * job aborted by design, or a job that failed on session creation).
@@ -218,10 +255,6 @@ run;
   %end;
   %return;
 %end;
-%mp_abort(iftrue=("&resuri"=".")
-  ,mac=&sysmacroname
-  ,msg=%str(Variable _&result did not exist in the response json)
-)
 
 /* extract results */
 %local fname2;

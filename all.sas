@@ -29911,52 +29911,47 @@ run;
 %end;
 
 /* extract results link */
-%local lib1 resuri resname want;
+%local lib1 resuri resname resfall want;
+%let resfall=0;
 %let want=%upcase(_&result);
 %let lib1=%mf_getuniquelibref();
 libname &lib1 JSON fileref=&fname1;
-/* the member is located by name rather than referenced by name: a results
-  * table that has no such column cannot be addressed in a data step at all,
-  * and a binary webout registers itself as _webout.pdf / .xlsx / .zip, which
-  * result= cannot express. */
+/* The member is located by name rather than referenced by name: a results
+  * table with no such column cannot be addressed in a data step at all.  A
+  * binary webout registers itself as _webout.pdf / .xlsx / .zip, which
+  * result= cannot express, so when the requested member is missing the first
+  * _WEBOUT* column holding a files uri is taken instead - a job that
+  * registered more than one binary member cannot steer this, so only one
+  * binary member per job is supported. */
 data _null_;
   set &lib1..results;
   array _chars{*} _character_;
-  length _name $32;
+  length _name $32 _val $512;
   do _i=1 to dim(_chars);
     _name=vname(_chars{_i});
     if upcase(_name)=symget('want') then do;
-      call symputx('resuri',_chars{_i},'l');
-      call symputx('resname',_name,'l');
+      _val=_chars{_i};
       leave;
     end;
+  end;
+  if _val eq '' then do _i=1 to dim(_chars);
+    _name=vname(_chars{_i});
+    if _chars{_i}=:'/files/' and upcase(_name)=:'_WEBOUT' then do;
+      _val=_chars{_i};
+      call symputx('resfall',1,'l');
+      leave;
+    end;
+  end;
+  if _val ne '' then do;
+    call symputx('resuri',_val,'l');
+    call symputx('resname',_name,'l');
   end;
   %if &mdebug=1 %then %do;
     putlog "&sysmacroname results: " (_all_)(=);
   %end;
 run;
-%if "%superq(resuri)" eq "" or "%superq(resuri)" eq "." %then %do;
-  /* No member was requested or registered.  Take the first _WEBOUT* column
-    * holding a files uri, which is how a binary webout appears.  A job that
-    * registered more than one binary webout cannot steer this - only one
-    * binary member per job is supported. */
-  data _null_;
-    set &lib1..results;
-    array _chars{*} _character_;
-    length _name $32 _val $512;
-    do _i=1 to dim(_chars);
-      _name=vname(_chars{_i});
-      _val=_chars{_i};
-      if _val=:'/files/' and upcase(_name)=:'_WEBOUT' then do;
-        call symputx('resuri',_val,'l');
-        call symputx('resname',_name,'l');
-        leave;
-      end;
-    end;
-  run;
-  %if &mdebug=1 and %length(&resname)>0 %then %do;
-    %put &sysmacroname: _&result was not registered, using &resname;
-  %end;
+%if &mdebug=1 and &resfall=1 %then %do;
+  %put &sysmacroname: _&result was not registered, using &resname;
 %end;
 %if "%superq(resuri)" eq "" or "%superq(resuri)" eq "." %then %do;
   /* The requested result was not registered - typical for a canceled

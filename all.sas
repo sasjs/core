@@ -29800,6 +29800,11 @@ run;
   engine.  Example values:
     @li WEBOUT_JSON
     @li WEBOUT_TXT
+  A job whose webout is a binary file registers it under its own name -
+  `_webout.pdf`, `_webout.xlsx` and so on - and a dotted key cannot be
+  requested through this parameter.  When the requested member is absent the
+  macro falls back to the first `_WEBOUT*` member of the results that holds a
+  files uri, so a binary webout is returned without the caller naming it.
 
   @param [out] outref= (0) The output fileref to which to write the results
   @param [out] outlib= (0) The output library to which to assign the results
@@ -29908,7 +29913,7 @@ run;
 %end;
 
 /* extract results link */
-%local lib1 resuri;
+%local lib1 resuri resname;
 %let lib1=%mf_getuniquelibref();
 libname &lib1 JSON fileref=&fname1;
 data _null_;
@@ -29916,7 +29921,30 @@ data _null_;
   call symputx('resuri',_&result,'l');
   &dbg putlog "&sysmacroname results: " (_all_)(=);
 run;
-%if "&resuri"="." %then %do;
+%if %length(&resuri)<7 %then %do;
+  /* A binary webout is registered under its own name - _webout.pdf,
+    * _webout.xlsx, _webout.zip - and a dotted key cannot be named through
+    * result=, so the requested member comes back empty even though the job
+    * produced one.  Take the first _WEBOUT* member holding a files uri. */
+  data _null_;
+    set &lib1..results;
+    array _chars{*} _character_;
+    length _name $32 _val $512;
+    do _i=1 to dim(_chars);
+      _name=vname(_chars{_i});
+      _val=_chars{_i};
+      if _val=:'/files/' and upcase(_name)=:'_WEBOUT' then do;
+        call symputx('resuri',_val,'l');
+        call symputx('resname',_name,'l');
+        leave;
+      end;
+    end;
+  run;
+  %if %length(&resname)>0 %then %do;
+    %put &sysmacroname: _&result was not registered, using &resname;
+  %end;
+%end;
+%if %length(&resuri)<7 %then %do;
   /* The requested result was not registered - typical for a canceled
     * job whose session ended before the result file was created (eg a
     * job aborted by design, or a job that failed on session creation).

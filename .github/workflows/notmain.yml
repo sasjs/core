@@ -8,12 +8,21 @@ on:
     branches-ignore:
       - main
 
+# read-only by default. Without this block the workflow inherits the repository
+# default, which is write-all - the scorecard's Token-Permissions check deducts
+# for exactly that.
+permissions:
+  contents: read
+
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      # it commits all.sas and the agent skills back to the branch it runs on
+      contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Install dependencies
         run: |

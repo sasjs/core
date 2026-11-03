@@ -1,0 +1,72 @@
+# OSSF Scorecard - the supply-chain posture of this repository, scored on every
+# push to main and weekly.
+#
+# The results go to two different places, and they are not alternatives:
+#
+#   - GitHub code scanning (the SARIF upload below). The findings land on the
+#     repository's Security tab, and this is the only one of the two that moves
+#     the scorecard's own SAST check - without it the check reads "SAST tool is
+#     not run on all commits".
+#   - The OpenSSF public API (`publish_results`). This is the badge
+#     (https://api.securityscorecards.dev/projects/github.com/sasjs/core/badge)
+#     and a signed attestation for the run. The repo is already scored weekly by
+#     the OpenSSF's own scanner, so publishing makes the public score follow this
+#     repository's pushes instead of that schedule.
+#
+# Each needs its own permission in the job below. Remove a step and its permission
+# together, or the scorecard's Token-Permissions check deducts for the excess.
+name: Scorecard supply-chain security
+
+on:
+  # the protection rules are themselves scored, so a change to them is a trigger
+  branch_protection_rule:
+  schedule:
+    # weekly: some checks (branch protection, code review) only change with the
+    # repository's settings, not with a push
+    - cron: '30 1 * * 6'
+  push:
+    branches: [main]
+
+# read-only by default; the job adds exactly what it needs
+permissions: read-all
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write # upload the SARIF to code scanning
+      id-token: write # publish_results - the OIDC token is what gets signed
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          # the analysis reads the repository, it never pushes to it
+          persist-credentials: false
+
+      - name: Run analysis
+        # Pinned by commit SHA rather than by tag on purpose: an unpinned action in
+        # a supply-chain check is what the Pinned-Dependencies check deducts for.
+        # v2.5.0
+        uses: ossf/scorecard-action@46dc3187a971a9febf3aeb7f94ccde489f7bb46a
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Keep the SARIF with the run
+        # 5 days is the maximum the scorecard project recommends: the report is
+        # reproduced on the next push anyway
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: SARIF file
+          path: results.sarif
+          retention-days: 5
+
+      - name: Upload to code scanning
+        # v4
+        uses: github/codeql-action/upload-sarif@93a54aaef5ced74c8d9fae64bdfb97f6a18c21b4
+        with:
+          sarif_file: results.sarif

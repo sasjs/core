@@ -12,6 +12,10 @@ on:
   # after the merge has landed
   workflow_dispatch:
 
+# read-only by default; the release job asks for the writes it needs, and a job's
+# block replaces this one entirely rather than adding to it
+permissions: read-all
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -22,10 +26,10 @@ jobs:
       id-token: write # required for npm Trusted Publishing (OIDC)
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 'lts/*'
           registry-url: 'https://registry.npmjs.org'
@@ -51,7 +55,7 @@ jobs:
 
       - name: Semantic Release
         id: makerelease
-        uses: cycjimmy/semantic-release-action@v6
+        uses: cycjimmy/semantic-release-action@b12c8f6015dc215fe37bc154d4ad456dd3833c90 # v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # NPM_TOKEN no longer required: package is published via npm
@@ -78,7 +82,7 @@ jobs:
       - name: Generate GitHub App token for docs site
         id: app-token
         if: steps.makerelease.outputs.new_release_published == 'true'
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}

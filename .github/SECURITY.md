@@ -13,6 +13,6 @@ We support only the latest version
 
 ## Reporting a Vulnerability
 
-We welcome disclosures of all kinds in relation to all the SASjs libraries.  You can submit them here: [https://sasapps.io/contact-us](https://sasapps.io/contact-us)
+We welcome disclosures of all kinds in relation to all the SASjs libraries.  You can submit them here: [https://sasapps.io/contact/](https://sasapps.io/contact/)
 
 

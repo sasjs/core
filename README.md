@@ -2,6 +2,7 @@
 
 [![npm package](https://img.shields.io/npm/v/@sasjs/core.svg)](http://npmjs.org/package/@sasjs/core)
 [![Github Workflow](https://github.com/sasjs/core/actions/workflows/main.yml/badge.svg)](https://github.com/sasjs/core/blob/main/.github/workflows/main.yml)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/sasjs/core/badge)](https://scorecard.dev/viewer/?uri=github.com/sasjs/core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/sasjs/core/blob/main/LICENSE)
 [![npms.io](https://img.shields.io/npms-io/final-score/@sasjs/core)](https://npms.io/search?q=%40sasjs%2Fcore)
 ![npm](https://img.shields.io/npm/dt/@sasjs/core)

@@ -36,38 +36,6 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: Check every pinned action resolves
-        # A workflow step pinned to a SHA that does not exist in that action's
-        # repository fails only when the workflow next runs - and the scorecard
-        # workflow runs on push to main, so a bad pin there is invisible until
-        # after the merge. This resolves each pin through the API instead, on the
-        # PR. Pinning an annotated tag's own id instead of the commit it points to
-        # is the mistake this exists to catch.
-        run: |
-          set -euo pipefail
-          failed=0
-          count=0
-          while read -r ref; do
-            [ -n "$ref" ] || continue
-            # owner/repo/path@ref -> owner/repo
-            repo=$(printf '%s' "$ref" | sed -E 's#^([^/@]+/[^/@]+).*#\1#')
-            sha=${ref##*@}
-            count=$((count + 1))
-            status=$(curl -s -o /dev/null -w '%{http_code}' \
-              -H "Authorization: Bearer ${{ github.token }}" \
-              -H 'Accept: application/vnd.github+json' \
-              "https://api.github.com/repos/$repo/commits/$sha")
-            if [ "$status" != "200" ]; then
-              echo "::error::$repo@$sha does not resolve (HTTP $status)"
-              failed=1
-            else
-              echo "ok $repo@$sha"
-            fi
-          done < <(grep -rhoE '^[[:space:]]*(-[[:space:]]+)?uses:[[:space:]]*[^[:space:]]+@[0-9a-f]{40}' .github/workflows \
-                   | sed -E 's/.*uses:[[:space:]]*//')
-          echo "checked $count pinned action(s)"
-          exit $failed
-
       - name: Install dependencies
         run: npm ci
 

@@ -34,6 +34,8 @@ jobs:
   analysis:
     name: Scorecard analysis
     runs-on: ubuntu-latest
+    # a hung analysis otherwise holds a runner until the default limit
+    timeout-minutes: 10
     permissions:
       security-events: write # upload the SARIF to code scanning
       id-token: write # publish_results - the OIDC token is what gets signed

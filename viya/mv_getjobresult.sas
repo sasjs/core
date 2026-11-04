@@ -89,6 +89,7 @@
   <h4> SAS Macros </h4>
   @li mp_abort.sas
   @li mp_binarycopy.sas
+  @li mp_replace.sas
   @li mf_getplatform.sas
   @li mf_existfileref.sas
   @li mf_getuniquefileref.sas
@@ -281,7 +282,60 @@ run;
   %mp_binarycopy(inref=&fname2,outref=&outref)
 %end;
 %if &outlib ne 0 %then %do;
-  libname &outlib JSON fileref=&fname2;
+  /* A service run through Viya job execution wraps its response in the
+    * transport envelope (>>weboutBEGIN<< ... >>weboutEND<<) - that is what the
+    * client frames the response with.  The text path in mx_execute strips it,
+    * but the JSON engine has no such step and rejects the marker on line one,
+    * which is why an aborted child's result looked unparsable when the abort
+    * object inside it was perfectly good.
+    *
+    * Detection is the strip: mp_replace copies a byte at a time, so the markers
+    * come out wherever they sit, and a smaller output than input is the answer
+    * to "was there an envelope".  Probing the first record instead would miss a
+    * marker that is not in it, which is the failure this exists to remove,
+    * and a result without an envelope keeps the direct libname. */
+  %local path2 path3 begvar endvar nil fref3 fref4 fid size2 size4;
+  %let fref3=%mf_getuniquefileref();
+  %let fref4=%mf_getuniquefileref();
+  %let path2=%sysfunc(pathname(&fname2));
+  %let path3=%sysfunc(pathname(&fref3));
+  %let begvar=%str(>>weboutBEGIN<<);
+  %let endvar=%str(>>weboutEND<<);
+  %let nil=;
+  %mp_replace(infile="&path2",findvar=begvar,replacevar=nil
+    ,outfile="&path3")
+  %mp_replace(infile="&path3",findvar=endvar,replacevar=nil
+    ,outfile="%sysfunc(pathname(&fref4))")
+  /* a copy that could not be written is not an outcome: say so, rather than
+    * handing the engine an empty file and failing at the libname instead */
+  %if %sysfunc(fexist(&fref4)) ne 1 %then %do;
+    %mp_abort(mac=&sysmacroname
+      ,msg=%str(Unable to strip the result envelope for &uri)
+    )
+  %end;
+  %let fid=%sysfunc(fopen(&fname2));
+  %let size2=%sysfunc(finfo(&fid,File Size (bytes)));
+  %let fid=%sysfunc(fclose(&fid));
+  %let fid=%sysfunc(fopen(&fref4));
+  %let size4=%sysfunc(finfo(&fid,File Size (bytes)));
+  %let fid=%sysfunc(fclose(&fid));
+  %if &size4 < &size2 %then %do;
+    /* nothing but envelope is a real outcome - a service that aborted before
+      * writing anything - and becomes the empty object the not-found branch
+      * hands back, rather than an empty file the engine cannot open */
+    %if &size4=0 %then %do;
+      data _null_;
+        file &fref4;
+        put '{}';
+      run;
+    %end;
+    libname &outlib JSON fileref=&fref4;
+  %end;
+  %else %do;
+    libname &outlib JSON fileref=&fname2;
+  %end;
+  filename &fref3 clear;
+  filename &fref4 clear;
 %end;
 
 %if &mdebug=0 %then %do;

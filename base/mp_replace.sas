@@ -60,12 +60,15 @@
   outfile=0
 )/*/STORE SOURCE*/;
 
-%local inref dttm ds1;
+%local inref dttm ds1 replen;
 %let inref=%mf_getuniquefileref();
 %let outref=%mf_getuniquefileref();
 %if &outfile=0 %then %let outfile=&infile;
 %let ds1=%mf_getuniquename(prefix=allchars);
 %let ds2=%mf_getuniquename(prefix=startmark);
+/* a blank replacement is a deletion, so the length of the replacement is read
+  * once and the characters are simply dropped when it is empty */
+%let replen=%length(%superq(&replacevar));
 
 /* START */
 %let dttm=%sysfunc(datetime());
@@ -136,12 +139,18 @@ run;
 filename &outref &outfile recfm=n;
 
 data _null_;
-  length replace $ %length(%superq(&replacevar));
-  replace=symget("&replacevar");
+  %if &replen>0 %then %do;
+    length replace $ &replen;
+    replace=symget("&replacevar");
+  %end;
   file &outref;
   do until(eof);
     set &ds1 end=eof;
-    if strt ="1" then put replace char.;
+    if strt ="1" then do;
+      %if &replen>0 %then %do;
+        put replace char.;
+      %end;
+    end;
     else put sourcechar char1.;
   end;
   stop;

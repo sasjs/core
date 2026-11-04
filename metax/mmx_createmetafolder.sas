@@ -18,6 +18,7 @@
   @version 9.4
   @author Allan Bowe
 
+  @sasjslint {"noXcmd": false}
 **/
 
 %macro mmx_createmetafolder(loc=,user=,pass=);

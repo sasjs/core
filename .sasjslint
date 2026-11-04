@@ -30,6 +30,7 @@
     "noNestedMacros": "error",
     "noSingleAsteriskComments": "error",
     "noSpacesInFileNames": "error",
+    "noXcmd": "error",
     "noTabs": "error",
     "noTrailingSpaces": "error",
     "noUndeclaredMacros": "error",

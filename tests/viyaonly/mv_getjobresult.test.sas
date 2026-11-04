@@ -9,6 +9,7 @@
   @li mv_getjobresult.sas
   @li mv_jobflow.sas
 
+  @sasjslint {"ignoredMacros": ["mp_abort"]}
 **/
 
 options mprint notes;
@@ -133,5 +134,68 @@ run;
 %mp_assert(
   iftrue=(&isbin=1),
   desc=Test2 - binary webout returned byte for byte (CR LF NUL intact),
+  outds=work.test_results
+)
+
+/**
+  * Test Case 3 - an aborted child still yields a parsable result
+  *
+  * mp_abort writes the transport envelope (>>weboutBEGIN<<) around the abort
+  * object, because that is what the client frames the response with.  The JSON
+  * engine knows nothing of it, so a libname over the raw artefact fails on line
+  * one - for exactly the responses a caller reads to find out why a child
+  * stopped.  The abort object is the result here, so parsing it is the test.
+  */
+filename testref3 temp;
+data _null_;
+  file testref3;
+  put '%mp_abort(mac=test,msg=%str(deliberate abort from getjobresult test))';
+run;
+%mv_createwebservice(
+  path=&mcTestAppLoc/services/temp,
+  code=testref3,
+  name=testsvcabort
+)
+
+data work.inputjobs3;
+  _program="&mcTestAppLoc/services/temp/testsvcabort";
+run;
+%mv_jobflow(inds=work.inputjobs3
+  ,maxconcurrency=1
+  ,outds=work.results3
+  ,outref=myjoblog3
+)
+data _null_;
+  set work.results3;
+  call symputx('uri3',uri);
+  put (_all_)(=);
+run;
+
+/* no outref on purpose - the library is what used to break */
+%mv_getjobresult(uri=&uri3
+  ,result=WEBOUT_JSON
+  ,outlib=myabortlib
+)
+
+%let abortrows=0;
+%let abortmsg=;
+%if %sysfunc(exist(myabortlib.sasjsAbort)) %then %do;
+  data work.abortrows;
+    set myabortlib.sasjsAbort;
+  run;
+  data _null_;
+    set work.abortrows nobs=nobs;
+    call symputx('abortrows',nobs,'l');
+    call symputx('abortmsg',msg,'l');
+  run;
+%end;
+%mp_assert(
+  iftrue=(&abortrows=1),
+  desc=Test3 - aborted child result parses despite the response envelope,
+  outds=work.test_results
+)
+%mp_assert(
+  iftrue=(%index(%superq(abortmsg),deliberate abort)>0),
+  desc=Test3b - the parsed result carries the abort message,
   outds=work.test_results
 )

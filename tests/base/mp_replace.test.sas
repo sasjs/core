@@ -93,3 +93,27 @@ run;
   desc=Checking third replace 3rd row (dots),
   outds=work.test_results
 )
+
+/**
+  * Test - a blank replacement deletes the matched text
+  */
+%let test4="&_sasjs_work/file4.txt";
+%let str=%str(DELETE-ME);
+%let rep=;
+data _null_;
+  file &test4;
+  put 'before';
+  put "keep &str. and this";
+  put 'after';
+run;
+%mp_replace(&test4, findvar=str, replacevar=rep)
+data _null_;
+  infile &test4;
+  input;
+  if _n_=2 then call symputx('test4result',_infile_);
+run;
+%mp_assert(
+  iftrue=("&test4result" = "keep  and this"),
+  desc=Checking a blank replacement deletes the matched text,
+  outds=work.test_results
+)

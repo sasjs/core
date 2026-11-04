@@ -38,7 +38,8 @@ jobs:
         # pinned rather than @latest: Trusted Publishing needs npm >= 11.5.1, and
         # the toolchain that signs and publishes the release has to be the one
         # this commit was reviewed with. `npm@latest` also reads to the scorecard
-        # as a dependency that is not pinned by hash.
+        # as a dependency that is not pinned by hash. npm 12.2.1 satisfies the
+        # >= 11.5.1 floor; the same pin lands on control from the other direction.
         run: npm install -g npm@12.2.1
 
       - name: Install dependencies

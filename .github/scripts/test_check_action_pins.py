@@ -1,25 +1,33 @@
 #!/usr/bin/env python3
 """The pin checker's own reading of a workflow, and its reading of the API.
 
-    python3 .github/scripts/check-action-pins.test.py
+    python3 .github/scripts/test_check_action_pins.py
 
-Every way this check has been wrong so far has been a way of interpreting an
-answer: a `uses:` inside a `run:` block scalar read as an action, a quoted ref
-compared with its quotes, a flow-style step missed entirely, a refused token
-counted as an unverifiable pin. Those readings are what these cases pin.
+The invariants these cases pin:
+
+- `refs_in()` reports every `uses:` key it can see, exactly once, without its
+  quotes, and reports nothing that is not a key: a `uses:` inside a `run:` block
+  scalar is shell text, a commented-out step is a comment, and a flow-style step
+  is still a step.
+- `resolves()` maps every answer the API can give onto one of `ok`, `bad`,
+  `denied`, `unknown`, and only `bad` and `denied` are statements about the pin.
+  A busy or unreadable API is `unknown`, and a `Retry-After` is waited out on the
+  API's schedule rather than the checker's.
+- `main()` exits 1 for anything it can prove wrong and for a run in which nothing
+  could be verified at all; it exits 0 only when every pin was verified, or when
+  some were verified and the rest were merely unverifiable.
 
 `refs_in()` is exercised against real files; `resolves()` and `main()` against a
 stubbed `api()`, so no case needs a token or a network.
 """
 import contextlib
+import importlib.util
 import io
 import pathlib
 import tempfile
 import textwrap
 import unittest
 import urllib.error
-
-import importlib.util
 
 HERE = pathlib.Path(__file__).resolve().parent
 
@@ -124,6 +132,12 @@ class RefsInTest(unittest.TestCase):
             ['./local-action', 'docker://alpine:3'],
         )
 
+    def test_a_trailing_comment_is_not_part_of_the_ref(self):
+        self.assertEqual(
+            refs('steps:\n  - uses: actions/checkout@v4 # v4.1.7\n'),
+            ['actions/checkout@v4'],
+        )
+
 
 class ResolvesTest(unittest.TestCase):
     """What each answer from the API means for the run."""
@@ -132,8 +146,9 @@ class ResolvesTest(unittest.TestCase):
         self.original_api = CHECKER.api
         self.original_sleep = CHECKER.time.sleep
         self.calls = []
+        self.slept = []
         # the backoff is real time; the classification is what is under test
-        CHECKER.time.sleep = lambda seconds: None
+        CHECKER.time.sleep = self.slept.append
 
     def tearDown(self):
         CHECKER.api = self.original_api
@@ -175,11 +190,34 @@ class ResolvesTest(unittest.TestCase):
         self.assertEqual(self.answer(urllib.error.HTTPError(
             'https://api.github.com', 403, 'Forbidden', {}, None)), 'unknown')
 
+    def test_an_empty_body_is_not_a_refusal(self):
+        # urllib hands back an empty stream when the 403 carried no body
+        self.assertEqual(self.answer(urllib.error.HTTPError(
+            'https://api.github.com', 403, 'Forbidden', {},
+            io.BytesIO(b''))), 'unknown')
+
+    def test_a_whitespace_only_body_is_not_a_refusal(self):
+        self.assertEqual(self.answer(urllib.error.HTTPError(
+            'https://api.github.com', 403, 'Forbidden', {},
+            io.BytesIO(b'  \n\t\n'))), 'unknown')
+
     def test_a_403_that_says_rate_limit_is_unverifiable(self):
         throttled = urllib.error.HTTPError(
             'https://api.github.com', 403, 'Forbidden',
             {'Retry-After': '60'}, None)
         self.assertEqual(self.answer(throttled), 'unknown')
+
+    def test_retry_after_is_waited_out_on_the_api_schedule(self):
+        # 60s is beyond our patience, so it is not honoured; the checker backs off
+        self.answer(urllib.error.HTTPError(
+            'https://api.github.com', 403, 'Forbidden', {'Retry-After': '60'}, None))
+        self.assertEqual(self.slept, list(CHECKER.BACKOFF_SECONDS))
+
+    def test_a_short_retry_after_is_honoured(self):
+        self.slept.clear()
+        self.answer(urllib.error.HTTPError(
+            'https://api.github.com', 429, 'Too Many Requests', {'Retry-After': '3'}, None))
+        self.assertEqual(self.slept, [3, 3])
 
     def test_a_403_with_a_secondary_rate_limit_body_is_unverifiable(self):
         error = urllib.error.HTTPError(
@@ -215,34 +253,36 @@ class ResolvesTest(unittest.TestCase):
 
 
 class MainTest(unittest.TestCase):
-    """The verdict the job gets: a refused token must not read as a pass."""
+    """The verdict the job gets: nothing wrong may read as a pass."""
 
-    def run_main(self, status):
+    def run_main(self, statuses):
         original_refs = CHECKER.refs_in
-        original_status = CHECKER.resolves
-        original_sleep = CHECKER.time.sleep
-        original_argv = CHECKER.sys.argv
+        original_resolves = CHECKER.resolves
         original_token = CHECKER.os.environ.get('GITHUB_TOKEN')
+        answers = list(statuses)
 
         CHECKER.refs_in = lambda path: [(1, f'owner/repo@{SHA}')]
-        CHECKER.resolves = lambda repo, sha, token: status
-        CHECKER.time.sleep = lambda seconds: None
+        CHECKER.resolves = lambda repo, sha, token: answers.pop(0)
         CHECKER.os.environ['GITHUB_TOKEN'] = 'token'
-        CHECKER.sys.argv = ['check-action-pins.py', '.']
 
         printed = io.StringIO()
-
+        original_argv = CHECKER.sys.argv
         try:
             with tempfile.TemporaryDirectory() as directory:
                 pathlib.Path(directory, 'workflow.yml').write_text('steps:\n')
+                # one entry per pin, so the stub is asked once per ref
+                count = len(statuses)
+                CHECKER.refs_in = lambda path: [
+                    (index + 1, f'owner/repo@{SHA}') for index in range(count)
+                ]
+                answers = list(statuses)
                 CHECKER.sys.argv = ['check-action-pins.py', directory]
                 with contextlib.redirect_stdout(printed):
                     code = CHECKER.main()
         finally:
-            CHECKER.refs_in = original_refs
-            CHECKER.resolves = original_status
-            CHECKER.time.sleep = original_sleep
             CHECKER.sys.argv = original_argv
+            CHECKER.refs_in = original_refs
+            CHECKER.resolves = original_resolves
             if original_token is None:
                 CHECKER.os.environ.pop('GITHUB_TOKEN', None)
             else:
@@ -251,21 +291,52 @@ class MainTest(unittest.TestCase):
         return code, printed.getvalue()
 
     def test_a_refused_token_fails_the_run(self):
-        code, output = self.run_main('denied')
+        code, output = self.run_main(['denied'])
         self.assertEqual(code, 1)
         self.assertIn('could not be checked - the token was refused', output)
         self.assertIn('1 refused', output)
 
-    def test_an_unverifiable_pin_only_warns(self):
-        code, output = self.run_main('unknown')
+    def test_an_unverifiable_pin_beside_a_good_one_only_warns(self):
+        code, output = self.run_main(['ok', 'unknown'])
         self.assertEqual(code, 0)
         self.assertIn('::warning', output)
         self.assertIn('1 unverifiable', output)
 
+    def test_a_run_that_verified_nothing_fails(self):
+        # a green job that checked nothing reads as a pass; it must not
+        code, output = self.run_main(['unknown', 'unknown'])
+        self.assertEqual(code, 1)
+        self.assertIn('none of the 2 pin(s) could be verified', output)
+
     def test_a_resolved_pin_passes(self):
-        code, output = self.run_main('ok')
+        code, output = self.run_main(['ok'])
         self.assertEqual(code, 0)
         self.assertIn('0 refused, 0 unverifiable', output)
+
+    def test_an_unpinned_ref_fails_without_asking_the_api(self):
+        original_refs = CHECKER.refs_in
+        original_token = CHECKER.os.environ.get('GITHUB_TOKEN')
+        CHECKER.refs_in = lambda path: [(1, 'owner/repo@v4')]
+        CHECKER.os.environ['GITHUB_TOKEN'] = 'token'
+        printed = io.StringIO()
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                pathlib.Path(directory, 'workflow.yml').write_text('steps:\n')
+                with contextlib.redirect_stdout(printed):
+                    original = CHECKER.sys.argv
+                    CHECKER.sys.argv = ['check-action-pins.py', directory]
+                    try:
+                        code = CHECKER.main()
+                    finally:
+                        CHECKER.sys.argv = original
+        finally:
+            CHECKER.refs_in = original_refs
+            if original_token is None:
+                CHECKER.os.environ.pop('GITHUB_TOKEN', None)
+            else:
+                CHECKER.os.environ['GITHUB_TOKEN'] = original_token
+        self.assertEqual(code, 1)
+        self.assertIn('is not pinned to a commit sha', printed.getvalue())
 
 
 if __name__ == '__main__':

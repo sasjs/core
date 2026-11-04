@@ -56,29 +56,38 @@ jobs:
           fi
 
       - name: The checker behaves as its tests say
-        # each copy is tested by the suite that belongs to it. Where the base branch
-        # has no suite yet - the PR that first adds one - there is nothing to run
-        # against the copy that gates, and saying so beats pairing it with tests
-        # written for a later version.
+        # the copy in this change is tested first, because it is what will gate from
+        # the next pull request onward. The copy that gates this one is tested with
+        # the base branch's own suite, and a base ref that is absent from the
+        # checkout fails here rather than reading as "no suite".
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
           base="$RUNNER_TEMP/self-test-base"
           change="$RUNNER_TEMP/self-test-change"
-          mkdir -p "$base/.github/scripts" "$change/.github/scripts"
-          cp .github/scripts/check-action-pins.py .github/scripts/check-action-pins.test.py \
-            "$change/.github/scripts/"
           ref="origin/${BASE_REF}"
-          if [ -n "$BASE_REF" ] && git cat-file -e "$ref:.github/scripts/check-action-pins.test.py" 2>/dev/null; then
-            cp "$RUNNER_TEMP/check-action-pins/check-action-pins.py" "$base/.github/scripts/check-action-pins.py"
-            git show "$ref:.github/scripts/check-action-pins.test.py" > "$base/.github/scripts/check-action-pins.test.py"
-            echo "the copy that gates, with its own suite"
-            ( cd "$base" && python3 .github/scripts/check-action-pins.test.py )
-          else
-            echo "the base branch has no suite for the checker - nothing to run against the copy that gates"
-          fi
+          mkdir -p "$base/.github/scripts" "$change/.github/scripts"
+          cp .github/scripts/check-action-pins.py .github/scripts/test_check_action_pins.py \
+            "$change/.github/scripts/"
           echo "the copy in this change, with this suite"
-          ( cd "$change" && python3 .github/scripts/check-action-pins.test.py )
+          ( cd "$change" && python3 .github/scripts/test_check_action_pins.py )
+
+          if [ -z "$BASE_REF" ]; then
+            echo "not a pull request - there is no base copy to test"
+            exit 0
+          fi
+          if ! git rev-parse --verify --quiet "$ref" > /dev/null; then
+            echo "::error::$ref is not in this checkout, so the copy that gates cannot be tested"
+            exit 1
+          fi
+          if ! git cat-file -e "$ref:.github/scripts/test_check_action_pins.py" 2>/dev/null; then
+            echo "$ref has no suite for the checker - nothing to run against the copy that gates"
+            exit 0
+          fi
+          cp "$RUNNER_TEMP/check-action-pins/check-action-pins.py" "$base/.github/scripts/check-action-pins.py"
+          git show "$ref:.github/scripts/test_check_action_pins.py" > "$base/.github/scripts/test_check_action_pins.py"
+          echo "the copy that gates, with its own suite"
+          ( cd "$base" && python3 .github/scripts/test_check_action_pins.py )
 
       - name: Every action is pinned to a commit, and that commit exists
         env:

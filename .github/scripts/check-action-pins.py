@@ -3,34 +3,31 @@
 
     python3 .github/scripts/check-action-pins.py [root]
 
-`root` defaults to `.github`, which covers workflows *and* composite actions
-(`.github/actions/**/action.yml`) - refs in a composite action are scored by the
-scorecard the same way, so they are checked the same way.
+`root` defaults to `.github`, which is where every workflow and composite action
+lives. The rules:
 
-Two things fail the check, because a pin can be wrong in two ways:
+- every external `uses:` must name a full 40-character commit SHA, and the SHA must
+  exist in that repository - a tag or a branch is not a pin;
+- a `uses:` inside a `run:` block scalar is shell text, not an action;
+- a `uses:` in a flow-style step - `- {name: x, uses: owner/repo@sha}` - counts;
+- a quoted ref carries its quotes into the comparison unless they are stripped.
 
-  - it is not a commit at all (`uses: owner/repo@v1`, `@main`, or something that is
-    not an `owner/repo` action). The scorecard's Pinned-Dependencies check scores
-    that on the next push to the default branch - too late to be useful in review,
-    which is why it fails here directly.
-  - it is 40 hex but does not exist in that action's repository. The step then
-    fails at action resolution the next time its workflow runs, and for the
-    scorecard workflow that is the push that follows the merge. Pinning an
-    annotated tag's own id rather than the commit it points to produces exactly
-    that.
+The verdict for each pin is one of four words, and only the first three can fail
+the run:
 
-A pin that could not be checked - a rate limit, a 5xx, a network blip that survives
-the retries - is reported as a warning and does not fail the run: this exists to
-catch a wrong sha, not to redden an unrelated pull request because the API was
-busy. Re-run the job to confirm; a pin that is genuinely absent answers 404 or 422,
-which does fail.
+  ok        the commit exists in that repository
+  bad       the answer was 404 or 422: no such commit there
+  denied    the token was refused - a 401, or a 403 that is not throttling
+  unknown   no usable answer - a rate limit, a 5xx, a network error, or a 403
+            whose body is missing or unreadable
 
-The file is read as text rather than through a YAML parser, because the danger is
-in the string, not the structure: a `uses:` inside a `run: |` block is shell text,
-and a quoted ref carries its quotes into any naive comparison. Both are handled
-here - block scalars are skipped, quotes are stripped - and a step written in flow
-style (`- {name: x, uses: owner/repo@sha}`) is found too.
+`unknown` warns rather than failing, because a busy API says nothing about the
+pin. But a run in which *nothing* could be verified fails: a gate that reports
+nothing and exits 0 is worse than one that reports nothing and exits 1.
+
+Exit status: 0 when every pin is ok (or only some are unknown), 1 otherwise.
 """
+import fnmatch
 import json
 import os
 import pathlib
@@ -40,99 +37,133 @@ import time
 import urllib.error
 import urllib.request
 
-BLOCK_USES = re.compile(r'^(\s*)(?:-\s+)?uses:\s*(.+?)\s*$')
-FLOW_USES = re.compile(r'[{,]\s*uses:\s*([^,}\n]+)')
-BLOCK_SCALAR = re.compile(r'^(\s*)(?:-\s+)?[\w.-]+:\s*[|>][-+]?\s*(?:#.*)?$')
-SHA = re.compile(r'^[0-9a-f]{40}$')
+API = 'https://api.github.com'
 
-# one sleep per retry, so the worst case per ref stays inside the job's timeout
+# per-ref backoff while the API is busy or throttling; the job timeout has to
+# outlast the sum of these, see timeout-minutes in the workflow
 BACKOFF_SECONDS = (5, 10)
 
+# a Retry-After can ask for minutes. Wait for it up to this, then treat the pin as
+# unverifiable rather than holding a runner for the rest of the hour.
+MAX_RETRY_AFTER = 30
 
-def clean(value):
-    """The ref out of a `uses:` value: no trailing comment, no quotes."""
-    value = re.sub(r'\s+#.*$', '', value).strip()
-    if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
-        value = value[1:-1]
-    return value
-
-
-def refs_in(path):
-    """Every (line number, ref) that is genuinely a `uses:` key in this file."""
-    found = []
-    block_indent = None
-
-    for number, line in enumerate(path.read_text().splitlines(), start=1):
-        indent = len(line) - len(line.lstrip())
-
-        if block_indent is not None:
-            # still inside the block scalar until something is indented no more
-            if line.strip() == '' or indent > block_indent:
-                continue
-            block_indent = None
-
-        if line.lstrip().startswith('#'):
-            continue
-
-        scalar = BLOCK_SCALAR.match(line)
-        if scalar:
-            block_indent = len(scalar.group(1))
-            continue
-
-        block = BLOCK_USES.match(line)
-        if block:
-            found.append((number, clean(block.group(2))))
-            continue
-
-        # flow style: `- {name: x, uses: owner/repo@sha}` (and a list of them)
-        for value in FLOW_USES.findall(line):
-            found.append((number, clean(value)))
-
-    return found
+BLOCK_USES = re.compile(r'^(\s*)(?:-\s+)?uses:\s*(.+?)\s*$')
+FLOW_USES = re.compile(r'[{,]\s*uses:\s*([^,}\n]+)')
+UNPINNED = re.compile(r'^[^@\s]+@[0-9a-fA-F]{40}$')
+LOCAL = ('./', '../', 'docker://')
 
 
 def api(path, token):
     request = urllib.request.Request(
-        f'https://api.github.com{path}',
+        API + path,
         headers={
             'Authorization': f'Bearer {token}',
             'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
         },
     )
     with urllib.request.urlopen(request, timeout=30) as response:
         return json.load(response)
 
 
+def refs_in(path):
+    """(line number, ref) for every `uses:` in a workflow or action file."""
+    refs = []
+    block_indent = None
+    scalar_indent = None
+
+    for number, line in enumerate(path.read_text(errors='ignore').splitlines(), 1):
+        stripped = line.strip()
+        if not stripped:
+            continue
+
+        indent = len(line) - len(line.lstrip())
+
+        # inside a block scalar (`run: |`) everything is text until the indentation
+        # returns to the key that opened it
+        if scalar_indent is not None:
+            if indent > scalar_indent:
+                continue
+            scalar_indent = None
+        if block_indent is not None:
+            if indent > block_indent:
+                continue
+            block_indent = None
+
+        if stripped.startswith('#'):
+            continue
+
+        if re.match(r'^(?:-\s+)?(?:run|script|with):\s*[|>]', stripped):
+            block_indent = indent
+            continue
+
+        match = BLOCK_USES.match(line)
+        if match:
+            value = match.group(2)
+            comment = value.find(' #')
+            if comment != -1:
+                value = value[:comment]
+            refs.append((number, clean(value)))
+            continue
+
+        for value in FLOW_USES.findall(line):
+            refs.append((number, clean(value)))
+
+    return refs
+
+
+def clean(value):
+    value = value.strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+        value = value[1:-1]
+    return value
+
+
+def header(error, name):
+    """A header by name, matched case-insensitively.
+
+    A real HTTPMessage is case-insensitive; a plain dict - which is what a test
+    double passes - is not, so the comparison is done here.
+    """
+    for key, value in (getattr(error, 'headers', None) or {}).items():
+        if key.lower() == name:
+            return value
+    return None
+
+
+def retry_after(error):
+    """Seconds the API asked us to wait, if it said so within our patience."""
+    value = header(error, 'retry-after')
+    if value is None:
+        return None
+    try:
+        seconds = int(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+    return seconds if 0 <= seconds <= MAX_RETRY_AFTER else None
+
+
 def throttled(error):
     """Whether a 403 is GitHub asking us to slow down rather than refusing us.
 
-    Both arrive as 403. A secondary limit sends Retry-After, a primary limit sends
+    A secondary limit sends Retry-After, a primary limit sends
     x-ratelimit-remaining: 0, and either way the body usually says "rate limit".
     None of those means the token is wrong, so none of them may fail the run.
 
     Returns True (throttled), False (refused) or None (no way to tell).
+
+    The answer is cached on the exception: a caller that has already read the body
+    - a logger, a test double that re-raises one instance - would otherwise see an
+    empty stream and reach a different verdict the second time.
     """
-    # the answer is cached on the error: a 403 whose body has already been read
-    # would otherwise look different on the retry of the same exception
     cached = getattr(error, '_pkg_throttled', 'missing')
     if cached != 'missing':
         return cached
 
-    def header(name):
-        # a real HTTPMessage is case-insensitive; a plain dict is not
-        for key, value in (error.headers or {}).items():
-            if key.lower() == name:
-                return value
-        return None
-
-    if header('retry-after') or header('x-ratelimit-remaining') == '0':
+    if header(error, 'retry-after') or header(error, 'x-ratelimit-remaining') == '0':
         result = True
     elif getattr(error, 'fp', None) is None:
-        # nothing to read and nothing in the headers: a body that was consumed
-        # elsewhere is indistinguishable from one that was never sent, so this is
-        # missing evidence rather than a refusal, and the caller warns
-        error._pkg_throttled = None
-        return None
+        result = None
     else:
         try:
             body = error.read().decode('utf-8', 'ignore')
@@ -154,15 +185,7 @@ def throttled(error):
 
 
 def resolves(repo, sha, token):
-    """'ok', 'bad', 'denied' or 'unknown'.
-
-    'bad'      - 404 or 422: the commit is not in that repository.
-    'denied'   - 401, or a 403 that is not throttling: the token cannot read it.
-                 Not retried - a refused token does not become accepted - and not
-                 a pass, because the check could not run at all.
-    'unknown'  - 429, 5xx, a throttling 403, or a network error that survived the
-                 retries: says nothing about the pin, so the caller warns.
-    """
+    """'ok', 'bad', 'denied' or 'unknown' - see the module docstring."""
     for attempt in range(len(BACKOFF_SECONDS) + 1):
         try:
             api(f'/repos/{repo}/commits/{sha}', token)
@@ -177,11 +200,12 @@ def resolves(repo, sha, token):
                 if answer is False:
                     return 'denied'
                 if answer is None:
-                    # an unreadable body says nothing about the token either way
                     return 'unknown'
             transient = error.code == 403 or error.code == 429 or error.code >= 500
             if transient and attempt < len(BACKOFF_SECONDS):
-                time.sleep(BACKOFF_SECONDS[attempt])
+                # honour Retry-After: retrying on our own schedule is what sustains
+                # a secondary limit
+                time.sleep(retry_after(error) or BACKOFF_SECONDS[attempt])
                 continue
             return 'unknown'
         except (urllib.error.URLError, TimeoutError):
@@ -193,17 +217,24 @@ def resolves(repo, sha, token):
 
 
 def main():
-    root = sys.argv[1] if len(sys.argv) > 1 else '.github'
-    token = os.environ.get('GITHUB_TOKEN', '')
+    root = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else '.github')
+    token = os.environ.get('GITHUB_TOKEN')
     if not token:
-        print('::error::GITHUB_TOKEN is not set')
+        print('::error::GITHUB_TOKEN is not set, so no pin can be verified')
         return 1
 
     files = sorted(
-        path
-        for path in pathlib.Path(root).rglob('*')
-        if path.suffix in ('.yml', '.yaml') and path.is_file()
+        path for path in root.rglob('*')
+        if path.is_file() and (fnmatch.fnmatch(path.name, '*.yml') or fnmatch.fnmatch(path.name, '*.yaml'))
     )
+
+    pins = []
+    for path in files:
+        for number, ref in refs_in(path):
+            if ref.startswith(LOCAL) or ref.startswith('docker://'):
+                # a local action or a container image: not a pin this check owns
+                continue
+            pins.append((path, number, ref))
 
     unpinned = []
     unresolved = []
@@ -211,40 +242,25 @@ def main():
     unknown = []
     checked = 0
 
-    for path in files:
-        for number, ref in refs_in(path):
-            if ref.startswith('./') or ref.startswith('docker://'):
-                continue
+    for path, number, ref in pins:
+        repo, _, sha = ref.partition('@')
+        if not UNPINNED.match(ref):
+            unpinned.append((path, number, ref))
+            continue
+        checked += 1
+        status = resolves(repo, sha, token)
+        if status == 'bad':
+            unresolved.append((path, number, ref, f'no such commit in {repo}'))
+        elif status == 'denied':
+            denied.append((path, number, ref, repo))
+        elif status == 'unknown':
+            unknown.append((path, number, ref))
 
-            if '@' not in ref:
-                unpinned.append((path, number, ref, 'no @<ref> at all'))
-                continue
-
-            action, sha = ref.rsplit('@', 1)
-            if not SHA.fullmatch(sha):
-                unpinned.append((path, number, ref, 'not a full commit SHA'))
-                continue
-
-            parts = action.split('/')
-            if len(parts) < 2:
-                unpinned.append((path, number, ref, 'not an owner/repo action'))
-                continue
-
-            repo = '/'.join(parts[:2])
-            checked += 1
-            status = resolves(repo, sha, token)
-            if status == 'bad':
-                unresolved.append((path, number, ref, f'no such commit in {repo}'))
-            elif status == 'denied':
-                denied.append((path, number, ref, repo))
-            elif status == 'unknown':
-                unknown.append((path, number, ref))
-
-    for path, number, ref, why in unpinned:
-        print(f'::error file={path},line={number}::uses: {ref} is not pinned to a commit SHA - {why}')
+    for path, number, ref in unpinned:
+        print(f'::error file={path},line={number}::uses: {ref} is not pinned to a commit sha')
 
     for path, number, ref, why in unresolved:
-        print(f'::error file={path},line={number}::uses: {ref} does not resolve - {why}')
+        print(f'::error file={path},line={number}::uses: {ref} - {why}')
 
     for path, number, ref, repo in denied:
         print(f'::error file={path},line={number}::uses: {ref} could not be checked - '
@@ -252,7 +268,12 @@ def main():
 
     for path, number, ref in unknown:
         print(f'::warning file={path},line={number}::uses: {ref} could not be checked - '
-              'API rate limit, outage or network. Not evidence about the pin; re-run to confirm')
+              f'the API gave no usable answer, which says nothing about the pin')
+
+    everything_unverified = bool(checked) and len(unknown) == checked
+    if everything_unverified:
+        print(f'::error::none of the {checked} pin(s) could be verified - a run that checks '
+              f'nothing does not pass')
 
     print(
         f'checked {checked} pinned action(s) in {len(files)} file(s): '
@@ -260,7 +281,7 @@ def main():
         f'{len(denied)} refused, {len(unknown)} unverifiable'
     )
 
-    return 1 if (unpinned or unresolved or denied) else 0
+    return 1 if (unpinned or unresolved or denied or everything_unverified) else 0
 
 
 if __name__ == '__main__':

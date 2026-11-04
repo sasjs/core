@@ -83,6 +83,18 @@ jobs:
           # Trusted Publishing (OIDC). The id-token: write permission above
           # allows npm CLI to authenticate to the registry automatically.
 
+      - name: Publish the package to npm
+        if: steps.makerelease.outputs.new_release_published == 'true'
+        # semantic-release decides the version, writes it to package.json, tags
+        # the commit and writes the release notes; publishing is turned off in
+        # its npm plugin (`npmPublish: false`) and runs here instead. It is the
+        # same `npm publish` the plugin would have run - the scorecard's
+        # Packaging check reads workflows for a known publish command, so a
+        # publish performed inside an action is invisible to it.
+        env:
+          NPM_CONFIG_PROVENANCE: 'true'
+        run: npm publish --provenance --access public
+
       - name: Pack the published tarball
         id: pack
         if: steps.makerelease.outputs.new_release_published == 'true' || github.event.inputs.sign_version != ''

@@ -33918,7 +33918,7 @@ filename &webref "&webrefpath";
   /* proc stp gives no job status - say so rather than imply success */
   %if "&outstatus" ne "0" %then %do;
     data &outstatus;
-      length state $20 uri $256 errmsg $256 platform $10;
+      length state $256 uri $256 errmsg $256 platform $10;
       state='unknown';
       uri='';
       errmsg='proc stp returns no job status';
@@ -34019,7 +34019,13 @@ filename &webref "&webrefpath";
   /* the outcome, before the flow table goes away */
   %if "&outstatus" ne "0" %then %do;
     data &outstatus;
-      length state $20 uri $256 errmsg $32767 platform $10;
+      /* state is copied from the flow table, so this length is a ceiling, not a
+        * target.  mp_init's strict set includes varlenchk=ERROR, so a shorter
+        * one fails the step outright: OBS=0 then switches the rest of
+        * the session to syntax check, and every later proc reports a problem
+        * that has nothing to do with it.  256 matches uri and covers a state
+        * read out of JSON. */
+      length state $256 uri $256 errmsg $32767 platform $10;
       platform='SASVIYA';
       errmsg='';
       set &jobds(keep=state uri);
@@ -34071,7 +34077,7 @@ filename &webref "&webrefpath";
         modify &outstatus;
         errmsg=symget('abortmsg');
         replace;
-      end;
+      run;
     %end;
   %end;
   /* only a ref created here may be cleared */
@@ -34101,7 +34107,7 @@ filename &webref "&webrefpath";
   )
   %if "&outstatus" ne "0" %then %do;
     data &outstatus;
-      length state $20 uri $256 errmsg $32767 platform $10;
+      length state $256 uri $256 errmsg $32767 platform $10;
       length line $32767;
       retain state 'completed' uri '' errmsg '' platform 'SASJS' abortseen 0;
       infile &respref end=eof lrecl=32767;

@@ -128,14 +128,25 @@ def throttled(error):
     if header('retry-after') or header('x-ratelimit-remaining') == '0':
         result = True
     elif getattr(error, 'fp', None) is None:
-        # nothing to read, and nothing in the headers: this is a refusal
-        result = False
+        # nothing to read and nothing in the headers: a body that was consumed
+        # elsewhere is indistinguishable from one that was never sent, so this is
+        # missing evidence rather than a refusal, and the caller warns
+        error._pkg_throttled = None
+        return None
     else:
         try:
             body = error.read().decode('utf-8', 'ignore')
         except Exception:  # noqa: BLE001 - a body we cannot read is not evidence
             error._pkg_throttled = None
             return None
+
+        if not body.strip():
+            # urllib hands back an empty stream for a 403 that carried no body, and
+            # a body already consumed elsewhere reads the same way: missing
+            # evidence, not a refusal
+            error._pkg_throttled = None
+            return None
+
         result = 'rate limit' in body.lower()
 
     error._pkg_throttled = result

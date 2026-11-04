@@ -55,6 +55,25 @@ jobs:
             cp .github/scripts/check-action-pins.py "$target"
           fi
 
+      - name: The checker behaves as its tests say
+        # the gating run below uses the base branch's copy, so that copy is what the
+        # tests have to cover; the copy in this change is tested as well, because it
+        # is what will run from the next pull request onward.
+        run: |
+          work="$RUNNER_TEMP/self-test"
+          mkdir -p "$work/.github/scripts"
+          cp .github/scripts/check-action-pins.test.py "$work/.github/scripts/"
+          for which in base change; do
+            if [ "$which" = base ]; then
+              src="$RUNNER_TEMP/check-action-pins/check-action-pins.py"
+            else
+              src=".github/scripts/check-action-pins.py"
+            fi
+            cp "$src" "$work/.github/scripts/check-action-pins.py"
+            echo "testing the $which copy"
+            ( cd "$work" && python3 .github/scripts/check-action-pins.test.py )
+          done
+
       - name: Every action is pinned to a commit, and that commit exists
         env:
           GITHUB_TOKEN: ${{ github.token }}

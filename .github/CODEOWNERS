@@ -1,0 +1,9 @@
+# The pin check reads its script from the base branch, but the workflow that invokes
+# it comes from the pull request - so a change could delete the step and the gate
+# would simply never report. These two paths need a review from a maintainer before
+# they change; pair this with a required status check on the "Action pins" job and a
+# ruleset on the default branch.
+/.github/workflows/action-pins.yml  @allanbowe
+/.github/scripts/check-action-pins.py  @allanbowe
+/.github/scripts/check-action-pins.test.py  @allanbowe
+/.github/CODEOWNERS  @allanbowe

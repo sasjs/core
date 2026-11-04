@@ -15,8 +15,9 @@
 # The `.sas` files are not covered by any CodeQL language. A green run here is
 # not a statement about the macros.
 #
-# Every action is pinned to a commit: `.github/workflows/action-pins.yml` runs
-# `.github/scripts/check-action-pins.py` and fails the build on a floating ref.
+# Every action is pinned to a commit: `.github/workflows/action-pins.yml` calls the
+# pin check published in `sasjs/utils` at a pinned commit, and fails the build on a
+# floating ref.
 name: CodeQL
 
 on:

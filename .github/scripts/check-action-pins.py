@@ -118,11 +118,16 @@ def throttled(error):
     if cached != 'missing':
         return cached
 
-    headers = error.headers or {}
+    def header(name):
+        # a real HTTPMessage is case-insensitive; a plain dict is not
+        for key, value in (error.headers or {}).items():
+            if key.lower() == name:
+                return value
+        return None
 
-    if headers.get('Retry-After') or headers.get('x-ratelimit-remaining') == '0':
+    if header('retry-after') or header('x-ratelimit-remaining') == '0':
         result = True
-    elif error.fp is None:
+    elif getattr(error, 'fp', None) is None:
         # nothing to read, and nothing in the headers: this is a refusal
         result = False
     else:

@@ -32,17 +32,27 @@ jobs:
 
       - name: The checker is the one from the base branch, not from this change
         # a pull request that edits the checker could otherwise switch off the gate
-        # it is meant to pass through. On a push there is no base, so the copy in
-        # this change is used.
+        # it is meant to pass through. The base ref is resolved before anything is
+        # read: a checkout that did not fetch it fails here rather than quietly
+        # falling back to the copy in the change.
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
-          base="${{ github.base_ref }}"
-          mkdir -p "$RUNNER_TEMP/check-action-pins"
-          if [ -n "$base" ] && git show "origin/$base:.github/scripts/check-action-pins.py" \
-              > "$RUNNER_TEMP/check-action-pins/check-action-pins.py" 2>/dev/null; then
-            echo "using the checker from origin/$base"
+          target="$RUNNER_TEMP/check-action-pins/check-action-pins.py"
+          mkdir -p "$(dirname "$target")"
+          ref="origin/${BASE_REF}"
+          if [ -z "$BASE_REF" ]; then
+            echo "no base ref - not a pull request, so the copy in this change is used"
+            cp .github/scripts/check-action-pins.py "$target"
+          elif ! git rev-parse --verify --quiet "$ref" > /dev/null; then
+            echo "::error::$ref is not in this checkout, so the reviewed copy of the checker cannot be read"
+            exit 1
+          elif git cat-file -e "$ref:.github/scripts/check-action-pins.py" 2>/dev/null; then
+            git show "$ref:.github/scripts/check-action-pins.py" > "$target"
+            echo "using the checker from $ref"
           else
-            echo "no checker on the base branch - using the copy in this change"
-            cp .github/scripts/check-action-pins.py "$RUNNER_TEMP/check-action-pins/check-action-pins.py"
+            echo "$ref has no checker - using the copy in this change, which is the PR that adds it"
+            cp .github/scripts/check-action-pins.py "$target"
           fi
 
       - name: Every action is pinned to a commit, and that commit exists

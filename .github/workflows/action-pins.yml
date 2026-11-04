@@ -56,23 +56,27 @@ jobs:
           fi
 
       - name: The checker behaves as its tests say
-        # the gating run below uses the base branch's copy, so that copy is what the
-        # tests have to cover; the copy in this change is tested as well, because it
-        # is what will run from the next pull request onward.
+        # each copy is tested by its own suite: pairing this change's tests with the
+        # base branch's checker reads as a regression that nobody introduced
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
-          work="$RUNNER_TEMP/self-test"
-          mkdir -p "$work/.github/scripts"
-          cp .github/scripts/check-action-pins.test.py "$work/.github/scripts/"
-          for which in base change; do
-            if [ "$which" = base ]; then
-              src="$RUNNER_TEMP/check-action-pins/check-action-pins.py"
-            else
-              src=".github/scripts/check-action-pins.py"
-            fi
-            cp "$src" "$work/.github/scripts/check-action-pins.py"
-            echo "testing the $which copy"
-            ( cd "$work" && python3 .github/scripts/check-action-pins.test.py )
-          done
+          base="$RUNNER_TEMP/self-test-base"
+          change="$RUNNER_TEMP/self-test-change"
+          mkdir -p "$base/.github/scripts" "$change/.github/scripts"
+          cp .github/scripts/check-action-pins.py .github/scripts/check-action-pins.test.py \
+            "$change/.github/scripts/"
+          cp "$RUNNER_TEMP/check-action-pins/check-action-pins.py" "$base/.github/scripts/check-action-pins.py"
+          ref="origin/${BASE_REF}"
+          if [ -n "$BASE_REF" ] && git cat-file -e "$ref:.github/scripts/check-action-pins.test.py" 2>/dev/null; then
+            git show "$ref:.github/scripts/check-action-pins.test.py" > "$base/.github/scripts/check-action-pins.test.py"
+          else
+            cp .github/scripts/check-action-pins.test.py "$base/.github/scripts/check-action-pins.test.py"
+          fi
+          echo "the copy that gates, with its own suite"
+          ( cd "$base" && python3 .github/scripts/check-action-pins.test.py )
+          echo "the copy in this change, with this suite"
+          ( cd "$change" && python3 .github/scripts/check-action-pins.test.py )
 
       - name: Every action is pinned to a commit, and that commit exists
         env:

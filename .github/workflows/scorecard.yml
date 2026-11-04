@@ -4,9 +4,9 @@
 # The results go to two different places, and they are not alternatives:
 #
 #   - GitHub code scanning (the SARIF upload below). The findings land on the
-#     repository's Security tab, and this is the only one of the two that moves
-#     the scorecard's own SAST check - without it the check reads "SAST tool is
-#     not run on all commits".
+#     repository's Security tab. This does NOT move the scorecard's own SAST
+#     check: that check reads for CodeQL or SonarCloud evidence, which is what
+#     .github/workflows/codeql.yml provides.
 #   - The OpenSSF public API (`publish_results`). This is the badge
 #     (https://api.securityscorecards.dev/projects/github.com/sasjs/core/badge)
 #     and a signed attestation for the run. The repo is already scored weekly by

@@ -1,0 +1,64 @@
+# CodeQL - static analysis of what this repository can actually be analysed as.
+#
+# The OpenSSF scorecard's SAST check is satisfied by `github/codeql-action` in a
+# workflow, or by a CodeQL result on recent pull requests. Uploading the
+# scorecard's own SARIF to code scanning does NOT satisfy it, which is why this
+# job exists alongside `.github/workflows/scorecard.yml`: the two are different
+# checks reading different evidence.
+#
+# This repository is SAS macros, and CodeQL has no SAS parser, so the two
+# languages below are what there is to analyse:
+#
+#   actions - the workflow definitions, where the supply-chain exposure lives
+#   python  - build.py, which generates all.sas
+#
+# The `.sas` files are not covered by any CodeQL language. A green run here is
+# not a statement about the macros.
+#
+# Every action is pinned to a commit: `.github/workflows/action-pins.yml` runs
+# `.github/scripts/check-action-pins.py` and fails the build on a floating ref.
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # weekly, so a new query pack still reaches a repository that is not changing
+    - cron: '20 3 * * 1'
+
+# read-only by default; the job adds the one write it needs
+permissions: read-all
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    # a hung extraction otherwise holds a runner until the default limit
+    timeout-minutes: 20
+    permissions:
+      security-events: write # upload the results to code scanning
+      contents: read
+      actions: read # read the workflow files for the `actions` language
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [actions, python]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Initialise CodeQL
+        uses: github/codeql-action/init@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
+        with:
+          languages: ${{ matrix.language }}
+          # the default query set for each language, which is what code scanning
+          # shows by default; security-extended doubles the run time for findings
+          # this repository cannot act on (there is no SAS query pack)
+          queries: security-and-quality
+
+      - name: Perform the analysis
+        uses: github/codeql-action/analyze@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
+        with:
+          category: /language:${{ matrix.language }}

@@ -1,16 +1,16 @@
 # Fails a pull request - and a push to the default branch - when an action this
-# repository uses is not pinned to a commit, or is pinned to one that does not
-# exist.
+# repository uses is not pinned to a commit, or is pinned to one that does not exist.
 #
-# The check itself is .github/scripts/check-action-pins.py: the rules, and the two
-# shapes it has to tell apart (a `uses:` inside a `run:` block scalar is shell text,
-# and a quoted ref carries its quotes), are documented there.
+# The check is a composite action in sasjs/utils, called at a pinned commit: every
+# sasjs repository runs one implementation and one suite rather than a copy of each
+# that drifts. The reference is a commit SHA like any other action, which is what the
+# check itself demands of the actions in this repository.
 name: Action pins
 
 on:
   pull_request:
-  # a direct push can add an unpinned action, and the next scorecard run is the
-  # only thing that would notice
+  # a direct push can add an unpinned action, and the next scorecard run is the only
+  # thing that would notice
   push:
     branches: [main]
 
@@ -20,76 +20,15 @@ permissions:
 jobs:
   resolve:
     runs-on: ubuntu-latest
-    # the script retries a rate-limited or 5xx lookup (5s then 10s per ref), so
-    # the job has to outlast its own retry budget rather than being killed midway
+    # the checker retries a rate-limited or 5xx lookup (5s then 10s per ref, or the
+    # Retry-After the API asks for, capped at 30s), so the job has to outlast its own
+    # retry budget
     timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          # the check below reads the base branch's copy, so it has to be fetched
-          fetch-depth: 0
-
-      - name: The checker is the one from the base branch, not from this change
-        # a pull request that edits the checker could otherwise switch off the gate
-        # it is meant to pass through. The base ref is resolved before anything is
-        # read: a checkout that did not fetch it fails here rather than quietly
-        # falling back to the copy in the change.
-        env:
-          BASE_REF: ${{ github.base_ref }}
-        run: |
-          target="$RUNNER_TEMP/check-action-pins/check-action-pins.py"
-          mkdir -p "$(dirname "$target")"
-          ref="origin/${BASE_REF}"
-          if [ -z "$BASE_REF" ]; then
-            echo "no base ref - not a pull request, so the copy in this change is used"
-            cp .github/scripts/check-action-pins.py "$target"
-          elif ! git rev-parse --verify --quiet "$ref" > /dev/null; then
-            echo "::error::$ref is not in this checkout, so the reviewed copy of the checker cannot be read"
-            exit 1
-          elif git cat-file -e "$ref:.github/scripts/check-action-pins.py" 2>/dev/null; then
-            git show "$ref:.github/scripts/check-action-pins.py" > "$target"
-            echo "using the checker from $ref"
-          else
-            echo "$ref has no checker - using the copy in this change, which is the PR that adds it"
-            cp .github/scripts/check-action-pins.py "$target"
-          fi
-
-      - name: The checker behaves as its tests say
-        # the copy in this change is tested first, because it is what will gate from
-        # the next pull request onward. The copy that gates this one is tested with
-        # the base branch's own suite, and a base ref that is absent from the
-        # checkout fails here rather than reading as "no suite".
-        env:
-          BASE_REF: ${{ github.base_ref }}
-        run: |
-          base="$RUNNER_TEMP/self-test-base"
-          change="$RUNNER_TEMP/self-test-change"
-          ref="origin/${BASE_REF}"
-          mkdir -p "$base/.github/scripts" "$change/.github/scripts"
-          cp .github/scripts/check-action-pins.py .github/scripts/test_check_action_pins.py \
-            "$change/.github/scripts/"
-          echo "the copy in this change, with this suite"
-          ( cd "$change" && python3 .github/scripts/test_check_action_pins.py )
-
-          if [ -z "$BASE_REF" ]; then
-            echo "not a pull request - there is no base copy to test"
-            exit 0
-          fi
-          if ! git rev-parse --verify --quiet "$ref" > /dev/null; then
-            echo "::error::$ref is not in this checkout, so the copy that gates cannot be tested"
-            exit 1
-          fi
-          if ! git cat-file -e "$ref:.github/scripts/test_check_action_pins.py" 2>/dev/null; then
-            echo "$ref has no suite for the checker - nothing to run against the copy that gates"
-            exit 0
-          fi
-          cp "$RUNNER_TEMP/check-action-pins/check-action-pins.py" "$base/.github/scripts/check-action-pins.py"
-          git show "$ref:.github/scripts/test_check_action_pins.py" > "$base/.github/scripts/test_check_action_pins.py"
-          echo "the copy that gates, with its own suite"
-          ( cd "$base" && python3 .github/scripts/test_check_action_pins.py )
 
       - name: Every action is pinned to a commit, and that commit exists
+        uses: sasjs/utils/.github/actions/action-pins@e8be9142f5721206caa36c0b9e79b9d47c74229f
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: python3 "$RUNNER_TEMP/check-action-pins/check-action-pins.py"

@@ -1,12 +1,6 @@
 # Macro Core
 
-[![npm package](https://img.shields.io/npm/v/@sasjs/core.svg)](http://npmjs.org/package/@sasjs/core)
-[![Github Workflow](https://github.com/sasjs/core/actions/workflows/main.yml/badge.svg)](https://github.com/sasjs/core/blob/main/.github/workflows/main.yml)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/sasjs/core/badge)](https://scorecard.dev/viewer/?uri=github.com/sasjs/core)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/sasjs/core/blob/main/LICENSE)
-[![npms.io](https://img.shields.io/npms-io/final-score/@sasjs/core)](https://npms.io/search?q=%40sasjs%2Fcore)
-![npm](https://img.shields.io/npm/dt/@sasjs/core)
-![GitHub last commit](https://img.shields.io/github/last-commit/sasjs/core)
+[![npm package](https://img.shields.io/npm/v/@sasjs/core.svg)](http://npmjs.org/package/@sasjs/core) [![Github Workflow](https://github.com/sasjs/core/actions/workflows/main.yml/badge.svg)](https://github.com/sasjs/core/blob/main/.github/workflows/main.yml) [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/sasjs/core/badge)](https://scorecard.dev/viewer/?uri=github.com/sasjs/core) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/sasjs/core/blob/main/LICENSE) [![Socket Badge](https://socket.dev/api/badge/npm/package/@sasjs/core)](https://socket.dev/npm/package/@sasjs/core) ![npm](https://img.shields.io/npm/dt/@sasjs/core) ![GitHub last commit](https://img.shields.io/github/last-commit/sasjs/core)
 
 
 Much quality. Many standards. The **Macro Core** library exists to save time and development effort! Herein ye shall find a veritable host of MIT-licenced, production quality SAS macros. These are a mix of tools, utilities, functions and code generators that are useful in the context of [Application Development](https://sasapps.io) on the SAS platform (eg https://datacontroller.io). [Contributions](https://github.com/sasjs/core/blob/main/.github/CONTRIBUTING.md) are welcome.

@@ -5,6 +5,12 @@ updates:
     schedule:
       interval: monthly
     open-pull-requests-limit: 3
+    # one PR a week carrying every bump, rather than the limit deciding which
+    # actions stay current
+    groups:
+      actions:
+        patterns:
+          - '*'
     allow:
       - dependency-type: "production"
 

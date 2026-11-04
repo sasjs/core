@@ -11,6 +11,12 @@ on:
   # push is skipped for a marker in its message, or when the run fails
   # after the merge has landed
   workflow_dispatch:
+    inputs:
+      sign_version:
+        description: >-
+          Existing version to sign, e.g. 7.1.5 (it must already be on npm).
+          Leave empty to sign the release this run publishes.
+        required: false
 
 # read-only by default; the release job asks for the writes it needs, and a job's
 # block replaces this one entirely rather than adding to it
@@ -23,7 +29,8 @@ jobs:
       contents: write
       issues: write
       pull-requests: write
-      id-token: write # required for npm Trusted Publishing (OIDC)
+      id-token: write # npm Trusted Publishing (OIDC), and the attestation's signature
+      attestations: write # actions/attest-build-provenance records the attestation
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -34,12 +41,22 @@ jobs:
           node-version: 'lts/*'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Ensure npm supports Trusted Publishing
-        # pinned rather than @latest: Trusted Publishing needs npm >= 11.5.1, and
-        # the toolchain that signs and publishes the release has to be the one
-        # this commit was reviewed with. `npm@latest` also reads to the scorecard
-        # as a dependency that is not pinned by hash.
-        run: npm install -g npm@12.2.1
+      - name: Check npm supports Trusted Publishing
+        # Trusted Publishing needs npm >= 11.5.1. The runner image supplies that
+        # with Node 22 and later - the current LTS ships npm 11.19 against a floor
+        # of 11.5.1 - so this asserts the requirement instead of installing a
+        # toolchain. `npm install` cannot be pinned by hash (unlike pip or go),
+        # which is why the scorecard reads every such line as an unpinned
+        # dependency whatever version it names; a run on an image with an older
+        # npm now fails here, by name, instead of inside the publish.
+        run: |
+          version=$(npm --version)
+          echo "npm $version"
+          oldest=$(printf '%s\n%s\n' '11.5.1' "$version" | sort -V | head -n1)
+          if [ "$oldest" != '11.5.1' ]; then
+            echo "::error::npm $version is older than 11.5.1, which Trusted Publishing needs"
+            exit 1
+          fi
 
       - name: Install dependencies
         run: |
@@ -65,6 +82,59 @@ jobs:
           # NPM_TOKEN no longer required: package is published via npm
           # Trusted Publishing (OIDC). The id-token: write permission above
           # allows npm CLI to authenticate to the registry automatically.
+
+      - name: Pack the published tarball
+        id: pack
+        if: steps.makerelease.outputs.new_release_published == 'true' || github.event.inputs.sign_version != ''
+        env:
+          RELEASED: ${{ steps.makerelease.outputs.new_release_version }}
+          REQUESTED: ${{ github.event.inputs.sign_version }}
+        # `npm pack` with a registry spec downloads the tarball that was published
+        # rather than rebuilding one from this checkout, so the bytes that get
+        # signed are the bytes a consumer installs. The version comes from what
+        # the release actually produced, not from `git describe`, which would
+        # answer with the previous tag on a run that published nothing.
+        run: |
+          version="${REQUESTED:-$RELEASED}"
+          mkdir -p dist
+          # the registry serves a just-published version after a delay of up to a
+          # few minutes, so a single `npm pack` can 404 on the version this very
+          # run published; 20 tries at 30s is ten minutes, which outlasts it
+          for attempt in $(seq 1 20); do
+            if npm pack "@sasjs/core@${version}" --pack-destination dist; then
+              break
+            fi
+            echo "the registry has not served ${version} yet (attempt ${attempt} of 20) - waiting"
+            sleep 30
+          done
+          if ! ls dist/*.tgz > /dev/null 2>&1; then
+            echo "::error::could not fetch the published tarball for ${version}"
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          ls -l dist
+
+      - name: Attest the build provenance of that tarball
+        id: attest
+        if: steps.pack.outputs.version != ''
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-path: 'dist/*.tgz'
+
+      - name: Attach the tarball and its provenance to the release
+        if: steps.pack.outputs.version != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.pack.outputs.version }}
+          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+        # the scorecard's Signed-Releases check reads release assets by filename,
+        # and only `*.intoto.jsonl` earns the full score, so the bundle - which
+        # carries no extension of its own - is renamed to match before upload.
+        # Consumers verify with: gh attestation verify <tarball> --repo sasjs/core
+        run: |
+          cp "$BUNDLE" "dist/provenance-${VERSION}.intoto.jsonl"
+          gh release upload "v${VERSION}" dist/*.tgz "dist/provenance-${VERSION}.intoto.jsonl" --clobber
+          gh release view "v${VERSION}" --json assets --jq '.assets[].name'
 
       - name: SAS Packages Release
         run: |

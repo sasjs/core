@@ -29,6 +29,6 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Every action is pinned to a commit, and that commit exists
-        uses: sasjs/utils/.github/actions/action-pins@e8be9142f5721206caa36c0b9e79b9d47c74229f
+        uses: sasjs/utils/.github/actions/action-pins@59f9be6d4301bd9ee62324ec359e07a6c1e9da7d
         env:
           GITHUB_TOKEN: ${{ github.token }}

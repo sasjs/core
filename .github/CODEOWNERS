@@ -1,9 +1,13 @@
-# The pin check reads its script from the base branch, but the workflow that invokes
-# it comes from the pull request - so a change could delete the step and the gate
-# would simply never report. These two paths need a review from a maintainer before
-# they change; pair this with a required status check on the "Action pins" job and a
-# ruleset on the default branch.
-/.github/workflows/action-pins.yml  @allanbowe
-/.github/scripts/check-action-pins.py  @allanbowe
-/.github/scripts/check-action-pins.test.py  @allanbowe
-/.github/CODEOWNERS  @allanbowe
+# The pin check is a composite action pinned to a commit in sasjs/utils, so a pull
+# request cannot edit the checker it has to pass. What it can still edit is the
+# workflow that invokes it - delete the step and the job never reports, which reads as
+# a pass - so these paths need a maintainer's review.
+#
+# A file cannot enforce that on its own: pair this with a required status check on the
+# "Action pins" job and a ruleset on the default branch. Until those exist, this is a
+# request for review, not a block.
+#
+# Owners are the sasjs maintainers rather than one person, so a single absence does not
+# hold the gate.
+/.github/workflows/action-pins.yml  @allanbowe @IvorTownsend @medjedovicm @rafgag @saadjutt01 @sabhas @tmoody @YuryShkoda
+/.github/CODEOWNERS  @allanbowe @IvorTownsend @medjedovicm @rafgag @saadjutt01 @sabhas @tmoody @YuryShkoda

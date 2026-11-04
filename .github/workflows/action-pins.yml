@@ -56,8 +56,10 @@ jobs:
           fi
 
       - name: The checker behaves as its tests say
-        # each copy is tested by its own suite: pairing this change's tests with the
-        # base branch's checker reads as a regression that nobody introduced
+        # each copy is tested by the suite that belongs to it. Where the base branch
+        # has no suite yet - the PR that first adds one - there is nothing to run
+        # against the copy that gates, and saying so beats pairing it with tests
+        # written for a later version.
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
@@ -66,15 +68,15 @@ jobs:
           mkdir -p "$base/.github/scripts" "$change/.github/scripts"
           cp .github/scripts/check-action-pins.py .github/scripts/check-action-pins.test.py \
             "$change/.github/scripts/"
-          cp "$RUNNER_TEMP/check-action-pins/check-action-pins.py" "$base/.github/scripts/check-action-pins.py"
           ref="origin/${BASE_REF}"
           if [ -n "$BASE_REF" ] && git cat-file -e "$ref:.github/scripts/check-action-pins.test.py" 2>/dev/null; then
+            cp "$RUNNER_TEMP/check-action-pins/check-action-pins.py" "$base/.github/scripts/check-action-pins.py"
             git show "$ref:.github/scripts/check-action-pins.test.py" > "$base/.github/scripts/check-action-pins.test.py"
+            echo "the copy that gates, with its own suite"
+            ( cd "$base" && python3 .github/scripts/check-action-pins.test.py )
           else
-            cp .github/scripts/check-action-pins.test.py "$base/.github/scripts/check-action-pins.test.py"
+            echo "the base branch has no suite for the checker - nothing to run against the copy that gates"
           fi
-          echo "the copy that gates, with its own suite"
-          ( cd "$base" && python3 .github/scripts/check-action-pins.test.py )
           echo "the copy in this change, with this suite"
           ( cd "$change" && python3 .github/scripts/check-action-pins.test.py )
 

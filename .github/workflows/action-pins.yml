@@ -26,8 +26,26 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # the check below reads the base branch's copy, so it has to be fetched
+          fetch-depth: 0
+
+      - name: The checker is the one from the base branch, not from this change
+        # a pull request that edits the checker could otherwise switch off the gate
+        # it is meant to pass through. On a push there is no base, so the copy in
+        # this change is used.
+        run: |
+          base="${{ github.base_ref }}"
+          mkdir -p "$RUNNER_TEMP/check-action-pins"
+          if [ -n "$base" ] && git show "origin/$base:.github/scripts/check-action-pins.py" \
+              > "$RUNNER_TEMP/check-action-pins/check-action-pins.py" 2>/dev/null; then
+            echo "using the checker from origin/$base"
+          else
+            echo "no checker on the base branch - using the copy in this change"
+            cp .github/scripts/check-action-pins.py "$RUNNER_TEMP/check-action-pins/check-action-pins.py"
+          fi
 
       - name: Every action is pinned to a commit, and that commit exists
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: python3 .github/scripts/check-action-pins.py
+        run: python3 "$RUNNER_TEMP/check-action-pins/check-action-pins.py"

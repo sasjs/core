@@ -10664,7 +10664,7 @@ run;
   <h4> SAS Macros </h4>
   @li mf_getvarlist.sas
   @li mf_getuniquename.sas
-  @li mf_wordsInstr1butnotstr2.sas
+  @li mf_wordsinstr1butnotstr2.sas
   @li mf_nobs.sas
 
   <h4> Related Macros </h4>
@@ -11264,7 +11264,6 @@ https://documentation.sas.com/doc/en/pgmsascdc/9.4_3.5/mcrolref/n1j5tcc0n2xczyn1
       %mp_include(example)
 
   @param [in] fileref The fileref of the file to be included. Must be provided.
-  @param [in] prefix= (_) The prefix to apply to the global variables.
   @param [in] opts= (SOURCE2) The options to apply to the %inc statement
   @param [in] errds= (work.mp_abort_errds) There is no clean way to end a
     process within a %include called within a macro.  Furthermore, there is no
@@ -11291,7 +11290,6 @@ https://documentation.sas.com/doc/en/pgmsascdc/9.4_3.5/mcrolref/n1j5tcc0n2xczyn1
 **/
 
 %macro mp_include(fileref
-  ,prefix=_
   ,opts=SOURCE2
   ,errds=work.mp_abort_errds
 )/*/STORE SOURCE*/;
@@ -15889,7 +15887,7 @@ filename &f2 clear;
   @li mf_existvar.sas
   @li mf_getvarlen.sas
   @li mf_getvartype.sas
-  @li mf_getnobs.sas
+  @li mf_nobs.sas
   @li mp_createconstraints.sas
   @li mp_getconstraints.sas
   @li mp_deleteconstraints.sas
@@ -15939,7 +15937,7 @@ data;run;
   ,msg=%str(syscc=&syscc)
 )
 
-%if %mf_getnobs(&dscont)=0 %then %do;
+%if %mf_nobs(&dsconst)=0 %then %do;
   /* must use SQL as proc datasets does not support length changes */
   proc sql;
   alter table &libds modify &var char(&len);
@@ -16142,8 +16140,9 @@ alter table &libds modify &var char(&len);
 
 %macro mp_wait4file(file, maxwait=0, interval=1);
 
-%if %str(&file)=%str() %then %do;
-  %put %str(ERR)OR: file not provided;
+%if %length(&file)=0 %then %do;
+  %put NOTE: &sysmacroname: no file was provided so it returns immediately;
+  %return;
 %end;
 
 data _null_;

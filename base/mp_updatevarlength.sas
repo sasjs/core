@@ -24,7 +24,7 @@
   @li mf_existvar.sas
   @li mf_getvarlen.sas
   @li mf_getvartype.sas
-  @li mf_getnobs.sas
+  @li mf_nobs.sas
   @li mp_createconstraints.sas
   @li mp_getconstraints.sas
   @li mp_deleteconstraints.sas
@@ -74,7 +74,7 @@ data;run;
   ,msg=%str(syscc=&syscc)
 )
 
-%if %mf_getnobs(&dscont)=0 %then %do;
+%if %mf_nobs(&dsconst)=0 %then %do;
   /* must use SQL as proc datasets does not support length changes */
   proc sql;
   alter table &libds modify &var char(&len);

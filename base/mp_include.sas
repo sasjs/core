@@ -41,7 +41,6 @@ https://documentation.sas.com/doc/en/pgmsascdc/9.4_3.5/mcrolref/n1j5tcc0n2xczyn1
       %mp_include(example)
 
   @param [in] fileref The fileref of the file to be included. Must be provided.
-  @param [in] prefix= (_) The prefix to apply to the global variables.
   @param [in] opts= (SOURCE2) The options to apply to the %inc statement
   @param [in] errds= (work.mp_abort_errds) There is no clean way to end a
     process within a %include called within a macro.  Furthermore, there is no
@@ -68,7 +67,6 @@ https://documentation.sas.com/doc/en/pgmsascdc/9.4_3.5/mcrolref/n1j5tcc0n2xczyn1
 **/
 
 %macro mp_include(fileref
-  ,prefix=_
   ,opts=SOURCE2
   ,errds=work.mp_abort_errds
 )/*/STORE SOURCE*/;

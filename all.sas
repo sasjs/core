@@ -31660,8 +31660,8 @@ run;
   automate the generation of clients & secrets with various settings).
 
   For further information on clients / secrets, see;
-  @li https://developer.sas.com/reference/auth/#register
-  @li https://proc-x.com/2019/01/authentication-to-sas-viya-a-couple-of-approaches
+  @li https://developer.sas.com/docs/rest-apis/getting-started/authentication
+  @li https://blogs.sas.com/content/sgf/2023/02/07/authentication-to-sas-viya/
   @li https://cli.sasjs.io/faq/#how-can-i-obtain-a-viya-client-and-secret
 
   The default viyaroot location is: `/opt/sas/viya/config`

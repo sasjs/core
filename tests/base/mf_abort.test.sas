@@ -9,7 +9,12 @@
 
 **/
 
-/* The aborting path cannot be exercised from a test - ABORT ends the session
+/* mf_abort is deprecated in favour of mp_abort, but its behaviour is still
+  relied on: mf_verifymacvars and the viya mfv_* macros call it, and the
+  default SASjs CLI service and test templates declare it as a dependency, so
+  every compiled build inlines it.  Its behaviour is therefore pinned here.
+
+  The aborting path cannot be exercised from a test - ABORT ends the session
   and the runner would never report.  What is tested is the decision in front
   of it: a false condition must return without aborting. */
 

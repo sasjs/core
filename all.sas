@@ -31,6 +31,11 @@ options noquotelenmax;
   <h4> Related Macros </h4>
   @li mp_abort.sas
 
+  @deprecated Use mp_abort.sas.  This macro is retained for backwards
+    compatibility only: the default SASjs CLI service and test templates still
+    declare it as a dependency, and mf_verifymacvars and the viya mfv_* macros
+    still call it, so it is not going away.  New code should not call it.
+
   @version 9.2
   @author Allan Bowe
   @cond

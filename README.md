@@ -167,7 +167,7 @@ The **Macro Core** documentation is created using [doxygen](http://www.doxygen.n
 
 - file. This needs to be present in order to be recognised by doxygen.
 - brief. This is a short (one sentence) description of the macro.
-- details. A longer description, which can contain doxygen [markdown](http://www.stack.nl/~dimitri/doxygen/manual/markdown.html).
+- details. A longer description, which can contain doxygen [markdown](https://www.doxygen.nl/manual/markdown.html).
 - param. Name of each input param followed by a description.
 - return. Explanation of what is returned by the macro.
 - version. The EARLIEST SAS version in which this macro is known to work.
@@ -254,7 +254,7 @@ The following repositories are also worth checking out:
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
 [![All Contributors](https://img.shields.io/badge/all_contributors-16-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
-Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
+Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/en/reference/emoji-key/)):
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->

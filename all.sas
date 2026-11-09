@@ -15027,14 +15027,21 @@ create table &outds as
     SYSUSERID="&sysuserid";
     SYSJOBID="&sysjobid";
   %if not %symexist(_SESSIONID) %then %do;
-    /* session id is stored in the replay variable but needs to be extracted */
-    _replay=symget('_replay');
-    _replay=subpad(_replay,index(_replay,'_sessionid=')+11,length(_replay));
-    index=index(_replay,'&')-1;
-    if index=-1 then index=length(_replay);
-    _replay=substr(_replay,1,index);
-    _SESSIONID=_replay;
-    drop _replay index;
+    /* session id is stored in the replay variable but needs to be extracted.
+    _replay only exists in a metadata stored process session, so guard it:
+    symget() on a name that is not defined raises an error, not a blank. */
+    %if %symexist(_replay) %then %do;
+      _replay=symget('_replay');
+      _replay=subpad(_replay,index(_replay,'_sessionid=')+11,length(_replay));
+      index=index(_replay,'&')-1;
+      if index=-1 then index=length(_replay);
+      _replay=substr(_replay,1,index);
+      _SESSIONID=_replay;
+      drop _replay index;
+    %end;
+    %else %do;
+      _SESSIONID="";
+    %end;
   %end;
   %else %do;
     /* explicitly created sessions are automatically available */
@@ -15691,10 +15698,15 @@ proc sql;
 drop table &lib..&ds;
 
 data &outds;
+  _start=&start;
+  _end=datetime();
   lib="&lib";
-  start_dttm=put(&start,datetime19.);
-  end_dttm=put(datetime(),datetime19.);
-  duration_seconds=end_dttm-start_dttm;
+  start_dttm=put(_start,datetime19.);
+  end_dttm=put(_end,datetime19.);
+  /* both timestamps above are text, so the difference has to come from the
+    numeric values - subtracting the strings yields a missing value */
+  duration_seconds=_end-_start;
+  drop _start _end;
 run;
 
 %mend mp_testwritespeedlibrary;

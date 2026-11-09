@@ -50,10 +50,15 @@ proc sql;
 drop table &lib..&ds;
 
 data &outds;
+  _start=&start;
+  _end=datetime();
   lib="&lib";
-  start_dttm=put(&start,datetime19.);
-  end_dttm=put(datetime(),datetime19.);
-  duration_seconds=end_dttm-start_dttm;
+  start_dttm=put(_start,datetime19.);
+  end_dttm=put(_end,datetime19.);
+  /* both timestamps above are text, so the difference has to come from the
+    numeric values - subtracting the strings yields a missing value */
+  duration_seconds=_end-_start;
+  drop _start _end;
 run;
 
 %mend mp_testwritespeedlibrary;

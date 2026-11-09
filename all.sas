@@ -1765,7 +1765,9 @@ Usage:
 
   @param [in] fref The fileref to check
 
-  @returns The XENGINE value in sashelp.vextfl or 0 if not found.
+  @returns The XENGINE value in sashelp.vextfl. A fileref that has a row there
+    but no XENGINE value - including a fileref that is not assigned - returns
+    an empty string; 0 is returned only when sashelp.vextfl cannot be opened.
 
   @version 9.2
   @author Allan Bowe
@@ -1963,14 +1965,14 @@ Usage:
 /**
   @file
   @brief Returns physical location of various SAS items
-  @details Returns location of the PlatformObjectFramework tools
-    Usage:
+  @details Returns the location of the PlatformObjectFramework tools, or the
+    Viya configuration directory.  Usage:
 
       %put %mf_loc(POF); %*location of PlatformObjectFramework tools;
 
   @param [in] loc The item to locate, eg:
-    @li PLAATFORMOBJECTFRAMEWORK (or POF)
-    @li VIYACONFG
+    @li PLATFORMOBJECTFRAMEWORK (or POF)
+    @li VIYACONFIG
 
   @version 9.2
   @author Allan Bowe

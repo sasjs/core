@@ -5,8 +5,16 @@
   <h4> SAS Macros </h4>
   @li mf_getuniquename.sas
   @li mp_assert.sas
+  @li mp_assertscope.sas
 
 **/
+
+%mp_assertscope(SNAPSHOT)
+%put scope check:%mf_getuniquename();
+%mp_assertscope(COMPARE,
+  desc=Checking that mf_getuniquename does not leak scope,
+  outds=work.test_results
+)
 
 %let name1=%mf_getuniquename();
 %let name2=%mf_getuniquename();

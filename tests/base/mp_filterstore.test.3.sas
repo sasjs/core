@@ -78,7 +78,7 @@ data work.chk;
   where filter_table='WORK.CLASS';
 run;
 %mp_assertdsobs(work.chk,
-  desc=Filter table is the physical table, not the validation target,
+  desc=%str(Filter table is the physical table, not the validation target),
   test=EQUALS 1,
   outds=work.test_results
 )

@@ -31,7 +31,7 @@
   <h4> SAS Macros </h4>
   @li mf_getvarlist.sas
   @li mf_getuniquename.sas
-  @li mf_wordsInstr1butnotstr2.sas
+  @li mf_wordsinstr1butnotstr2.sas
   @li mf_nobs.sas
 
   <h4> Related Macros </h4>

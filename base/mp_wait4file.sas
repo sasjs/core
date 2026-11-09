@@ -21,8 +21,9 @@
 
 %macro mp_wait4file(file, maxwait=0, interval=1);
 
-%if %str(&file)=%str() %then %do;
-  %put %str(ERR)OR: file not provided;
+%if %length(&file)=0 %then %do;
+  %put NOTE: &sysmacroname: no file was provided so it returns immediately;
+  %return;
 %end;
 
 data _null_;

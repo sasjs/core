@@ -1,14 +1,14 @@
 /**
   @file
   @brief Returns physical location of various SAS items
-  @details Returns location of the PlatformObjectFramework tools
-    Usage:
+  @details Returns the location of the PlatformObjectFramework tools, or the
+    Viya configuration directory.  Usage:
 
       %put %mf_loc(POF); %*location of PlatformObjectFramework tools;
 
   @param [in] loc The item to locate, eg:
-    @li PLAATFORMOBJECTFRAMEWORK (or POF)
-    @li VIYACONFG
+    @li PLATFORMOBJECTFRAMEWORK (or POF)
+    @li VIYACONFIG
 
   @version 9.2
   @author Allan Bowe

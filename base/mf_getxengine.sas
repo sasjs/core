@@ -12,7 +12,9 @@
 
   @param [in] fref The fileref to check
 
-  @returns The XENGINE value in sashelp.vextfl or 0 if not found.
+  @returns The XENGINE value in sashelp.vextfl. A fileref that has a row there
+    but no XENGINE value - including a fileref that is not assigned - returns
+    an empty string; 0 is returned only when sashelp.vextfl cannot be opened.
 
   @version 9.2
   @author Allan Bowe

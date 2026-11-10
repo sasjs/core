@@ -16,8 +16,8 @@
     (eg /Public/myfile.txt)
 
   <h4> SAS Macros </h4>
-  @li mf_abort.sas
   @li mf_getuniquefileref.sas
+  @li mp_abort.sas
 
   <h4> Related Macros </h4>
   @li mfv_existfolder.sas
@@ -29,7 +29,7 @@
 %macro mfv_existfile(filepath
 )/*/STORE SOURCE*/;
 
-  %mf_abort(
+  %mp_abort(
     iftrue=(&syscc ne 0),
     msg=Cannot enter mfv_existfile.sas with syscc=&syscc
   )

@@ -28937,6 +28937,15 @@ options noquotelenmax;
   run;
   %if &cnt=0 %then %do;
     %put NOTE:;%put NOTE-  No members found in &root!!;%put NOTE-;
+    /* the folder answered without a members link, so there is nothing to list -
+      the output dataset is still created, with the documented columns */
+    data &outds;
+      length id $36 name $128 uri $64 type $32 description $256;
+      call missing(of _all_);
+      stop;
+    run;
+    filename &fname1 clear;
+    libname &libref1 clear;
     %return;
   %end;
   %local fname2 libref2;

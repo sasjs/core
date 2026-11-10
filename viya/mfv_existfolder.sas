@@ -6,10 +6,10 @@
   not found the filename function sets syscc to a non zero value, so the macro
   resets syscc to zero and returns 0.
 
-  A non zero syscc on entry means an earlier step has already failed.
-  Rather than report such a folder as missing, or end the step, the macro
-  logs a %str(ERR)OR: line and returns without a value, leaving syscc
-  as it was so the caller's failure stays visible.
+  A non zero syscc on entry means an earlier step has already failed.  The macro
+  logs a %str(ERR)OR: line and returns 0 without touching syscc, so a caller
+  comparing the result against 1 or 0 stays valid, and can tell this case from a
+  genuine miss by checking syscc, which a miss resets to zero.
 
   Usage:
 
@@ -35,6 +35,7 @@
 
   %if &syscc ne 0 %then %do;
     %put %str(ERR)OR: mfv_existfolder.sas cannot execute with syscc=&syscc;
+    0
     %return;
   %end;
 

@@ -27,3 +27,17 @@ options mprint sgen;
   iftrue=(%mfv_existfolder(&mcTestAppLoc/temp/&folder/%mf_uid()/noway)=0),
   desc=Check if non created folder does not exist
 )
+
+/* the syscc guard: see mfv_existfile.test.sas */
+%let syscc=1012;
+%let guard_ret=%mfv_existfolder(&mcTestAppLoc/temp/&folder);
+%let guard_syscc=&syscc;
+%let syscc=0;
+%mp_assert(
+  iftrue=(&guard_ret=0),
+  desc=Check the syscc guard returns 0 rather than aborting
+)
+%mp_assert(
+  iftrue=(&guard_syscc=1012),
+  desc=Check the syscc guard leaves syscc alone
+)

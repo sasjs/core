@@ -5,10 +5,10 @@
   a fileref using the filesrvc engine.  If the path does not exist the macro
   prints a note, returns nothing, and resets syscc to zero.
 
-  A non zero syscc on entry means an earlier step has already failed.
-  Rather than return an empty uri that looks like a missing path, or end the
-  step, the macro logs a %str(ERR)OR: line and returns without a value,
-  leaving syscc as it was so the caller's failure stays visible.
+  A non zero syscc on entry means an earlier step has already failed.  The macro
+  logs a %str(ERR)OR: line and returns an empty uri without touching syscc, so a
+  caller that tests the uri for blankness sees no path, and the failure stays
+  visible in syscc.
 
   Usage:
 

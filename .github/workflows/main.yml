@@ -129,7 +129,7 @@ jobs:
       - name: Attest the build provenance of that tarball
         id: attest
         if: steps.pack.outputs.version != ''
-        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: 'dist/*.tgz'
 

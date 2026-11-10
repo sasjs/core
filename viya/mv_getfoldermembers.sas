@@ -83,9 +83,23 @@ options noquotelenmax;
   %end;
   run;
   libname &libref1 JSON fileref=&fname1;
-  data &outds;
-    set &libref1..items;
-  run;
+  /* an empty collection produces no items dataset at all, so a straight SET
+    would fail with "File ...ITEMS.DATA does not exist" and leave syscc dirty */
+  %if %sysfunc(exist(&libref1..items))=1 %then %do;
+    data &outds;
+      set &libref1..items;
+      /* the engine emits one all-missing row for an empty collection */
+      if missing(name) and missing(uri) then delete;
+    run;
+  %end;
+  %else %do;
+    %put NOTE: &sysmacroname - no root folders found;
+    data &outds;
+      length id $36 name $128 uri $64 type $32 description $256;
+      call missing(of _all_);
+      stop;
+    run;
+  %end;
 %end;
 %else %do;
   /* first get parent folder id */
@@ -124,11 +138,25 @@ options noquotelenmax;
   %end;
   run;
   libname &libref2 JSON fileref=&fname2;
-  data &outds;
-    length id $36 name $128 uri $64 type $32 description $256;
-    if _n_=1 then call missing (of _all_);
-    set &libref2..items;
-  run;
+  /* an emptied folder produces no items dataset at all, so a straight SET would
+    fail with "File ...ITEMS.DATA does not exist" and leave syscc dirty */
+  %if %sysfunc(exist(&libref2..items))=1 %then %do;
+    data &outds;
+      length id $36 name $128 uri $64 type $32 description $256;
+      if _n_=1 then call missing (of _all_);
+      set &libref2..items;
+      /* the engine emits one all-missing row for an empty collection */
+      if missing(name) and missing(uri) then delete;
+    run;
+  %end;
+  %else %do;
+    %put NOTE: &sysmacroname - &root is empty;
+    data &outds;
+      length id $36 name $128 uri $64 type $32 description $256;
+      call missing(of _all_);
+      stop;
+    run;
+  %end;
   filename &fname2 clear;
   libname &libref2 clear;
 %end;

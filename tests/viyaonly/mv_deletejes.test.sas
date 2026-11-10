@@ -3,12 +3,12 @@
   @brief Testing mv_deletejes macro
 
   <h4> SAS Macros </h4>
-  @li mf_getplatform.sas
-  @li mf_getuniquefileref.sas
+  @li mf_nobs.sas
   @li mp_assert.sas
   @li mp_assertscope.sas
   @li mv_createjob.sas
   @li mv_deletejes.sas
+  @li mv_getfoldermembers.sas
 
 **/
 
@@ -30,14 +30,10 @@ run;
   outds=work.test_results
 )
 
-/* the folder listing is not usable as the oracle here - it errors on a folder
-  this macro has just emptied - so the definition is looked up directly */
-%let base_uri=%mf_getplatform(VIYARESTAPI);
-%let fname=%mf_getuniquefileref();
-proc http method='GET' out=&fname oauth_bearer=sas_services
-  url="&base_uri/folders/folders/@item?path=&path/&name";
-run;
+/* the listing is the oracle, and it also covers the empty-folder path: the
+  folder is empty once the delete has run */
+%mv_getfoldermembers(root=&path, outds=work.afterdelete)
 %mp_assert(
-  iftrue=(&SYS_PROCHTTP_STATUS_CODE=404),
+  iftrue=(%mf_nobs(work.afterdelete)=0),
   desc=Check the job definition is gone
 )

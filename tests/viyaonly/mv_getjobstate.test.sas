@@ -28,6 +28,10 @@ data _null_;
   set work.joblinks;
   if rel='state' then call symputx('stateuri',href,'l');
 run;
+%mp_assert(
+  iftrue=(%length(&stateuri)>0),
+  desc=Check the execution returned a state uri
+)
 
 %mp_assertscope(SNAPSHOT)
 %mv_getjobstate(uri=&stateuri, outds=work.jobstate)

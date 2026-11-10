@@ -19,7 +19,6 @@
 data _null_;
   set work.mygroups(obs=1);
   call symputx('groupid',id,'l');
-  call symputx('groupname',name,'l');
 run;
 
 %mp_assertscope(SNAPSHOT)
@@ -41,4 +40,8 @@ run;
 %mp_assert(
   iftrue=(%mf_existvar(work.groupmembers,id)>0),
   desc=Check the dataset carries an id column
+)
+%mp_assert(
+  iftrue=(%mf_existvar(work.groupmembers,name)>0),
+  desc=Check the dataset carries a name column
 )

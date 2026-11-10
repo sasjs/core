@@ -20,3 +20,16 @@
 )
 %mp_assertscope(COMPARE)
 
+
+/* an mf_ macro returns a value rather than ending the step: a failure has to
+  come back as 0, with the reason in the log, and must not abort */
+%mp_assert(
+  iftrue=(%mf_verifymacvars(nosuchvar_intentional, mAbort=YES)=0),
+  desc=Checking a missing macvar returns 0 even with mAbort=YES,
+  outds=work.test_results
+)
+%mp_assert(
+  iftrue=(&syscc=0),
+  desc=Checking the failure path leaves syscc alone,
+  outds=work.test_results
+)

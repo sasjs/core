@@ -1,8 +1,9 @@
 /**
   @file
   @brief Checks if a set of macro variables exist AND contain values.
-  @details Reports a failure in the log if abortType is SOFT, else calls
-  %mf_abort.
+  @details Reports a failure in the log and returns 0.  It never aborts: an
+  mf_ macro returns a value, and ending the step here would leave the caller
+  unable to see that value or to report the failure itself.
   Usage:
 
       %let var1=x;
@@ -12,16 +13,12 @@
   Returns:
   > 1
 
-  <h4> SAS Macros </h4>
-  @li mf_abort.sas
-
   @param [in] verifyvars Space separated list of macro variable names
   @param [in] makeupcase= (NO) Set to YES to convert all variable VALUES to
     uppercase.
-  @param [in] mAbort= (SOFT) Abort Type.  When SOFT, simply writes an err
-    message to the log.
-    Set to any other value to call mf_abort (which can be configured to abort in
-    various fashions according to context).
+  @param [in] mAbort= (SOFT) Retained for backwards compatibility.  The macro
+    no longer aborts on any value - a failure is written to the log and 0 is
+    returned, so the caller decides what to do with it.
 
   @note will not be able to verify the following variables due to
     naming clash!
@@ -60,10 +57,6 @@
   %goto exit_success;
   %exit_err:
     %put &abortmsg;
-    %mf_abort(iftrue=(&mabort ne SOFT),
-      mac=mf_verifymacvars,
-      msg=%str(&abortmsg)
-    )
     0
     %return;
   %exit_success:

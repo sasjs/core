@@ -2,10 +2,14 @@
   @file
   @brief Checks whether a folder exists in SAS Drive
   @details Returns 1 if the folder exists, and 0 if it doesn't.  Works by
-  attempting to assign a fileref with the filesrvc engine.  If not found, the
-  syscc is automatically set to a non zero value - so in this case it is reset.
-  To avoid hiding issues, there is therefore a test at the start to ensure the
-  syscc is zero.
+  attempting to assign a fileref with the filesrvc engine.  When the folder is
+  not found the filename function sets syscc to a non zero value, so the macro
+  resets syscc to zero and returns 0.
+
+  A non zero syscc on entry means an earlier step has already failed.  The macro
+  logs a %str(ERR)OR: line and returns 0 without touching syscc, so a caller
+  comparing the result against 1 or 0 stays valid, and can tell this case from a
+  genuine miss by checking syscc, which a miss resets to zero.
 
   Usage:
 
@@ -15,7 +19,6 @@
   @param [in] path The path to the folder on SAS drive
 
   <h4> SAS Macros </h4>
-  @li mf_abort.sas
   @li mf_getuniquefileref.sas
 
   <h4> Related Macros </h4>
@@ -28,12 +31,14 @@
 %macro mfv_existfolder(path
 )/*/STORE SOURCE*/;
 
-  %mf_abort(
-    iftrue=(&syscc ne 0),
-    msg=Cannot enter mfv_existfolder.sas with syscc=&syscc
-  )
-
   %local fref rc var;
+
+  %if &syscc ne 0 %then %do;
+    %put %str(ERR)OR: mfv_existfolder.sas cannot execute with syscc=&syscc;
+    0
+    %return;
+  %end;
+
   %let fref=%mf_getuniquefileref();
 
   %if %sysfunc(filename(fref,,filesrvc,folderPath="&path"))=0 %then %do;
@@ -46,10 +51,5 @@
     0
     %let syscc=0;
   %end;
-
-  %mf_abort(
-    iftrue=(&syscc ne 0),
-    msg=Cannot leave mfv_existfolder.sas with syscc=&syscc
-  )
 
 %mend mfv_existfolder;

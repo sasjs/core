@@ -34,3 +34,17 @@ run;
   iftrue=(%length(%mfv_getpathuri(&path/&file..txt))>0),
   desc=Check that a URI was returned
 )
+
+/* the syscc guard: an empty uri, and syscc untouched */
+%let syscc=1012;
+%let guard_uri=%mfv_getpathuri(&path/&file..txt);
+%let guard_syscc=&syscc;
+%let syscc=0;
+%mp_assert(
+  iftrue=(%length(&guard_uri)=0),
+  desc=Check the syscc guard returns no uri rather than aborting
+)
+%mp_assert(
+  iftrue=(&guard_syscc=1012),
+  desc=Check the syscc guard leaves syscc alone
+)

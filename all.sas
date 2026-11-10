@@ -23,6 +23,12 @@ options noquotelenmax;
   @brief Abort, ungracefully
   @details Will abort with a straightforward %abort if the condition is true.
 
+  Not advised in SASjs web services: %abort gives the program no opportunity to
+  capture the failure and return it to the client, so the caller sees a failed
+  request with no message.  Use mp_abort.sas in that context - it writes the
+  standard SASjs abort JSON (message, calling macro, SYSCC and a log extract) to
+  _webout before ending the step.
+
   @param [in] mac= (mf_abort.sas) Name of calling macro (is printed to the log)
   @param [in] msg= ( ) Additional string to print to the log
   @param [in] iftrue= (%str(1=1)) Conditional logic under which to perform the
@@ -30,11 +36,6 @@ options noquotelenmax;
 
   <h4> Related Macros </h4>
   @li mp_abort.sas
-
-  @deprecated Use mp_abort.sas.  This macro is retained for backwards
-    compatibility only: the default SASjs CLI service and test templates still
-    declare it as a dependency, and mf_verifymacvars and the viya mfv_* macros
-    still call it, so it is not going away.  New code should not call it.
 
   @version 9.2
   @author Allan Bowe
@@ -2697,8 +2698,9 @@ Usage:
 /**
   @file
   @brief Checks if a set of macro variables exist AND contain values.
-  @details Reports a failure in the log if abortType is SOFT, else calls
-  %mf_abort.
+  @details Reports a failure in the log and returns 0.  It never aborts: an
+  mf_ macro returns a value, and ending the step here would leave the caller
+  unable to see that value or to report the failure itself.
   Usage:
 
       %let var1=x;
@@ -2708,16 +2710,12 @@ Usage:
   Returns:
   > 1
 
-  <h4> SAS Macros </h4>
-  @li mf_abort.sas
-
   @param [in] verifyvars Space separated list of macro variable names
   @param [in] makeupcase= (NO) Set to YES to convert all variable VALUES to
     uppercase.
-  @param [in] mAbort= (SOFT) Abort Type.  When SOFT, simply writes an err
-    message to the log.
-    Set to any other value to call mf_abort (which can be configured to abort in
-    various fashions according to context).
+  @param [in] mAbort= (SOFT) Retained for backwards compatibility.  The macro
+    no longer aborts on any value - a failure is written to the log and 0 is
+    returned, so the caller decides what to do with it.
 
   @note will not be able to verify the following variables due to
     naming clash!
@@ -2756,10 +2754,6 @@ Usage:
   %goto exit_success;
   %exit_err:
     %put &abortmsg;
-    %mf_abort(iftrue=(&mabort ne SOFT),
-      mac=mf_verifymacvars,
-      msg=%str(&abortmsg)
-    )
     0
     %return;
   %exit_success:
@@ -25642,10 +25636,14 @@ run;
   @file
   @brief Checks whether a file exists in SAS Drive
   @details Returns 1 if the file exists, and 0 if it doesn't.  Works by
-  attempting to assign a fileref with the filesrvc engine.  If not found, the
-  syscc is automatically set to a non zero value - so in this case it is reset.
-  To avoid hiding issues, there is therefore a test at the start to ensure the
-  syscc is zero.
+  attempting to assign a fileref with the filesrvc engine.  When the file is
+  not found the filename function sets syscc to a non zero value, so the macro
+  resets syscc to zero and returns 0.
+
+  A non zero syscc on entry means an earlier step has already failed.  The macro
+  logs a %str(ERR)OR: line and returns 0 without touching syscc, so a caller
+  comparing the result against 1 or 0 stays valid, and can tell this case from a
+  genuine miss by checking syscc, which a miss resets to zero.
 
   Usage:
 
@@ -25656,7 +25654,6 @@ run;
     (eg /Public/myfile.txt)
 
   <h4> SAS Macros </h4>
-  @li mf_abort.sas
   @li mf_getuniquefileref.sas
 
   <h4> Related Macros </h4>
@@ -25669,12 +25666,14 @@ run;
 %macro mfv_existfile(filepath
 )/*/STORE SOURCE*/;
 
-  %mf_abort(
-    iftrue=(&syscc ne 0),
-    msg=Cannot enter mfv_existfile.sas with syscc=&syscc
-  )
-
   %local fref rc path name;
+
+  %if &syscc ne 0 %then %do;
+    %put %str(ERR)OR: mfv_existfile.sas cannot execute with syscc=&syscc;
+    0
+    %return;
+  %end;
+
   %let fref=%mf_getuniquefileref();
   %let name=%scan(&filepath,-1,/);
   %let path=%substr(&filepath,1,%length(&filepath)-%length(&name)-1);
@@ -25694,10 +25693,14 @@ run;
   @file
   @brief Checks whether a folder exists in SAS Drive
   @details Returns 1 if the folder exists, and 0 if it doesn't.  Works by
-  attempting to assign a fileref with the filesrvc engine.  If not found, the
-  syscc is automatically set to a non zero value - so in this case it is reset.
-  To avoid hiding issues, there is therefore a test at the start to ensure the
-  syscc is zero.
+  attempting to assign a fileref with the filesrvc engine.  When the folder is
+  not found the filename function sets syscc to a non zero value, so the macro
+  resets syscc to zero and returns 0.
+
+  A non zero syscc on entry means an earlier step has already failed.  The macro
+  logs a %str(ERR)OR: line and returns 0 without touching syscc, so a caller
+  comparing the result against 1 or 0 stays valid, and can tell this case from a
+  genuine miss by checking syscc, which a miss resets to zero.
 
   Usage:
 
@@ -25707,7 +25710,6 @@ run;
   @param [in] path The path to the folder on SAS drive
 
   <h4> SAS Macros </h4>
-  @li mf_abort.sas
   @li mf_getuniquefileref.sas
 
   <h4> Related Macros </h4>
@@ -25720,12 +25722,14 @@ run;
 %macro mfv_existfolder(path
 )/*/STORE SOURCE*/;
 
-  %mf_abort(
-    iftrue=(&syscc ne 0),
-    msg=Cannot enter mfv_existfolder.sas with syscc=&syscc
-  )
-
   %local fref rc var;
+
+  %if &syscc ne 0 %then %do;
+    %put %str(ERR)OR: mfv_existfolder.sas cannot execute with syscc=&syscc;
+    0
+    %return;
+  %end;
+
   %let fref=%mf_getuniquefileref();
 
   %if %sysfunc(filename(fref,,filesrvc,folderPath="&path"))=0 %then %do;
@@ -25738,11 +25742,6 @@ run;
     0
     %let syscc=0;
   %end;
-
-  %mf_abort(
-    iftrue=(&syscc ne 0),
-    msg=Cannot leave mfv_existfolder.sas with syscc=&syscc
-  )
 
 %mend mfv_existfolder;
 /**
@@ -25898,7 +25897,13 @@ run;
   @file
   @brief Returns the uri of a file or folder
   @details The automatic variable `_FILESRVC_[fref]_URI` is used after assigning
-  a fileref using the filesrvc engine.
+  a fileref using the filesrvc engine.  If the path does not exist the macro
+  prints a note, returns nothing, and resets syscc to zero.
+
+  A non zero syscc on entry means an earlier step has already failed.  The macro
+  logs a %str(ERR)OR: line and returns an empty uri without touching syscc, so a
+  caller that tests the uri for blankness sees no path, and the failure stays
+  visible in syscc.
 
   Usage:
 
@@ -25909,7 +25914,6 @@ run;
     (eg /Public/myfile.txt)
 
   <h4> SAS Macros </h4>
-  @li mf_abort.sas
   @li mf_getuniquefileref.sas
 
   <h4> Related Macros </h4>
@@ -25923,12 +25927,13 @@ run;
 %macro mfv_getpathuri(filepath
 )/*/STORE SOURCE*/;
 
-  %mf_abort(
-    iftrue=(&syscc ne 0),
-    msg=Cannot enter &sysmacroname with syscc=&syscc
-  )
-
   %local fref rc path name var /* var is used to avoid delete timing issue */;
+
+  %if &syscc ne 0 %then %do;
+    %put %str(ERR)OR: mfv_getpathuri.sas cannot execute with syscc=&syscc;
+    %return;
+  %end;
+
   %let fref=%mf_getuniquefileref();
   %let name=%scan(&filepath,-1,/);
   %let path=%substr(&filepath,1,%length(&filepath)-%length(&name)-1);
@@ -25945,10 +25950,6 @@ run;
     %let syscc=0;
   %end;
 
-  %mf_abort(
-    iftrue=(&syscc ne 0),
-    msg=Cannot leave &sysmacroname with syscc=&syscc
-  )
 %mend mfv_getpathuri;
 /**
   @file mv_castabload.sas

@@ -25656,8 +25656,8 @@ run;
     (eg /Public/myfile.txt)
 
   <h4> SAS Macros </h4>
-  @li mf_abort.sas
   @li mf_getuniquefileref.sas
+  @li mp_abort.sas
 
   <h4> Related Macros </h4>
   @li mfv_existfolder.sas
@@ -25669,7 +25669,7 @@ run;
 %macro mfv_existfile(filepath
 )/*/STORE SOURCE*/;
 
-  %mf_abort(
+  %mp_abort(
     iftrue=(&syscc ne 0),
     msg=Cannot enter mfv_existfile.sas with syscc=&syscc
   )
@@ -25707,8 +25707,8 @@ run;
   @param [in] path The path to the folder on SAS drive
 
   <h4> SAS Macros </h4>
-  @li mf_abort.sas
   @li mf_getuniquefileref.sas
+  @li mp_abort.sas
 
   <h4> Related Macros </h4>
   @li mfv_existfile.sas
@@ -25720,7 +25720,7 @@ run;
 %macro mfv_existfolder(path
 )/*/STORE SOURCE*/;
 
-  %mf_abort(
+  %mp_abort(
     iftrue=(&syscc ne 0),
     msg=Cannot enter mfv_existfolder.sas with syscc=&syscc
   )
@@ -25739,7 +25739,7 @@ run;
     %let syscc=0;
   %end;
 
-  %mf_abort(
+  %mp_abort(
     iftrue=(&syscc ne 0),
     msg=Cannot leave mfv_existfolder.sas with syscc=&syscc
   )
@@ -25909,8 +25909,8 @@ run;
     (eg /Public/myfile.txt)
 
   <h4> SAS Macros </h4>
-  @li mf_abort.sas
   @li mf_getuniquefileref.sas
+  @li mp_abort.sas
 
   <h4> Related Macros </h4>
   @li mfv_existfile.sas
@@ -25923,7 +25923,7 @@ run;
 %macro mfv_getpathuri(filepath
 )/*/STORE SOURCE*/;
 
-  %mf_abort(
+  %mp_abort(
     iftrue=(&syscc ne 0),
     msg=Cannot enter &sysmacroname with syscc=&syscc
   )
@@ -25945,7 +25945,7 @@ run;
     %let syscc=0;
   %end;
 
-  %mf_abort(
+  %mp_abort(
     iftrue=(&syscc ne 0),
     msg=Cannot leave &sysmacroname with syscc=&syscc
   )

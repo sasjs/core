@@ -28894,9 +28894,23 @@ options noquotelenmax;
   %end;
   run;
   libname &libref1 JSON fileref=&fname1;
-  data &outds;
-    set &libref1..items;
-  run;
+  /* an empty collection produces no items dataset at all, so a straight SET
+    would fail with "File ...ITEMS.DATA does not exist" and leave syscc dirty */
+  %if %sysfunc(exist(&libref1..items))=1 %then %do;
+    data &outds;
+      set &libref1..items;
+      /* the engine emits one all-missing row for an empty collection */
+      if missing(name) and missing(uri) then delete;
+    run;
+  %end;
+  %else %do;
+    %put NOTE: &sysmacroname - no root folders found;
+    data &outds;
+      length id $36 name $128 uri $64 type $32 description $256;
+      call missing(of _all_);
+      stop;
+    run;
+  %end;
 %end;
 %else %do;
   /* first get parent folder id */
@@ -28935,11 +28949,25 @@ options noquotelenmax;
   %end;
   run;
   libname &libref2 JSON fileref=&fname2;
-  data &outds;
-    length id $36 name $128 uri $64 type $32 description $256;
-    if _n_=1 then call missing (of _all_);
-    set &libref2..items;
-  run;
+  /* an emptied folder produces no items dataset at all, so a straight SET would
+    fail with "File ...ITEMS.DATA does not exist" and leave syscc dirty */
+  %if %sysfunc(exist(&libref2..items))=1 %then %do;
+    data &outds;
+      length id $36 name $128 uri $64 type $32 description $256;
+      if _n_=1 then call missing (of _all_);
+      set &libref2..items;
+      /* the engine emits one all-missing row for an empty collection */
+      if missing(name) and missing(uri) then delete;
+    run;
+  %end;
+  %else %do;
+    %put NOTE: &sysmacroname - &root is empty;
+    data &outds;
+      length id $36 name $128 uri $64 type $32 description $256;
+      call missing(of _all_);
+      stop;
+    run;
+  %end;
   filename &fname2 clear;
   libname &libref2 clear;
 %end;
@@ -28996,6 +29024,7 @@ libname &libref1 clear;
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
   @li mf_getuniquelibref.sas
+  @li mf_existvar.sas
 
 **/
 
@@ -29052,15 +29081,30 @@ run;
   )
   %let libref1=%mf_getuniquelibref();
   libname &libref1 JSON fileref=&fname1;
-  /* id and name have to be declared, as a group with no members returns no
-    such columns to rename.  $256 is the longest active directory can hold for
-    a display name or a SAM account name: the JSON engine sizes the columns to
-    the longest value in the payload, so a shorter declaration truncates the
-    name and fails the step with "Multiple lengths were specified for the
-    variable ... by input data set(s)". */
+  /* a group with no members returns a collection whose items dataset carries no
+    member columns, so a straight SET would raise "Variable id is uninitialized"
+    and leave syscc dirty.  Only copy when there is something to copy.  The
+    lengths are declared because the JSON engine sizes its columns to the
+    longest value in the payload: $256 is the longest an active directory
+    display name or SAM account name can hold, and a shorter declaration lets
+    the engine report "Multiple lengths were specified" on a later member. */
+  %local itemsds hasvars;
+  %let itemsds=&libref1..items;
+  %let hasvars=0;
+  %if %sysfunc(exist(&itemsds))=1 %then %do;
+    %if %mf_existvar(&itemsds,id)>0 %then %let hasvars=1;
+  %end;
   data &outds;
-    length id name $256;
-    set &libref1..items;
+    length id $256 name $256;
+    %if &hasvars=1 %then %do;
+      set &itemsds;
+      /* the engine emits one all-missing row for an empty collection */
+      if missing(id) then delete;
+    %end;
+    %else %do;
+      call missing(of _all_);
+      stop;
+    %end;
   run;
   libname &libref1 clear;
 %end;

@@ -2,7 +2,8 @@
   @file
   @brief Returns the uri of a file or folder
   @details The automatic variable `_FILESRVC_[fref]_URI` is used after assigning
-  a fileref using the filesrvc engine.
+  a fileref using the filesrvc engine.  If the path does not exist the macro
+  prints a note, returns nothing, and resets syscc to zero.
 
   Usage:
 
@@ -13,7 +14,6 @@
     (eg /Public/myfile.txt)
 
   <h4> SAS Macros </h4>
-  @li mf_abort.sas
   @li mf_getuniquefileref.sas
 
   <h4> Related Macros </h4>
@@ -26,11 +26,6 @@
 
 %macro mfv_getpathuri(filepath
 )/*/STORE SOURCE*/;
-
-  %mf_abort(
-    iftrue=(&syscc ne 0),
-    msg=Cannot enter &sysmacroname with syscc=&syscc
-  )
 
   %local fref rc path name var /* var is used to avoid delete timing issue */;
   %let fref=%mf_getuniquefileref();
@@ -49,8 +44,4 @@
     %let syscc=0;
   %end;
 
-  %mf_abort(
-    iftrue=(&syscc ne 0),
-    msg=Cannot leave &sysmacroname with syscc=&syscc
-  )
 %mend mfv_getpathuri;

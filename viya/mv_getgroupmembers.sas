@@ -20,8 +20,15 @@
       version num,
       id char(256),
       name char(256),
-      providerId char(5),
-      implicit num
+      providerId char(32),
+      implicit num,
+      type char(32)
+
+  `type` is the member type (user or group) and is declared on every path.
+  `implicit` is declared so a caller reading it does not fail with "Variable
+  implicit not found", but the identities API returns no such field, so the
+  column is present and always missing.  A group with no members, and a group
+  id the server does not know, both return the columns above with zero rows.
 
   @param [in] group Group id for which to return group members
   @param [in] access_token_var= (ACCESS_TOKEN)
@@ -44,6 +51,7 @@
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
   @li mf_getuniquelibref.sas
+  @li mf_existvar.sas
 
 **/
 
@@ -88,9 +96,13 @@ run;
 /*data _null_;infile &fname1;input;putlog _infile_;run;*/
 %if &SYS_PROCHTTP_STATUS_CODE=404 %then %do;
   %put NOTE:  Group &group not found!!;
+  /* the same documented columns and zero rows as a group with no members -
+    call missing alone would output one all-missing observation */
   data &outds;
-    length id name $256;
+    length ordinal_root 8 ordinal_items 8 version 8
+      id $256 name $256 providerId $32 implicit 8 type $32;
     call missing(of _all_);
+    stop;
   run;
 %end;
 %else %do;
@@ -100,15 +112,33 @@ run;
   )
   %let libref1=%mf_getuniquelibref();
   libname &libref1 JSON fileref=&fname1;
-  /* id and name have to be declared, as a group with no members returns no
-    such columns to rename.  $256 is the longest active directory can hold for
-    a display name or a SAM account name: the JSON engine sizes the columns to
-    the longest value in the payload, so a shorter declaration truncates the
-    name and fails the step with "Multiple lengths were specified for the
-    variable ... by input data set(s)". */
+  /* a group with no members returns a collection whose items dataset carries no
+    member columns, so a straight SET would raise "Variable id is uninitialized"
+    and leave syscc dirty.  Only copy when there is something to copy.  The
+    documented columns are declared on both paths, so an empty group hands the
+    caller the same PDV as a populated one.  The lengths are declared because
+    the JSON engine sizes its columns to the longest value in the payload:
+    $256 is the longest an active directory display name or SAM account name
+    can hold, and a shorter declaration lets the engine report "Multiple
+    lengths were specified" on a later member. */
+  %local itemsds hasvars;
+  %let itemsds=&libref1..items;
+  %let hasvars=0;
+  %if %sysfunc(exist(&itemsds))=1 %then %do;
+    %if %mf_existvar(&itemsds,id)>0 %then %let hasvars=1;
+  %end;
   data &outds;
-    length id name $256;
-    set &libref1..items;
+    length ordinal_root 8 ordinal_items 8 version 8
+      id $256 name $256 providerId $32 implicit 8 type $32;
+    call missing(of _all_);
+    %if &hasvars=1 %then %do;
+      set &itemsds;
+      /* the engine emits one all-missing row for an empty collection */
+      if missing(id) then delete;
+    %end;
+    %else %do;
+      stop;
+    %end;
   run;
   libname &libref1 clear;
 %end;

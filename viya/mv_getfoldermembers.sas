@@ -6,6 +6,9 @@
 
         %mv_getfoldermembers(root=/Public, outds=work.mymembers)
 
+  A root with nothing to list - an empty folder, or an answer that carries no
+  members link - still yields &outds, with the documented columns and zero rows.
+
 
   @param [in] root= (/) The path for which to return the list of folders
   @param [out] outds= (work.mv_getfolders) The output dataset to create. Format:
@@ -83,9 +86,41 @@ options noquotelenmax;
   %end;
   run;
   libname &libref1 JSON fileref=&fname1;
-  data &outds;
-    set &libref1..items;
-  run;
+  /* an empty collection produces no items dataset at all, so a straight SET
+    would fail with "File ...ITEMS.DATA does not exist" and leave syscc dirty */
+  %if %sysfunc(exist(&libref1..items))=1 %then %do;
+    data &outds;
+      /* the documented columns are declared on every path, so a caller reads
+        the same columns whether the collection is empty or full - an empty
+        collection's items dataset carries a narrower shape (no createdBy,
+        no timestamps) than a populated one.  The declared lengths are at
+        least the engine's own, which are sized to the payload */
+      length ordinal_root 8 ordinal_items 8
+        creationTimeStamp $32 modifiedTimeStamp $32
+        createdBy $64 modifiedBy $64
+        id $36 uri $512 added $32 type $32
+        name $256 description $256;
+      /* initialise the declared columns - an empty collection's items
+        dataset carries none of the member columns, and referencing one that
+        the input does not supply raises "Variable x is uninitialized" */
+      call missing(of _all_);
+      set &libref1..items;
+      /* the engine emits one all-missing row for an empty collection */
+      if missing(name) and missing(uri) then delete;
+    run;
+  %end;
+  %else %do;
+    %put NOTE: &sysmacroname - no root folders found;
+    data &outds;
+      length ordinal_root 8 ordinal_items 8
+        creationTimeStamp $32 modifiedTimeStamp $32
+        createdBy $64 modifiedBy $64
+        id $36 uri $512 added $32 type $32
+        name $256 description $256;
+      call missing(of _all_);
+      stop;
+    run;
+  %end;
 %end;
 %else %do;
   /* first get parent folder id */
@@ -100,18 +135,35 @@ options noquotelenmax;
   /* now get the followon link to list members */
   %local href cnt;
   %let cnt=0;
-  data _null_;
-    length rel href $512;
-    call missing(rel,href);
-    set &libref1..links;
-    if rel='members' then do;
-      url=cats("'","&base_uri",href,"?limit=10000'");
-      call symputx('href',url,'l');
-      call symputx('cnt',1,'l');
-    end;
-  run;
+  /* a root that is not a folder (a member path, for instance) answers
+    without a links dataset, so a straight SET would leave syscc dirty */
+  %if %sysfunc(exist(&libref1..links))=1 %then %do;
+    data _null_;
+      length rel href $512;
+      call missing(rel,href);
+      set &libref1..links;
+      if rel='members' then do;
+        url=cats("'","&base_uri",href,"?limit=10000'");
+        call symputx('href',url,'l');
+        call symputx('cnt',1,'l');
+      end;
+    run;
+  %end;
   %if &cnt=0 %then %do;
     %put NOTE:;%put NOTE-  No members found in &root!!;%put NOTE-;
+    /* the folder answered without a members link, so there is nothing to list -
+      the output dataset is still created, with the documented columns */
+    data &outds;
+      length ordinal_root 8 ordinal_items 8
+        creationTimeStamp $32 modifiedTimeStamp $32
+        createdBy $64 modifiedBy $64
+        id $36 uri $512 added $32 type $32
+        name $256 description $256;
+      call missing(of _all_);
+      stop;
+    run;
+    filename &fname1 clear;
+    libname &libref1 clear;
     %return;
   %end;
   %local fname2 libref2;
@@ -124,11 +176,36 @@ options noquotelenmax;
   %end;
   run;
   libname &libref2 JSON fileref=&fname2;
-  data &outds;
-    length id $36 name $128 uri $64 type $32 description $256;
-    if _n_=1 then call missing (of _all_);
-    set &libref2..items;
-  run;
+  /* an emptied folder produces no items dataset at all, so a straight SET would
+    fail with "File ...ITEMS.DATA does not exist" and leave syscc dirty */
+  %if %sysfunc(exist(&libref2..items))=1 %then %do;
+    data &outds;
+      length ordinal_root 8 ordinal_items 8
+        creationTimeStamp $32 modifiedTimeStamp $32
+        createdBy $64 modifiedBy $64
+        id $36 uri $512 added $32 type $32
+        name $256 description $256;
+      /* initialise the declared columns - an empty collection's items
+        dataset carries none of the member columns, and referencing one that
+        the input does not supply raises "Variable x is uninitialized" */
+      call missing(of _all_);
+      set &libref2..items;
+      /* the engine emits one all-missing row for an empty collection */
+      if missing(name) and missing(uri) then delete;
+    run;
+  %end;
+  %else %do;
+    %put NOTE: &sysmacroname - &root is empty;
+    data &outds;
+      length ordinal_root 8 ordinal_items 8
+        creationTimeStamp $32 modifiedTimeStamp $32
+        createdBy $64 modifiedBy $64
+        id $36 uri $512 added $32 type $32
+        name $256 description $256;
+      call missing(of _all_);
+      stop;
+    run;
+  %end;
   filename &fname2 clear;
   libname &libref2 clear;
 %end;

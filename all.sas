@@ -28820,6 +28820,9 @@ libname &libref1 clear;
 
         %mv_getfoldermembers(root=/Public, outds=work.mymembers)
 
+  A root with nothing to list - an empty folder, or an answer that carries no
+  members link - still yields &outds, with the documented columns and zero rows.
+
 
   @param [in] root= (/) The path for which to return the list of folders
   @param [out] outds= (work.mv_getfolders) The output dataset to create. Format:
@@ -28897,9 +28900,41 @@ options noquotelenmax;
   %end;
   run;
   libname &libref1 JSON fileref=&fname1;
-  data &outds;
-    set &libref1..items;
-  run;
+  /* an empty collection produces no items dataset at all, so a straight SET
+    would fail with "File ...ITEMS.DATA does not exist" and leave syscc dirty */
+  %if %sysfunc(exist(&libref1..items))=1 %then %do;
+    data &outds;
+      /* the documented columns are declared on every path, so a caller reads
+        the same columns whether the collection is empty or full - an empty
+        collection's items dataset carries a narrower shape (no createdBy,
+        no timestamps) than a populated one.  The declared lengths are at
+        least the engine's own, which are sized to the payload */
+      length ordinal_root 8 ordinal_items 8
+        creationTimeStamp $32 modifiedTimeStamp $32
+        createdBy $64 modifiedBy $64
+        id $36 uri $512 added $32 type $32
+        name $256 description $256;
+      /* initialise the declared columns - an empty collection's items
+        dataset carries none of the member columns, and referencing one that
+        the input does not supply raises "Variable x is uninitialized" */
+      call missing(of _all_);
+      set &libref1..items;
+      /* the engine emits one all-missing row for an empty collection */
+      if missing(name) and missing(uri) then delete;
+    run;
+  %end;
+  %else %do;
+    %put NOTE: &sysmacroname - no root folders found;
+    data &outds;
+      length ordinal_root 8 ordinal_items 8
+        creationTimeStamp $32 modifiedTimeStamp $32
+        createdBy $64 modifiedBy $64
+        id $36 uri $512 added $32 type $32
+        name $256 description $256;
+      call missing(of _all_);
+      stop;
+    run;
+  %end;
 %end;
 %else %do;
   /* first get parent folder id */
@@ -28914,18 +28949,35 @@ options noquotelenmax;
   /* now get the followon link to list members */
   %local href cnt;
   %let cnt=0;
-  data _null_;
-    length rel href $512;
-    call missing(rel,href);
-    set &libref1..links;
-    if rel='members' then do;
-      url=cats("'","&base_uri",href,"?limit=10000'");
-      call symputx('href',url,'l');
-      call symputx('cnt',1,'l');
-    end;
-  run;
+  /* a root that is not a folder (a member path, for instance) answers
+    without a links dataset, so a straight SET would leave syscc dirty */
+  %if %sysfunc(exist(&libref1..links))=1 %then %do;
+    data _null_;
+      length rel href $512;
+      call missing(rel,href);
+      set &libref1..links;
+      if rel='members' then do;
+        url=cats("'","&base_uri",href,"?limit=10000'");
+        call symputx('href',url,'l');
+        call symputx('cnt',1,'l');
+      end;
+    run;
+  %end;
   %if &cnt=0 %then %do;
     %put NOTE:;%put NOTE-  No members found in &root!!;%put NOTE-;
+    /* the folder answered without a members link, so there is nothing to list -
+      the output dataset is still created, with the documented columns */
+    data &outds;
+      length ordinal_root 8 ordinal_items 8
+        creationTimeStamp $32 modifiedTimeStamp $32
+        createdBy $64 modifiedBy $64
+        id $36 uri $512 added $32 type $32
+        name $256 description $256;
+      call missing(of _all_);
+      stop;
+    run;
+    filename &fname1 clear;
+    libname &libref1 clear;
     %return;
   %end;
   %local fname2 libref2;
@@ -28938,11 +28990,36 @@ options noquotelenmax;
   %end;
   run;
   libname &libref2 JSON fileref=&fname2;
-  data &outds;
-    length id $36 name $128 uri $64 type $32 description $256;
-    if _n_=1 then call missing (of _all_);
-    set &libref2..items;
-  run;
+  /* an emptied folder produces no items dataset at all, so a straight SET would
+    fail with "File ...ITEMS.DATA does not exist" and leave syscc dirty */
+  %if %sysfunc(exist(&libref2..items))=1 %then %do;
+    data &outds;
+      length ordinal_root 8 ordinal_items 8
+        creationTimeStamp $32 modifiedTimeStamp $32
+        createdBy $64 modifiedBy $64
+        id $36 uri $512 added $32 type $32
+        name $256 description $256;
+      /* initialise the declared columns - an empty collection's items
+        dataset carries none of the member columns, and referencing one that
+        the input does not supply raises "Variable x is uninitialized" */
+      call missing(of _all_);
+      set &libref2..items;
+      /* the engine emits one all-missing row for an empty collection */
+      if missing(name) and missing(uri) then delete;
+    run;
+  %end;
+  %else %do;
+    %put NOTE: &sysmacroname - &root is empty;
+    data &outds;
+      length ordinal_root 8 ordinal_items 8
+        creationTimeStamp $32 modifiedTimeStamp $32
+        createdBy $64 modifiedBy $64
+        id $36 uri $512 added $32 type $32
+        name $256 description $256;
+      call missing(of _all_);
+      stop;
+    run;
+  %end;
   filename &fname2 clear;
   libname &libref2 clear;
 %end;
@@ -28975,8 +29052,15 @@ libname &libref1 clear;
       version num,
       id char(256),
       name char(256),
-      providerId char(5),
-      implicit num
+      providerId char(32),
+      implicit num,
+      type char(32)
+
+  `type` is the member type (user or group) and is declared on every path.
+  `implicit` is declared so a caller reading it does not fail with "Variable
+  implicit not found", but the identities API returns no such field, so the
+  column is present and always missing.  A group with no members, and a group
+  id the server does not know, both return the columns above with zero rows.
 
   @param [in] group Group id for which to return group members
   @param [in] access_token_var= (ACCESS_TOKEN)
@@ -28999,6 +29083,7 @@ libname &libref1 clear;
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
   @li mf_getuniquelibref.sas
+  @li mf_existvar.sas
 
 **/
 
@@ -29043,9 +29128,13 @@ run;
 /*data _null_;infile &fname1;input;putlog _infile_;run;*/
 %if &SYS_PROCHTTP_STATUS_CODE=404 %then %do;
   %put NOTE:  Group &group not found!!;
+  /* the same documented columns and zero rows as a group with no members -
+    call missing alone would output one all-missing observation */
   data &outds;
-    length id name $256;
+    length ordinal_root 8 ordinal_items 8 version 8
+      id $256 name $256 providerId $32 implicit 8 type $32;
     call missing(of _all_);
+    stop;
   run;
 %end;
 %else %do;
@@ -29055,15 +29144,33 @@ run;
   )
   %let libref1=%mf_getuniquelibref();
   libname &libref1 JSON fileref=&fname1;
-  /* id and name have to be declared, as a group with no members returns no
-    such columns to rename.  $256 is the longest active directory can hold for
-    a display name or a SAM account name: the JSON engine sizes the columns to
-    the longest value in the payload, so a shorter declaration truncates the
-    name and fails the step with "Multiple lengths were specified for the
-    variable ... by input data set(s)". */
+  /* a group with no members returns a collection whose items dataset carries no
+    member columns, so a straight SET would raise "Variable id is uninitialized"
+    and leave syscc dirty.  Only copy when there is something to copy.  The
+    documented columns are declared on both paths, so an empty group hands the
+    caller the same PDV as a populated one.  The lengths are declared because
+    the JSON engine sizes its columns to the longest value in the payload:
+    $256 is the longest an active directory display name or SAM account name
+    can hold, and a shorter declaration lets the engine report "Multiple
+    lengths were specified" on a later member. */
+  %local itemsds hasvars;
+  %let itemsds=&libref1..items;
+  %let hasvars=0;
+  %if %sysfunc(exist(&itemsds))=1 %then %do;
+    %if %mf_existvar(&itemsds,id)>0 %then %let hasvars=1;
+  %end;
   data &outds;
-    length id name $256;
-    set &libref1..items;
+    length ordinal_root 8 ordinal_items 8 version 8
+      id $256 name $256 providerId $32 implicit 8 type $32;
+    call missing(of _all_);
+    %if &hasvars=1 %then %do;
+      set &itemsds;
+      /* the engine emits one all-missing row for an empty collection */
+      if missing(id) then delete;
+    %end;
+    %else %do;
+      stop;
+    %end;
   run;
   libname &libref1 clear;
 %end;
@@ -30277,7 +30384,12 @@ filename &fname0 clear;
   @param [in] grant_type= (sas_services)
     Valid values are "password" or "authorization_code" (unquoted).
   @param [out] outds= (work.mv_getusergroups)
-    The library.dataset to be created that contains the list of groups
+    The library.dataset to be created that contains the list of groups. Format:
+  |ordinal_root|ordinal_items|version|id|implicit|name|providerId|
+  |---|---|---|---|---|---|---|
+  |1|1|1|viyagroup18|0|SAS Viyagroup18|ldap|
+
+  A user the server does not know returns the columns above with zero rows.
 
 
   @version VIYA V.03.04
@@ -30331,8 +30443,19 @@ proc http method='GET' out=&fname1 &oauth_bearer
           "Accept"="application/json";
 run;
 /*data _null_;infile &fname1;input;putlog _infile_;run;*/
+/* a 404 answers with a document that carries no items dataset, so the output
+  is written here instead, with the documented columns and zero rows, and the
+  JSON libref is never assigned */
 %if &SYS_PROCHTTP_STATUS_CODE=404 %then %do;
   %put NOTE:  User &user not found!!;
+  data &outds;
+    length ordinal_root 8 ordinal_items 8 version 8
+      id $256 implicit 8 name $256 providerId $32;
+    call missing(of _all_);
+    stop;
+  run;
+  filename &fname1 clear;
+  %return;
 %end;
 %else %do;
   %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200)
@@ -30342,7 +30465,12 @@ run;
 %end;
 libname &libref1 JSON fileref=&fname1;
 
+/* the documented columns are declared on both paths, so a caller reads the
+  same columns whether the user has memberships or is unknown.  The lengths
+  are at least the engine's own, which are sized to the payload */
 data &outds;
+  length ordinal_root 8 ordinal_items 8 version 8
+    id $256 implicit 8 name $256 providerId $32;
   set &libref1..items;
 run;
 

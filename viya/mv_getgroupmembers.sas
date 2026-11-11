@@ -21,14 +21,14 @@
       id char(256),
       name char(256),
       providerId char(32),
-      implicit num
+      implicit num,
+      type char(32)
 
-  A populated listing also carries the engine's own `type` column (user or
-  group).  `implicit` is declared so a caller reading it does not fail with
-  "Variable implicit not found", but the identities API returns no such field,
-  so the column is present and always missing.  A group with no members, and a
-  group id the server does not know, both return the columns above with zero
-  rows.
+  `type` is the member type (user or group) and is declared on every path.
+  `implicit` is declared so a caller reading it does not fail with "Variable
+  implicit not found", but the identities API returns no such field, so the
+  column is present and always missing.  A group with no members, and a group
+  id the server does not know, both return the columns above with zero rows.
 
   @param [in] group Group id for which to return group members
   @param [in] access_token_var= (ACCESS_TOKEN)
@@ -100,7 +100,7 @@ run;
     call missing alone would output one all-missing observation */
   data &outds;
     length ordinal_root 8 ordinal_items 8 version 8
-      id $256 name $256 providerId $32 implicit 8;
+      id $256 name $256 providerId $32 implicit 8 type $32;
     call missing(of _all_);
     stop;
   run;
@@ -129,7 +129,7 @@ run;
   %end;
   data &outds;
     length ordinal_root 8 ordinal_items 8 version 8
-      id $256 name $256 providerId $32 implicit 8;
+      id $256 name $256 providerId $32 implicit 8 type $32;
     call missing(of _all_);
     %if &hasvars=1 %then %do;
       set &itemsds;

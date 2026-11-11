@@ -1,6 +1,11 @@
 /**
   @file
   @brief Testing mv_getgroupmembers macro
+  @details The populated and unknown-group paths have fixtures here. The third
+    path - a 200 whose items dataset carries no member columns, which is what an
+    empty group answers - has no fixture: an empty group is an estate fact
+    (creating one is refused with 403), so that branch is proven on a live
+    estate only, against a stock group that happens to have no members.
 
   <h4> SAS Macros </h4>
   @li mf_existvar.sas
@@ -54,6 +59,10 @@ run;
   iftrue=(%mf_existvar(work.groupmembers,implicit)>0),
   desc=Check the dataset carries an implicit column
 )
+%mp_assert(
+  iftrue=(%mf_existvar(work.groupmembers,type)>0),
+  desc=Check the dataset carries a type column
+)
 
 /* a group id the server does not know - the macro answers with the documented
   columns and zero rows rather than one all-missing observation */
@@ -72,4 +81,8 @@ run;
 %mp_assert(
   iftrue=(%mf_existvar(work.unknown,providerId)>0),
   desc=Check the unknown-group listing carries a providerId column
+)
+%mp_assert(
+  iftrue=(%mf_existvar(work.unknown,type)>0),
+  desc=Check the unknown-group listing carries a type column
 )

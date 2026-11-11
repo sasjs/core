@@ -64,8 +64,15 @@ jobs:
       # viya, sas9 or base suite covers still shows up as a gap.  Compile
       # `docsonly`, which lists every macro folder and every test suite, for the
       # report alone: nothing is built or deployed from this step.
+      #
+      # The report from the build step is removed first: if this compile fails
+      # or times out, `sasjsbuild/coverage.json` must be absent so the comment
+      # says it has no figures, rather than publishing the server target's
+      # numbers under the docsonly label.
       - name: Measure coverage across every suite
-        run: npx @sasjs/cli compile -t docsonly
+        run: |
+          rm -f sasjsbuild/coverage.json
+          npx @sasjs/cli compile -t docsonly
         timeout-minutes: 5
         env:
           macroCorePath: .
@@ -133,7 +140,7 @@ jobs:
                     marker,
                     '### SASjs compile coverage',
                     '',
-                    `\`sasjs compile -t docsonly\` produced no coverage report on \`${sha}\`, so this run has nothing to measure. See the "Measure coverage across every suite" step.`
+                    `\`sasjs compile -t docsonly\` produced no coverage report on \`${sha}\`, so this run has nothing to measure. Either "Compile and build every macro" or "Measure coverage across every suite" did not complete - read those two steps.`
                   ].join('\n')
                 )
               }

@@ -9,10 +9,11 @@ for file in files:
     with open(file) as infile:
         body = ["  put '" + line.rstrip().replace("'", "''") + " ';"
                 for line in infile]
-    # a put line longer than 80 chars needs the lint override, or the file
-    # fails the repo's style gate on every regeneration
-    pragma = ('  @sasjslint {"maxLineLength": 92}\n'
-              if any(len(line) > 80 for line in body) else '')
+    # the lint override has to cover the widest generated put line, and that
+    # width is data - the library it comes from changes upstream
+    widest = max([len(line) for line in body] or [0])
+    pragma = (f'  @sasjslint {{"maxLineLength": {widest}}}\n'
+              if widest > 80 else '')
     ml = open('lua/' + name + '.sas', "w")
     ml.write("/**\n")
     ml.write("  @file " + name + '.sas\n')

@@ -20,8 +20,11 @@
       version num,
       id char(256),
       name char(256),
-      providerId char(5),
+      providerId char(32),
       implicit num
+
+  A populated listing also carries the engine's own `type` column.  A group
+  with no members returns the columns above with zero rows.
 
   @param [in] group Group id for which to return group members
   @param [in] access_token_var= (ACCESS_TOKEN)
@@ -104,10 +107,12 @@ run;
   /* a group with no members returns a collection whose items dataset carries no
     member columns, so a straight SET would raise "Variable id is uninitialized"
     and leave syscc dirty.  Only copy when there is something to copy.  The
-    lengths are declared because the JSON engine sizes its columns to the
-    longest value in the payload: $256 is the longest an active directory
-    display name or SAM account name can hold, and a shorter declaration lets
-    the engine report "Multiple lengths were specified" on a later member. */
+    documented columns are declared on both paths, so an empty group hands the
+    caller the same PDV as a populated one.  The lengths are declared because
+    the JSON engine sizes its columns to the longest value in the payload:
+    $256 is the longest an active directory display name or SAM account name
+    can hold, and a shorter declaration lets the engine report "Multiple
+    lengths were specified" on a later member. */
   %local itemsds hasvars;
   %let itemsds=&libref1..items;
   %let hasvars=0;
@@ -115,14 +120,15 @@ run;
     %if %mf_existvar(&itemsds,id)>0 %then %let hasvars=1;
   %end;
   data &outds;
-    length id $256 name $256;
+    length ordinal_root 8 ordinal_items 8 version 8
+      id $256 name $256 providerId $32 implicit 8;
+    call missing(of _all_);
     %if &hasvars=1 %then %do;
       set &itemsds;
       /* the engine emits one all-missing row for an empty collection */
       if missing(id) then delete;
     %end;
     %else %do;
-      call missing(of _all_);
       stop;
     %end;
   run;

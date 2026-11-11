@@ -45,3 +45,11 @@ run;
   iftrue=(%mf_existvar(work.groupmembers,name)>0),
   desc=Check the dataset carries a name column
 )
+%mp_assert(
+  iftrue=(%mf_existvar(work.groupmembers,providerId)>0),
+  desc=Check the dataset carries a providerId column
+)
+%mp_assert(
+  iftrue=(%mf_existvar(work.groupmembers,implicit)>0),
+  desc=Check the dataset carries an implicit column
+)

@@ -61,9 +61,11 @@ jobs:
 
       # The coverage comment below reads the report `sasjs compile` writes, and
       # the build above compiles the `server` target only - so a macro that the
-      # viya, sas9 or base suite covers still shows up as a gap.  Compile
-      # `docsonly`, which lists every macro folder and every test suite, for the
-      # report alone: nothing is built or deployed from this step.
+      # viya or sas9 suite covers still shows up as a gap.  Compile `docsonly`
+      # for the report alone: it names the meta, server and viya macro folders
+      # and the sas9, server and viya test suites (not base, ddl, fcmp, lua or
+      # x-platform - a union of every folder measures the same figure today).
+      # Nothing is built or deployed from this step.
       #
       # The report from the build step is removed first: if this compile fails
       # or times out, `sasjsbuild/coverage.json` must be absent so the comment
@@ -175,7 +177,7 @@ jobs:
               marker,
               '### SASjs compile coverage',
               '',
-              `Measured by \`sasjs compile -t docsonly\` on \`${sha}\`. That target compiles every macro folder and every test suite, so a macro counts as covered when any suite calls it. Edited in place, so this shows the latest run.`,
+              `Measured by \`sasjs compile -t docsonly\` on \`${sha}\`. That target names the meta, server and viya macro folders and the sas9, server and viya test suites, so a macro counts as covered when one of those suites calls it. Edited in place, so this shows the latest run.`,
               '',
               '| Area | Covered | % |',
               '| --- | --- | --- |',

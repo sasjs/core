@@ -23,8 +23,12 @@
       providerId char(32),
       implicit num
 
-  A populated listing also carries the engine's own `type` column.  A group
-  with no members returns the columns above with zero rows.
+  A populated listing also carries the engine's own `type` column (user or
+  group).  `implicit` is declared so a caller reading it does not fail with
+  "Variable implicit not found", but the identities API returns no such field,
+  so the column is present and always missing.  A group with no members, and a
+  group id the server does not know, both return the columns above with zero
+  rows.
 
   @param [in] group Group id for which to return group members
   @param [in] access_token_var= (ACCESS_TOKEN)
@@ -92,9 +96,13 @@ run;
 /*data _null_;infile &fname1;input;putlog _infile_;run;*/
 %if &SYS_PROCHTTP_STATUS_CODE=404 %then %do;
   %put NOTE:  Group &group not found!!;
+  /* the same documented columns and zero rows as a group with no members -
+    call missing alone would output one all-missing observation */
   data &outds;
-    length id name $256;
+    length ordinal_root 8 ordinal_items 8 version 8
+      id $256 name $256 providerId $32 implicit 8;
     call missing(of _all_);
+    stop;
   run;
 %end;
 %else %do;

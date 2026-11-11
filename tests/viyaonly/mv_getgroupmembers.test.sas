@@ -7,6 +7,7 @@
   @li mf_getuser.sas
   @li mf_nobs.sas
   @li mp_assert.sas
+  @li mp_assertdsobs.sas
   @li mp_assertscope.sas
   @li mv_getgroupmembers.sas
   @li mv_getusergroups.sas
@@ -52,4 +53,23 @@ run;
 %mp_assert(
   iftrue=(%mf_existvar(work.groupmembers,implicit)>0),
   desc=Check the dataset carries an implicit column
+)
+
+/* a group id the server does not know - the macro answers with the documented
+  columns and zero rows rather than one all-missing observation */
+%mp_assertscope(SNAPSHOT)
+%mv_getgroupmembers(group=no_such_group_sasjs_core, outds=work.unknown)
+%mp_assertscope(COMPARE,
+  desc=mv_getgroupmembers does not leak scope on an unknown group,
+    ignorelist=MC0_JADP1LEN MC0_JADP2LEN MC0_JADP3LEN MC0_JADPNUM MC0_JADVLEN,
+  outds=work.test_results
+)
+%mp_assertdsobs(work.unknown,
+  desc=Check an unknown group returns no rows,
+  test=EMPTY,
+  outds=work.test_results
+)
+%mp_assert(
+  iftrue=(%mf_existvar(work.unknown,providerId)>0),
+  desc=Check the unknown-group listing carries a providerId column
 )

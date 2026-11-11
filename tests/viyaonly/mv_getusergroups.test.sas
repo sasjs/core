@@ -7,6 +7,7 @@
   @li mf_getuser.sas
   @li mf_nobs.sas
   @li mp_assert.sas
+  @li mp_assertdsobs.sas
   @li mp_assertscope.sas
   @li mv_getusergroups.sas
 
@@ -31,4 +32,26 @@
 %mp_assert(
   iftrue=(%mf_existvar(work.usergroups,id)>0),
   desc=Check the dataset carries an id column
+)
+
+/* a user the server does not know - the macro answers with the documented
+  columns and zero rows rather than failing on the 404 body */
+%mp_assertscope(SNAPSHOT)
+%mv_getusergroups(user=no_such_user_sasjs_core, outds=work.unknown)
+%mp_assertscope(COMPARE,
+  desc=mv_getusergroups does not leak scope on an unknown user,
+  outds=work.test_results
+)
+%mp_assertdsobs(work.unknown,
+  desc=Check an unknown user returns no rows,
+  test=EMPTY,
+  outds=work.test_results
+)
+%mp_assert(
+  iftrue=(%mf_existvar(work.unknown,providerId)>0),
+  desc=Check the unknown-user listing carries a providerId column
+)
+%mp_assert(
+  iftrue=(%mf_existvar(work.unknown,implicit)>0),
+  desc=Check the unknown-user listing carries an implicit column
 )

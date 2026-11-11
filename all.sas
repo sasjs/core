@@ -30384,7 +30384,12 @@ filename &fname0 clear;
   @param [in] grant_type= (sas_services)
     Valid values are "password" or "authorization_code" (unquoted).
   @param [out] outds= (work.mv_getusergroups)
-    The library.dataset to be created that contains the list of groups
+    The library.dataset to be created that contains the list of groups. Format:
+  |ordinal_root|ordinal_items|version|id|implicit|name|providerId|
+  |---|---|---|---|---|---|---|
+  |1|1|1|viyagroup18|0|SAS Viyagroup18|ldap|
+
+  A user the server does not know returns the columns above with zero rows.
 
 
   @version VIYA V.03.04
@@ -30438,8 +30443,19 @@ proc http method='GET' out=&fname1 &oauth_bearer
           "Accept"="application/json";
 run;
 /*data _null_;infile &fname1;input;putlog _infile_;run;*/
+/* a 404 answers with a document that carries no items dataset, so the output
+  is written here instead, with the documented columns and zero rows, and the
+  JSON libref is never assigned */
 %if &SYS_PROCHTTP_STATUS_CODE=404 %then %do;
   %put NOTE:  User &user not found!!;
+  data &outds;
+    length ordinal_root 8 ordinal_items 8 version 8
+      id $256 implicit 8 name $256 providerId $32;
+    call missing(of _all_);
+    stop;
+  run;
+  filename &fname1 clear;
+  %return;
 %end;
 %else %do;
   %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200)
@@ -30449,7 +30465,12 @@ run;
 %end;
 libname &libref1 JSON fileref=&fname1;
 
+/* the documented columns are declared on both paths, so a caller reads the
+  same columns whether the user has memberships or is unknown.  The lengths
+  are at least the engine's own, which are sized to the payload */
 data &outds;
+  length ordinal_root 8 ordinal_items 8 version 8
+    id $256 implicit 8 name $256 providerId $32;
   set &libref1..items;
 run;
 

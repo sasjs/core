@@ -11,6 +11,12 @@
 **/
 
 %macro ml_json();
+/* a narrow LRECL truncates the wide lines of the library as they
+  are written, so widen it for the write as well as the include */
+%local optval;
+%let optval=%sysfunc(getoption(lrecl));
+options lrecl=1024;
+
 data _null_;
   file "%sysfunc(pathname(work))/ml_json.lua";
   put '-- NOTE - THE COPYRIGHT BELOW IS IN RELATION TO THE JSON.LUA FILE ONLY ';
@@ -389,11 +395,6 @@ data _null_;
   put ' ';
   put '-- JSON.LUA ENDS HERE ';
 run;
-
-/* ensure big enough lrecl to avoid lua compilation issues */
-%local optval;
-%let optval=%sysfunc(getoption(lrecl));
-options lrecl=1024;
 
 /* execute the lua code by using a .lua extension */
 %inc "%sysfunc(pathname(work))/ml_json.lua" /source2;

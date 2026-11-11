@@ -6,6 +6,13 @@ files = [f for f in Path('lua').iterdir() if f.match("*.lua")]
 for file in files:
     basename = os.path.basename(file)
     name = 'ml_' + os.path.splitext(basename)[0]
+    with open(file) as infile:
+        body = ["  put '" + line.rstrip().replace("'", "''") + " ';"
+                for line in infile]
+    # a put line longer than 80 chars needs the lint override, or the file
+    # fails the repo's style gate on every regeneration
+    pragma = ('  @sasjslint {"maxLineLength": 92}\n'
+              if any(len(line) > 80 for line in body) else '')
     ml = open('lua/' + name + '.sas', "w")
     ml.write("/**\n")
     ml.write("  @file " + name + '.sas\n')
@@ -14,19 +21,23 @@ for file in files:
     ml.write("  and then includes it.\n")
     ml.write("  Usage:\n\n")
     ml.write("      %" + name + "()\n\n")
+    ml.write(pragma)
     ml.write("**/\n\n")
     ml.write("%macro " + name + "();\n")
-    ml.write("data _null_;\n")
-    ml.write("  file \"%sysfunc(pathname(work))/" + name + ".lua\";\n")
-    with open(file) as infile:
-        for line in infile:
-            ml.write("  put '" + line.rstrip().replace("'", "''") + " ';\n")
-    ml.write("run;\n\n")
-
-    ml.write("/* ensure big enough lrecl to avoid lua compilation issues */\n")
+    # the widest line of the library has to fit the LRECL in force when the
+    # file is written, so widen it before the DATA step and leave it wide for
+    # the include below
+    ml.write("/* a narrow LRECL truncates the wide lines of the library as they\n")
+    ml.write("  are written, so widen it for the write as well as the include */\n")
     ml.write("%local optval;\n")
     ml.write("%let optval=%sysfunc(getoption(lrecl));\n")
     ml.write("options lrecl=1024;\n\n")
+    ml.write("data _null_;\n")
+    ml.write("  file \"%sysfunc(pathname(work))/" + name + ".lua\";\n")
+    for line in body:
+        ml.write(line + "\n")
+    ml.write("run;\n\n")
+
     ml.write("/* execute the lua code by using a .lua extension */\n")
     ml.write("%inc \"%sysfunc(pathname(work))/" +
              name + ".lua\" /source2;\n\n")

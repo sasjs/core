@@ -59,6 +59,17 @@ jobs:
         env:
           macroCorePath: .
 
+      # The coverage comment below reads the report `sasjs compile` writes, and
+      # the build above compiles the `server` target only - so a macro that the
+      # viya, sas9 or base suite covers still shows up as a gap.  Compile
+      # `docsonly`, which lists every macro folder and every test suite, for the
+      # report alone: nothing is built or deployed from this step.
+      - name: Measure coverage across every suite
+        run: npx @sasjs/cli compile -t docsonly
+        timeout-minutes: 5
+        env:
+          macroCorePath: .
+
       - name: Publish compile coverage as a PR comment
         # Reads the coverage report `sasjs compile` writes into the build folder
         # (`coverage.json`), so the figures come from the CLI's own numbers
@@ -122,7 +133,7 @@ jobs:
                     marker,
                     '### SASjs compile coverage',
                     '',
-                    `\`sasjs compile\` produced no coverage report on \`${sha}\`, so this run has nothing to measure. See the "Compile and build every macro" step.`
+                    `\`sasjs compile -t docsonly\` produced no coverage report on \`${sha}\`, so this run has nothing to measure. See the "Measure coverage across every suite" step.`
                   ].join('\n')
                 )
               }
@@ -157,7 +168,7 @@ jobs:
               marker,
               '### SASjs compile coverage',
               '',
-              `Measured by \`sasjs compile\` on \`${sha}\`. This comment is edited in place, so it shows the latest run.`,
+              `Measured by \`sasjs compile -t docsonly\` on \`${sha}\`. That target compiles every macro folder and every test suite, so a macro counts as covered when any suite calls it. Edited in place, so this shows the latest run.`,
               '',
               '| Area | Covered | % |',
               '| --- | --- | --- |',

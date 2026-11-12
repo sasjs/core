@@ -97,7 +97,7 @@ create table _data_ as
 %local colconst; %let colconst=&syslast;
 
 %local constraints_used;
-%macro addConst();
+%macro addconst();
   data _null_;
     length ctype $11 constraint_name_orig $256 constraints_used $5000;
     set &colconst(
@@ -129,7 +129,7 @@ create table _data_ as
   end;
   run;
   %put &=constraints_used;
-%mend addConst;
+%mend addconst;
 
 data _null_;
   file &fref mod;

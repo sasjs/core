@@ -20,7 +20,7 @@
 
 **/
 
-%macro mm_getDirectories(
+%macro mm_getdirectories(
     path=
     ,outds=work.mm_getDirectories
     ,mDebug=0
@@ -55,4 +55,4 @@ data &outds (keep=directoryuri name directoryname directorydesc );
   end;
 run;
 
-%mend mm_getDirectories;
+%mend mm_getdirectories;

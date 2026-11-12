@@ -1479,7 +1479,7 @@ or %index(&pgm,/tests/testteardown)
   @version 9.2
 **/
 
-%macro mf_getVarFormat(libds /* two level ds name */
+%macro mf_getvarformat(libds /* two level ds name */
       , var /* variable name from which to return the format */
       , force=0
 )/*/STORE SOURCE*/;
@@ -1516,7 +1516,7 @@ or %index(&pgm,/tests/testteardown)
   %let rc = %sysfunc(close(&dsid));
   /* Return variable format */
   &vformat
-%mend mf_getVarFormat;
+%mend mf_getvarformat;
 /**
   @file
   @brief Returns the length of a variable
@@ -1546,7 +1546,7 @@ or %index(&pgm,/tests/testteardown)
 
 **/
 
-%macro mf_getVarLen(libds /* two level ds name */
+%macro mf_getvarlen(libds /* two level ds name */
       , var /* variable name from which to return the length */
 )/*/STORE SOURCE*/;
   %local dsid vnum vlen rc;
@@ -1572,7 +1572,7 @@ or %index(&pgm,/tests/testteardown)
   %let rc = %sysfunc(close(&dsid));
   /* Return variable format */
   &vlen
-%mend mf_getVarLen;
+%mend mf_getvarlen;
 /**
   @file
   @brief Returns dataset variable list direct from header
@@ -1678,7 +1678,7 @@ returns:
 
 **/
 
-%macro mf_getVarNum(libds /* two level ds name */
+%macro mf_getvarnum(libds /* two level ds name */
       , var /* variable name from which to return the format */
 )/*/STORE SOURCE*/;
   %local dsid vnum rc;
@@ -1704,7 +1704,7 @@ returns:
   /* Return variable number */
     &vnum.
 
-%mend mf_getVarNum;
+%mend mf_getvarnum;
 /**
   @file
   @brief Returns variable type - Character (C) or Numeric (N)
@@ -7216,7 +7216,7 @@ create table _data_ as
 %local colconst; %let colconst=&syslast;
 
 %local constraints_used;
-%macro addConst();
+%macro addconst();
   data _null_;
     length ctype $11 constraint_name_orig $256 constraints_used $5000;
     set &colconst(
@@ -7248,7 +7248,7 @@ create table _data_ as
   end;
   run;
   %put &=constraints_used;
-%mend addConst;
+%mend addconst;
 
 data _null_;
   file &fref mod;
@@ -19803,7 +19803,7 @@ run;
 
 **/
 
-%macro mm_getDirectories(
+%macro mm_getdirectories(
     path=
     ,outds=work.mm_getDirectories
     ,mDebug=0
@@ -19838,7 +19838,7 @@ data &outds (keep=directoryuri name directoryname directorydesc );
   end;
 run;
 
-%mend mm_getDirectories;
+%mend mm_getdirectories;
 /**
   @file
   @brief Writes the TextStore of a Document Object to an external file
@@ -20278,7 +20278,7 @@ run;
 
 **/
 
-%macro mm_getGroups(
+%macro mm_getgroups(
     user=
     ,outds=work.mm_getGroups
     ,repo=foundation
@@ -20344,7 +20344,7 @@ run;
   options metarepository=&oldrepo;
 %end;
 
-%mend mm_getGroups;
+%mend mm_getgroups;
 /**
   @file
   @brief Compares the metadata of a library with the physical tables
@@ -21588,7 +21588,7 @@ run;
 
 **/
 
-%macro mm_getTree(
+%macro mm_gettree(
     tree=
     ,inds=
     ,outds=work.mm_getTree
@@ -21629,7 +21629,7 @@ data &outds;
   if treeuri ne "" and treepath ne "" then output;
   stop;
 run;
-%mend mm_getTree;
+%mend mm_gettree;
 /**
   @file
   @brief Creates a dataset with all metadata types
@@ -30631,7 +30631,7 @@ libname &libref1 clear;
 
 **/
 
-%macro mv_getViyaFileExtParms(
+%macro mv_getviyafileextparms(
   ext,
   typeDefNameVar=,
   propertiesVar=,
@@ -30849,7 +30849,7 @@ libname &libref1 clear;
 
   %end;
 
-%mend mv_getViyaFileExtParms;
+%mend mv_getviyafileextparms;
 /**
   @file
   @brief Executes a SAS Viya Job

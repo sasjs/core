@@ -22,6 +22,7 @@
     "indentationMultiple": "error",
     "lineEndings": "error",
     "lowerCaseFileNames": "error",
+    "lowerCaseMacroNames": "error",
     "maxLineLength": "error",
     "minMacroNameLength": "error",
     "noBannedStrings": "error",

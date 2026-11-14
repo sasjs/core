@@ -13,6 +13,13 @@ on:
   push:
     branches:
       - main
+  # main.yml's release job only runs on a push to main, so nothing on a pull
+  # request would prove the invocation: a wrong flag or a renamed output would be
+  # discovered after the tag and the release already existed. The dry-run job
+  # below classifies the same history without writing anything.
+  pull_request:
+    branches:
+      - main
   # a release can be re-fired without inventing a commit - useful when a
   # push is skipped for a marker in its message, or when the run fails
   # after the merge has landed
@@ -30,6 +37,7 @@ permissions: read-all
 
 jobs:
   release:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -97,7 +105,7 @@ jobs:
         # the version; `released` is false when the commits since the last tag
         # are docs/ci/chore, and true when a release was cut - or when the tag
         # already existed, which is what makes a failed run re-runnable
-        run: npm run release -- --host github --release --output "$GITHUB_OUTPUT"
+        run: npm run release -- --host github --release --draft --output "$GITHUB_OUTPUT"
 
       - name: Decide what to publish
         id: prepare
@@ -178,6 +186,17 @@ jobs:
           gh release upload "v${VERSION}" dist/*.tgz "dist/provenance-${VERSION}.intoto.jsonl" --clobber
           gh release view "v${VERSION}" --json assets --jq '.assets[].name'
 
+      - name: Publish the release
+        if: steps.release.outputs.released == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+        # the release is created as a draft, so a version is never advertised
+        # before it is installable. The tag exists from the moment the release is
+        # created; this is what makes the release visible, and it runs only after
+        # the tarball and its attestation are attached to it.
+        run: gh release edit "$TAG" --draft=false
+
       - name: SAS Packages Release
         run: |
           npx @sasjs/cli compile job -s sasjs/utils/create_sas_package.sas -o sasjsbuild -t server
@@ -242,3 +261,46 @@ jobs:
           git diff --staged --quiet || git commit -m "chore: update sitemap"
           git push
           echo "check it out:  https://sasjs.github.io/core.github.io/files.html"
+
+  dry-run:
+    # what the release job decides, decided without writing anything: this proves
+    # the flags and the output keys the steps below read (released, publish,
+    # version, skip, tag) on every pull request, rather than on the push that
+    # finds out.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 'lts/*'
+
+      - run: npm ci
+
+      - name: The tool runs, and reports the keys the release job reads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/release.out"
+          : > "$out"
+
+          npm run release -- --host github --dry-run --output "$out"
+          # the tag is this run's, so the prepare step has nothing to resolve -
+          # that is the "cut nothing" path, and it has to report skip=true rather
+          # than fail
+          npm run release -- --prepare-publish --dry-run --output "$out"
+
+          echo "reported:"
+          cat "$out"
+          for key in released version tag level skip publish exists; do
+            grep -q "^${key}=" "$out" || {
+              echo "::error::the tool did not report ${key}, which the release job reads"
+              exit 1
+            }
+          done

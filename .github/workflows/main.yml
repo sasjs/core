@@ -102,8 +102,11 @@ jobs:
         # a sign_version dispatch names a version that is already released: it
         # must not cut one for whatever has landed since, or the run would stamp
         # and attach into v<requested> while publishing an empty release for the
-        # new version
-        if: github.event.inputs.sign_version == ''
+        # new version. The event test comes first and is spelled out: on a push
+        # there is no inputs context at all, and a guard that held only by null
+        # coercing to '' would skip this step - and everything that reads its
+        # outputs - on the one event no check in this repository covers.
+        if: github.event_name != 'workflow_dispatch' || github.event.inputs.sign_version == ''
         env:
           GH_TOKEN: ${{ github.token }}
         # the tool is a devDependency, so the lockfile pins the bytes as well as

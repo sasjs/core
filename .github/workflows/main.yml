@@ -1,10 +1,23 @@
-# This workflow will run tests using node and then publish a package to GitHub Packages when a release is created
-# For more information see: https://help.github.com/actions/language-and-framework-guides/publishing-nodejs-packages
+# Release and publish @sasjs/core in one job.
+#
+# @sasjs/release decides the version from the conventional commits since the last
+# tag, creates the tag and the release, and stamps the version npm will read; a
+# commit that cuts no release publishes nothing. The release and the publish stay
+# in this one file because npm's trusted publisher is registered against this
+# workflow's filename, and because the tarball has to be attested and attached to
+# the release it belongs to.
 
 name: SASjs Core Publish
 
 on:
   push:
+    branches:
+      - main
+  # main.yml's release job only runs on a push to main, so nothing on a pull
+  # request would prove the invocation: a wrong flag or a renamed output would be
+  # discovered after the tag and the release already existed. The dry-run job
+  # below classifies the same history without writing anything.
+  pull_request:
     branches:
       - main
   # a release can be re-fired without inventing a commit - useful when a
@@ -24,6 +37,7 @@ permissions: read-all
 
 jobs:
   release:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -34,6 +48,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # the version is worked out from the tags, so a shallow clone has
+          # nothing to classify. Publishing is from main or not at all, so the
+          # checkout says so rather than inheriting a dispatcher's ref.
+          ref: main
+          fetch-depth: 0
+          # nothing pushes with this token: the tag and the release are created
+          # over the API, and the docs site is pushed with its own app token
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -74,32 +97,55 @@ jobs:
           echo "ACCESS_TOKEN=${{secrets.SAS9_4GL_IO_ACCESS_TOKEN}}" >> .env.server
           echo "REFRESH_TOKEN=${{secrets.SAS9_4GL_IO_REFRESH_TOKEN}}" >> .env.server
 
-      - name: Semantic Release
-        id: makerelease
-        uses: cycjimmy/semantic-release-action@ad51787758d9654d5a75150a89a6fa9b3ccef95e # v6
+      - name: Tag and release, if there is anything to release
+        id: release
+        # a sign_version dispatch names a version that is already released: it
+        # must not cut one for whatever has landed since, or the run would stamp
+        # and attach into v<requested> while publishing an empty release for the
+        # new version. The event test comes first and is spelled out: on a push
+        # there is no inputs context at all, and a guard that held only by null
+        # coercing to '' would skip this step - and everything that reads its
+        # outputs - on the one event no check in this repository covers.
+        if: github.event_name != 'workflow_dispatch' || github.event.inputs.sign_version == ''
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # NPM_TOKEN no longer required: package is published via npm
-          # Trusted Publishing (OIDC). The id-token: write permission above
-          # allows npm CLI to authenticate to the registry automatically.
+          GH_TOKEN: ${{ github.token }}
+        # the tool is a devDependency, so the lockfile pins the bytes as well as
+        # the version; `released` is false when the commits since the last tag
+        # are docs/ci/chore, and true when a release was cut - or when the tag
+        # already existed, which is what makes a failed run re-runnable
+        run: npm run release -- --host github --release --draft --output "$GITHUB_OUTPUT"
+
+      - name: Decide what to publish
+        id: prepare
+        env:
+          REQUESTED: ${{ github.event.inputs.sign_version }}
+        # stamps the tag's version where npm will read it, refuses a tag that is
+        # not on main, and asks the registry whether the version is already
+        # there. A sign_version dispatch names a version that is already
+        # published, so it stamps and reports publish=false - the pack, attest
+        # and attach steps below then sign what the registry serves
+        run: |
+          set -euo pipefail
+          args=(--prepare-publish --branch main --output "$GITHUB_OUTPUT")
+          if [ -n "$REQUESTED" ]; then args+=(--tag "v${REQUESTED}"); fi
+          npm run release -- "${args[@]}"
 
       - name: Publish the package to npm
-        if: steps.makerelease.outputs.new_release_published == 'true'
-        # semantic-release decides the version, writes it to package.json, tags
-        # the commit and writes the release notes; publishing is turned off in
-        # its npm plugin (`npmPublish: false`) and runs here instead. It is the
-        # same `npm publish` the plugin would have run - the scorecard's
-        # Packaging check reads workflows for a known publish command, so a
-        # publish performed inside an action is invisible to it.
+        if: steps.prepare.outputs.publish == 'true'
+        # `publish` is false when the registry already serves this version, so a
+        # re-run after a failed publish finishes the release without a second
+        # attempt at the same version. The publish runs here rather than inside
+        # an action: the scorecard's Packaging check reads workflows for a known
+        # publish command.
         env:
           NPM_CONFIG_PROVENANCE: 'true'
         run: npm publish --provenance --access public
 
       - name: Pack the published tarball
         id: pack
-        if: steps.makerelease.outputs.new_release_published == 'true' || github.event.inputs.sign_version != ''
+        if: steps.prepare.outputs.version != ''
         env:
-          RELEASED: ${{ steps.makerelease.outputs.new_release_version }}
+          RELEASED: ${{ steps.prepare.outputs.version }}
           REQUESTED: ${{ github.event.inputs.sign_version }}
         # `npm pack` with a registry spec downloads the tarball that was published
         # rather than rebuilding one from this checkout, so the bytes that get
@@ -148,6 +194,17 @@ jobs:
           gh release upload "v${VERSION}" dist/*.tgz "dist/provenance-${VERSION}.intoto.jsonl" --clobber
           gh release view "v${VERSION}" --json assets --jq '.assets[].name'
 
+      - name: Publish the release
+        if: steps.release.outputs.released == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+        # the release is created as a draft, so a version is never advertised
+        # before it is installable. The tag exists from the moment the release is
+        # created; this is what makes the release visible, and it runs only after
+        # the tarball and its attestation are attached to it.
+        run: gh release edit "$TAG" --draft=false
+
       - name: SAS Packages Release
         run: |
           npx @sasjs/cli compile job -s sasjs/utils/create_sas_package.sas -o sasjsbuild -t server
@@ -155,7 +212,7 @@ jobs:
           # npx @sasjs/cli run sasjsbuild/jobs/utils/create_sas_package.sas -t server
 
       - name: Debug app token inputs (no secret values printed)
-        if: steps.makerelease.outputs.new_release_published == 'true'
+        if: steps.release.outputs.released == 'true'
         env:
           APP_ID_VAR: ${{ vars.APP_ID }}
           APP_ID_SECRET: ${{ secrets.APP_ID }}
@@ -167,7 +224,7 @@ jobs:
 
       - name: Generate GitHub App token for docs site
         id: app-token
-        if: steps.makerelease.outputs.new_release_published == 'true'
+        if: steps.release.outputs.released == 'true'
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           app-id: ${{ secrets.APP_ID }}
@@ -175,7 +232,7 @@ jobs:
           repositories: core.github.io
 
       - name: Update Docs Site
-        if: steps.makerelease.outputs.new_release_published == 'true'
+        if: steps.release.outputs.released == 'true'
         env:
           DOCS_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
@@ -200,7 +257,7 @@ jobs:
           git commit -m "core pipeline build on $(date +%F:%H:%M:%S)"
 
       - name: Generate sitemap and publish Docs Site
-        if: steps.makerelease.outputs.new_release_published == 'true'
+        if: steps.release.outputs.released == 'true'
         working-directory: core.github.io
         run: |
           # The pages are committed before the sitemap is generated, so each
@@ -212,3 +269,59 @@ jobs:
           git diff --staged --quiet || git commit -m "chore: update sitemap"
           git push
           echo "check it out:  https://sasjs.github.io/core.github.io/files.html"
+
+  dry-run:
+    # what the release job decides, decided without writing anything: this proves
+    # the flags and the output keys the steps below read (released, publish,
+    # version, skip, tag) on every pull request, rather than on the push that
+    # finds out.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 'lts/*'
+
+      - run: npm ci
+
+      - name: The release call runs, and reports the keys the later steps read
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # the same flags the release step uses, with --dry-run so nothing is sent.
+        # --level patch forces the releasable path, so the four keys are emitted
+        # whatever this branch's commits happen to be - a docs-only pull request
+        # reports `released` alone, which is correct and not something to assert
+        # against.
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/release.out"
+          npm run release -- --host github --release --draft --dry-run --level patch --output "$out"
+          cat "$out"
+          for key in released version tag level; do
+            grep -q "^${key}=" "$out" || {
+              echo "::error::the release call did not report ${key}, which the later steps read"
+              exit 1
+            }
+          done
+
+      - name: The prepare call runs, and reports the keys the publish steps read
+        # the tag is this run's, not this branch's, so prepare has nothing to
+        # resolve: that is the "cut nothing" path, and it has to report skip=true
+        # rather than fail
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/prepare.out"
+          npm run release -- --prepare-publish --dry-run --output "$out"
+          cat "$out"
+          for key in skip tag version publish exists; do
+            grep -q "^${key}=" "$out" || {
+              echo "::error::the prepare call did not report ${key}, which the publish steps read"
+              exit 1
+            }
+          done

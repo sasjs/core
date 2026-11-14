@@ -1,5 +1,11 @@
-# This workflow will run tests using node and then publish a package to GitHub Packages when a release is created
-# For more information see: https://help.github.com/actions/language-and-framework-guides/publishing-nodejs-packages
+# Release and publish @sasjs/core in one job.
+#
+# @sasjs/release decides the version from the conventional commits since the last
+# tag, creates the tag and the release, and stamps the version npm will read; a
+# commit that cuts no release publishes nothing. The release and the publish stay
+# in this one file because npm's trusted publisher is registered against this
+# workflow's filename, and because the tarball has to be attested and attached to
+# the release it belongs to.
 
 name: SASjs Core Publish
 
@@ -34,6 +40,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # the version is worked out from the tags, so a shallow clone has
+          # nothing to classify. Publishing is from main or not at all, so the
+          # checkout says so rather than inheriting a dispatcher's ref.
+          ref: main
+          fetch-depth: 0
+          # nothing pushes with this token: the tag and the release are created
+          # over the API, and the docs site is pushed with its own app token
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -74,32 +89,47 @@ jobs:
           echo "ACCESS_TOKEN=${{secrets.SAS9_4GL_IO_ACCESS_TOKEN}}" >> .env.server
           echo "REFRESH_TOKEN=${{secrets.SAS9_4GL_IO_REFRESH_TOKEN}}" >> .env.server
 
-      - name: Semantic Release
-        id: makerelease
-        uses: cycjimmy/semantic-release-action@ad51787758d9654d5a75150a89a6fa9b3ccef95e # v6
+      - name: Tag and release, if there is anything to release
+        id: release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # NPM_TOKEN no longer required: package is published via npm
-          # Trusted Publishing (OIDC). The id-token: write permission above
-          # allows npm CLI to authenticate to the registry automatically.
+          GH_TOKEN: ${{ github.token }}
+        # the tool is a devDependency, so the lockfile pins the bytes as well as
+        # the version; `released` is false when the commits since the last tag
+        # are docs/ci/chore, and true when a release was cut - or when the tag
+        # already existed, which is what makes a failed run re-runnable
+        run: npm run release -- --host github --release --output "$GITHUB_OUTPUT"
+
+      - name: Decide what to publish
+        id: prepare
+        env:
+          REQUESTED: ${{ github.event.inputs.sign_version }}
+        # stamps the tag's version where npm will read it, refuses a tag that is
+        # not on main, and asks the registry whether the version is already
+        # there. A sign_version dispatch names a version that is already
+        # published, so it stamps and reports publish=false - the pack, attest
+        # and attach steps below then sign what the registry serves
+        run: |
+          set -euo pipefail
+          args=(--prepare-publish --branch main --output "$GITHUB_OUTPUT")
+          if [ -n "$REQUESTED" ]; then args+=(--tag "v${REQUESTED}"); fi
+          npm run release -- "${args[@]}"
 
       - name: Publish the package to npm
-        if: steps.makerelease.outputs.new_release_published == 'true'
-        # semantic-release decides the version, writes it to package.json, tags
-        # the commit and writes the release notes; publishing is turned off in
-        # its npm plugin (`npmPublish: false`) and runs here instead. It is the
-        # same `npm publish` the plugin would have run - the scorecard's
-        # Packaging check reads workflows for a known publish command, so a
-        # publish performed inside an action is invisible to it.
+        if: steps.prepare.outputs.publish == 'true'
+        # `publish` is false when the registry already serves this version, so a
+        # re-run after a failed publish finishes the release without a second
+        # attempt at the same version. The publish runs here rather than inside
+        # an action: the scorecard's Packaging check reads workflows for a known
+        # publish command.
         env:
           NPM_CONFIG_PROVENANCE: 'true'
         run: npm publish --provenance --access public
 
       - name: Pack the published tarball
         id: pack
-        if: steps.makerelease.outputs.new_release_published == 'true' || github.event.inputs.sign_version != ''
+        if: steps.prepare.outputs.version != ''
         env:
-          RELEASED: ${{ steps.makerelease.outputs.new_release_version }}
+          RELEASED: ${{ steps.prepare.outputs.version }}
           REQUESTED: ${{ github.event.inputs.sign_version }}
         # `npm pack` with a registry spec downloads the tarball that was published
         # rather than rebuilding one from this checkout, so the bytes that get
@@ -155,7 +185,7 @@ jobs:
           # npx @sasjs/cli run sasjsbuild/jobs/utils/create_sas_package.sas -t server
 
       - name: Debug app token inputs (no secret values printed)
-        if: steps.makerelease.outputs.new_release_published == 'true'
+        if: steps.release.outputs.released == 'true'
         env:
           APP_ID_VAR: ${{ vars.APP_ID }}
           APP_ID_SECRET: ${{ secrets.APP_ID }}
@@ -167,7 +197,7 @@ jobs:
 
       - name: Generate GitHub App token for docs site
         id: app-token
-        if: steps.makerelease.outputs.new_release_published == 'true'
+        if: steps.release.outputs.released == 'true'
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           app-id: ${{ secrets.APP_ID }}
@@ -175,7 +205,7 @@ jobs:
           repositories: core.github.io
 
       - name: Update Docs Site
-        if: steps.makerelease.outputs.new_release_published == 'true'
+        if: steps.release.outputs.released == 'true'
         env:
           DOCS_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
@@ -200,7 +230,7 @@ jobs:
           git commit -m "core pipeline build on $(date +%F:%H:%M:%S)"
 
       - name: Generate sitemap and publish Docs Site
-        if: steps.makerelease.outputs.new_release_published == 'true'
+        if: steps.release.outputs.released == 'true'
         working-directory: core.github.io
         run: |
           # The pages are committed before the sitemap is generated, so each

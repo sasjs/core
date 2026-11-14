@@ -224,9 +224,9 @@ We are currently on major release v6.  The following breaking changes were appli
 
 ### Cutting a release
 
-Releases are cut by `semantic-release` from the commit messages on `main`, so the squashed PR message is what decides the version:
+Releases are cut by `@sasjs/release` from the commit messages on `main`, so the squashed PR message is what decides the version:
 
-* a breaking change needs a `BREAKING CHANGE:` footer in the commit body.  The `!` after the type on its own did not bump the major on this pipeline - the v6 rename merged as `feat!:` and shipped as a patch release.
+* a breaking change bumps the major when the subject carries `!` after the type (`feat!:`) or the body carries a `BREAKING CHANGE:` footer.  The previous pipeline ignored `!` on its own - the v6 rename merged as `feat!:` and shipped as a patch - and this one does not.
 * no commit that reaches `main` may carry a skip marker (`[skip ci]` and friends), including one copied in by the squashed commit list.  A skip marker suppresses every workflow for that push, the release job included, and nothing is published.
 
 ## Star Gazing

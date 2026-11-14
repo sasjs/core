@@ -40,6 +40,6 @@
   ],
   "devDependencies": {
     "@nogoo9/gitleaks": "8.30.1-post.2",
-    "@sasjs/release": "0.3.0"
+    "@sasjs/release": "0.3.1"
   }
 }

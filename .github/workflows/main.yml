@@ -99,6 +99,11 @@ jobs:
 
       - name: Tag and release, if there is anything to release
         id: release
+        # a sign_version dispatch names a version that is already released: it
+        # must not cut one for whatever has landed since, or the run would stamp
+        # and attach into v<requested> while publishing an empty release for the
+        # new version
+        if: github.event.inputs.sign_version == ''
         env:
           GH_TOKEN: ${{ github.token }}
         # the tool is a devDependency, so the lockfile pins the bytes as well as
@@ -282,25 +287,38 @@ jobs:
 
       - run: npm ci
 
-      - name: The tool runs, and reports the keys the release job reads
+      - name: The release call runs, and reports the keys the later steps read
         env:
           GH_TOKEN: ${{ github.token }}
+        # the same flags the release step uses, with --dry-run so nothing is sent.
+        # --level patch forces the releasable path, so the four keys are emitted
+        # whatever this branch's commits happen to be - a docs-only pull request
+        # reports `released` alone, which is correct and not something to assert
+        # against.
         run: |
           set -euo pipefail
           out="$RUNNER_TEMP/release.out"
-          : > "$out"
-
-          npm run release -- --host github --dry-run --output "$out"
-          # the tag is this run's, so the prepare step has nothing to resolve -
-          # that is the "cut nothing" path, and it has to report skip=true rather
-          # than fail
-          npm run release -- --prepare-publish --dry-run --output "$out"
-
-          echo "reported:"
+          npm run release -- --host github --release --draft --dry-run --level patch --output "$out"
           cat "$out"
-          for key in released version tag level skip publish exists; do
+          for key in released version tag level; do
             grep -q "^${key}=" "$out" || {
-              echo "::error::the tool did not report ${key}, which the release job reads"
+              echo "::error::the release call did not report ${key}, which the later steps read"
+              exit 1
+            }
+          done
+
+      - name: The prepare call runs, and reports the keys the publish steps read
+        # the tag is this run's, not this branch's, so prepare has nothing to
+        # resolve: that is the "cut nothing" path, and it has to report skip=true
+        # rather than fail
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/prepare.out"
+          npm run release -- --prepare-publish --dry-run --output "$out"
+          cat "$out"
+          for key in skip tag version publish exists; do
+            grep -q "^${key}=" "$out" || {
+              echo "::error::the prepare call did not report ${key}, which the publish steps read"
               exit 1
             }
           done

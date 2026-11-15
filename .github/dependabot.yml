@@ -24,3 +24,13 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 3
+    # CodeQL refuses to run when the `init` and `analyze` steps of a workflow are
+    # on different versions ("Loaded a configuration file for version 'x', but
+    # running version 'y'"), and Dependabot treats each `uses:` line as its own
+    # dependency - so bumping one step alone fails the CodeQL job. Grouping the
+    # steps makes one PR carry every codeql-action bump, which is the fix the
+    # error message itself recommends.
+    groups:
+      codeql-action:
+        patterns:
+          - 'github/codeql-action*'

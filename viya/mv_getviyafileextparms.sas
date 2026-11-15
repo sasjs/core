@@ -32,7 +32,7 @@
 
 **/
 
-%macro mv_getViyaFileExtParms(
+%macro mv_getviyafileextparms(
   ext,
   typeDefNameVar=,
   propertiesVar=,
@@ -250,4 +250,4 @@
 
   %end;
 
-%mend mv_getViyaFileExtParms;
+%mend mv_getviyafileextparms;

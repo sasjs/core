@@ -27,7 +27,7 @@
 
 **/
 
-%macro mm_getGroups(
+%macro mm_getgroups(
     user=
     ,outds=work.mm_getGroups
     ,repo=foundation
@@ -93,4 +93,4 @@
   options metarepository=&oldrepo;
 %end;
 
-%mend mm_getGroups;
+%mend mm_getgroups;

@@ -3,6 +3,12 @@
   @brief Abort, ungracefully
   @details Will abort with a straightforward %abort if the condition is true.
 
+  Not advised in SASjs web services: %abort gives the program no opportunity to
+  capture the failure and return it to the client, so the caller sees a failed
+  request with no message.  Use mp_abort.sas in that context - it writes the
+  standard SASjs abort JSON (message, calling macro, SYSCC and a log extract) to
+  _webout before ending the step.
+
   @param [in] mac= (mf_abort.sas) Name of calling macro (is printed to the log)
   @param [in] msg= ( ) Additional string to print to the log
   @param [in] iftrue= (%str(1=1)) Conditional logic under which to perform the
@@ -10,11 +16,6 @@
 
   <h4> Related Macros </h4>
   @li mp_abort.sas
-
-  @deprecated Use mp_abort.sas.  This macro is retained for backwards
-    compatibility only: the default SASjs CLI service and test templates still
-    declare it as a dependency, and mf_verifymacvars and the viya mfv_* macros
-    still call it, so it is not going away.  New code should not call it.
 
   @version 9.2
   @author Allan Bowe

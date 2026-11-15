@@ -24,7 +24,7 @@
 
 **/
 
-%macro mm_getTree(
+%macro mm_gettree(
     tree=
     ,inds=
     ,outds=work.mm_getTree
@@ -65,4 +65,4 @@ data &outds;
   if treeuri ne "" and treepath ne "" then output;
   stop;
 run;
-%mend mm_getTree;
+%mend mm_gettree;

@@ -33,7 +33,7 @@
   @version 9.2
 **/
 
-%macro mf_getVarFormat(libds /* two level ds name */
+%macro mf_getvarformat(libds /* two level ds name */
       , var /* variable name from which to return the format */
       , force=0
 )/*/STORE SOURCE*/;
@@ -70,4 +70,4 @@
   %let rc = %sysfunc(close(&dsid));
   /* Return variable format */
   &vformat
-%mend mf_getVarFormat;
+%mend mf_getvarformat;

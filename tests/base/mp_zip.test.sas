@@ -13,6 +13,13 @@
 %let work=%sysfunc(pathname(work));
 %let root=&work/zipme;
 
+/* sentinels, so a file that never arrives fails the assertion instead of
+  leaving an unresolved macro variable inside the comparison */
+%let content1=FAIL;
+%let content2=FAIL;
+%let content3a=FAIL;
+%let content3b=FAIL;
+
 /* TEST 1 - zip a file */
 %mf_mkdir(&root)
 

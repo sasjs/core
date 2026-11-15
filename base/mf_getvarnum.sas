@@ -29,7 +29,7 @@ returns:
 
 **/
 
-%macro mf_getVarNum(libds /* two level ds name */
+%macro mf_getvarnum(libds /* two level ds name */
       , var /* variable name from which to return the format */
 )/*/STORE SOURCE*/;
   %local dsid vnum rc;
@@ -55,4 +55,4 @@ returns:
   /* Return variable number */
     &vnum.
 
-%mend mf_getVarNum;
+%mend mf_getvarnum;

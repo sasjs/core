@@ -13,6 +13,7 @@
   as well).
 
   <h4> SAS Macros </h4>
+  @li mf_getuniquename.sas
   @li mp_dirlist.sas
 
   @param [in] in= unquoted filepath, dataset of files or directory to zip
@@ -52,8 +53,10 @@ ods package open nopf;
   ods package add file="&in" mimetype="application/x-compress";
 %end;
 %else %if &type=DIRECTORY %then %do;
-  %mp_dirlist(path=&in,outds=_data_)
-  %let ds=&syslast;
+  /* a literal outds of _data_ makes mp_dirlist create "data _data_" which SAS
+    reads as the last dataset in the session - give it a real unique name */
+  %let ds=%mf_getuniquename(prefix=mpzip);
+  %mp_dirlist(path=&in,outds=&ds)
   data _null_;
     set &ds;
     length __command $4000;

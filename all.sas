@@ -23,6 +23,12 @@ options noquotelenmax;
   @brief Abort, ungracefully
   @details Will abort with a straightforward %abort if the condition is true.
 
+  Not advised in SASjs web services: %abort gives the program no opportunity to
+  capture the failure and return it to the client, so the caller sees a failed
+  request with no message.  Use mp_abort.sas in that context - it writes the
+  standard SASjs abort JSON (message, calling macro, SYSCC and a log extract) to
+  _webout before ending the step.
+
   @param [in] mac= (mf_abort.sas) Name of calling macro (is printed to the log)
   @param [in] msg= ( ) Additional string to print to the log
   @param [in] iftrue= (%str(1=1)) Conditional logic under which to perform the
@@ -30,11 +36,6 @@ options noquotelenmax;
 
   <h4> Related Macros </h4>
   @li mp_abort.sas
-
-  @deprecated Use mp_abort.sas.  This macro is retained for backwards
-    compatibility only: the default SASjs CLI service and test templates still
-    declare it as a dependency, and mf_verifymacvars and the viya mfv_* macros
-    still call it, so it is not going away.  New code should not call it.
 
   @version 9.2
   @author Allan Bowe
@@ -1478,7 +1479,7 @@ or %index(&pgm,/tests/testteardown)
   @version 9.2
 **/
 
-%macro mf_getVarFormat(libds /* two level ds name */
+%macro mf_getvarformat(libds /* two level ds name */
       , var /* variable name from which to return the format */
       , force=0
 )/*/STORE SOURCE*/;
@@ -1515,7 +1516,7 @@ or %index(&pgm,/tests/testteardown)
   %let rc = %sysfunc(close(&dsid));
   /* Return variable format */
   &vformat
-%mend mf_getVarFormat;
+%mend mf_getvarformat;
 /**
   @file
   @brief Returns the length of a variable
@@ -1545,7 +1546,7 @@ or %index(&pgm,/tests/testteardown)
 
 **/
 
-%macro mf_getVarLen(libds /* two level ds name */
+%macro mf_getvarlen(libds /* two level ds name */
       , var /* variable name from which to return the length */
 )/*/STORE SOURCE*/;
   %local dsid vnum vlen rc;
@@ -1571,7 +1572,7 @@ or %index(&pgm,/tests/testteardown)
   %let rc = %sysfunc(close(&dsid));
   /* Return variable format */
   &vlen
-%mend mf_getVarLen;
+%mend mf_getvarlen;
 /**
   @file
   @brief Returns dataset variable list direct from header
@@ -1677,7 +1678,7 @@ returns:
 
 **/
 
-%macro mf_getVarNum(libds /* two level ds name */
+%macro mf_getvarnum(libds /* two level ds name */
       , var /* variable name from which to return the format */
 )/*/STORE SOURCE*/;
   %local dsid vnum rc;
@@ -1703,7 +1704,7 @@ returns:
   /* Return variable number */
     &vnum.
 
-%mend mf_getVarNum;
+%mend mf_getvarnum;
 /**
   @file
   @brief Returns variable type - Character (C) or Numeric (N)
@@ -2697,8 +2698,9 @@ Usage:
 /**
   @file
   @brief Checks if a set of macro variables exist AND contain values.
-  @details Reports a failure in the log if abortType is SOFT, else calls
-  %mf_abort.
+  @details Reports a failure in the log and returns 0.  It never aborts: an
+  mf_ macro returns a value, and ending the step here would leave the caller
+  unable to see that value or to report the failure itself.
   Usage:
 
       %let var1=x;
@@ -2708,16 +2710,12 @@ Usage:
   Returns:
   > 1
 
-  <h4> SAS Macros </h4>
-  @li mf_abort.sas
-
   @param [in] verifyvars Space separated list of macro variable names
   @param [in] makeupcase= (NO) Set to YES to convert all variable VALUES to
     uppercase.
-  @param [in] mAbort= (SOFT) Abort Type.  When SOFT, simply writes an err
-    message to the log.
-    Set to any other value to call mf_abort (which can be configured to abort in
-    various fashions according to context).
+  @param [in] mAbort= (SOFT) Retained for backwards compatibility.  The macro
+    no longer aborts on any value - a failure is written to the log and 0 is
+    returned, so the caller decides what to do with it.
 
   @note will not be able to verify the following variables due to
     naming clash!
@@ -2756,10 +2754,6 @@ Usage:
   %goto exit_success;
   %exit_err:
     %put &abortmsg;
-    %mf_abort(iftrue=(&mabort ne SOFT),
-      mac=mf_verifymacvars,
-      msg=%str(&abortmsg)
-    )
     0
     %return;
   %exit_success:
@@ -7222,7 +7216,7 @@ create table _data_ as
 %local colconst; %let colconst=&syslast;
 
 %local constraints_used;
-%macro addConst();
+%macro addconst();
   data _null_;
     length ctype $11 constraint_name_orig $256 constraints_used $5000;
     set &colconst(
@@ -7254,7 +7248,7 @@ create table _data_ as
   end;
   run;
   %put &=constraints_used;
-%mend addConst;
+%mend addconst;
 
 data _null_;
   file &fref mod;
@@ -16191,6 +16185,7 @@ run;
   as well).
 
   <h4> SAS Macros </h4>
+  @li mf_getuniquename.sas
   @li mp_dirlist.sas
 
   @param [in] in= unquoted filepath, dataset of files or directory to zip
@@ -16230,8 +16225,10 @@ ods package open nopf;
   ods package add file="&in" mimetype="application/x-compress";
 %end;
 %else %if &type=DIRECTORY %then %do;
-  %mp_dirlist(path=&in,outds=_data_)
-  %let ds=&syslast;
+  /* a literal outds of _data_ makes mp_dirlist create "data _data_" which SAS
+    reads as the last dataset in the session - give it a real unique name */
+  %let ds=%mf_getuniquename(prefix=mpzip);
+  %mp_dirlist(path=&in,outds=&ds)
   data _null_;
     set &ds;
     length __command $4000;
@@ -19806,7 +19803,7 @@ run;
 
 **/
 
-%macro mm_getDirectories(
+%macro mm_getdirectories(
     path=
     ,outds=work.mm_getDirectories
     ,mDebug=0
@@ -19841,7 +19838,7 @@ data &outds (keep=directoryuri name directoryname directorydesc );
   end;
 run;
 
-%mend mm_getDirectories;
+%mend mm_getdirectories;
 /**
   @file
   @brief Writes the TextStore of a Document Object to an external file
@@ -20281,7 +20278,7 @@ run;
 
 **/
 
-%macro mm_getGroups(
+%macro mm_getgroups(
     user=
     ,outds=work.mm_getGroups
     ,repo=foundation
@@ -20347,7 +20344,7 @@ run;
   options metarepository=&oldrepo;
 %end;
 
-%mend mm_getGroups;
+%mend mm_getgroups;
 /**
   @file
   @brief Compares the metadata of a library with the physical tables
@@ -21591,7 +21588,7 @@ run;
 
 **/
 
-%macro mm_getTree(
+%macro mm_gettree(
     tree=
     ,inds=
     ,outds=work.mm_getTree
@@ -21632,7 +21629,7 @@ data &outds;
   if treeuri ne "" and treepath ne "" then output;
   stop;
 run;
-%mend mm_getTree;
+%mend mm_gettree;
 /**
   @file
   @brief Creates a dataset with all metadata types
@@ -25642,10 +25639,14 @@ run;
   @file
   @brief Checks whether a file exists in SAS Drive
   @details Returns 1 if the file exists, and 0 if it doesn't.  Works by
-  attempting to assign a fileref with the filesrvc engine.  If not found, the
-  syscc is automatically set to a non zero value - so in this case it is reset.
-  To avoid hiding issues, there is therefore a test at the start to ensure the
-  syscc is zero.
+  attempting to assign a fileref with the filesrvc engine.  When the file is
+  not found the filename function sets syscc to a non zero value, so the macro
+  resets syscc to zero and returns 0.
+
+  A non zero syscc on entry means an earlier step has already failed.  The macro
+  logs a %str(ERR)OR: line and returns 0 without touching syscc, so a caller
+  comparing the result against 1 or 0 stays valid, and can tell this case from a
+  genuine miss by checking syscc, which a miss resets to zero.
 
   Usage:
 
@@ -25656,7 +25657,6 @@ run;
     (eg /Public/myfile.txt)
 
   <h4> SAS Macros </h4>
-  @li mf_abort.sas
   @li mf_getuniquefileref.sas
 
   <h4> Related Macros </h4>
@@ -25669,12 +25669,14 @@ run;
 %macro mfv_existfile(filepath
 )/*/STORE SOURCE*/;
 
-  %mf_abort(
-    iftrue=(&syscc ne 0),
-    msg=Cannot enter mfv_existfile.sas with syscc=&syscc
-  )
-
   %local fref rc path name;
+
+  %if &syscc ne 0 %then %do;
+    %put %str(ERR)OR: mfv_existfile.sas cannot execute with syscc=&syscc;
+    0
+    %return;
+  %end;
+
   %let fref=%mf_getuniquefileref();
   %let name=%scan(&filepath,-1,/);
   %let path=%substr(&filepath,1,%length(&filepath)-%length(&name)-1);
@@ -25694,10 +25696,14 @@ run;
   @file
   @brief Checks whether a folder exists in SAS Drive
   @details Returns 1 if the folder exists, and 0 if it doesn't.  Works by
-  attempting to assign a fileref with the filesrvc engine.  If not found, the
-  syscc is automatically set to a non zero value - so in this case it is reset.
-  To avoid hiding issues, there is therefore a test at the start to ensure the
-  syscc is zero.
+  attempting to assign a fileref with the filesrvc engine.  When the folder is
+  not found the filename function sets syscc to a non zero value, so the macro
+  resets syscc to zero and returns 0.
+
+  A non zero syscc on entry means an earlier step has already failed.  The macro
+  logs a %str(ERR)OR: line and returns 0 without touching syscc, so a caller
+  comparing the result against 1 or 0 stays valid, and can tell this case from a
+  genuine miss by checking syscc, which a miss resets to zero.
 
   Usage:
 
@@ -25707,7 +25713,6 @@ run;
   @param [in] path The path to the folder on SAS drive
 
   <h4> SAS Macros </h4>
-  @li mf_abort.sas
   @li mf_getuniquefileref.sas
 
   <h4> Related Macros </h4>
@@ -25720,12 +25725,14 @@ run;
 %macro mfv_existfolder(path
 )/*/STORE SOURCE*/;
 
-  %mf_abort(
-    iftrue=(&syscc ne 0),
-    msg=Cannot enter mfv_existfolder.sas with syscc=&syscc
-  )
-
   %local fref rc var;
+
+  %if &syscc ne 0 %then %do;
+    %put %str(ERR)OR: mfv_existfolder.sas cannot execute with syscc=&syscc;
+    0
+    %return;
+  %end;
+
   %let fref=%mf_getuniquefileref();
 
   %if %sysfunc(filename(fref,,filesrvc,folderPath="&path"))=0 %then %do;
@@ -25738,11 +25745,6 @@ run;
     0
     %let syscc=0;
   %end;
-
-  %mf_abort(
-    iftrue=(&syscc ne 0),
-    msg=Cannot leave mfv_existfolder.sas with syscc=&syscc
-  )
 
 %mend mfv_existfolder;
 /**
@@ -25898,7 +25900,13 @@ run;
   @file
   @brief Returns the uri of a file or folder
   @details The automatic variable `_FILESRVC_[fref]_URI` is used after assigning
-  a fileref using the filesrvc engine.
+  a fileref using the filesrvc engine.  If the path does not exist the macro
+  prints a note, returns nothing, and resets syscc to zero.
+
+  A non zero syscc on entry means an earlier step has already failed.  The macro
+  logs a %str(ERR)OR: line and returns an empty uri without touching syscc, so a
+  caller that tests the uri for blankness sees no path, and the failure stays
+  visible in syscc.
 
   Usage:
 
@@ -25909,7 +25917,6 @@ run;
     (eg /Public/myfile.txt)
 
   <h4> SAS Macros </h4>
-  @li mf_abort.sas
   @li mf_getuniquefileref.sas
 
   <h4> Related Macros </h4>
@@ -25923,12 +25930,13 @@ run;
 %macro mfv_getpathuri(filepath
 )/*/STORE SOURCE*/;
 
-  %mf_abort(
-    iftrue=(&syscc ne 0),
-    msg=Cannot enter &sysmacroname with syscc=&syscc
-  )
-
   %local fref rc path name var /* var is used to avoid delete timing issue */;
+
+  %if &syscc ne 0 %then %do;
+    %put %str(ERR)OR: mfv_getpathuri.sas cannot execute with syscc=&syscc;
+    %return;
+  %end;
+
   %let fref=%mf_getuniquefileref();
   %let name=%scan(&filepath,-1,/);
   %let path=%substr(&filepath,1,%length(&filepath)-%length(&name)-1);
@@ -25945,10 +25953,6 @@ run;
     %let syscc=0;
   %end;
 
-  %mf_abort(
-    iftrue=(&syscc ne 0),
-    msg=Cannot leave &sysmacroname with syscc=&syscc
-  )
 %mend mfv_getpathuri;
 /**
   @file mv_castabload.sas
@@ -28816,6 +28820,9 @@ libname &libref1 clear;
 
         %mv_getfoldermembers(root=/Public, outds=work.mymembers)
 
+  A root with nothing to list - an empty folder, or an answer that carries no
+  members link - still yields &outds, with the documented columns and zero rows.
+
 
   @param [in] root= (/) The path for which to return the list of folders
   @param [out] outds= (work.mv_getfolders) The output dataset to create. Format:
@@ -28893,9 +28900,41 @@ options noquotelenmax;
   %end;
   run;
   libname &libref1 JSON fileref=&fname1;
-  data &outds;
-    set &libref1..items;
-  run;
+  /* an empty collection produces no items dataset at all, so a straight SET
+    would fail with "File ...ITEMS.DATA does not exist" and leave syscc dirty */
+  %if %sysfunc(exist(&libref1..items))=1 %then %do;
+    data &outds;
+      /* the documented columns are declared on every path, so a caller reads
+        the same columns whether the collection is empty or full - an empty
+        collection's items dataset carries a narrower shape (no createdBy,
+        no timestamps) than a populated one.  The declared lengths are at
+        least the engine's own, which are sized to the payload */
+      length ordinal_root 8 ordinal_items 8
+        creationTimeStamp $32 modifiedTimeStamp $32
+        createdBy $64 modifiedBy $64
+        id $36 uri $512 added $32 type $32
+        name $256 description $256;
+      /* initialise the declared columns - an empty collection's items
+        dataset carries none of the member columns, and referencing one that
+        the input does not supply raises "Variable x is uninitialized" */
+      call missing(of _all_);
+      set &libref1..items;
+      /* the engine emits one all-missing row for an empty collection */
+      if missing(name) and missing(uri) then delete;
+    run;
+  %end;
+  %else %do;
+    %put NOTE: &sysmacroname - no root folders found;
+    data &outds;
+      length ordinal_root 8 ordinal_items 8
+        creationTimeStamp $32 modifiedTimeStamp $32
+        createdBy $64 modifiedBy $64
+        id $36 uri $512 added $32 type $32
+        name $256 description $256;
+      call missing(of _all_);
+      stop;
+    run;
+  %end;
 %end;
 %else %do;
   /* first get parent folder id */
@@ -28910,18 +28949,35 @@ options noquotelenmax;
   /* now get the followon link to list members */
   %local href cnt;
   %let cnt=0;
-  data _null_;
-    length rel href $512;
-    call missing(rel,href);
-    set &libref1..links;
-    if rel='members' then do;
-      url=cats("'","&base_uri",href,"?limit=10000'");
-      call symputx('href',url,'l');
-      call symputx('cnt',1,'l');
-    end;
-  run;
+  /* a root that is not a folder (a member path, for instance) answers
+    without a links dataset, so a straight SET would leave syscc dirty */
+  %if %sysfunc(exist(&libref1..links))=1 %then %do;
+    data _null_;
+      length rel href $512;
+      call missing(rel,href);
+      set &libref1..links;
+      if rel='members' then do;
+        url=cats("'","&base_uri",href,"?limit=10000'");
+        call symputx('href',url,'l');
+        call symputx('cnt',1,'l');
+      end;
+    run;
+  %end;
   %if &cnt=0 %then %do;
     %put NOTE:;%put NOTE-  No members found in &root!!;%put NOTE-;
+    /* the folder answered without a members link, so there is nothing to list -
+      the output dataset is still created, with the documented columns */
+    data &outds;
+      length ordinal_root 8 ordinal_items 8
+        creationTimeStamp $32 modifiedTimeStamp $32
+        createdBy $64 modifiedBy $64
+        id $36 uri $512 added $32 type $32
+        name $256 description $256;
+      call missing(of _all_);
+      stop;
+    run;
+    filename &fname1 clear;
+    libname &libref1 clear;
     %return;
   %end;
   %local fname2 libref2;
@@ -28934,11 +28990,36 @@ options noquotelenmax;
   %end;
   run;
   libname &libref2 JSON fileref=&fname2;
-  data &outds;
-    length id $36 name $128 uri $64 type $32 description $256;
-    if _n_=1 then call missing (of _all_);
-    set &libref2..items;
-  run;
+  /* an emptied folder produces no items dataset at all, so a straight SET would
+    fail with "File ...ITEMS.DATA does not exist" and leave syscc dirty */
+  %if %sysfunc(exist(&libref2..items))=1 %then %do;
+    data &outds;
+      length ordinal_root 8 ordinal_items 8
+        creationTimeStamp $32 modifiedTimeStamp $32
+        createdBy $64 modifiedBy $64
+        id $36 uri $512 added $32 type $32
+        name $256 description $256;
+      /* initialise the declared columns - an empty collection's items
+        dataset carries none of the member columns, and referencing one that
+        the input does not supply raises "Variable x is uninitialized" */
+      call missing(of _all_);
+      set &libref2..items;
+      /* the engine emits one all-missing row for an empty collection */
+      if missing(name) and missing(uri) then delete;
+    run;
+  %end;
+  %else %do;
+    %put NOTE: &sysmacroname - &root is empty;
+    data &outds;
+      length ordinal_root 8 ordinal_items 8
+        creationTimeStamp $32 modifiedTimeStamp $32
+        createdBy $64 modifiedBy $64
+        id $36 uri $512 added $32 type $32
+        name $256 description $256;
+      call missing(of _all_);
+      stop;
+    run;
+  %end;
   filename &fname2 clear;
   libname &libref2 clear;
 %end;
@@ -28971,8 +29052,15 @@ libname &libref1 clear;
       version num,
       id char(256),
       name char(256),
-      providerId char(5),
-      implicit num
+      providerId char(32),
+      implicit num,
+      type char(32)
+
+  `type` is the member type (user or group) and is declared on every path.
+  `implicit` is declared so a caller reading it does not fail with "Variable
+  implicit not found", but the identities API returns no such field, so the
+  column is present and always missing.  A group with no members, and a group
+  id the server does not know, both return the columns above with zero rows.
 
   @param [in] group Group id for which to return group members
   @param [in] access_token_var= (ACCESS_TOKEN)
@@ -28995,6 +29083,7 @@ libname &libref1 clear;
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
   @li mf_getuniquelibref.sas
+  @li mf_existvar.sas
 
 **/
 
@@ -29039,9 +29128,13 @@ run;
 /*data _null_;infile &fname1;input;putlog _infile_;run;*/
 %if &SYS_PROCHTTP_STATUS_CODE=404 %then %do;
   %put NOTE:  Group &group not found!!;
+  /* the same documented columns and zero rows as a group with no members -
+    call missing alone would output one all-missing observation */
   data &outds;
-    length id name $256;
+    length ordinal_root 8 ordinal_items 8 version 8
+      id $256 name $256 providerId $32 implicit 8 type $32;
     call missing(of _all_);
+    stop;
   run;
 %end;
 %else %do;
@@ -29051,15 +29144,33 @@ run;
   )
   %let libref1=%mf_getuniquelibref();
   libname &libref1 JSON fileref=&fname1;
-  /* id and name have to be declared, as a group with no members returns no
-    such columns to rename.  $256 is the longest active directory can hold for
-    a display name or a SAM account name: the JSON engine sizes the columns to
-    the longest value in the payload, so a shorter declaration truncates the
-    name and fails the step with "Multiple lengths were specified for the
-    variable ... by input data set(s)". */
+  /* a group with no members returns a collection whose items dataset carries no
+    member columns, so a straight SET would raise "Variable id is uninitialized"
+    and leave syscc dirty.  Only copy when there is something to copy.  The
+    documented columns are declared on both paths, so an empty group hands the
+    caller the same PDV as a populated one.  The lengths are declared because
+    the JSON engine sizes its columns to the longest value in the payload:
+    $256 is the longest an active directory display name or SAM account name
+    can hold, and a shorter declaration lets the engine report "Multiple
+    lengths were specified" on a later member. */
+  %local itemsds hasvars;
+  %let itemsds=&libref1..items;
+  %let hasvars=0;
+  %if %sysfunc(exist(&itemsds))=1 %then %do;
+    %if %mf_existvar(&itemsds,id)>0 %then %let hasvars=1;
+  %end;
   data &outds;
-    length id name $256;
-    set &libref1..items;
+    length ordinal_root 8 ordinal_items 8 version 8
+      id $256 name $256 providerId $32 implicit 8 type $32;
+    call missing(of _all_);
+    %if &hasvars=1 %then %do;
+      set &itemsds;
+      /* the engine emits one all-missing row for an empty collection */
+      if missing(id) then delete;
+    %end;
+    %else %do;
+      stop;
+    %end;
   run;
   libname &libref1 clear;
 %end;
@@ -30273,7 +30384,12 @@ filename &fname0 clear;
   @param [in] grant_type= (sas_services)
     Valid values are "password" or "authorization_code" (unquoted).
   @param [out] outds= (work.mv_getusergroups)
-    The library.dataset to be created that contains the list of groups
+    The library.dataset to be created that contains the list of groups. Format:
+  |ordinal_root|ordinal_items|version|id|implicit|name|providerId|
+  |---|---|---|---|---|---|---|
+  |1|1|1|viyagroup18|0|SAS Viyagroup18|ldap|
+
+  A user the server does not know returns the columns above with zero rows.
 
 
   @version VIYA V.03.04
@@ -30327,8 +30443,19 @@ proc http method='GET' out=&fname1 &oauth_bearer
           "Accept"="application/json";
 run;
 /*data _null_;infile &fname1;input;putlog _infile_;run;*/
+/* a 404 answers with a document that carries no items dataset, so the output
+  is written here instead, with the documented columns and zero rows, and the
+  JSON libref is never assigned */
 %if &SYS_PROCHTTP_STATUS_CODE=404 %then %do;
   %put NOTE:  User &user not found!!;
+  data &outds;
+    length ordinal_root 8 ordinal_items 8 version 8
+      id $256 implicit 8 name $256 providerId $32;
+    call missing(of _all_);
+    stop;
+  run;
+  filename &fname1 clear;
+  %return;
 %end;
 %else %do;
   %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200)
@@ -30338,7 +30465,12 @@ run;
 %end;
 libname &libref1 JSON fileref=&fname1;
 
+/* the documented columns are declared on both paths, so a caller reads the
+  same columns whether the user has memberships or is unknown.  The lengths
+  are at least the engine's own, which are sized to the payload */
 data &outds;
+  length ordinal_root 8 ordinal_items 8 version 8
+    id $256 implicit 8 name $256 providerId $32;
   set &libref1..items;
 run;
 
@@ -30499,7 +30631,7 @@ libname &libref1 clear;
 
 **/
 
-%macro mv_getViyaFileExtParms(
+%macro mv_getviyafileextparms(
   ext,
   typeDefNameVar=,
   propertiesVar=,
@@ -30717,7 +30849,7 @@ libname &libref1 clear;
 
   %end;
 
-%mend mv_getViyaFileExtParms;
+%mend mv_getviyafileextparms;
 /**
   @file
   @brief Executes a SAS Viya Job
@@ -32489,6 +32621,12 @@ filename &fref1 clear;
 **/
 
 %macro ml_gsubfile();
+/* a narrow LRECL truncates the wide lines of the library as they
+  are written, so widen it for the write as well as the include */
+%local optval;
+%let optval=%sysfunc(getoption(lrecl));
+options lrecl=1024;
+
 data _null_;
   file "%sysfunc(pathname(work))/ml_gsubfile.lua";
   put 'local fpath, outpath, file, fcontent ';
@@ -32518,11 +32656,6 @@ data _null_;
   put 'io.close(file) ';
 run;
 
-/* ensure big enough lrecl to avoid lua compilation issues */
-%local optval;
-%let optval=%sysfunc(getoption(lrecl));
-options lrecl=1024;
-
 /* execute the lua code by using a .lua extension */
 %inc "%sysfunc(pathname(work))/ml_gsubfile.lua" /source2;
 
@@ -32538,9 +32671,16 @@ options lrecl=&optval;
 
       %ml_json()
 
+  @sasjslint {"maxLineLength": 92}
 **/
 
 %macro ml_json();
+/* a narrow LRECL truncates the wide lines of the library as they
+  are written, so widen it for the write as well as the include */
+%local optval;
+%let optval=%sysfunc(getoption(lrecl));
+options lrecl=1024;
+
 data _null_;
   file "%sysfunc(pathname(work))/ml_json.lua";
   put '-- NOTE - THE COPYRIGHT BELOW IS IN RELATION TO THE JSON.LUA FILE ONLY ';
@@ -32919,11 +33059,6 @@ data _null_;
   put ' ';
   put '-- JSON.LUA ENDS HERE ';
 run;
-
-/* ensure big enough lrecl to avoid lua compilation issues */
-%local optval;
-%let optval=%sysfunc(getoption(lrecl));
-options lrecl=1024;
 
 /* execute the lua code by using a .lua extension */
 %inc "%sysfunc(pathname(work))/ml_json.lua" /source2;

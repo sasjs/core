@@ -27,7 +27,7 @@
 
 **/
 
-%macro mf_getVarLen(libds /* two level ds name */
+%macro mf_getvarlen(libds /* two level ds name */
       , var /* variable name from which to return the length */
 )/*/STORE SOURCE*/;
   %local dsid vnum vlen rc;
@@ -53,4 +53,4 @@
   %let rc = %sysfunc(close(&dsid));
   /* Return variable format */
   &vlen
-%mend mf_getVarLen;
+%mend mf_getvarlen;

@@ -4,13 +4,17 @@
 
   <h4> SAS Macros </h4>
   @li mf_getplatform.sas
+  @li mf_getuser.sas
   @li mf_uid.sas
   @li mp_init.sas
 
 **/
 
-/* location in metadata or SAS Drive for temporary files */
-%let mcTestAppLoc=/Users/&sysuserid/testresults/sasjs_core/%mf_uid();
+/* location in metadata or SAS Drive for temporary files
+  * mf_getuser returns the impersonated user in a Viya compute session, where
+  * &sysuserid resolves to the service account (eg sasbatch) and content
+  * written under that name is refused with 403 */
+%let mcTestAppLoc=/Users/%mf_getuser()/testresults/sasjs_core/%mf_uid();
 
 /**
   * Use the context the test session is actually running in (passed by the

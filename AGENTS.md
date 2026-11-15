@@ -6,8 +6,8 @@ Follow these rules when editing or generating code for the @sasjs/core SAS macro
 This repo is the SASjs Macro Core library — a collection of MIT-licensed, production-quality SAS macros for SAS application development.
 
 ## Versioning
-- NEVER bump or modify the version in `package.json`.
-- Versioning is handled entirely by the CI/CD pipeline using semantic-release.
+- NEVER bump or modify the version in `package.json`; it stays `0.0.0` in git and is stamped from the release tag when publishing.
+- The version is worked out by `@sasjs/release` from the conventional commits on `main`.
 
 ## SAS Style & Standards
 - Read and follow the standards documented in `README.md` (Sections: Components, Standards, File Properties, Header Properties, Coding Standards).

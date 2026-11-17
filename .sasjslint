@@ -1,4 +1,5 @@
 {
+  "$schema": "https://raw.githubusercontent.com/sasjs/lint/main/sasjslint-schema.json",
   "noTrailingSpaces": true,
   "noEncodedPasswords": true,
   "hasDoxygenHeader": true,

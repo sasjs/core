@@ -23,25 +23,20 @@
   @version 4
   @author [Allan Bowe](https://www.linkedin.com/in/allanbowe/)
 **/
-%macro mfv_getfolderpath(uri
-)/*/STORE SOURCE*/;
+%macro mfv_getfolderpath(uri )/*/STORE SOURCE*/;
 
   %local fref rc path msg var /* var used to avoid delete timing issue */;
   %let fref=%mf_getuniquefileref();
-  %if %quote(%substr(%str(&uri),1,17)) ne %quote(/folders/folders/)
-  %then %do;
+  %if %quote(%substr(%str(&uri),1,17)) ne %quote(/folders/folders/) %then %do;
     %put &sysmacroname: Invalid URI: &uri;
   %end;
-  %else %if %sysfunc(filename(fref,,filesrvc,folderuri="&uri" ))=0
-  %then %do;
+  %else %if %sysfunc(filename(fref,,filesrvc,folderuri="&uri" ))=0 %then %do;
     %let var=_FILESRVC_&fref._URI;
     %local fid ;
-    %let fid= %sysfunc(fopen(&fref,I));
+    %let fid=%sysfunc(fopen(&fref,I));
     %let msg=%quote(%sysfunc(sysmsg()));
 
-    %unquote(%scan(&msg,2,%str(,.)))
-
-    %let rc=%sysfunc(fclose(&fid));
+    %unquote(%scan(&msg,2,%str(,.))) %let rc=%sysfunc(fclose(&fid));
     %let rc=%sysfunc(filename(fref));
     %symdel &var;
   %end;

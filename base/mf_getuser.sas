@@ -21,8 +21,7 @@
   @author Allan Bowe
 **/
 
-%macro mf_getuser(
-)/*/STORE SOURCE*/;
+%macro mf_getuser( )/*/STORE SOURCE*/;
   %local user;
 
   %if %symexist(_sasjs_username) %then %let user=&_sasjs_username;
@@ -38,5 +37,4 @@
   %else %let user=&sysuserid;
 
   %quote(&user)
-
 %mend mf_getuser;

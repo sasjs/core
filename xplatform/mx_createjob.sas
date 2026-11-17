@@ -48,65 +48,50 @@ Usage:
 
 **/
 
-%macro mx_createjob(path=HOME
-    ,name=initJob
-    ,precode=
-    ,code=ft15f001
-    ,desc=This job was created by the mx_createjob macro
-    ,replace=YES
-    ,mdebug=0
-)/*/STORE SOURCE*/;
+%macro mx_createjob(path=HOME ,name=initJob ,precode=,code=ft15f001 ,desc=This
+  job was created by the mx_createjob macro ,replace=YES ,mdebug=0
+  )/*/STORE SOURCE*/;
 
-%if &syscc ge 4 %then %do;
-  %put syscc=&syscc - &sysmacroname will not execute in this state;
-  %return;
-%end;
+  %if &syscc ge 4 %then %do;
+    %put syscc=&syscc - &sysmacroname will not execute in this state;
+    %return;
+  %end;
 
-/* combine precode and code into a single file */
-%local tempref x fref freflist;
-%let tempref=%mf_getuniquefileref();
-%local work tmpfile;
-%let work=%sysfunc(pathname(work));
-%let tmpfile=&tempref..sas;
-filename &tempref "&work/&tmpfile";
-%let freflist=&precode &code ;
-%do x=1 %to %sysfunc(countw(&freflist));
-  %let fref=%scan(&freflist,&x);
-  %put &sysmacroname: adding &fref;
-  data _null_;
-    file &tempref lrecl=3000 termstr=crlf mod;
-    infile &fref lrecl=3000;
-    input;
-    put _infile_;
-  run;
-%end;
+  /* combine precode and code into a single file */
+  %local tempref x fref freflist;
+  %let tempref=%mf_getuniquefileref();
+  %local work tmpfile;
+  %let work=%sysfunc(pathname(work));
+  %let tmpfile=&tempref..sas;
+  filename &tempref "&work/&tmpfile";
+  %let freflist=&precode &code ;
+  %do x=1 %to %sysfunc(countw(&freflist));
+    %let fref=%scan(&freflist,&x);
+    %put &sysmacroname: adding &fref;
 
-%local platform; %let platform=%mf_getplatform();
-%if &platform=SASVIYA %then %do;
-  %if "&path"="HOME" %then %let path=/Users/&sysuserid/My Folder;
-  %mv_createjob(path=&path
-    ,name=&name
-    ,code=&tempref
-    ,desc=&desc
-    ,replace=&replace
-  )
-%end;
-%else %if &platform=SASJS %then %do;
-  %if "&path"="HOME" %then %let path=/Users/&_sasjs_username/My Folder;
-  %ms_createfile(&path/&name..sas
-    ,inref=&tempref
-    ,mdebug=&mdebug
-  )
-%end;
-%else %do;
-  %if "&path"="HOME" %then %let path=/User Folders/&_METAPERSON/My Folder;
-  %mm_createstp(stpname=&name
-    ,filename=&tmpfile
-    ,directory=&work
-    ,tree=&path
-    ,stpdesc=&desc
-    ,mDebug=&mdebug
-  )
-%end;
-filename &tempref clear;
+    data _null_;
+      file &tempref lrecl=3000 termstr=crlf mod;
+      infile &fref lrecl=3000;
+      input;
+      put _infile_;
+    run;
+  %end;
+
+  %local platform;
+  %let platform=%mf_getplatform();
+  %if &platform=SASVIYA %then %do;
+    %if "&path"="HOME" %then %let path=/Users/&sysuserid/My Folder;
+    %mv_createjob(path=&path ,name=&name ,code=&tempref ,desc=&desc
+      ,replace=&replace )
+  %end;
+  %else %if &platform=SASJS %then %do;
+    %if "&path"="HOME" %then %let path=/Users/&_sasjs_username/My Folder;
+    %ms_createfile(&path/&name..sas ,inref=&tempref ,mdebug=&mdebug )
+  %end;
+  %else %do;
+    %if "&path"="HOME" %then %let path=/User Folders/&_METAPERSON/My Folder;
+    %mm_createstp(stpname=&name ,filename=&tmpfile ,directory=&work ,tree=&path
+      ,stpdesc=&desc ,mDebug=&mdebug )
+  %end;
+  filename &tempref clear;
 %mend mx_createjob;

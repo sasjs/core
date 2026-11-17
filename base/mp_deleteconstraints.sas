@@ -29,26 +29,24 @@
 
 **/
 
-%macro mp_deleteconstraints(inds=mp_getconstraints
-  ,outds=mp_deleteconstraints
-  ,execute=NO
-)/*/STORE SOURCE*/;
+%macro mp_deleteconstraints(inds=mp_getconstraints ,outds=mp_deleteconstraints
+  ,execute=NO )/*/STORE SOURCE*/;
 
-proc sort data=&inds out=&outds;
-  by libref table_name constraint_name;
-run;
+  proc sort data=&inds out=&outds;
+    by libref table_name constraint_name;
+  run;
 
-data &outds;
-  set &outds;
-  by libref table_name constraint_name;
-  length drop_statement $500;
-  if _n_=1 and "&execute"="YES" then call execute('proc sql;');
-  if first.constraint_name then do;
-    drop_statement=catx(" ","alter table",libref,".",table_name
-      ,"drop constraint",constraint_name,";");
-    output;
-    if "&execute"="YES" then call execute(drop_statement);
-  end;
-run;
+  data &outds;
+    set &outds;
+    by libref table_name constraint_name;
+    length drop_statement $500;
+    if _n_=1 and "&execute"="YES" then call execute('proc sql;');
+    if first.constraint_name then do;
+      drop_statement=catx(" ","alter table",libref,".",table_name
+        ,"drop constraint",constraint_name,";");
+      output;
+      if "&execute"="YES" then call execute(drop_statement);
+    end;
+  run;
 
 %mend mp_deleteconstraints;

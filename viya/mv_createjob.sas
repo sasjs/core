@@ -66,291 +66,290 @@ https://go.documentation.sas.com/?docsetId=calcontexts&docsetTarget=n1hjn8eobk5p
   @sasjslint {"maxLineLength": 128}
 **/
 
-%macro mv_createjob(path=
-    ,name=
-    ,desc=Created by the mv_createjob.sas macro
-    ,precode=
-    ,code=ft15f001
-    ,access_token_var=ACCESS_TOKEN
-    ,grant_type=sas_services
-    ,replace=YES
-    ,debug=0
-    ,contextname=
-    ,addjesbeginendmacros=false
-  );
-%local oauth_bearer;
-%if &grant_type=detect %then %do;
-  %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
-  %else %let grant_type=sas_services;
-%end;
-%if &grant_type=sas_services %then %do;
+%macro mv_createjob(path=,name=,desc=Created by the mv_createjob.sas macro
+  ,precode=,code=ft15f001 ,access_token_var=ACCESS_TOKEN
+  ,grant_type=sas_services ,replace=YES ,debug=0 ,contextname=
+  ,addjesbeginendmacros=false );
+  %local oauth_bearer;
+  %if &grant_type=detect %then %do;
+    %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
+    %else %let grant_type=sas_services;
+  %end;
+  %if &grant_type=sas_services %then %do;
     %let oauth_bearer=oauth_bearer=sas_services;
     %let &access_token_var=;
-%end;
+  %end;
 
-/* initial validation checking */
-%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
-    and &grant_type ne sas_services
-  )
-  ,mac=&sysmacroname
-  ,msg=%str(Invalid value for grant_type: &grant_type)
-)
-%mp_abort(iftrue=(%mf_isblank(&path)=1)
-  ,mac=&sysmacroname
-  ,msg=%str(path value must be provided)
-)
-%mp_abort(iftrue=(%length(&path)=1)
-  ,mac=&sysmacroname
-  ,msg=%str(path value must be provided)
-)
-%mp_abort(iftrue=(%mf_isblank(&name)=1)
-  ,mac=&sysmacroname
-  ,msg=%str(name value must be provided)
-)
+  /* initial validation checking */
+  %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne
+    password and &grant_type ne sas_services ) ,mac=&sysmacroname
+    ,msg=%str(Invalid value for grant_type: &grant_type) )
+  %mp_abort(iftrue=(%mf_isblank(&path)=1) ,mac=&sysmacroname
+    ,msg=%str(path value must be provided) )
+  %mp_abort(iftrue=(%length(&path)=1) ,mac=&sysmacroname
+    ,msg=%str(path value must be provided) )
+  %mp_abort(iftrue=(%mf_isblank(&name)=1) ,mac=&sysmacroname
+    ,msg=%str(name value must be provided) )
 
-options noquotelenmax;
+  options noquotelenmax;
 
-/* remove any trailing slash */
-%if "%substr(&path,%length(&path),1)" = "/" %then
-  %let path=%substr(&path,1,%length(&path)-1);
+  /* remove any trailing slash */
+  %if "%substr(&path,%length(&path),1)"="/" %then %let
+    path=%substr(&path,1,%length(&path)-1);
 
-/* ensure folder exists */
-%put &sysmacroname: Path &path being checked / created;
-%mv_createfolder(path=&path)
+  /* ensure folder exists */
+  %put &sysmacroname: Path &path being checked / created;
+  %mv_createfolder(path=&path)
 
-%local base_uri; /* location of rest apis */
-%let base_uri=%mf_getplatform(VIYARESTAPI);
+  %local base_uri; /* location of rest apis */
+  %let base_uri=%mf_getplatform(VIYARESTAPI);
 
-/* fetching folder details for provided path */
-%local fname1;
-%let fname1=%mf_getuniquefileref();
-proc http method='GET' out=&fname1 &oauth_bearer
-  url="&base_uri/folders/folders/@item?path=&path";
-%if &grant_type=authorization_code %then %do;
-  headers "Authorization"="Bearer &&&access_token_var";
-%end;
-run;
-%if &debug %then %do;
-  data _null_;
-    infile &fname1;
-    input;
-    putlog _infile_;
+  /* fetching folder details for provided path */
+  %local fname1;
+  %let fname1=%mf_getuniquefileref();
+
+  proc http method='GET' out=&fname1 &oauth_bearer
+    url="&base_uri/folders/folders/@item?path=&path";
+    %if &grant_type=authorization_code %then %do;
+      headers "Authorization"="Bearer &&&access_token_var";
+    %end;
   run;
-%end;
-%mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200)
-  ,mac=&sysmacroname
-  ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
-)
+  %if &debug %then %do;
+    data _null_;
+      infile &fname1;
+      input;
+      putlog _infile_;
+    run;
+  %end;
+  %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200) ,mac=&sysmacroname
+    ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE) )
 
-/* path exists. Grab follow on link to check members */
-%local libref1;
-%let libref1=%mf_getuniquelibref();
-libname &libref1 JSON fileref=&fname1;
+  /* path exists. Grab follow on link to check members */
+  %local libref1;
+  %let libref1=%mf_getuniquelibref();
+  libname &libref1 JSON fileref=&fname1;
 
-data _null_;
-  set &libref1..links;
-  if rel='members' then call symputx('membercheck',quote("&base_uri"!!trim(href)),'l');
-  else if rel='self' then call symputx('parentFolderUri',href,'l');
-run;
-data _null_;
-  set &libref1..root;
-  call symputx('folderid',id,'l');
-run;
-%local fname2;
-%let fname2=%mf_getuniquefileref();
-proc http method='GET'
-    out=&fname2
-    &oauth_bearer
+  data _null_;
+    set &libref1..links;
+    if rel='members' then call
+      symputx('membercheck',quote("&base_uri"!!trim(href)),'l');
+    else if rel='self' then call symputx('parentFolderUri',href,'l');
+  run;
+
+  data _null_;
+    set &libref1..root;
+    call symputx('folderid',id,'l');
+  run;
+  %local fname2;
+  %let fname2=%mf_getuniquefileref();
+
+  proc http method='GET' out=&fname2 &oauth_bearer
     url=%unquote(%superq(membercheck));
-    headers
-  %if &grant_type=authorization_code %then %do;
-            "Authorization"="Bearer &&&access_token_var"
-  %end;
-            'Accept'='application/vnd.sas.collection+json'
-            'Accept-Language'='string';
-%if &debug=1 %then %do;
-    debug level = 3;
-%end;
-run;
-/*data _null_;infile &fname2;input;putlog _infile_;run;*/
-%mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200)
-  ,mac=&sysmacroname
-  ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
-)
-
-%if %upcase(&replace)=YES %then %do;
-  %mv_deletejes(path=&path, name=&name)
-%end;
-%else %do;
-  /* check that job does not already exist in that folder */
-  %local libref2;
-  %let libref2=%mf_getuniquelibref();
-  libname &libref2 JSON fileref=&fname2;
-  %local exists; %let exists=0;
-  data _null_;
-    set &libref2..items;
-    if contenttype='jobDefinition' and upcase(name)="%upcase(&name)" then
-      call symputx('exists',1,'l');
+    headers %if &grant_type=authorization_code %then %do;
+    "Authorization"="Bearer &&&access_token_var" %end;
+    'Accept'='application/vnd.sas.collection+json' 'Accept-Language'='string';
+    %if &debug=1 %then %do;
+      debug level=3;
+    %end;
   run;
-  %mp_abort(iftrue=(&exists=1)
-    ,mac=&sysmacroname
-    ,msg=%str(Job &name already exists in &path)
-  )
-  libname &libref2 clear;
-%end;
+  /*data _null_;infile &fname2;input;putlog _infile_;run;*/
+  %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200) ,mac=&sysmacroname
+    ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE) )
 
-/* set up the body of the request to create the service */
-%local fname3 comma;
-%let fname3=%mf_getuniquefileref();
-data _null_;
-  file &fname3 TERMSTR=' ';
-  length string $32767;
-  string=cats('{"version": 0,"name":"'
-    ,"&name"
-    ,'","type":"Compute","parameters":['
-%if &addjesbeginendmacros ne 0 %then %do;
-    ,'{"name":"_addjesbeginendmacros"'
-    ,',"type":"CHARACTER","defaultValue":"'
-    ,"&addjesbeginendmacros"
-    ,'"}'
-  %let comma=%str(,);
-%end;
-  );
-  context=quote(cats(symget('contextname')));
-  if context ne '""' then do;
-    string=cats(string
-      ,"&comma"
-      ,'{"version": 1,"name": "_contextName","defaultValue":'
-      ,context,',"type":"CHARACTER","label":"Context Name","required": false}'
+  %if %upcase(&replace)=YES %then %do;
+    %mv_deletejes(path=&path, name=&name)
+  %end;
+  %else %do;
+    /* check that job does not already exist in that folder */
+    %local libref2;
+    %let libref2=%mf_getuniquelibref();
+    libname &libref2 JSON fileref=&fname2;
+    %local exists;
+    %let exists=0;
+
+    data _null_;
+      set &libref2..items;
+      if contenttype='jobDefinition' and upcase(name)="%upcase(&name)" then call
+        symputx('exists',1,'l');
+    run;
+    %mp_abort(iftrue=(&exists=1) ,mac=&sysmacroname
+      ,msg=%str(Job &name already exists in &path) )
+    libname &libref2 clear;
+  %end;
+
+  /* set up the body of the request to create the service */
+  %local fname3 comma;
+  %let fname3=%mf_getuniquefileref();
+
+  data _null_;
+    file &fname3 TERMSTR=' ';
+    length string $32767;
+    string=cats('{"version": 0,"name":"' ,"&name"
+      ,'","type":"Compute","parameters":[' %if &addjesbeginendmacros ne 0 %then
+      %do;
+    ,'{"name":"_addjesbeginendmacros"' ,',"type":"CHARACTER","defaultValue":"'
+      ,"&addjesbeginendmacros" ,'"}' %let comma=%str(,);
+    %end;
     );
-  end;
-  string=cats(string,'],"code":"');
-  put string;
-run;
-
-
-/* insert the code, escaping double quotes and carriage returns */
-%local x fref freflist;
-%let freflist= &precode &code ;
-%do x=1 %to %sysfunc(countw(&freflist));
-  %let fref=%scan(&freflist,&x);
-  %put &sysmacroname: adding &fref;
-  data _null_;
-    length filein 8 fileid 8;
-    filein = fopen("&fref","I",1,"B");
-    fileid = fopen("&fname3","A",1,"B");
-    rec = "20"x;
-    do while(fread(filein)=0);
-      rc = fget(filein,rec,1);
-      if rec='"' then do;  /* DOUBLE QUOTE */
-        rc =fput(fileid,'\');rc =fwrite(fileid);
-        rc =fput(fileid,'"');rc =fwrite(fileid);
-      end;
-      else if rec='0A'x then do; /* LF */
-        rc =fput(fileid,'\');rc =fwrite(fileid);
-        rc =fput(fileid,'n');rc =fwrite(fileid);
-      end;
-      else if rec='0D'x then do; /* CR */
-        rc =fput(fileid,'\');rc =fwrite(fileid);
-        rc =fput(fileid,'r');rc =fwrite(fileid);
-      end;
-      else if rec='09'x then do; /* TAB */
-        rc =fput(fileid,'\');rc =fwrite(fileid);
-        rc =fput(fileid,'t');rc =fwrite(fileid);
-      end;
-      else if rec='5C'x then do; /* BACKSLASH */
-        rc =fput(fileid,'\');rc =fwrite(fileid);
-        rc =fput(fileid,'\');rc =fwrite(fileid);
-      end;
-      else if rec='01'x then do; /* Unprintable */
-        rc =fput(fileid,'\');rc =fwrite(fileid);
-        rc =fput(fileid,'u');rc =fwrite(fileid);
-        rc =fput(fileid,'0');rc =fwrite(fileid);
-        rc =fput(fileid,'0');rc =fwrite(fileid);
-        rc =fput(fileid,'0');rc =fwrite(fileid);
-        rc =fput(fileid,'1');rc =fwrite(fileid);
-      end;
-      else if rec='07'x then do; /* Bell Char */
-        rc =fput(fileid,'\');rc =fwrite(fileid);
-        rc =fput(fileid,'u');rc =fwrite(fileid);
-        rc =fput(fileid,'0');rc =fwrite(fileid);
-        rc =fput(fileid,'0');rc =fwrite(fileid);
-        rc =fput(fileid,'0');rc =fwrite(fileid);
-        rc =fput(fileid,'7');rc =fwrite(fileid);
-      end;
-      else if rec='1B'x then do; /* escape char */
-        rc =fput(fileid,'\');rc =fwrite(fileid);
-        rc =fput(fileid,'u');rc =fwrite(fileid);
-        rc =fput(fileid,'0');rc =fwrite(fileid);
-        rc =fput(fileid,'0');rc =fwrite(fileid);
-        rc =fput(fileid,'1');rc =fwrite(fileid);
-        rc =fput(fileid,'B');rc =fwrite(fileid);
-      end;
-      else do;
-        rc =fput(fileid,rec);
-        rc =fwrite(fileid);
-      end;
+    context=quote(cats(symget('contextname')));
+    if context ne '""' then do;
+      string=cats(string ,"&comma"
+        ,'{"version": 1,"name": "_contextName","defaultValue":'
+        ,context,',"type":"CHARACTER","label":"Context Name","required": false}'
+        );
     end;
-    rc=fclose(filein);
-    rc=fclose(fileid);
+    string=cats(string,'],"code":"');
+    put string;
   run;
-%end;
 
-/* finish off the body of the code file loaded to JES */
-data _null_;
-  file &fname3 mod TERMSTR=' ';
-  put '"}';
-run;
+  /* insert the code, escaping double quotes and carriage returns */
+  %local x fref freflist;
+  %let freflist=&precode &code ;
+  %do x=1 %to %sysfunc(countw(&freflist));
+    %let fref=%scan(&freflist,&x);
+    %put &sysmacroname: adding &fref;
 
-/* now we can create the job!! */
-%local fname4;
-%let fname4=%mf_getuniquefileref();
-proc http method='POST'
-    in=&fname3
-    out=&fname4
-    &oauth_bearer
-    url="&base_uri/jobDefinitions/definitions?parentFolderUri=&parentFolderUri";
-    headers 'Content-Type'='application/vnd.sas.job.definition+json'
-  %if &grant_type=authorization_code %then %do;
-            "Authorization"="Bearer &&&access_token_var"
+    data _null_;
+      length filein 8 fileid 8;
+      filein=fopen("&fref","I",1,"B");
+      fileid=fopen("&fname3","A",1,"B");
+      rec="20"x;
+      do while(fread(filein)=0);
+        rc=fget(filein,rec,1);
+        if rec='"' then do; /* DOUBLE QUOTE */
+          rc=fput(fileid,'\');
+          rc=fwrite(fileid);
+          rc=fput(fileid,'"');
+          rc=fwrite(fileid);
+        end;
+        else if rec='0A'x then do; /* LF */
+          rc=fput(fileid,'\');
+          rc=fwrite(fileid);
+          rc=fput(fileid,'n');
+          rc=fwrite(fileid);
+        end;
+        else if rec='0D'x then do; /* CR */
+          rc=fput(fileid,'\');
+          rc=fwrite(fileid);
+          rc=fput(fileid,'r');
+          rc=fwrite(fileid);
+        end;
+        else if rec='09'x then do; /* TAB */
+          rc=fput(fileid,'\');
+          rc=fwrite(fileid);
+          rc=fput(fileid,'t');
+          rc=fwrite(fileid);
+        end;
+        else if rec='5C'x then do; /* BACKSLASH */
+          rc=fput(fileid,'\');
+          rc=fwrite(fileid);
+          rc=fput(fileid,'\');
+          rc=fwrite(fileid);
+        end;
+        else if rec='01'x then do; /* Unprintable */
+          rc=fput(fileid,'\');
+          rc=fwrite(fileid);
+          rc=fput(fileid,'u');
+          rc=fwrite(fileid);
+          rc=fput(fileid,'0');
+          rc=fwrite(fileid);
+          rc=fput(fileid,'0');
+          rc=fwrite(fileid);
+          rc=fput(fileid,'0');
+          rc=fwrite(fileid);
+          rc=fput(fileid,'1');
+          rc=fwrite(fileid);
+        end;
+        else if rec='07'x then do; /* Bell Char */
+          rc=fput(fileid,'\');
+          rc=fwrite(fileid);
+          rc=fput(fileid,'u');
+          rc=fwrite(fileid);
+          rc=fput(fileid,'0');
+          rc=fwrite(fileid);
+          rc=fput(fileid,'0');
+          rc=fwrite(fileid);
+          rc=fput(fileid,'0');
+          rc=fwrite(fileid);
+          rc=fput(fileid,'7');
+          rc=fwrite(fileid);
+        end;
+        else if rec='1B'x then do; /* escape char */
+          rc=fput(fileid,'\');
+          rc=fwrite(fileid);
+          rc=fput(fileid,'u');
+          rc=fwrite(fileid);
+          rc=fput(fileid,'0');
+          rc=fwrite(fileid);
+          rc=fput(fileid,'0');
+          rc=fwrite(fileid);
+          rc=fput(fileid,'1');
+          rc=fwrite(fileid);
+          rc=fput(fileid,'B');
+          rc=fwrite(fileid);
+        end;
+        else do;
+          rc=fput(fileid,rec);
+          rc=fwrite(fileid);
+        end;
+      end;
+      rc=fclose(filein);
+      rc=fclose(fileid);
+    run;
   %end;
-            "Accept"="application/vnd.sas.job.definition+json";
-%if &debug=1 %then %do;
-    debug level = 3;
-%end;
-run;
-/*data _null_;infile &fname4;input;putlog _infile_;run;*/
-%mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 201)
-  ,mac=&sysmacroname
-  ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
-)
-/* clear refs */
-filename &fname1 clear;
-filename &fname2 clear;
-filename &fname3 clear;
-filename &fname4 clear;
-libname &libref1 clear;
 
-/* get the url so we can give a helpful log message */
-%local url;
-data _null_;
-  if symexist('_baseurl') then do;
-    url=symget('_baseurl');
-    if subpad(url,length(url)-9,9)='SASStudio'
-      then url=substr(url,1,length(url)-11);
+  /* finish off the body of the code file loaded to JES */
+  data _null_;
+    file &fname3 mod TERMSTR=' ';
+    put '"}';
+  run;
+
+  /* now we can create the job!! */
+  %local fname4;
+  %let fname4=%mf_getuniquefileref();
+
+  proc http method='POST' in=&fname3 out=&fname4 &oauth_bearer
+    url="&base_uri/jobDefinitions/definitions?parentFolderUri=&parentFolderUri";
+    headers 'Content-Type'='application/vnd.sas.job.definition+json' %if
+      &grant_type=authorization_code %then %do;
+    "Authorization"="Bearer &&&access_token_var" %end;
+    "Accept"="application/vnd.sas.job.definition+json";
+    %if &debug=1 %then %do;
+      debug level=3;
+    %end;
+  run;
+  /*data _null_;infile &fname4;input;putlog _infile_;run;*/
+  %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 201) ,mac=&sysmacroname
+    ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE) )
+  /* clear refs */
+  filename &fname1 clear;
+  filename &fname2 clear;
+  filename &fname3 clear;
+  filename &fname4 clear;
+  libname &libref1 clear;
+
+  /* get the url so we can give a helpful log message */
+  %local url;
+
+  data _null_;
+    if symexist('_baseurl') then do;
+      url=symget('_baseurl');
+      if subpad(url,length(url)-9,9)='SASStudio' then
+        url=substr(url,1,length(url)-11);
+      else url="&systcpiphostname";
+    end;
     else url="&systcpiphostname";
-  end;
-  else url="&systcpiphostname";
-  call symputx('url',url);
-run;
+    call symputx('url',url);
+  run;
 
-
-%put &sysmacroname: Job &name successfully created in &path;
-%put &sysmacroname:;
-%put &sysmacroname: Check it out here:;
-%put &sysmacroname:;%put;
-%put    &url/SASJobExecution?_PROGRAM=&path/&name;%put;
-%put &sysmacroname:;
-%put &sysmacroname:;
+  %put &sysmacroname: Job &name successfully created in &path;
+  %put &sysmacroname:;
+  %put &sysmacroname: Check it out here:;
+  %put &sysmacroname:;
+  %put;
+  %put &url/SASJobExecution?_PROGRAM=&path/&name;
+  %put;
+  %put &sysmacroname:;
+  %put &sysmacroname:;
 
 %mend mv_createjob;

@@ -35,88 +35,75 @@
 
 **/
 
-%macro ms_adduser2group(uid=0
-    ,gid=0
-    ,outds=work.ms_adduser2group
-    ,mdebug=0
-  );
+%macro ms_adduser2group(uid=0 ,gid=0 ,outds=work.ms_adduser2group ,mdebug=0 );
 
-%mp_abort(
-  iftrue=(&syscc ne 0)
-  ,mac=ms_adduser2group.sas
-  ,msg=%str(syscc=&syscc on macro entry)
-)
+  %mp_abort( iftrue=(&syscc ne 0) ,mac=ms_adduser2group.sas
+    ,msg=%str(syscc=&syscc on macro entry) )
 
-%local fref0 fref1 fref2 libref optval rc msg;
-%let fref0=%mf_getuniquefileref();
-%let fref1=%mf_getuniquefileref();
-%let libref=%mf_getuniquelibref();
+  %local fref0 fref1 fref2 libref optval rc msg;
+  %let fref0=%mf_getuniquefileref();
+  %let fref1=%mf_getuniquefileref();
+  %let libref=%mf_getuniquelibref();
 
-/* avoid sending bom marker to API */
-%let optval=%sysfunc(getoption(bomfile));
-options nobomfile;
+  /* avoid sending bom marker to API */
+  %let optval=%sysfunc(getoption(bomfile));
+  options nobomfile;
 
-data _null_;
-  file &fref0 lrecl=1000;
-  infile "&_sasjs_tokenfile" lrecl=1000;
-  input;
-  if _n_=1 then put "accept: application/json";
-  put _infile_;
-run;
-
-%if &mdebug=1 %then %do;
-  %put _local_;
   data _null_;
-    infile &fref0;
+    file &fref0 lrecl=1000;
+    infile "&_sasjs_tokenfile" lrecl=1000;
     input;
+    if _n_=1 then put "accept: application/json";
     put _infile_;
   run;
-%end;
 
-proc http method='POST' headerin=&fref0 out=&fref1
-  url="&_sasjs_apiserverurl/SASjsApi/group/&gid/&uid";
-%if &mdebug=1 %then %do;
-  debug level=1;
-%end;
-run;
+  %if &mdebug=1 %then %do;
+    %put _local_;
 
-%mp_abort(
-  iftrue=(&syscc ne 0)
-  ,mac=ms_adduser2group.sas
-  ,msg=%str(Issue submitting query to SASjsApi/group)
-)
+    data _null_;
+      infile &fref0;
+      input;
+      put _infile_;
+    run;
+  %end;
 
-libname &libref JSON fileref=&fref1;
-
-data &outds;
-  set &libref..users;
-  drop ordinal_root ordinal_users;
-%if &mdebug=1 %then %do;
-  putlog _all_;
-%end;
-run;
-
-
-%mp_abort(
-  iftrue=(&syscc ne 0)
-  ,mac=ms_creategroup.sas
-  ,msg=%str(Issue reading response JSON)
-)
-
-/* reset options */
-options &optval;
-
-%if &mdebug=0 %then %do;
-  filename &fref0 clear;
-  filename &fref1 clear;
-  libname &libref clear;
-%end;
-%else %do;
-  data _null_;
-    infile &fref1;
-    input;
-    putlog _infile_;
+  proc http method='POST' headerin=&fref0 out=&fref1
+    url="&_sasjs_apiserverurl/SASjsApi/group/&gid/&uid";
+    %if &mdebug=1 %then %do;
+      debug level=1;
+    %end;
   run;
-%end;
+
+  %mp_abort( iftrue=(&syscc ne 0) ,mac=ms_adduser2group.sas
+    ,msg=%str(Issue submitting query to SASjsApi/group) )
+
+  libname &libref JSON fileref=&fref1;
+
+  data &outds;
+    set &libref..users;
+    drop ordinal_root ordinal_users;
+    %if &mdebug=1 %then %do;
+      putlog _all_;
+    %end;
+  run;
+
+  %mp_abort( iftrue=(&syscc ne 0) ,mac=ms_creategroup.sas
+    ,msg=%str(Issue reading response JSON) )
+
+  /* reset options */
+  options &optval;
+
+  %if &mdebug=0 %then %do;
+    filename &fref0 clear;
+    filename &fref1 clear;
+    libname &libref clear;
+  %end;
+  %else %do;
+    data _null_;
+      infile &fref1;
+      input;
+      putlog _infile_;
+    run;
+  %end;
 
 %mend ms_adduser2group;

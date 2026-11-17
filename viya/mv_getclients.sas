@@ -39,62 +39,59 @@
   @sasjslint {"maxLineLength": 102}
 **/
 
-%macro mv_getclients(outds=work.mv_getclients
-)/*/STORE SOURCE*/;
+%macro mv_getclients(outds=work.mv_getclients )/*/STORE SOURCE*/;
 
-options noquotelenmax;
-%local base_uri; /* location of rest apis */
-%let base_uri=%mf_getplatform(VIYARESTAPI);
+  options noquotelenmax;
+  %local base_uri; /* location of rest apis */
+  %let base_uri=%mf_getplatform(VIYARESTAPI);
 
-/* first, get consul token needed to get client id / secret */
-data _null_;
-  infile "%mf_loc(VIYACONFIG)/etc/SASSecurityCertificateFramework/tokens/consul/default/client.token";
-  input token:$64.;
-  call symputx('consul_token',token);
-run;
+  /* first, get consul token needed to get client id / secret */
+  data _null_;
+    infile
+      "%mf_loc(VIYACONFIG)/etc/SASSecurityCertificateFramework/tokens/consul/default/client.token";
+    input token:$64.;
+    call symputx('consul_token',token);
+  run;
 
-/* request the client details */
-%local fname1;
-%let fname1=%mf_getuniquefileref();
-proc http method='POST' out=&fname1
+  /* request the client details */
+  %local fname1;
+  %let fname1=%mf_getuniquefileref();
+
+  proc http method='POST' out=&fname1
     url="&base_uri/SASLogon/oauth/clients/consul?callback=false%str(&)serviceId=app";
     headers "X-Consul-Token"="&consul_token";
-run;
+  run;
 
-%local libref1;
-%let libref1=%mf_getuniquelibref();
-libname &libref1 JSON fileref=&fname1;
+  %local libref1;
+  %let libref1=%mf_getuniquelibref();
+  libname &libref1 JSON fileref=&fname1;
 
-/* extract the token */
-data _null_;
-  set &libref1..root;
-  call symputx('access_token',access_token,'l');
-run;
+  /* extract the token */
+  data _null_;
+    set &libref1..root;
+    call symputx('access_token',access_token,'l');
+  run;
 
-/* fetching folder details for provided path */
-%local fname2;
-%let fname2=%mf_getuniquefileref();
-%let libref2=%mf_getuniquelibref();
+  /* fetching folder details for provided path */
+  %local fname2;
+  %let fname2=%mf_getuniquefileref();
+  %let libref2=%mf_getuniquelibref();
 
-proc http method='GET' out=&fname2 oauth_bearer=sas_services
-  url="&base_uri/SASLogon/oauth/clients";
-  headers "Accept"="application/json";
-run;
-/*data _null_;infile &fname1;input;putlog _infile_;run;*/
-%mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200)
-  ,mac=&sysmacroname
-  ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
-)
-libname &libref2 JSON fileref=&fname1;
+  proc http method='GET' out=&fname2 oauth_bearer=sas_services
+    url="&base_uri/SASLogon/oauth/clients";
+    headers "Accept"="application/json";
+  run;
+  /*data _null_;infile &fname1;input;putlog _infile_;run;*/
+  %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200) ,mac=&sysmacroname
+    ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE) )
+  libname &libref2 JSON fileref=&fname1;
 
-data &outds;
-  set &libref2..items;
-run;
+  data &outds;
+    set &libref2..items;
+  run;
 
-
-
-/* clear refs
-filename &fname1 clear;
-libname &libref1 clear;
-*/
+  /* clear refs
+  filename &fname1 clear;
+  libname &libref1 clear;
+  */
 %mend mv_getclients;

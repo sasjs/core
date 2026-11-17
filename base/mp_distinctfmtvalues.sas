@@ -22,33 +22,22 @@
 
 **/
 
-%macro mp_distinctfmtvalues(
-    libds=
-    ,var=
-    ,outvar=formatted_value
-    ,outds=work.mp_distinctfmtvalues
-    ,varlen=2000
-)/*/STORE SOURCE*/;
+%macro mp_distinctfmtvalues( libds=,var=,outvar=formatted_value
+  ,outds=work.mp_distinctfmtvalues ,varlen=2000 )/*/STORE SOURCE*/;
 
   %local fmt vtype;
   %let fmt=%mf_getvarformat(&libds,&var);
   %let vtype=%mf_getvartype(&libds,&var);
 
   proc sql;
-  create table &outds as
-    select distinct
-    %if &vtype=C & %trim(&fmt)=%str() %then %do;
-      &var
-    %end;
+    create table &outds as select distinct %if &vtype=C & %trim(&fmt)=%str()
+      %then %do;
+    &var %end;
     %else %if &vtype=C %then %do;
-      put(&var,&fmt)
-    %end;
+    put(&var,&fmt) %end;
     %else %if %trim(&fmt)=%str() %then %do;
-        put(&var,32.)
-    %end;
+    put(&var,32.) %end;
     %else %do;
-      put(&var,&fmt)
-    %end;
-        as &outvar length=&varlen
-    from &libds;
+    put(&var,&fmt) %end;
+    as &outvar length=&varlen from &libds;
 %mend mp_distinctfmtvalues;

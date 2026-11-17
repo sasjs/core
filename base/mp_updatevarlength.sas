@@ -34,60 +34,51 @@
 
 **/
 
-%macro mp_updatevarlength(libds,var,len
-)/*/STORE SOURCE*/;
+%macro mp_updatevarlength(libds,var,len )/*/STORE SOURCE*/;
 
-%if %index(&libds,.)=0 %then %let libds=WORK.&libds;
+  %if %index(&libds,.)=0 %then %let libds=WORK.&libds;
 
-%mp_abort(iftrue=(%mf_existds(&libds)=0)
-  ,mac=&sysmacroname
-  ,msg=%str(Table &libds not found!)
-)
+  %mp_abort(iftrue=(%mf_existds(&libds)=0) ,mac=&sysmacroname
+    ,msg=%str(Table &libds not found!) )
 
-%mp_abort(iftrue=(%mf_existvar(&libds,&var)=0)
-  ,mac=&sysmacroname
-  ,msg=%str(Variable &var not found on &libds!)
-)
+  %mp_abort(iftrue=(%mf_existvar(&libds,&var)=0) ,mac=&sysmacroname
+    ,msg=%str(Variable &var not found on &libds!) )
 
-/* not possible to in-place modify a numeric length, to add later */
-%mp_abort(iftrue=(%mf_getvartype(&libds,&var)=0)
-  ,mac=&sysmacroname
-  ,msg=%str(Only character resizings are currently supported)
-)
+  /* not possible to in-place modify a numeric length, to add later */
+  %mp_abort(iftrue=(%mf_getvartype(&libds,&var)=0) ,mac=&sysmacroname
+    ,msg=%str(Only character resizings are currently supported) )
 
-%local oldlen;
-%let oldlen=%mf_getvarlen(&libds,&var);
-%if  &oldlen=&len %then %do;
-  %put &sysmacroname: Old and new lengths (&len) match!;
-  %return;
-%end;
+  %local oldlen;
+  %let oldlen=%mf_getvarlen(&libds,&var);
+  %if &oldlen=&len %then %do;
+    %put &sysmacroname: Old and new lengths (&len) match!;
+    %return;
+  %end;
 
-%let libds=%upcase(&libds);
+  %let libds=%upcase(&libds);
 
+  data;
+  run;
+  %local dsconst;
+  %let dsconst=&syslast;
+  %mp_getconstraints(lib=%scan(&libds,1,.),ds=%scan(&libds,2,.),outds=&dsconst)
 
-data;run;
-%local dsconst; %let dsconst=&syslast;
-%mp_getconstraints(lib=%scan(&libds,1,.),ds=%scan(&libds,2,.),outds=&dsconst)
+  %mp_abort(iftrue=(&syscc ne 0) ,mac=&sysmacroname ,msg=%str(syscc=&syscc) )
 
-%mp_abort(iftrue=(&syscc ne 0)
-  ,mac=&sysmacroname
-  ,msg=%str(syscc=&syscc)
-)
+  %if %mf_nobs(&dsconst)=0 %then %do;
+    /* must use SQL as proc datasets does not support length changes */
+    proc sql;
+      alter table &libds modify &var char(&len);
+      %return;
+      %end;
 
-%if %mf_nobs(&dsconst)=0 %then %do;
-  /* must use SQL as proc datasets does not support length changes */
-  proc sql;
-  alter table &libds modify &var char(&len);
-  %return;
-%end;
+      /* we have constraints! */
 
-/* we have constraints! */
+      %mp_deleteconstraints(inds=&dsconst,outds=&dsconst._dropd,execute=YES)
 
-%mp_deleteconstraints(inds=&dsconst,outds=&dsconst._dropd,execute=YES)
+    proc sql;
+      alter table &libds modify &var char(&len);
 
-proc sql;
-alter table &libds modify &var char(&len);
+      %mp_createconstraints(inds=&dsconst,outds=&dsconst._addd,execute=YES)
 
-%mp_createconstraints(inds=&dsconst,outds=&dsconst._addd,execute=YES)
-
-%mend mp_updatevarlength;
+    %mend mp_updatevarlength;

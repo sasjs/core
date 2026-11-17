@@ -24,8 +24,7 @@
 
 **/
 
-%macro mp_perflog(label,libds=work.mp_perflog
-)/*/STORE SOURCE*/;
+%macro mp_perflog(label,libds=work.mp_perflog )/*/STORE SOURCE*/;
 
   %if not (%mf_existds(&libds)) %then %do;
     data &libds;
@@ -37,10 +36,8 @@
   %end;
 
   proc sql;
-    insert into &libds
-      set sysjobid="&sysjobid"
-        ,label=symget('label')
-        ,dttm=%sysfunc(datetime());
+    insert into &libds set sysjobid="&sysjobid" ,label=symget('label')
+      ,dttm=%sysfunc(datetime());
   quit;
 
 %mend mp_perflog;

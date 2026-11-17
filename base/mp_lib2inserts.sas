@@ -35,43 +35,27 @@
   @author Allan Bowe
 **/
 
-%macro mp_lib2inserts(lib
-    ,flavour=SAS
-    ,outref=0
-    ,schema=0
-    ,maxobs=max
-    ,applydttm=YES
-)/*/STORE SOURCE*/;
+%macro mp_lib2inserts(lib ,flavour=SAS ,outref=0 ,schema=0 ,maxobs=max
+  ,applydttm=YES )/*/STORE SOURCE*/;
 
-/* Find the tables */
-%local x ds memlist;
-proc sql noprint;
-select distinct lowcase(memname)
-  into: memlist
-  separated by ' '
-  from dictionary.tables
-  where upcase(libname)="%upcase(&lib)"
-    and memtype='DATA'; /* exclude views */
+  /* Find the tables */
+  %local x ds memlist;
 
+  proc sql noprint;
+    select distinct lowcase(memname) into: memlist separated by ' ' from
+      dictionary.tables where upcase(libname)="%upcase(&lib)" and
+      memtype='DATA'; /* exclude views */
+    %let flavour=%upcase(&flavour);
+    %if &flavour ne SAS and &flavour ne PGSQL %then %do;
+      %put %str(WAR)NING: &flavour is not supported;
+      %return;
+    %end;
 
-%let flavour=%upcase(&flavour);
-%if &flavour ne SAS and &flavour ne PGSQL %then %do;
-  %put %str(WAR)NING:  &flavour is not supported;
-  %return;
-%end;
+    /* create the inserts */
+    %do x=1 %to %sysfunc(countw(&memlist));
+      %let ds=%scan(&memlist,&x);
+      %mp_ds2inserts(&lib..&ds ,outref=&outref ,schema=&schema ,outds=&ds
+        ,flavour=&flavour ,maxobs=&maxobs ,applydttm=&applydttm )
+    %end;
 
-
-/* create the inserts */
-%do x=1 %to %sysfunc(countw(&memlist));
-  %let ds=%scan(&memlist,&x);
-  %mp_ds2inserts(&lib..&ds
-    ,outref=&outref
-    ,schema=&schema
-    ,outds=&ds
-    ,flavour=&flavour
-    ,maxobs=&maxobs
-    ,applydttm=&applydttm
-  )
-%end;
-
-%mend mp_lib2inserts;
+    %mend mp_lib2inserts;

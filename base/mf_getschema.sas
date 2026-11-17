@@ -20,25 +20,22 @@
   @cond
 **/
 
-%macro mf_getschema(libref
-)/*/STORE SOURCE*/;
+%macro mf_getschema(libref )/*/STORE SOURCE*/;
   %local dsid vnum rc schema;
   /* in case the parameter is a libref.tablename, pull off just the libref */
-  %let libref = %upcase(%scan(&libref, 1, %str(.)));
+  %let libref=%upcase(%scan(&libref, 1, %str(.)));
   /* sysname can be 'Schema/Owner' or just 'Schema' (eg snowflake) */
-  %let dsid=%sysfunc(open(sashelp.vlibnam(where=(
-    libname="%upcase(&libref)" and sysname=:'Schema'
-  )),i));
+  %let dsid=%sysfunc(open(sashelp.vlibnam(where=( libname="%upcase(&libref)" and
+    sysname=:'Schema' )),i));
   %if (&dsid ^= 0) %then %do;
     %let vnum=%sysfunc(varnum(&dsid,SYSVALUE));
     %let rc=%sysfunc(fetch(&dsid));
     %let schema=%sysfunc(getvarc(&dsid,&vnum));
     %put &libref. schema is &schema.;
-    %let rc= %sysfunc(close(&dsid));
+    %let rc=%sysfunc(close(&dsid));
   %end;
 
   &schema
+  %mend mf_getschema;
 
-%mend mf_getschema;
-
-/** @endcond */
+  /** @endcond */

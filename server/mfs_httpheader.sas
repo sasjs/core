@@ -25,29 +25,27 @@
 
 **/
 
-%macro mfs_httpheader(header_name
-  ,header_value
-)/*/STORE SOURCE*/;
-%global _sasjs_webout_headers;
-%local fref fid i;
+%macro mfs_httpheader(header_name ,header_value )/*/STORE SOURCE*/;
+  %global _sasjs_webout_headers;
+  %local fref fid i;
 
-%if %sysfunc(filename(fref,&_sasjs_webout_headers)) ne 0 %then %do;
-  %put &=fref &=_sasjs_webout_headers;
-  %put %str(ERR)OR: %sysfunc(sysmsg());
-  %return;
-%end;
+  %if %sysfunc(filename(fref,&_sasjs_webout_headers)) ne 0 %then %do;
+    %put &=fref &=_sasjs_webout_headers;
+    %put %str(ERR)OR: %sysfunc(sysmsg());
+    %return;
+  %end;
 
-%let fid=%sysfunc(fopen(&fref,A));
+  %let fid=%sysfunc(fopen(&fref,A));
 
-%if &fid=0 %then %do;
-  %put %str(ERR)OR: %sysfunc(sysmsg());
-  %return;
-%end;
+  %if &fid=0 %then %do;
+    %put %str(ERR)OR: %sysfunc(sysmsg());
+    %return;
+  %end;
 
-%let rc=%sysfunc(fput(&fid,%str(&header_name): %str(&header_value)));
-%let rc=%sysfunc(fwrite(&fid));
+  %let rc=%sysfunc(fput(&fid,%str(&header_name): %str(&header_value)));
+  %let rc=%sysfunc(fwrite(&fid));
 
-%let rc=%sysfunc(fclose(&fid));
-%let rc=%sysfunc(filename(&fref));
+  %let rc=%sysfunc(fclose(&fid));
+  %let rc=%sysfunc(filename(&fref));
 
 %mend mfs_httpheader;

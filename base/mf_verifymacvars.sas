@@ -32,21 +32,19 @@
 
 **/
 
-%macro mf_verifymacvars(
-    verifyVars  /* list of macro variable NAMES */
-    ,makeUpcase=NO  /* set to YES to make all the variable VALUES uppercase */
-    ,mAbort=SOFT
-)/*/STORE SOURCE*/;
+%macro mf_verifymacvars( verifyVars /* list of macro variable NAMES */
+  ,makeUpcase=NO /* set to YES to make all the variable VALUES uppercase */
+  ,mAbort=SOFT )/*/STORE SOURCE*/;
 
   %local verifyIterator verifyVar abortmsg;
   %do verifyIterator=1 %to %sysfunc(countw(&verifyVars,%str( )));
     %let verifyVar=%qscan(&verifyVars,&verifyIterator,%str( ));
     %if not %symexist(&verifyvar) %then %do;
-      %let abortmsg= Variable &verifyVar is MISSING;
+      %let abortmsg=Variable &verifyVar is MISSING;
       %goto exit_err;
     %end;
     %if %length(%trim(&&&verifyVar))=0 %then %do;
-      %let abortmsg= Variable &verifyVar is EMPTY;
+      %let abortmsg=Variable &verifyVar is EMPTY;
       %goto exit_err;
     %end;
     %if &makeupcase=YES %then %do;
@@ -55,11 +53,7 @@
   %end;
 
   %goto exit_success;
-  %exit_err:
-    %put &abortmsg;
-    0
-    %return;
-  %exit_success:
-  1
-
+  %exit_err: %put &abortmsg;
+  0 %return;
+  %exit_success: 1
 %mend mf_verifymacvars;

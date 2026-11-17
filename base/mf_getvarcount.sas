@@ -23,8 +23,7 @@
 
 **/
 
-%macro mf_getvarcount(libds,typefilter=A
-)/*/STORE SOURCE*/;
+%macro mf_getvarcount(libds,typefilter=A )/*/STORE SOURCE*/;
   %local dsid nvars rc outcnt x;
   %let dsid=%sysfunc(open(&libds));
   %let nvars=.;

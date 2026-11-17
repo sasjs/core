@@ -44,51 +44,46 @@ Usage:
 
 **/
 
-%macro mmx_spkexport(metaloc=
-  ,secureref=
-  ,outspkname=mmxport
-  ,outspkpath=%sysfunc(pathname(work))
-);
+%macro mmx_spkexport(metaloc=,secureref=,outspkname=mmxport
+  ,outspkpath=%sysfunc(pathname(work)) );
 
-%local host port platform_object_path connx_string;
-%let host=%sysfunc(getoption(metaserver));
-%let port=%sysfunc(getoption(metaport));
-%let platform_object_path=%mf_loc(POF);
+  %local host port platform_object_path connx_string;
+  %let host=%sysfunc(getoption(metaserver));
+  %let port=%sysfunc(getoption(metaport));
+  %let platform_object_path=%mf_loc(POF);
 
-/* get creds */
-%inc &secureref/nosource;
+  /* get creds */
+  %inc &secureref/nosource;
 
-%let connx_string=
-  %str(-host &host -port &port -user '&mmxuser' -password '&mmxpass');
+  %let connx_string=
+    %str(-host &host -port &port -user '&mmxuser' -password '&mmxpass');
 
-%mm_tree(root=%str(&metaloc) ,types=EXPORTABLE ,outds=exportable)
+  %mm_tree(root=%str(&metaloc) ,types=EXPORTABLE ,outds=exportable)
 
-%local fref1;
-%let fref1=%mf_getuniquefileref();
-data ;
-  set exportable end=last;
-  file &fref1 lrecl=32767;
-  length str $32767;
-  if _n_=1 then do;
-    put 'data _null_;';
-    put 'infile "cd ""&platform_object_path"" %trim(';
-    put ') cd ""&platform_object_path"" %trim(';
-    put '); ./ExportPackage &connx_string -disableX11 %trim(';
-    put ') -package ""&outspkpath/&outspkname..spk"" %trim(';
-  end;
-  str=') -objects '!!cats('""',path,'/',name,"(",publictype,')"" %trim(');
-  put str;
-  if last then do;
-    put ') -log ""&outspkpath/&outspkname..log"" 2>&1" pipe lrecl=10000;';
-    put 'input;putlog _infile_;run;';
-  end;
-run;
+  %local fref1;
+  %let fref1=%mf_getuniquefileref();
 
-%mp_abort(iftrue= (&syscc ne 0)
-  ,mac=&sysmacroname
-  ,msg=%str(syscc=&syscc)
-)
+  data ;
+    set exportable end=last;
+    file &fref1 lrecl=32767;
+    length str $32767;
+    if _n_=1 then do;
+      put 'data _null_;';
+      put 'infile "cd ""&platform_object_path"" %trim(';
+      put ') cd ""&platform_object_path"" %trim(';
+      put '); ./ExportPackage &connx_string -disableX11 %trim(';
+      put ') -package ""&outspkpath/&outspkname..spk"" %trim(';
+    end;
+    str=') -objects '!!cats('""',path,'/',name,"(",publictype,')"" %trim(');
+    put str;
+    if last then do;
+      put ') -log ""&outspkpath/&outspkname..log"" 2>&1" pipe lrecl=10000;';
+      put 'input;putlog _infile_;run;';
+    end;
+  run;
 
-%inc &fref1;
+  %mp_abort(iftrue=(&syscc ne 0) ,mac=&sysmacroname ,msg=%str(syscc=&syscc) )
+
+  %inc &fref1;
 
 %mend mmx_spkexport;

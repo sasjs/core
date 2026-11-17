@@ -20,14 +20,14 @@
   @author Allan Bowe
   @sasjslint {"maxLineLength": 94}
 **/
+
 /** @cond */
-%macro mf_existfeature(feature
-)/*/STORE SOURCE*/;
+%macro mf_existfeature(feature )/*/STORE SOURCE*/;
   %let feature=%upcase(&feature);
   %local platform;
   %let platform=%mf_getplatform();
 
-  %if &feature= %then %do;
+  %if &feature=%then %do;
     %put No feature was requested for detection;
   %end;
   %else %if &feature=COLCONSTRAINTS %then %do;
@@ -49,12 +49,11 @@
   %else %if &feature=EXPORTXLS %then %do;
     /* is it possible to PROC EXPORT an excel file? */
     %if "%substr(&sysver,1,1)"="4" or "%substr(&sysver,1,1)"="5" %then 1;
-    %else %if %sysfunc(sysprod(SAS/ACCESS Interface to PC Files)) = 1 %then 1;
+    %else %if %sysfunc(sysprod(SAS/ACCESS Interface to PC Files))=1 %then 1;
     %else 0;
   %end;
   %else %do;
-    -1
-    %put &sysmacroname: &feature not found;
+    -1 %put &sysmacroname: &feature not found;
   %end;
 %mend mf_existfeature;
 /** @endcond */

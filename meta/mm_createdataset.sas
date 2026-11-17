@@ -37,57 +37,66 @@
 **/
 
 %macro mm_createdataset(libds=,tableuri=,outds=work.mm_createdataset,mDebug=0);
-%local dbg errorcheck tempds1 tempds2 tempds3;
-%if &mDebug=0 %then %let dbg=*;
-%let errorcheck=1;
+  %local dbg errorcheck tempds1 tempds2 tempds3;
+  %if &mDebug=0 %then %let dbg=*;
+  %let errorcheck=1;
 
-%if %index(&libds,.)>0 %then %do;
-  /* get lib uri */
-  data;run;%let tempds1=&syslast;
-  %mm_getlibs(outds=&tempds1)
+  %if %index(&libds,.)>0 %then %do;
+    /* get lib uri */
+    data;
+    run;
+    %let tempds1=&syslast;
+    %mm_getlibs(outds=&tempds1)
+
+    data _null_;
+      set &tempds1;
+      if upcase(libraryref)="%upcase(%scan(&libds,1,.))";
+      call symputx('liburi',LibraryId,'l');
+    run;
+
+    /* get ds uri */
+    data;
+    run;
+    %let tempds2=&syslast;
+    %mm_gettables(uri=&liburi,outds=&tempds2)
+
+    data _null_;
+      set &tempds2;
+      where upcase(tablename)="%upcase(%scan(&libds,2,.))";
+      &dbg putlog tableuri=;
+      call symputx('tableuri',tableuri);
+    run;
+  %end;
+
+  data;
+  run;
+  %let tempds3=&syslast;
+  %mm_getcols(tableuri=&tableuri,outds=&tempds3)
+
+  %if %mf_nobs(&tempds3)=0 %then %do;
+    %put &libds (&tableuri) has no columns defined!!;
+
+    data &outds;
+    run;
+    %return;
+  %end;
+
   data _null_;
-    set &tempds1;
-    if upcase(libraryref)="%upcase(%scan(&libds,1,.))";
-    call symputx('liburi',LibraryId,'l');
+    set &tempds3 end=last;
+    if _n_=1 then call execute('data &outds;');
+    length attrib $32767;
+
+    if SAScolumntype='C' then type='$';
+    attrib='attrib '!!cats(colname)!!' length='!!cats(type,SASColumnLength,'.');
+
+    if not missing(sasformat) then fmt=' format='!!cats(sasformat);
+    if not missing(sasinformat) then infmt=' informat='!!cats(sasinformat);
+    if not missing(coldesc) then desc=' label='!!quote(cats(coldesc));
+
+    attrib=trim(attrib)!!fmt!!infmt!!desc!!';';
+
+    call execute(attrib);
+    if last then call execute('call missing(of _all_);stop;run;');
   run;
-  /* get ds uri */
-  data;run;%let tempds2=&syslast;
-  %mm_gettables(uri=&liburi,outds=&tempds2)
-  data _null_;
-    set &tempds2;
-    where upcase(tablename)="%upcase(%scan(&libds,2,.))";
-    &dbg putlog tableuri=;
-    call symputx('tableuri',tableuri);
-  run;
-%end;
-
-data;run;
-%let tempds3=&syslast;
-%mm_getcols(tableuri=&tableuri,outds=&tempds3)
-
-%if %mf_nobs(&tempds3)=0 %then %do;
-  %put &libds (&tableuri) has no columns defined!!;
-  data &outds;
-  run;
-  %return;
-%end;
-
-data _null_;
-  set &tempds3 end=last;
-  if _n_=1 then call execute('data &outds;');
-  length attrib $32767;
-
-  if SAScolumntype='C' then type='$';
-  attrib='attrib '!!cats(colname)!!' length='!!cats(type,SASColumnLength,'.');
-
-  if not missing(sasformat) then fmt=' format='!!cats(sasformat);
-  if not missing(sasinformat) then infmt=' informat='!!cats(sasinformat);
-  if not missing(coldesc) then desc=' label='!!quote(cats(coldesc));
-
-  attrib=trim(attrib)!!fmt!!infmt!!desc!!';';
-
-  call execute(attrib);
-  if last then call execute('call missing(of _all_);stop;run;');
-run;
 
 %mend mm_createdataset;

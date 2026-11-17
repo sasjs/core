@@ -55,41 +55,26 @@
 
 **/
 
-%macro mp_assertcols(inds,
-  cols=0,
-  test=ALL,
-  desc=0,
-  outds=work.test_results
-)/*/STORE SOURCE*/;
+%macro mp_assertcols(inds, cols=0, test=ALL, desc=0, outds=work.test_results
+  )/*/STORE SOURCE*/;
 
-  %mp_abort(iftrue= (&syscc ne 0)
-    ,mac=&sysmacroname
-    ,msg=%str(syscc=&syscc - on macro entry)
-  )
+  %mp_abort(iftrue=(&syscc ne 0) ,mac=&sysmacroname
+    ,msg=%str(syscc=&syscc - on macro entry) )
 
   %local lib ds ;
   %let lib=%scan(&inds,1,%str(.));
   %let ds=%scan(&inds,2,%str(.));
   %let cols=%upcase(&cols);
 
-  %mp_abort(iftrue= (%mf_existds(&lib..&ds)=0)
-    ,mac=&sysmacroname
-    ,msg=%str(&lib..&ds not found!)
-  )
+  %mp_abort(iftrue=(%mf_existds(&lib..&ds)=0) ,mac=&sysmacroname
+    ,msg=%str(&lib..&ds not found!) )
 
-  %mp_abort(iftrue= (&cols=0)
-    ,mac=&sysmacroname
-    ,msg=%str(No cols provided)
-  )
-
+  %mp_abort(iftrue=(&cols=0) ,mac=&sysmacroname ,msg=%str(No cols provided) )
 
   %let test=%upcase(&test);
 
   %if &test ne ANY and &test ne ALL and &test ne NONE %then %do;
-    %mp_abort(
-      mac=&sysmacroname,
-      msg=%str(Invalid test - &test)
-    )
+    %mp_abort( mac=&sysmacroname, msg=%str(Invalid test - &test) )
   %end;
 
   /**
@@ -100,10 +85,7 @@
   %else %do;
     %local targetcols compare;
     %let targetcols=%upcase(%mf_getvarlist(&inds));
-    %let compare=%mf_wordsinstr1butnotstr2(
-        Str1=&cols,
-        Str2=&targetcols
-      );
+    %let compare=%mf_wordsinstr1butnotstr2( Str1=&cols, Str2=&targetcols );
     %if %cmpres(&compare)=%cmpres(&cols) %then %let result=NONE;
     %else %let result=SOME;
   %end;
@@ -111,37 +93,39 @@
   data;
     length test_result $5 test_description $256 test_comments $256;
     test_description=symget('desc');
-    if test_description='0'
-    then test_description="Testing &inds for existence of &test of: &cols";
+    if test_description='0' then
+      test_description="Testing &inds for existence of &test of: &cols";
 
     test_result='FAIL';
     test_comments="&sysmacroname: &inds has &result columns ";
-  %if &test=ALL %then %do;
-    %if &result=ALL %then %do;
-      test_result='PASS';
+    %if &test=ALL %then %do;
+      %if &result=ALL %then %do;
+        test_result='PASS';
+      %end;
     %end;
-  %end;
-  %else %if &test=ANY %then %do;
-    /* SOME or ALL - if every column exists then any of them does too */
-    %if &result ne NONE %then %do;
-      test_result='PASS';
+    %else %if &test=ANY %then %do;
+      /* SOME or ALL - if every column exists then any of them does too */
+      %if &result ne NONE %then %do;
+        test_result='PASS';
+      %end;
     %end;
-  %end;
-  %else %if &test=NONE %then %do;
-    %if &result=NONE %then %do;
-      test_result='PASS';
+    %else %if &test=NONE %then %do;
+      %if &result=NONE %then %do;
+        test_result='PASS';
+      %end;
     %end;
-  %end;
-  %else %do;
-    test_comments="&sysmacroname: Unsatisfied test condition - &test";
-  %end;
+    %else %do;
+      test_comments="&sysmacroname: Unsatisfied test condition - &test";
+    %end;
   run;
 
   %local ds;
   %let ds=&syslast;
+
   proc append base=&outds data=&ds;
   run;
+
   proc sql;
-  drop table &ds;
+    drop table &ds;
 
 %mend mp_assertcols;

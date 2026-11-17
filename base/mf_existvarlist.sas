@@ -18,51 +18,45 @@
   @cond
 **/
 
-%macro mf_existvarlist(libds, varlist
-)/*/STORE SOURCE*/;
+%macro mf_existvarlist(libds, varlist )/*/STORE SOURCE*/;
 
   /* nothing to check - answer 0 and let the caller decide whether a blank
     input is a condition worth stopping on */
   %if %str(&libds)=%str() or %str(&varlist)=%str() %then %do;
-    %put %str(WARN)ING:  blank libds/varlist in mf_existvarlist;
-    0
-    %return;
+    %put %str(WARN)ING: blank libds/varlist in mf_existvarlist;
+    0 %return;
   %end;
 
   %local dsid rc i var found;
   %let dsid=%sysfunc(open(&libds,is));
 
   %if &dsid=0 %then %do;
-    %put %str(WARN)ING:  unable to open &libds in mf_existvarlist (&dsid);
+    %put %str(WARN)ING: unable to open &libds in mf_existvarlist (&dsid);
     /* the failed open reports through SYSMSG, not SYSERR or SYSCC, so the
       return value is the whole signal - and ATTRN and VARNUM return a missing
       value for dsid 0, which would report a match, so return before probing */
-    0
-    %return;
+    0 %return;
   %end;
 
   %if %sysfunc(attrn(&dsid,NVARS))=0 %then %do;
-    %put MF_EXISTVARLIST:  No variables in &libds ;
+    %put MF_EXISTVARLIST: No variables in &libds ;
     %let rc=%sysfunc(close(&dsid));
-    0
-    %return;
+    0 %return;
   %end;
 
   %else %do i=1 %to %sysfunc(countw(&varlist));
     %let var=%scan(&varlist,&i);
 
-    %if %sysfunc(varnum(&dsid,&var))=0  %then %do;
+    %if %sysfunc(varnum(&dsid,&var))=0 %then %do;
       %let found=&found &var;
     %end;
   %end;
 
   %let rc=%sysfunc(close(&dsid));
   %if %str(&found)=%str() %then %do;
-    1
-  %end;
+  1 %end;
   %else %do;
-    0
-    %put Vars not found: &found;
+    0 %put Vars not found: &found;
   %end;
 %mend mf_existvarlist;
 

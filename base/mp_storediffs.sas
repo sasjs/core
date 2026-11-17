@@ -69,162 +69,138 @@
   @version 9.2
   @author Allan Bowe
 **/
+
 /** @cond */
 
-%macro mp_storediffs(libds
-  ,origds
-  ,key
-  ,delds=0
-  ,appds=0
-  ,modds=0
-  ,outds=work.mp_storediffs
-  ,loadref=0
-  ,processed_dttm=0
-  ,mdebug=0
-)/*/STORE SOURCE*/;
-%local dbg;
-%if &mdebug=1 %then %do;
-  %put &sysmacroname entry vars:;
-  %put _local_;
-%end;
-%else %let dbg=*;
+%macro mp_storediffs(libds ,origds ,key ,delds=0 ,appds=0 ,modds=0
+  ,outds=work.mp_storediffs ,loadref=0 ,processed_dttm=0 ,mdebug=0
+  )/*/STORE SOURCE*/;
+  %local dbg;
+  %if &mdebug=1 %then %do;
+    %put &sysmacroname entry vars:;
+    %put _local_;
+  %end;
+  %else %let dbg=*;
 
-/* set up unique and temporary vars */
-%local ds1 ds2 ds3 ds4 hashkey inds_auto inds_keep dslist vlist;
-%let ds1=%upcase(work.%mf_getuniquename(prefix=mpsd_ds1));
-%let ds2=%upcase(work.%mf_getuniquename(prefix=mpsd_ds2));
-%let ds3=%upcase(work.%mf_getuniquename(prefix=mpsd_ds3));
-%let ds4=%upcase(work.%mf_getuniquename(prefix=mpsd_ds4));
-%let hashkey=%upcase(%mf_getuniquename(prefix=mpsd_hashkey));
-%let inds_auto=%upcase(%mf_getuniquename(prefix=mpsd_inds_auto));
-%let inds_keep=%upcase(%mf_getuniquename(prefix=mpsd_inds_keep));
+  /* set up unique and temporary vars */
+  %local ds1 ds2 ds3 ds4 hashkey inds_auto inds_keep dslist vlist;
+  %let ds1=%upcase(work.%mf_getuniquename(prefix=mpsd_ds1));
+  %let ds2=%upcase(work.%mf_getuniquename(prefix=mpsd_ds2));
+  %let ds3=%upcase(work.%mf_getuniquename(prefix=mpsd_ds3));
+  %let ds4=%upcase(work.%mf_getuniquename(prefix=mpsd_ds4));
+  %let hashkey=%upcase(%mf_getuniquename(prefix=mpsd_hashkey));
+  %let inds_auto=%upcase(%mf_getuniquename(prefix=mpsd_inds_auto));
+  %let inds_keep=%upcase(%mf_getuniquename(prefix=mpsd_inds_keep));
 
-%let dslist=&origds;
-%if &delds ne 0 %then %do;
-  %let delds=%upcase(&delds);
-  %if %scan(&delds,-1,.)=&delds %then %let delds=WORK.&delds;
-  %let dslist=&dslist &delds;
-%end;
-%if &appds ne 0 %then %do;
-  %let appds=%upcase(&appds);
-  %if %scan(&appds,-1,.)=&appds %then %let appds=WORK.&appds;
-  %let dslist=&dslist &appds;
-%end;
-%if &modds ne 0 %then %do;
-  %let modds=%upcase(&modds);
-  %if %scan(&modds,-1,.)=&modds %then %let modds=WORK.&modds;
-  %let dslist=&dslist &modds;
-%end;
+  %let dslist=&origds;
+  %if &delds ne 0 %then %do;
+    %let delds=%upcase(&delds);
+    %if %scan(&delds,-1,.)=&delds %then %let delds=WORK.&delds;
+    %let dslist=&dslist &delds;
+  %end;
+  %if &appds ne 0 %then %do;
+    %let appds=%upcase(&appds);
+    %if %scan(&appds,-1,.)=&appds %then %let appds=WORK.&appds;
+    %let dslist=&dslist &appds;
+  %end;
+  %if &modds ne 0 %then %do;
+    %let modds=%upcase(&modds);
+    %if %scan(&modds,-1,.)=&modds %then %let modds=WORK.&modds;
+    %let dslist=&dslist &modds;
+  %end;
 
-%let origds=%upcase(&origds);
-%if %scan(&origds,-1,.)=&origds %then %let origds=WORK.&origds;
+  %let origds=%upcase(&origds);
+  %if %scan(&origds,-1,.)=&origds %then %let origds=WORK.&origds;
 
-%let key=%upcase(&key);
+  %let key=%upcase(&key);
 
-/* hash the key and append all the tables (marking the source) */
-data &ds1;
-  set &dslist indsname=&inds_auto;
-  &hashkey=put(md5(catx('|',%mf_getquotedstr(&key,quote=N))),$hex32.);
-  &inds_keep=upcase(&inds_auto);
-proc sort;
-  by &inds_keep &hashkey;
-run;
+  /* hash the key and append all the tables (marking the source) */
+  data &ds1;
+    set &dslist indsname=&inds_auto;
+    &hashkey=put(md5(catx('|',%mf_getquotedstr(&key,quote=N))),$hex32.);
+    &inds_keep=upcase(&inds_auto);
 
-/* transpose numeric & char vars */
-proc transpose data=&ds1
-    out=&ds2(rename=(&hashkey=key_hash _name_=tgtvar_nm col1=newval_num));
-  by &inds_keep &hashkey;
-  var _numeric_;
-run;
-proc transpose data=&ds1
-    out=&ds3(
-      rename=(&hashkey=key_hash _name_=tgtvar_nm col1=newval_char)
-      where=(tgtvar_nm not in ("&hashkey","&inds_keep"))
-    );
-  by &inds_keep &hashkey;
-  var _character_;
-run;
+  proc sort;
+    by &inds_keep &hashkey;
+  run;
 
-%if %index(&libds,-)>0 and %scan(&libds,2,-)=FC %then %do;
-  /* this is a format catalog - cannot query cols directly */
-  %let vlist="TYPE","FMTNAME","FMTROW","START","END","LABEL","MIN","MAX"
-    ,"DEFAULT","LENGTH","FUZZ","PREFIX","MULT","FILL","NOEDIT","SEXCL"
-    ,"EEXCL","HLO","DECSEP","DIG3SEP","DATATYPE","LANGUAGE";
-%end;
-%else %let vlist=%mf_getvarlist(&libds,dlm=%str(,),quote=DOUBLE);
+  /* transpose numeric & char vars */
+  proc transpose data=&ds1 out=&ds2(rename=(&hashkey=key_hash _name_=tgtvar_nm
+    col1=newval_num));
+    by &inds_keep &hashkey;
+    var _numeric_;
+  run;
 
-data &ds4;
-  length &inds_keep $41 tgtvar_nm $32 _label_ $256;
-  if _n_=1 then call missing(_label_);
-  drop _label_;
-  set &ds2 &ds3 indsname=&inds_auto;
+  proc transpose data=&ds1 out=&ds3( rename=(&hashkey=key_hash _name_=tgtvar_nm
+    col1=newval_char) where=(tgtvar_nm not in ("&hashkey","&inds_keep")) );
+    by &inds_keep &hashkey;
+    var _character_;
+  run;
 
-  tgtvar_nm=upcase(tgtvar_nm);
-  if tgtvar_nm in (%upcase(&vlist));
+  %if %index(&libds,-)>0 and %scan(&libds,2,-)=FC %then %do;
+    /* this is a format catalog - cannot query cols directly */
+    %let vlist="TYPE","FMTNAME","FMTROW","START","END","LABEL","MIN","MAX"
+      ,"DEFAULT","LENGTH","FUZZ","PREFIX","MULT","FILL","NOEDIT","SEXCL"
+      ,"EEXCL","HLO","DECSEP","DIG3SEP","DATATYPE","LANGUAGE";
+  %end;
+  %else %let vlist=%mf_getvarlist(&libds,dlm=%str(,),quote=DOUBLE);
 
-  if upcase(&inds_auto)="&ds2" then tgtvar_type='N';
-  else if upcase(&inds_auto)="&ds3" then tgtvar_type='C';
-  else do;
-    putlog 'ERR' +(-1) "OR: unidentified vartype input!" &inds_auto;
-    call symputx('syscc',98);
-  end;
+  data &ds4;
+    length &inds_keep $41 tgtvar_nm $32 _label_ $256;
+    if _n_=1 then call missing(_label_);
+    drop _label_;
+    set &ds2 &ds3 indsname=&inds_auto;
 
-  if &inds_keep="&appds" then move_type='A';
-  else if &inds_keep="&delds" then move_type='D';
-  else if &inds_keep="&modds" then move_type='M';
-  else if &inds_keep="&origds" then move_type='O';
-  else do;
-    putlog 'ERR' +(-1) "OR: unidentified movetype input!" &inds_keep;
-    call symputx('syscc',99);
-  end;
-  tgtvar_nm=upcase(tgtvar_nm);
-  if tgtvar_nm in (%mf_getquotedstr(&key)) then is_pk=1;
-  else is_pk=0;
-  drop &inds_keep;
-run;
+    tgtvar_nm=upcase(tgtvar_nm);
+    if tgtvar_nm in (%upcase(&vlist));
 
-%if "&loadref"="0" %then %let loadref=%sysfunc(uuidgen());
-%if &processed_dttm=0 %then %let processed_dttm=%sysfunc(datetime(),8.6);
-%let libds=%upcase(&libds);
+    if upcase(&inds_auto)="&ds2" then tgtvar_type='N';
+    else if upcase(&inds_auto)="&ds3" then tgtvar_type='C';
+    else do;
+      putlog 'ERR' +(-1) "OR: unidentified vartype input!" &inds_auto;
+      call symputx('syscc',98);
+    end;
 
-/* join orig vals for modified & deleted */
-proc sql;
-create table &outds as
-  select "&loadref" as load_ref length=36
-    ,&processed_dttm as processed_dttm format=E8601DT26.6
-    ,"%scan(&libds,1,.)" as libref length=8
-    ,"%scan(&libds,2,.)" as dsn length=32
-    ,b.key_hash length=32
-    ,b.move_type length=1
-    ,b.tgtvar_nm length=32
-    ,b.is_pk
-    ,case when b.move_type ne 'M' then -1
-      when a.newval_num=b.newval_num and a.newval_char=b.newval_char then 0
-      else 1
-      end as is_diff
-    ,b.tgtvar_type length=1
-    ,case when b.move_type='D' then b.newval_num
-      else a.newval_num
-      end as oldval_num format=best32.
-    ,case when b.move_type='D' then .
-      else b.newval_num
-      end as newval_num format=best32.
-    ,case when b.move_type='D' then b.newval_char
-      else a.newval_char
-      end as oldval_char length=32765
-    ,case when b.move_type='D' then ''
-      else b.newval_char
-      end as newval_char length=32765
-  from &ds4(where=(move_type='O')) as a
-  right join &ds4(where=(move_type ne 'O')) as b
-  on a.tgtvar_nm=b.tgtvar_nm
-  and a.key_hash=b.key_hash
-  order by move_type, key_hash,is_pk desc, tgtvar_nm;
+    if &inds_keep="&appds" then move_type='A';
+    else if &inds_keep="&delds" then move_type='D';
+    else if &inds_keep="&modds" then move_type='M';
+    else if &inds_keep="&origds" then move_type='O';
+    else do;
+      putlog 'ERR' +(-1) "OR: unidentified movetype input!" &inds_keep;
+      call symputx('syscc',99);
+    end;
+    tgtvar_nm=upcase(tgtvar_nm);
+    if tgtvar_nm in (%mf_getquotedstr(&key)) then is_pk=1;
+    else is_pk=0;
+    drop &inds_keep;
+  run;
 
-%if &mdebug=0 %then %do;
+  %if "&loadref"="0" %then %let loadref=%sysfunc(uuidgen());
+  %if &processed_dttm=0 %then %let processed_dttm=%sysfunc(datetime(),8.6);
+  %let libds=%upcase(&libds);
+
+  /* join orig vals for modified & deleted */
   proc sql;
-  drop table &ds1, &ds2, &ds3, &ds4;
-%end;
+    create table &outds as select "&loadref" as load_ref length=36
+      ,&processed_dttm as processed_dttm format=E8601DT26.6 ,"%scan(&libds,1,.)"
+      as libref length=8 ,"%scan(&libds,2,.)" as dsn length=32 ,b.key_hash
+      length=32 ,b.move_type length=1 ,b.tgtvar_nm length=32 ,b.is_pk ,case when
+      b.move_type ne 'M' then -1 when a.newval_num=b.newval_num and
+      a.newval_char=b.newval_char then 0 else 1 end as is_diff ,b.tgtvar_type
+      length=1 ,case when b.move_type='D' then b.newval_num else a.newval_num
+      end as oldval_num format=best32. ,case when b.move_type='D' then . else
+      b.newval_num end as newval_num format=best32. ,case when b.move_type='D'
+      then b.newval_char else a.newval_char end as oldval_char length=32765
+      ,case when b.move_type='D' then '' else b.newval_char end as newval_char
+      length=32765 from &ds4(where=(move_type='O')) as a right join
+      &ds4(where=(move_type ne 'O')) as b on a.tgtvar_nm=b.tgtvar_nm and
+      a.key_hash=b.key_hash order by move_type, key_hash,is_pk desc, tgtvar_nm;
 
-%mend mp_storediffs;
-/** @endcond */
+    %if &mdebug=0 %then %do;
+
+    proc sql;
+      drop table &ds1, &ds2, &ds3, &ds4;
+      %end;
+
+    %mend mp_storediffs;
+    /** @endcond */

@@ -17,34 +17,32 @@
 
 **/
 
-%macro ms_getfile(driveloc
-    ,outref=msgetfil
-    ,mdebug=0
-  );
+%macro ms_getfile(driveloc ,outref=msgetfil ,mdebug=0 );
 
-/* use the recfm in a separate fileref to avoid issues with subsequent reads */
-%local binaryfref floc headref;
-%let binaryfref=%mf_getuniquefileref();
-%let headref=%mf_getuniquefileref();
-%let floc=%sysfunc(pathname(work))/%mf_getuniquename().txt;
-filename &outref "&floc" lrecl=32767;
-filename &binaryfref "&floc" recfm=n;
+  /* use the recfm in a separate fileref to avoid issues with subsequent
+    reads */
+  %local binaryfref floc headref;
+  %let binaryfref=%mf_getuniquefileref();
+  %let headref=%mf_getuniquefileref();
+  %let floc=%sysfunc(pathname(work))/%mf_getuniquename().txt;
+  filename &outref "&floc" lrecl=32767;
+  filename &binaryfref "&floc" recfm=n;
 
-data _null_;
-  file &headref lrecl=1000;
-  infile "&_sasjs_tokenfile" lrecl=1000;
-  input;
-  put _infile_;
-run;
+  data _null_;
+    file &headref lrecl=1000;
+    infile "&_sasjs_tokenfile" lrecl=1000;
+    input;
+    put _infile_;
+  run;
 
-proc http method='GET' out=&binaryfref headerin=&headref
-  url="&_sasjs_apiserverurl/SASjsApi/drive/file?_filePath=&driveloc";
-%if &mdebug=1 %then %do;
-  debug level=2;
-%end;
-run;
+  proc http method='GET' out=&binaryfref headerin=&headref
+    url="&_sasjs_apiserverurl/SASjsApi/drive/file?_filePath=&driveloc";
+    %if &mdebug=1 %then %do;
+      debug level=2;
+    %end;
+  run;
 
-filename &binaryfref clear;
-filename &headref clear;
+  filename &binaryfref clear;
+  filename &headref clear;
 
 %mend ms_getfile;

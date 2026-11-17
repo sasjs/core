@@ -10,12 +10,10 @@
 
 **/
 
-%macro mf_uid(
-)/*/STORE SOURCE*/;
+%macro mf_uid( )/*/STORE SOURCE*/;
   %local today now;
   %let today=%sysfunc(today(),yymmddn8.);
   %let now=%sysfunc(compress(%sysfunc(time(),tod12.3),:.));
 
   &today._&now._&sysjobid._%sysevalf(%sysfunc(ranuni(0))*999,CEIL)
-
 %mend mf_uid;

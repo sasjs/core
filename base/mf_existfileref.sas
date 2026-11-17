@@ -14,20 +14,16 @@
   @author [Allan Bowe](https://www.linkedin.com/in/allanbowe/)
 **/
 
-%macro mf_existfileref(fref
-)/*/STORE SOURCE*/;
+%macro mf_existfileref(fref )/*/STORE SOURCE*/;
 
   %local rc;
   %let rc=%sysfunc(fileref(&fref));
   %if &rc=0 %then %do;
-    1
-  %end;
+  1 %end;
   %else %if &rc<0 %then %do;
     %put &sysmacroname: Fileref &fref exists but the underlying file does not;
-    1
-  %end;
+  1 %end;
   %else %do;
-    0
-  %end;
+  0 %end;
 
 %mend mf_existfileref;

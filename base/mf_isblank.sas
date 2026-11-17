@@ -19,9 +19,7 @@
   @version 9.2
 **/
 
-%macro mf_isblank(param
-)/*/STORE SOURCE*/;
+%macro mf_isblank(param )/*/STORE SOURCE*/;
 
   %sysevalf(%superq(param)=,boolean)
-
 %mend mf_isblank;

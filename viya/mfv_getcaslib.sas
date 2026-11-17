@@ -17,21 +17,17 @@
 
 %macro mfv_getcaslib(lib);
 
-%local dsid rc result;
+  %local dsid rc result;
 
-%let dsid=%sysfunc(open(sashelp.vlibnam(
-  where=(libname="%upcase(&lib)" and sysname="Caslib")
-)));
+  %let dsid=%sysfunc(open(sashelp.vlibnam( where=(libname="%upcase(&lib)" and
+    sysname="Caslib") )));
 
-%if &dsid %then %do;
-  %let rc=%sysfunc(fetch(&dsid));
-  %if &rc=0 %then
-    %let result=%sysfunc(
-      getvarc(&dsid,%sysfunc(varnum(&dsid,SYSVALUE)))
-    );
-  %let rc=%sysfunc(close(&dsid));
-%end;
+  %if &dsid %then %do;
+    %let rc=%sysfunc(fetch(&dsid));
+    %if &rc=0 %then %let result=%sysfunc(
+      getvarc(&dsid,%sysfunc(varnum(&dsid,SYSVALUE))) );
+    %let rc=%sysfunc(close(&dsid));
+  %end;
 
-&result
-
+  &result
 %mend mfv_getcaslib;

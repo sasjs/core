@@ -28,18 +28,15 @@
 
 **/
 
-%macro mm_getgroupmembers(
-    group /* metadata group for which to bring back members */
-    ,outds=work.mm_getgroupmembers /* output dataset to contain the results */
-    ,emails=NO /* set to yes to bring back emails also */
-    ,id=NO /* set to yes if passing an ID rather than group name */
-)/*/STORE SOURCE*/;
+%macro mm_getgroupmembers( group
+  /* metadata group for which to bring back members */
+  ,outds=work.mm_getgroupmembers /* output dataset to contain the results */
+  ,emails=NO /* set to yes to bring back emails also */ ,id=NO
+  /* set to yes if passing an ID rather than group name */ )/*/STORE SOURCE*/;
 
   data &outds ;
     attrib uriGrp uriMem GroupId GroupName Group_or_Role MemberName MemberType
-      euri email           length=$64
-      GroupDesc            length=$256
-      rcGrp rcMem rc i j   length=3;
+      euri email length=$64 GroupDesc length=$256 rcGrp rcMem rc i j length=3;
     call missing (of _all_);
     drop uriGrp uriMem rcGrp rcMem rc i j arc ;
 
@@ -56,15 +53,15 @@
       call missing (rcMem,uriMem,GroupId,GroupName,Group_or_Role
         ,MemberName,MemberType);
       /* get group info */
-      rc = metadata_getattr(uriGrp,"Id",GroupId);
-      rc = metadata_getattr(uriGrp,"Name",GroupName);
-      rc = metadata_getattr(uriGrp,"PublicType",Group_or_Role);
-      rc = metadata_getattr(uriGrp,"Desc",GroupDesc);
+      rc=metadata_getattr(uriGrp,"Id",GroupId);
+      rc=metadata_getattr(uriGrp,"Name",GroupName);
+      rc=metadata_getattr(uriGrp,"PublicType",Group_or_Role);
+      rc=metadata_getattr(uriGrp,"Desc",GroupDesc);
       j=1;
       do while (metadata_getnasn(uriGrp,"MemberIdentities",j,uriMem) > 0);
         call missing (MemberName, MemberType, email);
-        rc = metadata_getattr(uriMem,"Name",MemberName);
-        rc = metadata_getattr(uriMem,"PublicType",MemberType);
+        rc=metadata_getattr(uriMem,"Name",MemberName);
+        rc=metadata_getattr(uriMem,"PublicType",MemberType);
         if membertype='User' and "&emails"='YES' then do;
           if metadata_getnasn(uriMem,"EmailAddresses",1,euri)>0 then do;
             arc=metadata_getattr(euri,"Address",email);

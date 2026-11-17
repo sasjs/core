@@ -44,11 +44,8 @@
 
 **/
 
-%macro mp_assertdsobs(inds,
-  test=HASOBS,
-  desc=Testing observations,
-  outds=work.test_results
-)/*/STORE SOURCE*/;
+%macro mp_assertdsobs(inds, test=HASOBS, desc=Testing observations,
+  outds=work.test_results )/*/STORE SOURCE*/;
 
   %local nobs ds;
   %let nobs=%mf_nobs(&inds);
@@ -57,33 +54,24 @@
 
   %if %substr(&test.xxxxx,1,6)=EQUALS %then %do;
     %let val=%scan(&test,2,%str( ));
-    %mp_abort(iftrue= (%DATATYP(&val)=CHAR)
-      ,mac=&sysmacroname
-      ,msg=%str(Invalid test - &test, expected EQUALS [integer])
-    )
+    %mp_abort(iftrue=(%DATATYP(&val)=CHAR) ,mac=&sysmacroname
+      ,msg=%str(Invalid test - &test, expected EQUALS [integer]) )
     %let test=EQUALS;
   %end;
   %else %if %substr(&test.xxxxxxx,1,7)=ATLEAST %then %do;
     %let val=%scan(&test,2,%str( ));
-    %mp_abort(iftrue= (%DATATYP(&val)=CHAR)
-      ,mac=&sysmacroname
-      ,msg=%str(Invalid test - &test, expected ATLEAST [integer])
-    )
+    %mp_abort(iftrue=(%DATATYP(&val)=CHAR) ,mac=&sysmacroname
+      ,msg=%str(Invalid test - &test, expected ATLEAST [integer]) )
     %let test=ATLEAST;
   %end;
   %else %if %substr(&test.xxxxxxx,1,7)=ATMOST %then %do;
     %let val=%scan(&test,2,%str( ));
-    %mp_abort(iftrue= (%DATATYP(&val)=CHAR)
-      ,mac=&sysmacroname
-      ,msg=%str(Invalid test - &test, expected ATMOST [integer])
-    )
+    %mp_abort(iftrue=(%DATATYP(&val)=CHAR) ,mac=&sysmacroname
+      ,msg=%str(Invalid test - &test, expected ATMOST [integer]) )
     %let test=ATMOST;
   %end;
   %else %if &test ne HASOBS and &test ne EMPTY %then %do;
-    %mp_abort(
-      mac=&sysmacroname,
-      msg=%str(Invalid test - &test)
-    )
+    %mp_abort( mac=&sysmacroname, msg=%str(Invalid test - &test) )
   %end;
 
   data &ds;
@@ -92,30 +80,30 @@
     test_result='FAIL';
     test_comments="&sysmacroname: Dataset &inds has &nobs observations.";
     test_comments=test_comments!!" Test was "!!symget('test');
-  %if &test=HASOBS %then %do;
-    if &nobs>0 then test_result='PASS';
-  %end;
-  %else %if &test=EMPTY %then %do;
-    if &nobs=0 then test_result='PASS';
-  %end;
-  %else %if &test=EQUALS %then %do;
-    if &nobs=&val then test_result='PASS';
-  %end;
-  %else %if &test=ATLEAST %then %do;
-    if &nobs ge &val then test_result='PASS';
-  %end;
-  %else %if &test=ATMOST %then %do;
-    if &nobs le &val then test_result='PASS';
-  %end;
-  %else %do;
-    test_comments="&sysmacroname: Unsatisfied test condition - &test";
-  %end;
+    %if &test=HASOBS %then %do;
+      if &nobs>0 then test_result='PASS';
+    %end;
+    %else %if &test=EMPTY %then %do;
+      if &nobs=0 then test_result='PASS';
+    %end;
+    %else %if &test=EQUALS %then %do;
+      if &nobs=&val then test_result='PASS';
+    %end;
+    %else %if &test=ATLEAST %then %do;
+      if &nobs ge &val then test_result='PASS';
+    %end;
+    %else %if &test=ATMOST %then %do;
+      if &nobs le &val then test_result='PASS';
+    %end;
+    %else %do;
+      test_comments="&sysmacroname: Unsatisfied test condition - &test";
+    %end;
   run;
 
   proc append base=&outds data=&ds;
   run;
 
   proc sql;
-  drop table &ds;
+    drop table &ds;
 
 %mend mp_assertdsobs;

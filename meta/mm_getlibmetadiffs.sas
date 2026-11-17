@@ -89,14 +89,12 @@
   @sasjslint {"maxLineLength": 112}
 **/
 
-%macro mm_getlibmetadiffs(
-  libname= ,
-  prefix=metadiff,
-  outlib=work
-)/*/STORE SOURCE*/;
+%macro mm_getlibmetadiffs( libname=, prefix=metadiff, outlib=work
+  )/*/STORE SOURCE*/;
 
   /* create tempds */
-  data;run;
+  data;
+  run;
   %local tempds;
   %let tempds=&syslast;
 
@@ -106,12 +104,8 @@
 
   options VALIDVARNAME=ANY VALIDMEMNAME=EXTEND;
 
-  ods output
-    factoid1=&outlib..&prefix.meta
-    updtab=&outlib..&prefix.updated
-    addtab=&outlib..&prefix.added
-    deltab=&outlib..&prefix.deleted
-  ;
+  ods output factoid1=&outlib..&prefix.meta updtab=&outlib..&prefix.updated
+    addtab=&outlib..&prefix.added deltab=&outlib..&prefix.deleted ;
 
   proc metalib;
     omr=(library="&libname");

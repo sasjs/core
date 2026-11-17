@@ -12,16 +12,15 @@
 
 **/
 
-%macro mp_reseterror(
-)/*/STORE SOURCE*/;
+%macro mp_reseterror( )/*/STORE SOURCE*/;
 
-options obs=max replace nosyntaxcheck;
-%let syscc=0;
+  options obs=max replace nosyntaxcheck;
+  %let syscc=0;
 
-%if "&sysprocessmode " = "SAS Stored Process Server " %then %do;
-  data _null_;
-    rc=stpsrvset('program error', 0);
-  run;
-%end;
+  %if "&sysprocessmode "="SAS Stored Process Server " %then %do;
+    data _null_;
+      rc=stpsrvset('program error', 0);
+    run;
+  %end;
 
 %mend mp_reseterror;

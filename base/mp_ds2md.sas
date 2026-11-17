@@ -43,62 +43,55 @@
   @author Allan Bowe
 **/
 
-%macro mp_ds2md(
-  libds,
-  outref=mdtable,
-  showlog=YES
-)/*/STORE SOURCE*/;
+%macro mp_ds2md( libds, outref=mdtable, showlog=YES )/*/STORE SOURCE*/;
 
-/* check fileref is assigned */
-%if %sysfunc(fileref(&outref)) > 0 %then %do;
-  filename &outref temp;
-%end;
+  /* check fileref is assigned */
+  %if %sysfunc(fileref(&outref)) > 0 %then %do;
+    filename &outref temp;
+  %end;
 
-%local vars;
-%let vars=%upcase(%mf_getvarlist(&libds));
+  %local vars;
+  %let vars=%upcase(%mf_getvarlist(&libds));
 
-%if %trim(X&vars)=X %then %do;
-  %put &sysmacroname: Table &libds has no columns!!;
-  %return;
-%end;
+  %if %trim(X&vars)=X %then %do;
+    %put &sysmacroname: Table &libds has no columns!!;
+    %return;
+  %end;
 
-/* create the header row */
-data _null_;
-  file &outref;
-  length line $32767;
-  call missing(line);
-  put '|'
-%local i var fmt;
-%do i=1 %to %sysfunc(countw(&vars));
-  %let var=%scan(&vars,&i);
-  %let fmt=%lowcase(%mf_getvarformat(&libds,&var,force=1));
-  "&var:&fmt|"
-%end;
-  ;
-  put '|'
-%do i=1 %to %sysfunc(countw(&vars));
-  "---|"
-%end;
-  ;
-run;
-
-/* write out the data */
-data _null_;
-  file &outref mod dlm='|' lrecl=32767;
-  set &libds ;
-  length line $32767;
-  line='|`'!!cats(%mf_getvarlist(&libds,dlm=%str(%)!!' `|`'!!cats%()))!!' `|';
-  put line;
-run;
-
-%if %upcase(&showlog)=YES %then %do;
-  options ps=max lrecl=max;
+  /* create the header row */
   data _null_;
-    infile &outref;
-    if _n_=1 then putlog "# &libds" /;
-    input;
-    putlog _infile_;
+    file &outref;
+    length line $32767;
+    call missing(line);
+    put '|' %local i var fmt;
+    %do i=1 %to %sysfunc(countw(&vars));
+      %let var=%scan(&vars,&i);
+      %let fmt=%lowcase(%mf_getvarformat(&libds,&var,force=1));
+    "&var:&fmt|" %end;
+    ;
+    put '|' %do i=1 %to %sysfunc(countw(&vars));
+    "---|" %end;
+    ;
   run;
-%end;
+
+  /* write out the data */
+  data _null_;
+    file &outref mod dlm='|' lrecl=32767;
+    set &libds ;
+    length line $32767;
+    line='|`'!!cats(%mf_getvarlist(&libds,dlm=%str(%)!!' `|`'!!cats%()))!!' `|';
+    put line;
+  run;
+
+  %if %upcase(&showlog)=YES %then %do;
+    options ps=max lrecl=max;
+
+    data _null_;
+      infile &outref;
+      if _n_=1 then putlog "# &libds" /;
+      input;
+      putlog _infile_;
+    run;
+  %end;
 
 %mend mp_ds2md;

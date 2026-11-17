@@ -46,42 +46,38 @@
 
 **/
 
-%macro mcf_length(wrap=YES
-  ,lib=WORK
-  ,cat=SASJS
-  ,pkg=UTILS
-)/*/STORE SOURCE*/;
-%local i var cmpval found;
-%if %mcf_init(mcf_length)=1 %then %return;
+%macro mcf_length(wrap=YES ,lib=WORK ,cat=SASJS ,pkg=UTILS )/*/STORE SOURCE*/;
+  %local i var cmpval found;
+  %if %mcf_init(mcf_length)=1 %then %return;
 
-%if &wrap=YES  %then %do;
-  proc fcmp outlib=&lib..&cat..&pkg;
-%end;
+  %if &wrap=YES %then %do;
+    proc fcmp outlib=&lib..&cat..&pkg;
+      %end;
 
-function mcf_length(var);
-  if var=. then len=0;
-  else if missing(var) or trunc(var,3)=var then len=3;
-  else if trunc(var,4)=var then len=4;
-  else if trunc(var,5)=var then len=5;
-  else if trunc(var,6)=var then len=6;
-  else if trunc(var,7)=var then len=7;
-  else len=8;
-  return(len);
-endsub;
+      function mcf_length(var);
+      if var=. then len=0;
+      else if missing(var) or trunc(var,3)=var then len=3;
+      else if trunc(var,4)=var then len=4;
+      else if trunc(var,5)=var then len=5;
+      else if trunc(var,6)=var then len=6;
+      else if trunc(var,7)=var then len=7;
+      else len=8;
+      return(len);
+      endsub;
 
-%if &wrap=YES %then %do;
-  quit;
-%end;
+      %if &wrap=YES %then %do;
+        quit;
+      %end;
 
-/* insert the CMPLIB if not already there */
-%let cmpval=%sysfunc(getoption(cmplib));
-%let found=0;
-%do i=1 %to %sysfunc(countw(&cmpval,%str( %(%))));
-  %let var=%scan(&cmpval,&i,%str( %(%)));
-  %if &var=&lib..&cat %then %let found=1;
-%end;
-%if &found=0 %then %do;
-  options insert=(CMPLIB=(&lib..&cat));
-%end;
+      /* insert the CMPLIB if not already there */
+      %let cmpval=%sysfunc(getoption(cmplib));
+      %let found=0;
+      %do i=1 %to %sysfunc(countw(&cmpval,%str( %(%))));
+        %let var=%scan(&cmpval,&i,%str( %(%)));
+        %if &var=&lib..&cat %then %let found=1;
+      %end;
+      %if &found=0 %then %do;
+        options insert=(CMPLIB=(&lib..&cat));
+      %end;
 
-%mend mcf_length;
+      %mend mcf_length;

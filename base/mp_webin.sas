@@ -32,28 +32,22 @@
 
 %macro mp_webin();
 
-/* prepare global variables */
-%global _webin_file_count
-  _webin_filename _webin_filename1
-  _webin_fileref _webin_fileref1
-  _webin_fileuri _webin_fileuri1
-  _webin_name _webin_name1
-  ;
+  /* prepare global variables */
+  %global _webin_file_count _webin_filename _webin_filename1 _webin_fileref
+    _webin_fileref1 _webin_fileuri _webin_fileuri1 _webin_name _webin_name1 ;
 
-/* create initial versions */
-%let _webin_file_count=%eval(&_webin_file_count+0);
-%let _webin_filename1=%sysfunc(coalescec(&_webin_filename1,&_webin_filename));
-%let _webin_fileref1=%sysfunc(coalescec(&_webin_fileref1,&_webin_fileref));
-%let _webin_fileuri1=%sysfunc(coalescec(&_webin_fileuri1,&_webin_fileuri));
-%let _webin_name1=%sysfunc(coalescec(&_webin_name1,&_webin_name));
+  /* create initial versions */
+  %let _webin_file_count=%eval(&_webin_file_count+0);
+  %let _webin_filename1=%sysfunc(coalescec(&_webin_filename1,&_webin_filename));
+  %let _webin_fileref1=%sysfunc(coalescec(&_webin_fileref1,&_webin_fileref));
+  %let _webin_fileuri1=%sysfunc(coalescec(&_webin_fileuri1,&_webin_fileuri));
+  %let _webin_name1=%sysfunc(coalescec(&_webin_name1,&_webin_name));
 
-
-/* If Viya, create temporary fileref(s) */
-%local i;
-%if %mf_getplatform()=SASVIYA %then %do i=1 %to &_webin_file_count;
-  %let _webin_fileref&i=%mf_getuniquefileref();
-  filename &&_webin_fileref&i filesrvc "&&_webin_fileuri&i";
-%end;
-
+  /* If Viya, create temporary fileref(s) */
+  %local i;
+  %if %mf_getplatform()=SASVIYA %then %do i=1 %to &_webin_file_count;
+    %let _webin_fileref&i=%mf_getuniquefileref();
+    filename &&_webin_fileref&i filesrvc "&&_webin_fileuri&i";
+  %end;
 
 %mend mp_webin;

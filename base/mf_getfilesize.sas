@@ -24,8 +24,7 @@
   @author Allan Bowe
 **/
 
-%macro mf_getfilesize(fpath=,libds=0,format=NO
-)/*/STORE SOURCE*/;
+%macro mf_getfilesize(fpath=,libds=0,format=NO )/*/STORE SOURCE*/;
 
   %local rc fid fref bytes dsid lib vnum;
 
@@ -33,16 +32,13 @@
     %let libds=%upcase(&libds);
     %if %index(&libds,.)=0 %then %let lib=WORK;
     %else %let lib=%scan(&libds,1,.);
-    %let dsid=%sysfunc(open(
-      sashelp.vtable(where=(libname="&lib" and memname="%scan(&libds,-1,.)")
-        keep=libname memname filesize
-      )
-    ));
+    %let dsid=%sysfunc(open( sashelp.vtable(where=(libname="&lib" and
+      memname="%scan(&libds,-1,.)") keep=libname memname filesize ) ));
     %if (&dsid ^= 0) %then %do;
       %let vnum=%sysfunc(varnum(&dsid,FILESIZE));
       %let rc=%sysfunc(fetch(&dsid));
       %let bytes=%sysfunc(getvarn(&dsid,&vnum));
-      %let rc= %sysfunc(close(&dsid));
+      %let rc=%sysfunc(close(&dsid));
     %end;
     %else %put &sysmacroname: &libds could not be opened! %sysfunc(sysmsg());
   %end;
@@ -55,10 +51,8 @@
   %end;
 
   %if &format=NO %then %do;
-    &bytes
-  %end;
+  &bytes %end;
   %else %do;
-    %sysfunc(INPUTN(&bytes, best.),sizekmg.)
-  %end;
+  %sysfunc(INPUTN(&bytes, best.),sizekmg.) %end;
 
 %mend mf_getfilesize ;

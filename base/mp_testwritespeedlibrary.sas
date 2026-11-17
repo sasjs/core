@@ -24,41 +24,39 @@
 
 **/
 
-%macro mp_testwritespeedlibrary(lib=WORK
-  ,outds=work.results
-  ,size=0.1
-)/*/STORE SOURCE*/;
-%local ds start;
+%macro mp_testwritespeedlibrary(lib=WORK ,outds=work.results ,size=0.1
+  )/*/STORE SOURCE*/;
+  %local ds start;
 
-/* find an unused, unique name for the new table */
-%let ds=%mf_getuniquename();
-%do %until(%mf_existds(&lib..&ds)=0);
+  /* find an unused, unique name for the new table */
   %let ds=%mf_getuniquename();
-%end;
+  %do %until(%mf_existds(&lib..&ds)=0);
+    %let ds=%mf_getuniquename();
+  %end;
 
-%let start=%sysfunc(datetime());
+  %let start=%sysfunc(datetime());
 
-data &lib..&ds(compress=no keep=x);
-  header=128*1024;
-  size=(1073741824/8 * &size) - header;
-  do x=1 to size;
-    output;
-  end;
-run;
+  data &lib..&ds(compress=no keep=x);
+    header=128*1024;
+    size=(1073741824/8 * &size) - header;
+    do x=1 to size;
+      output;
+    end;
+  run;
 
-proc sql;
-drop table &lib..&ds;
+  proc sql;
+    drop table &lib..&ds;
 
-data &outds;
-  _start=&start;
-  _end=datetime();
-  lib="&lib";
-  start_dttm=put(_start,datetime19.);
-  end_dttm=put(_end,datetime19.);
-  /* both timestamps above are text, so the difference has to come from the
-    numeric values - subtracting the strings yields a missing value */
-  duration_seconds=_end-_start;
-  drop _start _end;
-run;
+  data &outds;
+    _start=&start;
+    _end=datetime();
+    lib="&lib";
+    start_dttm=put(_start,datetime19.);
+    end_dttm=put(_end,datetime19.);
+    /* both timestamps above are text, so the difference has to come from the
+      numeric values - subtracting the strings yields a missing value */
+    duration_seconds=_end-_start;
+    drop _start _end;
+  run;
 
 %mend mp_testwritespeedlibrary;

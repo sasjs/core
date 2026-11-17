@@ -31,27 +31,17 @@
 
 **/
 
-%macro mp_appendfile(
-  baseref=0,
-  appendrefs=0
-)/*/STORE SOURCE*/;
+%macro mp_appendfile( baseref=0, appendrefs=0 )/*/STORE SOURCE*/;
 
-%mp_abort(iftrue= (&baseref=0)
-  ,mac=&sysmacroname
-  ,msg=%str(Baseref NOT specified!)
-)
-%mp_abort(iftrue= (&appendrefs=0)
-  ,mac=&sysmacroname
-  ,msg=%str(Appendrefs NOT specified!)
-)
+  %mp_abort(iftrue=(&baseref=0) ,mac=&sysmacroname
+    ,msg=%str(Baseref NOT specified!) )
+  %mp_abort(iftrue=(&appendrefs=0) ,mac=&sysmacroname
+    ,msg=%str(Appendrefs NOT specified!) )
 
-%local i;
-%do i=1 %to %sysfunc(countw(&appendrefs));
-  %mp_abort(iftrue= (&syscc>0)
-    ,mac=&sysmacroname
-    ,msg=%str(syscc=&syscc)
-  )
-  %mp_binarycopy(inref=%scan(&appendrefs,&i), outref=&baseref, mode=APPEND)
-%end;
+  %local i;
+  %do i=1 %to %sysfunc(countw(&appendrefs));
+    %mp_abort(iftrue=(&syscc>0) ,mac=&sysmacroname ,msg=%str(syscc=&syscc) )
+    %mp_binarycopy(inref=%scan(&appendrefs,&i), outref=&baseref, mode=APPEND)
+  %end;
 
 %mend mp_appendfile;

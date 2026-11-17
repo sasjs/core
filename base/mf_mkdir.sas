@@ -12,12 +12,11 @@ Usage:
 
 **/
 
-%macro mf_mkdir(dir
-)/*/STORE SOURCE*/;
+%macro mf_mkdir(dir )/*/STORE SOURCE*/;
 
   %local lastchar child parent;
 
-  %let lastchar = %substr(&dir, %length(&dir));
+  %let lastchar=%substr(&dir, %length(&dir));
   %if (%bquote(&lastchar) eq %str(:)) %then %do;
     /* Cannot create drive mappings */
     %return;
@@ -31,14 +30,14 @@ Usage:
     %end;
     %else %do;
       /* strip last slash */
-      %let dir = %substr(&dir, 1, %length(&dir)-1);
+      %let dir=%substr(&dir, 1, %length(&dir)-1);
     %end;
   %end;
 
-  %if (%sysfunc(fileexist(%bquote(&dir))) = 0) %then %do;
+  %if (%sysfunc(fileexist(%bquote(&dir)))=0) %then %do;
     /* directory does not exist so prepare to create */
     /* first get the childmost directory */
-    %let child = %scan(&dir, -1, %str(/\:));
+    %let child=%scan(&dir, -1, %str(/\:));
 
     /*
       If child name = path name then there are no parents to create. Else
@@ -46,7 +45,7 @@ Usage:
     */
 
     %if (%length(&dir) gt %length(&child)) %then %do;
-      %let parent = %substr(&dir, 1, %length(&dir)-%length(&child));
+      %let parent=%substr(&dir, 1, %length(&dir)-%length(&child));
       %mf_mkdir(&parent)
     %end;
 
@@ -54,13 +53,13 @@ Usage:
       Now create the directory.  Complain loudly of any errs.
     */
 
-    %let dname = %sysfunc(dcreate(&child, &parent));
+    %let dname=%sysfunc(dcreate(&child, &parent));
     %if (%bquote(&dname) eq ) %then %do;
       %put %str(ERR)OR: could not create &parent + &child;
       %abort cancel;
     %end;
     %else %do;
-      %put Directory created:  &dir;
+      %put Directory created: &dir;
     %end;
   %end;
   /* exit quietly if directory did exist.*/

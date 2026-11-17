@@ -27,16 +27,13 @@
   @author Allan Bowe
 **/
 
-%macro mf_fmtdttm(
-)/*/STORE SOURCE*/;
+%macro mf_fmtdttm( )/*/STORE SOURCE*/;
 
-%if "&sysver"="9.2" or "&sysver"="9.3"
-  or ("&sysver"="9.4" and "%substr(&SYSVLONG,9,1)" le "3")
-  or "%substr(&sysver,1,1)"="4"
-  or "%substr(&sysver,1,1)"="5"
-%then %do;DATETIME19.3%end;
-%else %do;E8601DT26.6%end;
+  %if "&sysver"="9.2" or "&sysver"="9.3" or ("&sysver"="9.4" and
+    "%substr(&SYSVLONG,9,1)" le "3") or "%substr(&sysver,1,1)"="4" or
+    "%substr(&sysver,1,1)"="5" %then %do;
+  DATETIME19.3%end;
+  %else %do;
+  E8601DT26.6%end;
 
 %mend mf_fmtdttm;
-
-

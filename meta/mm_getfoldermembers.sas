@@ -37,60 +37,62 @@
   @author Allan Bowe
 
 **/
-%macro mm_getfoldermembers(
-    root=
-    ,outds=work.mm_getfoldertree
-)/*/STORE SOURCE*/;
+%macro mm_getfoldermembers( root=,outds=work.mm_getfoldertree
+  )/*/STORE SOURCE*/;
 
-%if "&root" = "/" %then %do;
-  %local fname1 fname2 fname3;
-  %let fname1=%mf_getuniquefileref();
-  %let fname2=%mf_getuniquefileref();
-  %let fname3=%mf_getuniquefileref();
-  data _null_ ;
-    file &fname1 ;
-    put '<GetMetadataObjects>' ;
-    put '<Reposid>$METAREPOSITORY</Reposid>' ;
-    put '<Type>Tree</Type>' ;
-    put '<NS>SAS</NS>' ;
-    put '<Flags>388</Flags>' ;
-    put '<Options>' ;
-    put '<XMLSelect search="Tree[SoftwareComponents/SoftwareComponent'@;
-    put '[@Name=''BIP Service'']]"/>';
-    put '</Options>' ;
-    put '</GetMetadataObjects>' ;
-  run ;
-  proc metadata in=&fname1 out=&fname2 verbose;run;
+  %if "&root"="/" %then %do;
+    %local fname1 fname2 fname3;
+    %let fname1=%mf_getuniquefileref();
+    %let fname2=%mf_getuniquefileref();
+    %let fname3=%mf_getuniquefileref();
 
-  /* create an XML map to read the response */
-  data _null_;
-    file &fname3;
-    put '<SXLEMAP version="1.2" name="SASFolders">';
-    put '<TABLE name="SASFolders">';
-    put '<TABLE-PATH syntax="XPath">//Objects/Tree</TABLE-PATH>';
-    put '<COLUMN name="metauri">><LENGTH>17</LENGTH>';
-    put '<PATH syntax="XPath">//Objects/Tree/@Id</PATH></COLUMN>';
-    put '<COLUMN name="metaname"><LENGTH>256</LENGTH>>';
-    put '<PATH syntax="XPath">//Objects/Tree/@Name</PATH></COLUMN>';
-    put '</TABLE></SXLEMAP>';
-  run;
-  %local libref1;
-  %let libref1=%mf_getuniquelibref();
-  libname &libref1 xml xmlfileref=&fname2 xmlmap=&fname3;
+    data _null_ ;
+      file &fname1 ;
+      put '<GetMetadataObjects>' ;
+      put '<Reposid>$METAREPOSITORY</Reposid>' ;
+      put '<Type>Tree</Type>' ;
+      put '<NS>SAS</NS>' ;
+      put '<Flags>388</Flags>' ;
+      put '<Options>' ;
+      put '<XMLSelect search="Tree[SoftwareComponents/SoftwareComponent'@;
+      put '[@Name=''BIP Service'']]"/>';
+      put '</Options>' ;
+      put '</GetMetadataObjects>' ;
+    run ;
 
-  data &outds;
-    length metatype $32;
-    retain metatype 'Folder';
-    set &libref1..sasfolders;
-  run;
+    proc metadata in=&fname1 out=&fname2 verbose;
+    run;
 
-%end;
-%else %do;
-  %mm_getfoldertree(root=&root, outds=&outds,depth=1)
-  data &outds;
-    set &outds(rename=(name=metaname publictype=metatype));
-    keep metaname metauri metatype;
-  run;
-%end;
+    /* create an XML map to read the response */
+    data _null_;
+      file &fname3;
+      put '<SXLEMAP version="1.2" name="SASFolders">';
+      put '<TABLE name="SASFolders">';
+      put '<TABLE-PATH syntax="XPath">//Objects/Tree</TABLE-PATH>';
+      put '<COLUMN name="metauri">><LENGTH>17</LENGTH>';
+      put '<PATH syntax="XPath">//Objects/Tree/@Id</PATH></COLUMN>';
+      put '<COLUMN name="metaname"><LENGTH>256</LENGTH>>';
+      put '<PATH syntax="XPath">//Objects/Tree/@Name</PATH></COLUMN>';
+      put '</TABLE></SXLEMAP>';
+    run;
+    %local libref1;
+    %let libref1=%mf_getuniquelibref();
+    libname &libref1 xml xmlfileref=&fname2 xmlmap=&fname3;
+
+    data &outds;
+      length metatype $32;
+      retain metatype 'Folder';
+      set &libref1..sasfolders;
+    run;
+
+  %end;
+  %else %do;
+    %mm_getfoldertree(root=&root, outds=&outds,depth=1)
+
+    data &outds;
+      set &outds(rename=(name=metaname publictype=metatype));
+      keep metaname metauri metatype;
+    run;
+  %end;
 
 %mend mm_getfoldermembers;

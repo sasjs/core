@@ -25,109 +25,107 @@
 
 **/
 
-%macro mm_updatestpsourcecode(stp=
-  ,stpcode=
-  ,minify=NO
-  ,mdebug=0
-);
+%macro mm_updatestpsourcecode(stp=,stpcode=,minify=NO ,mdebug=0 );
 
-/* first, check if STP exists */
-%local tsuri;
-%let tsuri=stopifempty ;
+  /* first, check if STP exists */
+  %local tsuri;
+  %let tsuri=stopifempty ;
 
-data _null_;
-  format type uri tsuri value $200.;
-  call missing (of _all_);
-  path="&stp.(StoredProcess)";
-  /* first, find the STP ID */
-  if metadata_pathobj("",path,"StoredProcess",type,uri)>0 then do;
-    /* get sourcecode */
-    cnt=1;
-    do while (metadata_getnasn(uri,"Notes",cnt,tsuri)>0);
-      rc=metadata_getattr(tsuri,"Name",value);
-    %if &mdebug=1 %then %do;
-      put tsuri= value=;
-    %end;
-      if value="SourceCode" then do;
-        /* found it! */
-        rc=metadata_getattr(tsuri,"Id",value);
-        call symputx('tsuri',value,'l');
-        stop;
+  data _null_;
+    format type uri tsuri value $200.;
+    call missing (of _all_);
+    path="&stp.(StoredProcess)";
+    /* first, find the STP ID */
+    if metadata_pathobj("",path,"StoredProcess",type,uri)>0 then do;
+      /* get sourcecode */
+      cnt=1;
+      do while (metadata_getnasn(uri,"Notes",cnt,tsuri)>0);
+        rc=metadata_getattr(tsuri,"Name",value);
+        %if &mdebug=1 %then %do;
+          put tsuri= value=;
+        %end;
+        if value="SourceCode" then do;
+          /* found it! */
+          rc=metadata_getattr(tsuri,"Id",value);
+          call symputx('tsuri',value,'l');
+          stop;
+        end;
+        cnt+1;
       end;
-      cnt+1;
     end;
-  end;
-  else put (_all_)(=);
-run;
+    else put (_all_)(=);
+  run;
 
-%if &tsuri=stopifempty %then %do;
-  %put %str(WARN)ING:  &stp.(StoredProcess) not found!;
-  %return;
-%end;
+  %if &tsuri=stopifempty %then %do;
+    %put %str(WARN)ING: &stp.(StoredProcess) not found!;
+    %return;
+  %end;
 
-%if %length(&stpcode)<2 %then %do;
-  %put %str(WARN)ING:  No SAS code supplied!!;
-  %return;
-%end;
+  %if %length(&stpcode)<2 %then %do;
+    %put %str(WARN)ING: No SAS code supplied!!;
+    %return;
+  %end;
 
-%local frefin frefout;
-%let frefin=%mf_getuniquefileref();
-%let frefout=%mf_getuniquefileref();
+  %local frefin frefout;
+  %let frefin=%mf_getuniquefileref();
+  %let frefout=%mf_getuniquefileref();
 
-/* write header XML */
-data _null_;
-  file &frefin;
-  put "<UpdateMetadata><Reposid>$METAREPOSITORY</Reposid>
+  /* write header XML */
+  data _null_;
+    file &frefin;
+    put
+      "<UpdateMetadata><Reposid>$METAREPOSITORY</Reposid>
     <Metadata><TextStore id='&tsuri' StoredText='";
-run;
-
-/* escape code so it can be stored as XML */
-/* write contents */
-%if %length(&stpcode)>2 %then %do;
-  data _null_;
-    file &frefin lrecl=32767 mod;
-    infile &stpcode lrecl=32767;
-    length outstr $32767;
-    input outstr ;
-    /* escape code so it can be stored as XML */
-    outstr=tranwrd(_infile_,'&','&amp;');
-    outstr=tranwrd(outstr,'<','&lt;');
-    outstr=tranwrd(outstr,'>','&gt;');
-    outstr=tranwrd(outstr,"'",'&apos;');
-    outstr=tranwrd(outstr,'"','&quot;');
-    outstr=tranwrd(outstr,'0A'x,'&#x0a;');
-    outstr=tranwrd(outstr,'0D'x,'&#x0d;');
-    outstr=tranwrd(outstr,'$','&#36;');
-    %if &minify=YES %then %do;
-      outstr=cats(outstr);
-      if outstr ne '';
-      if not (outstr=:'/*' and subpad(left(reverse(outstr)),1,2)='/*');
-    %end;
-    outstr=trim(outstr);
-    put outstr '&#10;';
   run;
-%end;
 
-data _null_;
-  file &frefin mod;
-  put "'></TextStore></Metadata><NS>SAS</NS><Flags>268435456</Flags>
+  /* escape code so it can be stored as XML */
+  /* write contents */
+  %if %length(&stpcode)>2 %then %do;
+    data _null_;
+      file &frefin lrecl=32767 mod;
+      infile &stpcode lrecl=32767;
+      length outstr $32767;
+      input outstr ;
+      /* escape code so it can be stored as XML */
+      outstr=tranwrd(_infile_,'&','&amp;');
+      outstr=tranwrd(outstr,'<','&lt;');
+      outstr=tranwrd(outstr,'>','&gt;');
+      outstr=tranwrd(outstr,"'",'&apos;');
+      outstr=tranwrd(outstr,'"','&quot;');
+      outstr=tranwrd(outstr,'0A'x,'&#x0a;');
+      outstr=tranwrd(outstr,'0D'x,'&#x0d;');
+      outstr=tranwrd(outstr,'$','&#36;');
+      %if &minify=YES %then %do;
+        outstr=cats(outstr);
+        if outstr ne '';
+        if not (outstr=:'/*' and subpad(left(reverse(outstr)),1,2)='/*');
+      %end;
+      outstr=trim(outstr);
+      put outstr '&#10;';
+    run;
+  %end;
+
+  data _null_;
+    file &frefin mod;
+    put
+      "'></TextStore></Metadata><NS>SAS</NS><Flags>268435456</Flags>
     </UpdateMetadata>";
-run;
-
-proc metadata in= &frefin out=&frefout;
-run;
-
-%if &mdebug=1 %then %do;
-  /* write the response to the log for debugging */
-  data _null_;
-    infile &frefout lrecl=32767;
-    input;
-    put _infile_;
   run;
-%end;
-%else %do;
-  filename &frefin clear;
-  filename &frefout clear;
-%end;
+
+  proc metadata in=&frefin out=&frefout;
+  run;
+
+  %if &mdebug=1 %then %do;
+    /* write the response to the log for debugging */
+    data _null_;
+      infile &frefout lrecl=32767;
+      input;
+      put _infile_;
+    run;
+  %end;
+  %else %do;
+    filename &frefin clear;
+    filename &frefout clear;
+  %end;
 
 %mend mm_updatestpsourcecode;

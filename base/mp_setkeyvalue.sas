@@ -25,7 +25,7 @@
 **/
 
 %macro mp_setkeyvalue(key,value,type=C,libds=work.mp_setkeyvalue
-)/*/STORE SOURCE*/;
+  )/*/STORE SOURCE*/;
 
   %if not (%mf_existds(&libds)) %then %do;
     data &libds (index=(key/unique));
@@ -36,19 +36,12 @@
   %end;
 
   proc sql;
-    delete from &libds
-      where key=symget('key');
-    insert into &libds
-      set key=symget('key')
-  %if &type=C %then %do;
-        ,valc=symget('value')
-        ,type='C'
-  %end;
-  %else %do;
-        ,valn=symgetn('value')
-        ,type='N'
-  %end;
-  ;
+    delete from &libds where key=symget('key');
+    insert into &libds set key=symget('key') %if &type=C %then %do;
+    ,valc=symget('value') ,type='C' %end;
+    %else %do;
+    ,valn=symgetn('value') ,type='N' %end;
+    ;
 
   quit;
 

@@ -42,50 +42,39 @@
 
 **/
 
-%macro mp_recursivejoin(base_ds=
-    ,outds=
-    ,matchval=
-    ,parentvar=
-    ,childvar=
-    ,iter= /* reserved for internal / recursive use by the macro itself */
-    ,maxiter=500 /* avoid infinite loop */
-    ,mDebug=0);
+%macro mp_recursivejoin(base_ds=,outds=,matchval=,parentvar=,childvar=,iter=
+  /* reserved for internal / recursive use by the macro itself */ ,maxiter=500
+  /* avoid infinite loop */ ,mDebug=0);
 
-%if &iter= %then %do;
-  proc sql;
-  create table &outds as
-    select 0 as level,&parentvar, &childvar
-    from &base_ds
-    where &parentvar=&matchval;
-  %if &sqlobs.=0 %then %do;
-    %put NOTE: &sysmacroname: No match for &parentvar=&matchval;
-    %return;
-  %end;
-  %let iter=1;
-%end;
-%else %if &iter>&maxiter %then %return;
+  %if &iter=%then %do;
+    proc sql;
+      create table &outds as select 0 as level,&parentvar, &childvar from
+        &base_ds where &parentvar=&matchval;
+      %if &sqlobs.=0 %then %do;
+        %put NOTE: &sysmacroname: No match for &parentvar=&matchval;
+        %return;
+      %end;
+      %let iter=1;
+      %end;
+      %else %if &iter>&maxiter %then %return;
 
-proc sql;
-create table _data_ as
-  select &iter as level
-    ,curr.&childvar as &parentvar
-    ,base_ds.&childvar as &childvar
-  from &outds curr
-  left join &base_ds base_ds
-  on  curr.&childvar=base_ds.&parentvar
-  where curr.level=%eval(&iter.-1)
-    & curr.&childvar is not null;
-%local append_ds; %let append_ds=&syslast;
-%local obs; %let obs=&sqlobs;
-insert into &outds select distinct * from &append_ds;
-%if &mdebug=0 %then drop table &append_ds;;
+    proc sql;
+      create table _data_ as select &iter as level ,curr.&childvar as &parentvar
+        ,base_ds.&childvar as &childvar from &outds curr left join &base_ds
+        base_ds on curr.&childvar=base_ds.&parentvar where
+        curr.level=%eval(&iter.-1) & curr.&childvar is not null;
+      %local append_ds;
+      %let append_ds=&syslast;
+      %local obs;
+      %let obs=&sqlobs;
+      insert into &outds select distinct * from &append_ds;
+      %if &mdebug=0 %then drop table &append_ds;
+      ;
 
-%if &obs %then %do;
-  %mp_recursivejoin(iter=%eval(&iter.+1)
-    ,outds=&outds,parentvar=&parentvar
-    ,childvar=&childvar
-    ,base_ds=&base_ds
-    )
-%end;
+      %if &obs %then %do;
+        %mp_recursivejoin(iter=%eval(&iter.+1)
+          ,outds=&outds,parentvar=&parentvar ,childvar=&childvar
+          ,base_ds=&base_ds )
+      %end;
 
-%mend mp_recursivejoin;
+      %mend mp_recursivejoin;

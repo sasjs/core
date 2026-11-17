@@ -29,29 +29,29 @@
 
 **/
 
-%macro mp_assert(iftrue=(1=1),
-  desc=0,
-  outds=work.test_results
-)/*/STORE SOURCE*/;
+%macro mp_assert(iftrue=(1=1), desc=0, outds=work.test_results
+  )/*/STORE SOURCE*/;
 
   data ;
     length test_result $5 test_description $256 test_comments $256;
     test_description=symget('desc');
     test_comments="&sysmacroname: Test result of "!!symget('iftrue');
-  %if %eval(%unquote(&iftrue)) %then %do;
-    test_result='PASS';
-  %end;
-  %else %do;
-    test_result='FAIL';
-  %end;
+    %if %eval(%unquote(&iftrue)) %then %do;
+      test_result='PASS';
+    %end;
+    %else %do;
+      test_result='FAIL';
+    %end;
   run;
 
   %local ds ;
   %let ds=&syslast;
+
   proc append base=&outds data=&ds;
   run;
+
   proc sql;
-  drop table &ds;
+    drop table &ds;
   quit;
 
 %mend mp_assert;

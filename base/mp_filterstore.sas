@@ -79,191 +79,154 @@
   @sasjslint {"maxLineLength": 167}
 **/
 
-%macro mp_filterstore(libds=,
-  targetds=,
-  queryds=work.filterquery,
-  filter_summary=PERM.FILTER_SUMMARY,
-  filter_detail=PERM.FILTER_DETAIL,
-  lock_table=PERM.LOCK_TABLE,
-  maxkeytable=PERM.MAXKEYTABLE,
-  outresult=work.result,
-  outquery=work.query,
-  mdebug=1
-);
-%put &sysmacroname entry vars:;
-%put _local_;
+%macro mp_filterstore(libds=, targetds=, queryds=work.filterquery,
+  filter_summary=PERM.FILTER_SUMMARY, filter_detail=PERM.FILTER_DETAIL,
+  lock_table=PERM.LOCK_TABLE, maxkeytable=PERM.MAXKEYTABLE,
+  outresult=work.result, outquery=work.query, mdebug=1 );
+  %put &sysmacroname entry vars:;
+  %put _local_;
 
-%local ds0 ds1 ds2 ds3 ds4 filter_hash orig_libds targetds_used;
-%let libds=%upcase(&libds);
-%let orig_libds=&libds;
+  %local ds0 ds1 ds2 ds3 ds4 filter_hash orig_libds targetds_used;
+  %let libds=%upcase(&libds);
+  %let orig_libds=&libds;
 
-%mp_abort(iftrue= (&syscc ne 0)
-  ,mac=mp_filterstore
-  ,msg=%str(syscc=&syscc on macro entry)
-)
-%mp_abort(iftrue= (%mf_islibds(&filter_summary)=0)
-  ,mac=mp_filterstore
-  ,msg=%str(Invalid filter_summary value: &filter_summary)
-)
-%mp_abort(iftrue= (%mf_islibds(&filter_detail)=0)
-  ,mac=mp_filterstore
-  ,msg=%str(Invalid filter_detail value: &filter_detail)
-)
-%mp_abort(iftrue= (%mf_islibds(&lock_table)=0)
-  ,mac=mp_filterstore
-  ,msg=%str(Invalid lock_table value: &lock_table)
-)
+  %mp_abort(iftrue=(&syscc ne 0) ,mac=mp_filterstore
+    ,msg=%str(syscc=&syscc on macro entry) )
+  %mp_abort(iftrue=(%mf_islibds(&filter_summary)=0) ,mac=mp_filterstore
+    ,msg=%str(Invalid filter_summary value: &filter_summary) )
+  %mp_abort(iftrue=(%mf_islibds(&filter_detail)=0) ,mac=mp_filterstore
+    ,msg=%str(Invalid filter_detail value: &filter_detail) )
+  %mp_abort(iftrue=(%mf_islibds(&lock_table)=0) ,mac=mp_filterstore
+    ,msg=%str(Invalid lock_table value: &lock_table) )
 
-/**
-  * validate query
-  * use format catalog export, if a format
-  */
-%if "%substr(&libds,%length(&libds)-2,3)"="-FC" %then %do;
-  %let libds=%scan(&libds,1,-); /* chop off -FC extension */
-  %let ds0=%mf_getuniquename(prefix=fmtds_);
-  %let libds=&ds0;
-  /*
-    There is no need to export the entire format catalog here - the validations
-    are done against the data model, not the data values.  So we can simply
-    hardcode the structure based on the cntlout dataset.
-  */
-  %mddl_sas_cntlout(libds=&ds0)
+  /**
+    * validate query
+    * use format catalog export, if a format
+    */
+  %if "%substr(&libds,%length(&libds)-2,3)"="-FC" %then %do;
+    %let libds=%scan(&libds,1,-); /* chop off -FC extension */
+    %let ds0=%mf_getuniquename(prefix=fmtds_);
+    %let libds=&ds0;
+    /*
+      There is no need to export the entire format catalog here - the validations
+      are done against the data model, not the data values.  So we can simply
+      hardcode the structure based on the cntlout dataset.
+    */
+    %mddl_sas_cntlout(libds=&ds0)
 
-%end;
-
-/* the validation target defaults to the (possibly rewritten) libds, so that
-  computed columns can be validated against a view when required */
-%if %length(&targetds)>0 %then %let targetds_used=&targetds;
-%else %let targetds_used=&libds;
-
-%mp_filtercheck(&queryds,targetds=&targetds_used,abort=YES)
-
-/* hash the result */
-%let ds1=%mf_getuniquename(prefix=hashds);
-%mp_hashdataset(&queryds,outds=&ds1,salt=&orig_libds)
-%let filter_hash=%upcase(%mf_getvalue(&ds1,hashkey));
-%if &mdebug=1 %then %do;
-  data _null_;
-    putlog "filter_hash=&filter_hash";
-    set &ds1;
-    putlog (_all_)(=);
-  run;
-%end;
-
-/* check if data already exists for this hash */
-data &outresult;
-  set &filter_summary;
-  where filter_hash="&filter_hash";
-run;
-
-%mp_abort(iftrue= (&syscc ne 0)
-  ,mac=mp_filterstore
-  ,msg=%str(syscc=&syscc after hash check)
-)
-%mp_abort(iftrue= ("&filter_hash "=" ")
-  ,mac=mp_filterstore
-  ,msg=%str(problem with filter_hash generation)
-)
-
-%if %mf_nobs(&outresult)=0 %then %do;
-
-  /* first update summary table */
-  %let ds3=%mf_getuniquename(prefix=filtersum);
-  data work.&ds3;
-    if 0 then set &filter_summary;
-    filter_table="&orig_libds";
-    filter_hash="&filter_hash";
-    PROCESSED_DTTM=%sysfunc(datetime());
-    output;
-    stop;
-  run;
-
-  %mp_lockanytable(LOCK,
-    lib=%scan(&filter_summary,1,.)
-    ,ds=%scan(&filter_summary,2,.)
-    ,ref=MP_FILTERSTORE summary update - &filter_hash
-    ,ctl_ds=&lock_table
-  )
-
-  %let ds4=%mf_getuniquename(prefix=filtersumappend);
-  %mp_retainedkey(
-    base_lib=%scan(&filter_summary,1,.)
-    ,base_dsn=%scan(&filter_summary,2,.)
-    ,append_lib=work
-    ,append_dsn=&ds3
-    ,retained_key=filter_rk
-    ,business_key=filter_hash
-    ,maxkeytable=&maxkeytable
-    ,locktable=&lock_table
-    ,outds=work.&ds4
-  )
-  proc append base=&filter_summary data=&ds4;
-  run;
-
-  %mp_lockanytable(UNLOCK,
-    lib=%scan(&filter_summary,1,.)
-    ,ds=%scan(&filter_summary,2,.)
-    ,ref=MP_FILTERSTORE summary update - &filter_hash
-    ,ctl_ds=&lock_table
-  )
-
-  %if &syscc ne 0 %then %do;
-    data _null_;
-      set &ds4;
-      putlog (_all_)(=);
-    run;
-    %goto err;
   %end;
 
+  /* the validation target defaults to the (possibly rewritten) libds, so that
+    computed columns can be validated against a view when required */
+  %if %length(&targetds)>0 %then %let targetds_used=&targetds;
+  %else %let targetds_used=&libds;
+
+  %mp_filtercheck(&queryds,targetds=&targetds_used,abort=YES)
+
+  /* hash the result */
+  %let ds1=%mf_getuniquename(prefix=hashds);
+  %mp_hashdataset(&queryds,outds=&ds1,salt=&orig_libds)
+  %let filter_hash=%upcase(%mf_getvalue(&ds1,hashkey));
+  %if &mdebug=1 %then %do;
+    data _null_;
+      putlog "filter_hash=&filter_hash";
+      set &ds1;
+      putlog (_all_)(=);
+    run;
+  %end;
+
+  /* check if data already exists for this hash */
   data &outresult;
     set &filter_summary;
     where filter_hash="&filter_hash";
   run;
 
-  /* Next, update detail table */
-  %let ds2=%mf_getuniquename(prefix=filterdetail);
-  data &ds2;
-    if 0 then set &filter_detail;
-    set &queryds;
-    format filter_hash $hex32. filter_line 8.;
-    filter_hash="&filter_hash";
-    filter_line=_n_;
-    PROCESSED_DTTM=%sysfunc(datetime());
-  run;
-  %mp_lockanytable(LOCK,
-    lib=%scan(&filter_detail,1,.)
-    ,ds=%scan(&filter_detail,2,.)
-    ,ref=MP_FILTERSTORE update - &filter_hash
-    ,ctl_ds=&lock_table
-  )
-  proc append base=&filter_detail data=&ds2;
-  run;
+  %mp_abort(iftrue=(&syscc ne 0) ,mac=mp_filterstore
+    ,msg=%str(syscc=&syscc after hash check) )
+  %mp_abort(iftrue=("&filter_hash "=" ") ,mac=mp_filterstore
+    ,msg=%str(problem with filter_hash generation) )
 
-  %mp_lockanytable(UNLOCK,
-    lib=%scan(&filter_detail,1,.)
-    ,ds=%scan(&filter_detail,2,.)
-    ,ref=MP_FILTERSTORE detail update &filter_hash
-    ,ctl_ds=&lock_table
-  )
+  %if %mf_nobs(&outresult)=0 %then %do;
 
-  %if &syscc ne 0 %then %do;
-    data _null_;
-      set &ds2;
-      putlog (_all_)(=);
+    /* first update summary table */
+    %let ds3=%mf_getuniquename(prefix=filtersum);
+
+    data work.&ds3;
+      if 0 then set &filter_summary;
+      filter_table="&orig_libds";
+      filter_hash="&filter_hash";
+      PROCESSED_DTTM=%sysfunc(datetime());
+      output;
+      stop;
     run;
-    %goto err;
+
+    %mp_lockanytable(LOCK, lib=%scan(&filter_summary,1,.)
+      ,ds=%scan(&filter_summary,2,.) ,ref=MP_FILTERSTORE summary update -
+      &filter_hash ,ctl_ds=&lock_table )
+
+    %let ds4=%mf_getuniquename(prefix=filtersumappend);
+    %mp_retainedkey( base_lib=%scan(&filter_summary,1,.)
+      ,base_dsn=%scan(&filter_summary,2,.) ,append_lib=work ,append_dsn=&ds3
+      ,retained_key=filter_rk ,business_key=filter_hash
+      ,maxkeytable=&maxkeytable ,locktable=&lock_table ,outds=work.&ds4 )
+
+    proc append base=&filter_summary data=&ds4;
+    run;
+
+    %mp_lockanytable(UNLOCK, lib=%scan(&filter_summary,1,.)
+      ,ds=%scan(&filter_summary,2,.) ,ref=MP_FILTERSTORE summary update -
+      &filter_hash ,ctl_ds=&lock_table )
+
+    %if &syscc ne 0 %then %do;
+      data _null_;
+        set &ds4;
+        putlog (_all_)(=);
+      run;
+      %goto err;
+    %end;
+
+    data &outresult;
+      set &filter_summary;
+      where filter_hash="&filter_hash";
+    run;
+
+    /* Next, update detail table */
+    %let ds2=%mf_getuniquename(prefix=filterdetail);
+
+    data &ds2;
+      if 0 then set &filter_detail;
+      set &queryds;
+      format filter_hash $hex32. filter_line 8.;
+      filter_hash="&filter_hash";
+      filter_line=_n_;
+      PROCESSED_DTTM=%sysfunc(datetime());
+    run;
+    %mp_lockanytable(LOCK, lib=%scan(&filter_detail,1,.)
+      ,ds=%scan(&filter_detail,2,.) ,ref=MP_FILTERSTORE update - &filter_hash
+      ,ctl_ds=&lock_table )
+
+    proc append base=&filter_detail data=&ds2;
+    run;
+
+    %mp_lockanytable(UNLOCK, lib=%scan(&filter_detail,1,.)
+      ,ds=%scan(&filter_detail,2,.) ,ref=MP_FILTERSTORE detail update
+      &filter_hash ,ctl_ds=&lock_table )
+
+    %if &syscc ne 0 %then %do;
+      data _null_;
+        set &ds2;
+        putlog (_all_)(=);
+      run;
+      %goto err;
+    %end;
+
   %end;
 
-%end;
+  proc sort data=&filter_detail(where=(filter_hash="&filter_hash"))
+    out=&outquery;
+    by filter_line;
+  run;
 
-proc sort data=&filter_detail(where=(filter_hash="&filter_hash")) out=&outquery;
-  by filter_line;
-run;
-
-%err:
-%mp_abort(iftrue= (&syscc ne 0)
-  ,mac=mp_filterstore
-  ,msg=%str(syscc=&syscc on macro exit)
-)
-
+  %err: %mp_abort(iftrue=(&syscc ne 0) ,mac=mp_filterstore
+    ,msg=%str(syscc=&syscc on macro exit) )
 %mend mp_filterstore;

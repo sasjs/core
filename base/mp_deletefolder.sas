@@ -45,7 +45,7 @@
 
     /* ensure top level folder is removed at the end */
     proc sql;
-    insert into work.&tempds set filepath="&folder";
+      insert into work.&tempds set filepath="&folder";
 
     /* delete everything */
     data _null_;
@@ -56,15 +56,15 @@
       rc=fdelete(fref);
       if rc then do;
         msg=sysmsg();
-        put "&sysmacroname:" / rc= / msg= / filepath=;
+        put "&sysmacroname:" / rc=/ msg=/ filepath=;
       end;
       rc=filename(fref);
     run;
 
     /* tidy up */
     proc sql;
-    drop table work.&tempds;
+      drop table work.&tempds;
 
-  %end;
-  %else %put &sysmacroname: &folder: is not a valid / accessible folder. ;
-%mend mp_deletefolder;
+      %end;
+      %else %put &sysmacroname: &folder: is not a valid / accessible folder. ;
+    %mend mp_deletefolder;

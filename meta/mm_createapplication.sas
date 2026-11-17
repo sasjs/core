@@ -44,116 +44,102 @@
 
 **/
 
-%macro mm_createapplication(
-    tree=/User Folders/sasdemo
-    ,name=myApp
-    ,ClassIdentifier=mcore
-    ,desc=Created by mm_createapplication
-    ,params= param1=1&#x0a;param2=blah
-    ,version=
-    ,frefin=mm_in
-    ,frefout=mm_out
-    ,mDebug=1
-    );
+%macro mm_createapplication( tree=/User Folders/sasdemo ,name=myApp
+  ,ClassIdentifier=mcore ,desc=Created by mm_createapplication ,params=
+  param1=1&#x0a;
+  param2=blah ,version=,frefin=mm_in ,frefout=mm_out ,mDebug=1 );
 
-%local mD;
-%if &mDebug=1 %then %let mD=;
-%else %let mD=%str(*);
-%&mD.put Executing &sysmacroname..sas;
-%&mD.put _local_;
+  %local mD;
+  %if &mDebug=1 %then %let mD=;
+  %else %let mD=%str(*);
+  %&mD.put Executing &sysmacroname..sas;
+  %&mD.put _local_;
 
-%mp_abort(iftrue= (%mf_verifymacvars(tree name)=0)
-  ,mac=&sysmacroname
-  ,msg=%str(Empty inputs: tree name)
-)
+  %mp_abort(iftrue=(%mf_verifymacvars(tree name)=0) ,mac=&sysmacroname
+    ,msg=%str(Empty inputs: tree name) )
 
-/**
-  * check tree exists
-  */
+  /**
+    * check tree exists
+    */
 
-data _null_;
-  length type uri $256;
-  rc=metadata_pathobj("","&tree","Folder",type,uri);
-  call symputx('type',type,'l');
-  call symputx('treeuri',uri,'l');
-run;
-
-%mp_abort(
-  iftrue= (&type ne Tree)
-  ,mac=mm_createapplication.sas
-  ,msg=Tree &tree does not exist!
-)
-
-/**
-  * Check object does not exist already
-  */
-data _null_;
-  length type uri $256;
-  rc=metadata_pathobj("","&tree/&name","Application",type,uri);
-  call symputx('type',type,'l');
-  putlog (_all_)(=);
-run;
-
-%mp_abort(
-  iftrue= (&type = SoftwareComponent)
-  ,mac=mm_createapplication.sas
-  ,msg=Application &name already exists in &tree!
-)
-
-/**
-  * Now we can create the application
-  */
-filename &frefin temp;
-
-/* write header XML */
-data _null_;
-  file &frefin;
-  name=quote(symget('name'));
-  desc=quote(symget('desc'));
-  ClassIdentifier=quote(symget('ClassIdentifier'));
-  version=quote(symget('version'));
-  params=quote(symget('params'));
-  treeuri=quote(symget('treeuri'));
-
-  put "<AddMetadata><Reposid>$METAREPOSITORY</Reposid><Metadata> "/
-    '<SoftwareComponent IsHidden="0" Name=' name ' ProductName=' name /
-    '  ClassIdentifier=' ClassIdentifier ' Desc=' desc /
-    '  SoftwareVersion=' version '  SpecVersion=' version /
-    '  Major="1" Minor="1" UsageVersion="1000000" PublicType="Application" >' /
-    '  <Notes>' /
-    '    <TextStore Name="Public Configuration Properties" IsHidden="0" ' /
-    '       UsageVersion="0" StoredText=' params '/>' /
-    '  </Notes>' /
-    "<Trees><Tree ObjRef=" treeuri "/></Trees>"/
-    "</SoftwareComponent></Metadata><NS>SAS</NS>"/
-    "<Flags>268435456</Flags></AddMetadata>";
-run;
-
-filename &frefout temp;
-
-proc metadata in= &frefin out=&frefout verbose;
-run;
-
-%if &mdebug=1 %then %do;
-  /* write the response to the log for debugging */
   data _null_;
-    infile &frefout lrecl=1048576;
-    input;
-    put _infile_;
+    length type uri $256;
+    rc=metadata_pathobj("","&tree","Folder",type,uri);
+    call symputx('type',type,'l');
+    call symputx('treeuri',uri,'l');
   run;
-%end;
 
-%put NOTE: Checking to ensure application (&name) was created;
-data _null_;
-  length type uri $256;
-  rc=metadata_pathobj("","&tree/&name","Application",type,uri);
-  call symputx('apptype',type,'l');
-  %if &mdebug=1 %then putlog (_all_)(=);;
-run;
-%if &apptype ne SoftwareComponent %then %do;
-  %put %str(ERR)OR: Could not find (&name) at (&tree)!!;
-  %return;
-%end;
-%else %put NOTE: Application (&name) successfully created in (&tree)!;
+  %mp_abort( iftrue=(&type ne Tree) ,mac=mm_createapplication.sas ,msg=Tree
+    &tree does not exist! )
+
+  /**
+    * Check object does not exist already
+    */
+  data _null_;
+    length type uri $256;
+    rc=metadata_pathobj("","&tree/&name","Application",type,uri);
+    call symputx('type',type,'l');
+    putlog (_all_)(=);
+  run;
+
+  %mp_abort( iftrue=(&type=SoftwareComponent) ,mac=mm_createapplication.sas
+    ,msg=Application &name already exists in &tree! )
+
+  /**
+    * Now we can create the application
+    */
+  filename &frefin temp;
+
+  /* write header XML */
+  data _null_;
+    file &frefin;
+    name=quote(symget('name'));
+    desc=quote(symget('desc'));
+    ClassIdentifier=quote(symget('ClassIdentifier'));
+    version=quote(symget('version'));
+    params=quote(symget('params'));
+    treeuri=quote(symget('treeuri'));
+
+    put "<AddMetadata><Reposid>$METAREPOSITORY</Reposid><Metadata> "/
+      '<SoftwareComponent IsHidden="0" Name=' name ' ProductName=' name /
+      '  ClassIdentifier=' ClassIdentifier ' Desc=' desc / '  SoftwareVersion='
+      version '  SpecVersion=' version /
+      '  Major="1" Minor="1" UsageVersion="1000000" PublicType="Application" >'
+      / '  <Notes>' /
+      '    <TextStore Name="Public Configuration Properties" IsHidden="0" ' /
+      '       UsageVersion="0" StoredText=' params '/>' / '  </Notes>' /
+      "<Trees><Tree ObjRef=" treeuri "/></Trees>"/
+      "</SoftwareComponent></Metadata><NS>SAS</NS>"/
+      "<Flags>268435456</Flags></AddMetadata>";
+  run;
+
+  filename &frefout temp;
+
+  proc metadata in=&frefin out=&frefout verbose;
+  run;
+
+  %if &mdebug=1 %then %do;
+    /* write the response to the log for debugging */
+    data _null_;
+      infile &frefout lrecl=1048576;
+      input;
+      put _infile_;
+    run;
+  %end;
+
+  %put NOTE: Checking to ensure application (&name) was created;
+
+  data _null_;
+    length type uri $256;
+    rc=metadata_pathobj("","&tree/&name","Application",type,uri);
+    call symputx('apptype',type,'l');
+    %if &mdebug=1 %then putlog (_all_)(=);
+    ;
+  run;
+  %if &apptype ne SoftwareComponent %then %do;
+    %put %str(ERR)OR: Could not find (&name) at (&tree)!!;
+    %return;
+  %end;
+  %else %put NOTE: Application (&name) successfully created in (&tree)!;
 
 %mend mm_createapplication;

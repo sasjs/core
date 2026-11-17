@@ -31,61 +31,59 @@
   @sasjslint {"maxLineLength": 107}
 **/
 
-%macro mp_unzip(
-  ziploc=
-  ,outdir=%sysfunc(pathname(work))
-)/*/STORE SOURCE*/;
+%macro mp_unzip( ziploc=,outdir=%sysfunc(pathname(work)) )/*/STORE SOURCE*/;
 
-%local f1 f2 ;
-%let f1=%mf_getuniquefileref();
-%let f2=%mf_getuniquefileref();
+  %local f1 f2 ;
+  %let f1=%mf_getuniquefileref();
+  %let f2=%mf_getuniquefileref();
 
-/* Macro variable &datazip would be read from the file */
-filename &f1 ZIP &ziploc;
+  /* Macro variable &datazip would be read from the file */
+  filename &f1 ZIP &ziploc;
 
-/* create target folder */
-%mf_mkdir(&outdir)
+  /* create target folder */
+  %mf_mkdir(&outdir)
 
-/* Read the "members" (files) from the ZIP file */
-data _data_(keep=memname isFolder);
-  length memname $200 isFolder 8;
-  fid=dopen("&f1");
-  if fid=0 then stop;
-  memcount=dnum(fid);
-  do i=1 to memcount;
-    memname=dread(fid,i);
-    /* check for trailing / in folder name */
-    isFolder = (first(reverse(trim(memname)))='/');
-    output;
-  end;
-  rc=dclose(fid);
-run;
+  /* Read the "members" (files) from the ZIP file */
+  data _data_(keep=memname isFolder);
+    length memname $200 isFolder 8;
+    fid=dopen("&f1");
+    if fid=0 then stop;
+    memcount=dnum(fid);
+    do i=1 to memcount;
+      memname=dread(fid,i);
+      /* check for trailing / in folder name */
+      isFolder=(first(reverse(trim(memname)))='/');
+      output;
+    end;
+    rc=dclose(fid);
+  run;
 
-filename &f2 temp;
+  filename &f2 temp;
 
-/* loop through each entry and either create the subfolder or extract member */
-data _null_;
-  set &syslast;
-  file &f2;
-  if isFolder then call execute('%mf_mkdir(&outdir/'!!memname!!')');
-  else do;
-    qname=quote(cats("&outdir/",memname));
-    bname=cats('(',memname,')');
-    put '/* hat tip: "data _null_" on SAS-L */';
-    put 'data _null_;';
-    put '  infile &f1 ' bname ' lrecl=256 recfm=F length=length eof=eof unbuf;';
-    put '  file ' qname ' lrecl=256 recfm=N;';
-    put '  input;';
-    put '  put _infile_ $varying256. length;';
-    put '  return;';
-    put 'eof:';
-    put '  stop;';
-    put 'run;';
-  end;
-run;
+  /* loop through each entry and either create the subfolder or extract member */
+  data _null_;
+    set &syslast;
+    file &f2;
+    if isFolder then call execute('%mf_mkdir(&outdir/'!!memname!!')');
+    else do;
+      qname=quote(cats("&outdir/",memname));
+      bname=cats('(',memname,')');
+      put '/* hat tip: "data _null_" on SAS-L */';
+      put 'data _null_;';
+      put '  infile &f1 ' bname
+        ' lrecl=256 recfm=F length=length eof=eof unbuf;';
+      put '  file ' qname ' lrecl=256 recfm=N;';
+      put '  input;';
+      put '  put _infile_ $varying256. length;';
+      put '  return;';
+      put 'eof:';
+      put '  stop;';
+      put 'run;';
+    end;
+  run;
 
-%inc &f2/source2;
+  %inc &f2/source2;
 
-filename &f2 clear;
+  filename &f2 clear;
 
 %mend mp_unzip;

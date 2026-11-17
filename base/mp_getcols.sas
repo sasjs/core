@@ -36,35 +36,38 @@
 **/
 
 %macro mp_getcols(ds, outds=work.cols);
-%local dropds;
-proc contents noprint data=&ds
-  out=_data_ (keep=name type length label varnum format:);
-run;
-%let dropds=&syslast;
-data &outds(keep=name type length varnum format label ddtype fmtname);
-  set &dropds(rename=(format=fmtname type=type2));
-  name=upcase(name);
-  if type2=2 then do;
-    length format $49.;
-    if fmtname='' then format=cats('$',length,'.');
-    else if formatl=0 then format=cats(fmtname,'.');
-    else format=cats(fmtname,formatl,'.');
-    type='C';
-    ddtype='CHARACTER';
-  end;
-  else do;
-    if fmtname='' then format=cats(length,'.');
-    else if formatl=0 then format=cats(fmtname,'.');
-    else if formatd=0 then format=cats(fmtname,formatl,'.');
-    else format=cats(fmtname,formatl,'.',formatd);
-    type='N';
-    if upcase(fmtname) in (%mf_dttmfmts(DATETIME)) then ddtype='DATETIME';
-    else if upcase(fmtname) in (%mf_dttmfmts(DATE)) then ddtype='DATE';
-    else if upcase(fmtname) in (%mf_dttmfmts(TIME)) then ddtype='TIME';
-    else ddtype='NUMERIC';
-  end;
-  if label='' then label=name;
-run;
-proc sql;
-drop table &dropds;
+  %local dropds;
+
+  proc contents noprint data=&ds out=_data_ (keep=name type length label varnum
+    format:);
+  run;
+  %let dropds=&syslast;
+
+  data &outds(keep=name type length varnum format label ddtype fmtname);
+    set &dropds(rename=(format=fmtname type=type2));
+    name=upcase(name);
+    if type2=2 then do;
+      length format $49.;
+      if fmtname='' then format=cats('$',length,'.');
+      else if formatl=0 then format=cats(fmtname,'.');
+      else format=cats(fmtname,formatl,'.');
+      type='C';
+      ddtype='CHARACTER';
+    end;
+    else do;
+      if fmtname='' then format=cats(length,'.');
+      else if formatl=0 then format=cats(fmtname,'.');
+      else if formatd=0 then format=cats(fmtname,formatl,'.');
+      else format=cats(fmtname,formatl,'.',formatd);
+      type='N';
+      if upcase(fmtname) in (%mf_dttmfmts(DATETIME)) then ddtype='DATETIME';
+      else if upcase(fmtname) in (%mf_dttmfmts(DATE)) then ddtype='DATE';
+      else if upcase(fmtname) in (%mf_dttmfmts(TIME)) then ddtype='TIME';
+      else ddtype='NUMERIC';
+    end;
+    if label='' then label=name;
+  run;
+
+  proc sql;
+    drop table &dropds;
 %mend mp_getcols;

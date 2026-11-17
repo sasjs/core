@@ -48,14 +48,8 @@
   @sasjslint {"maxLineLength": 83}
 **/
 
-%macro ms_triggerstp(pgm
-    ,debug=131
-    ,inputparams=_null_
-    ,inputfiles=_null_
-    ,expiresAfterMins=15
-    ,outds=work.ms_triggerstp
-    ,mdebug=0
-  );
+%macro ms_triggerstp(pgm ,debug=131 ,inputparams=_null_ ,inputfiles=_null_
+  ,expiresAfterMins=15 ,outds=work.ms_triggerstp ,mdebug=0 );
   %local dbg mainref authref boundary libref triggered_sid;
   %let mainref=%mf_getuniquefileref();
   %let authref=%mf_getuniquefileref();
@@ -68,15 +62,10 @@
   %end;
   %else %let dbg=*;
 
-
-  %mp_abort(iftrue=("&pgm"="")
-    ,mac=&sysmacroname
-    ,msg=%str(Program not provided)
-  )
-  %mp_abort(iftrue=("&outds"="")
-    ,mac=&sysmacroname
-    ,msg=%str(Output dataset not provided)
-  )
+  %mp_abort(iftrue=("&pgm"="") ,mac=&sysmacroname
+    ,msg=%str(Program not provided) )
+  %mp_abort(iftrue=("&outds"="") ,mac=&sysmacroname
+    ,msg=%str(Output dataset not provided) )
 
   /* avoid sending bom marker to API */
   %local optval;
@@ -99,6 +88,7 @@
   /* parse input file list */
   %local webcount;
   %let webcount=0;
+
   data _null_;
     set &inputfiles end=last;
     length fileref $8 name $32 filename $256;
@@ -117,15 +107,10 @@
     data _null_;
       file &mainref termstr=crlf lrecl=32767 mod;
       infile &&webref&i lrecl=32767;
-      if _n_ = 1 then do;
+      if _n_=1 then do;
         length line $32767;
-        line=cats(
-          'Content-Disposition: form-data; name="'
-          ,"&&webname&i"
-          ,'"; filename="'
-          ,"&&webfilename&i"
-          ,'"'
-        );
+        line=cats( 'Content-Disposition: form-data; name="' ,"&&webname&i"
+          ,'"; filename="' ,"&&webfilename&i" ,'"' );
         put "--&boundary";
         put line;
         put "Content-Type: text/plain";
@@ -156,6 +141,7 @@
       infile &authref;
       input;
       put _infile_;
+
     data _null_;
       if _n_ eq 1 then putlog "NOTE: ***** mainref=&mainref content *****";
       infile &mainref;
@@ -173,14 +159,13 @@
   proc http method='POST' headerin=&authref in=&mainref out=&outref
     url="&_sasjs_apiserverurl/SASjsApi/stp/trigger?%trim(
       )_program=&pgm%str(&)_debug=&debug%str(&)expiresAfterMins=&expiresaftermins";
-  %if &mdebug=1 %then %do;
-    debug level=2;
-  %end;
+    %if &mdebug=1 %then %do;
+      debug level=2;
+    %end;
   run;
 
-  %if (&SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201)
-  or &mdebug=1
-  %then %do;
+  %if (&SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201) or
+    &mdebug=1 %then %do;
     data _null_;
       if _n_ eq 1 then putlog "NOTE: ***** outref=&outref content *****";
       infile &outref;
@@ -188,12 +173,9 @@
       putlog _infile_;
     run;
   %end;
-  %mp_abort(
-    iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200
-        and &SYS_PROCHTTP_STATUS_CODE ne 201)
-    ,mac=&sysmacroname
-    ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
-  )
+  %mp_abort( iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200 and
+    &SYS_PROCHTTP_STATUS_CODE ne 201) ,mac=&sysmacroname
+    ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE) )
 
   /* reset options */
   options &optval;

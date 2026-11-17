@@ -65,71 +65,71 @@ https://support.sas.com/documentation/cdl/en/proc/61895/HTML/default/viewer.htm#
   @sasjslint {"maxLineLength": 237}
 **/
 
-%macro mp_getformats(lib=0
-  ,ds=0
-  ,fmtlist=0
-  ,outsummary=work.mp_getformats_summary
-  ,outdetail=0
-);
+%macro mp_getformats(lib=0 ,ds=0 ,fmtlist=0
+  ,outsummary=work.mp_getformats_summary ,outdetail=0 );
 
-%local i fmt allfmts tempds fmtcnt;
+  %local i fmt allfmts tempds fmtcnt;
 
-%if "&fmtlist" ne "0" %then %do i=1 %to %sysfunc(countw(&fmtlist,%str( )));
-  /* ensure format list contains format _name_ only */
-  %let fmt=%scan(&fmtlist,&i,%str( ));
-  %let fmt=%mf_getfmtname(&fmt);
-  %let allfmts=&allfmts &fmt;
-%end;
+  %if "&fmtlist" ne "0" %then %do i=1 %to %sysfunc(countw(&fmtlist,%str( )));
+    /* ensure format list contains format _name_ only */
+    %let fmt=%scan(&fmtlist,&i,%str( ));
+    %let fmt=%mf_getfmtname(&fmt);
+    %let allfmts=&allfmts &fmt;
+  %end;
 
-%if &ds=0 and &lib ne 0 %then %do;
-  /* grab formats from library */
-  /* to do */
-%end;
-%else %if &ds ne 0 and &lib ne 0 %then %do;
-  /* grab formats from dataset */
-  %let allfmts=%mf_getfmtlist(&lib..&ds) &allfmts;
-%end;
+  %if &ds=0 and &lib ne 0 %then %do;
+    /* grab formats from library */
+    /* to do */
+  %end;
+  %else %if &ds ne 0 and &lib ne 0 %then %do;
+    /* grab formats from dataset */
+    %let allfmts=%mf_getfmtlist(&lib..&ds) &allfmts;
+  %end;
 
-/* ensure list is unique */
-%let allfmts=%mf_dedup(%upcase(&allfmts));
+  /* ensure list is unique */
+  %let allfmts=%mf_dedup(%upcase(&allfmts));
 
-/* create summary table */
-%if %index(&outsummary,.)=0 %then %let outsummary=WORK.&outsummary;
-proc sql;
-create table &outsummary as
-  select * from dictionary.formats
-  where fmtname in (%mf_getquotedstr(&allfmts,quote=D));
+  /* create summary table */
+  %if %index(&outsummary,.)=0 %then %let outsummary=WORK.&outsummary;
 
-%if "&outdetail" ne "0" %then %do;
-  /* ensure base table always exists */
-  %mddl_sas_cntlout(libds=&outdetail)
-  /* grab the location of each format */
-  %let fmtcnt=0;
-  data _null_;
-    set &outsummary;
-    if not missing(libname);
-    x+1;
-    call symputx(cats('fmtloc',x),cats(libname,'.',memname),'l');
-    call symputx(cats('fmtname',x),fmtname,'l');
-    call symputx('fmtcnt',x,'l');
-  run;
-  /* export each format and append to the output table */
-  %let tempds=%mf_getuniquename(prefix=mp_getformats);
-  %do i=1 %to &fmtcnt;
+  proc sql;
+    create table &outsummary as select * from dictionary.formats where fmtname
+      in (%mf_getquotedstr(&allfmts,quote=D));
+
+    %if "&outdetail" ne "0" %then %do;
+      /* ensure base table always exists */
+      %mddl_sas_cntlout(libds=&outdetail)
+      /* grab the location of each format */
+      %let fmtcnt=0;
+
+    data _null_;
+      set &outsummary;
+      if not missing(libname);
+      x+1;
+      call symputx(cats('fmtloc',x),cats(libname,'.',memname),'l');
+      call symputx(cats('fmtname',x),fmtname,'l');
+      call symputx('fmtcnt',x,'l');
+    run;
+    /* export each format and append to the output table */
+    %let tempds=%mf_getuniquename(prefix=mp_getformats);
+    %do i=1 %to &fmtcnt;
+
     proc format library=&&fmtloc&i CNTLOUT=&tempds;
       select &&fmtname&i;
     run;
-    data &tempds;
-      if 0 then set &outdetail;
-      set &tempds;
-      /* set fmtrow (position of record within the format) */
-      by type fmtname notsorted;
-      if first.fmtname then fmtrow=1;
-      else fmtrow+1;
-    run;
-    proc append base=&outdetail data=&tempds ;
-    run;
+
+  data &tempds;
+    if 0 then set &outdetail;
+    set &tempds;
+    /* set fmtrow (position of record within the format) */
+    by type fmtname notsorted;
+    if first.fmtname then fmtrow=1;
+    else fmtrow+1;
+  run;
+
+  proc append base=&outdetail data=&tempds ;
+  run;
   %end;
-%end;
+  %end;
 
 %mend mp_getformats;

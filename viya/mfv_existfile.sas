@@ -29,15 +29,13 @@
   @author [Allan Bowe](https://www.linkedin.com/in/allanbowe/)
 **/
 
-%macro mfv_existfile(filepath
-)/*/STORE SOURCE*/;
+%macro mfv_existfile(filepath )/*/STORE SOURCE*/;
 
   %local fref rc path name;
 
   %if &syscc ne 0 %then %do;
     %put %str(ERR)OR: mfv_existfile.sas cannot execute with syscc=&syscc;
-    0
-    %return;
+    0 %return;
   %end;
 
   %let fref=%mf_getuniquefileref();
@@ -45,13 +43,11 @@
   %let path=%substr(&filepath,1,%length(&filepath)-%length(&name)-1);
 
   %if %sysfunc(filename(fref,,filesrvc,folderPath="&path" filename="&name"))=0
-  %then %do;
-    %sysfunc(fexist(&fref))
-    %let rc=%sysfunc(filename(fref));
+    %then %do;
+    %sysfunc(fexist(&fref)) %let rc=%sysfunc(filename(fref));
   %end;
   %else %do;
-    0
-    %let syscc=0;
+    0 %let syscc=0;
   %end;
 
 %mend mfv_existfile;

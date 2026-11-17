@@ -26,11 +26,9 @@
 
 **/
 
-%macro mp_dropmembers(
-    list /* space separated list of datasets / views */
-    ,libref=WORK  /* can only drop from a single library at a time */
-    ,iftrue=%str(1=1)
-)/*/STORE SOURCE*/;
+%macro mp_dropmembers( list /* space separated list of datasets / views */
+  ,libref=WORK /* can only drop from a single library at a time */
+  ,iftrue=%str(1=1) )/*/STORE SOURCE*/;
 
   %if not(%eval(%unquote(&iftrue))) %then %return;
 

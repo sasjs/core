@@ -30,11 +30,7 @@
   @author Allan Bowe
 **/
 
-%macro mp_rowhash(
-    md5_col=
-    ,cvars=
-    ,nvars=
-  );
+%macro mp_rowhash( md5_col=,cvars=,nvars=);
 
   /* DATA step temp variables use five leading underscores.  The names
       are generated at macro invocation to avoid clashing with data columns. */
@@ -48,46 +44,42 @@
   %let chars=%mf_getuniquename(prefix=_____chars_);
   %let nums=%mf_getuniquename(prefix=_____nums_);
 
-  length &state $16
-        &digest $16
-        &pair $32
-        &numtext $64
-        &normal &i 8;
+  length &state $16 &digest $16 &pair $32 &numtext $64 &normal &i 8;
   if _n_=1 then call missing(&state,&digest,&pair,&numtext,&normal,&i);
   drop &state &digest &pair &numtext &normal &i;
 
   /* Versioned seed prevents confusion with other hashing schemes. */
-  &state = md5('DC HASH v2');
+  &state=md5('DC HASH v2');
 
   %if %length(&cvars)>0 %then %do;
     array &chars{*} $ &cvars;
-    do &i = 1 to dim(&chars);
+    do &i=1 to dim(&chars);
       /* Leading blanks are retained. */
-      &digest = md5(trimn(&chars[&i]));
-      substr(&pair,  1, 16) = &state;
-      substr(&pair, 17, 16) = &digest;
-      &state = md5(&pair);
+      &digest=md5(trimn(&chars[&i]));
+      substr(&pair, 1, 16)=&state;
+      substr(&pair, 17, 16)=&digest;
+      &state=md5(&pair);
     end;
   %end;
 
   %if %length(&nvars)>0 %then %do;
     array &nums{*} &nvars;
-    do &i = 1 to dim(&nums);
+    do &i=1 to dim(&nums);
       /*
         multiply-by-one for consistent cross-system precision.
         Ignore null to protect SAS special missing values.
         Cannot use IFN() as it evaluates both sides
       */
-      if missing(&nums[&i]) then &normal = &nums[&i];
-      else &normal = &nums[&i] * 1;
-      &numtext = put(&normal, binary64.);
-      &digest = md5(trim(&numtext));
-      substr(&pair,  1, 16) = &state;
-      substr(&pair, 17, 16) = &digest;
-      &state = md5(&pair);
+      if missing(&nums[&i]) then &normal=&nums[&i];
+      else &normal=&nums[&i] * 1;
+      &numtext=put(&normal, binary64.);
+      &digest=md5(trim(&numtext));
+      substr(&pair, 1, 16)=&state;
+      substr(&pair, 17, 16)=&digest;
+      &state=md5(&pair);
     end;
   %end;
 
-  &md5_col = put(&state, $hex32.);
+  &md5_col=put(&state, $hex32.);
 
 %mend mp_rowhash;

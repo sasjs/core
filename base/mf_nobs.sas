@@ -20,7 +20,6 @@
 
 **/
 
-%macro mf_nobs(libds
-)/*/STORE SOURCE*/;
+%macro mf_nobs(libds )/*/STORE SOURCE*/;
   %mf_getattrn(&libds,NLOBS)
 %mend mf_nobs;

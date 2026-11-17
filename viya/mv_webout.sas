@@ -52,240 +52,257 @@
 
 **/
 %macro mv_webout(action,ds,fref=_mvwtemp,dslabel=,fmt=N,stream=Y,missing=NULL
-  ,showmeta=N,maxobs=MAX,workobs=0
-);
-%global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name
-  sasjs_tables SYS_JES_JOB_URI _EXECUTIONTASKS;
-%if %index("&_debug",log) %then %let _debug=128;
+  ,showmeta=N,maxobs=MAX,workobs=0 );
+  %global _webin_file_count _webin_fileuri _debug _omittextlog _webin_name
+    sasjs_tables SYS_JES_JOB_URI _EXECUTIONTASKS;
+  %if %index("&_debug",log) %then %let _debug=128;
 
-%local i tempds table;
-%let action=%upcase(&action);
+  %local i tempds table;
+  %let action=%upcase(&action);
 
-%if &action=FETCH %then %do;
-  %if %upcase(&_omittextlog)=FALSE or %str(&_debug) ge 128 %then %do;
-    options mprint notes mprintnest;
-  %end;
-
-  %if not %symexist(_webin_fileuri1) %then %do;
-    %let _webin_file_count=%eval(&_webin_file_count+0);
-    %let _webin_fileuri1=&_webin_fileuri;
-    %let _webin_name1=&_webin_name;
-    %if &_EXECUTIONTASKS=true %then %do;
-      /* TODO - remove this once SAS Track CS0409737 is resolved */
-      /* links:  https://github.com/sasjs/adapter/issues/884 */
-      %if %upcase(&_webin_name)=_SASJS_NOOP %then %let _webin_file_count=0;
+  %if &action=FETCH %then %do;
+    %if %upcase(&_omittextlog)=FALSE or %str(&_debug) ge 128 %then %do;
+      options mprint notes mprintnest;
     %end;
-  %end;
 
-  /* if the sasjs_tables param is passed, we expect param based upload */
-  %if %length(&sasjs_tables.X)>1 %then %do;
+    %if not %symexist(_webin_fileuri1) %then %do;
+      %let _webin_file_count=%eval(&_webin_file_count+0);
+      %let _webin_fileuri1=&_webin_fileuri;
+      %let _webin_name1=&_webin_name;
+      %if &_EXECUTIONTASKS=true %then %do;
+        /* TODO - remove this once SAS Track CS0409737 is resolved */
+        /* links:  https://github.com/sasjs/adapter/issues/884 */
+        %if %upcase(&_webin_name)=_SASJS_NOOP %then %let _webin_file_count=0;
+      %end;
+    %end;
 
-    /* convert data from macro variables to datasets */
-    %do i=1 %to %sysfunc(countw(&sasjs_tables));
-      %let table=%scan(&sasjs_tables,&i,%str( ));
-      %if %symexist(sasjs&i.data0)=0 %then %let sasjs&i.data0=1;
-      data _null_;
-        file "%sysfunc(pathname(work))/&table..csv" recfm=n;
-        retain nrflg 0;
-        length line $32767;
-        do i=1 to &&sasjs&i.data0;
-          if &&sasjs&i.data0=1 then line=symget("sasjs&i.data");
-          else line=symget(cats("sasjs&i.data",i));
-          if i=1 and substr(line,1,7)='%nrstr(' then do;
-            nrflg=1;
-            line=substr(line,8);
+    /* if the sasjs_tables param is passed, we expect param based upload */
+    %if %length(&sasjs_tables.X)>1 %then %do;
+
+      /* convert data from macro variables to datasets */
+      %do i=1 %to %sysfunc(countw(&sasjs_tables));
+        %let table=%scan(&sasjs_tables,&i,%str( ));
+        %if %symexist(sasjs&i.data0)=0 %then %let sasjs&i.data0=1;
+
+        data _null_;
+          file "%sysfunc(pathname(work))/&table..csv" recfm=n;
+          retain nrflg 0;
+          length line $32767;
+          do i=1 to &&sasjs&i.data0;
+            if &&sasjs&i.data0=1 then line=symget("sasjs&i.data");
+            else line=symget(cats("sasjs&i.data",i));
+            if i=1 and substr(line,1,7)='%nrstr(' then do;
+              nrflg=1;
+              line=substr(line,8);
+            end;
+            if i=&&sasjs&i.data0 and nrflg=1 then do;
+              line=substr(line,1,length(line)-1);
+            end;
+            put line +(-1) @;
           end;
-          if i=&&sasjs&i.data0 and nrflg=1 then do;
-            line=substr(line,1,length(line)-1);
-          end;
-          put line +(-1) @;
-        end;
-      run;
+        run;
+
+        data _null_;
+          infile "%sysfunc(pathname(work))/&table..csv" termstr=crlf ;
+          input;
+          /* a plain $ informat strips leading blanks - use $char instead */
+          if _n_=1 then call symputx('input_statement'
+            ,prxchange('s/:\$(?=[0-9 ])/:\$char/i',-1,_infile_) );
+          list;
+
+        data work.&table;
+          infile "%sysfunc(pathname(work))/&table..csv" firstobs=2 dsd
+            termstr=crlf;
+          input &input_statement;
+        run;
+      %end;
+    %end;
+    %else %do i=1 %to &_webin_file_count;
+      /* read in any files that are sent */
+      %if &_EXECUTIONTASKS=true %then %do;
+        filename indata "%sysfunc(pathname(&&_webin_fileref&i))" lrecl=999999;
+      %end;
+      %else %do;
+        filename indata filesrvc "&&_webin_fileuri&i" lrecl=999999;
+      %end;
+
       data _null_;
-        infile "%sysfunc(pathname(work))/&table..csv" termstr=crlf ;
+        infile indata termstr=crlf lrecl=32767;
         input;
         /* a plain $ informat strips leading blanks - use $char instead */
         if _n_=1 then call symputx('input_statement'
-          ,prxchange('s/:\$(?=[0-9 ])/:\$char/i',-1,_infile_)
-        );
-        list;
-      data work.&table;
-        infile "%sysfunc(pathname(work))/&table..csv" firstobs=2 dsd
-          termstr=crlf;
+          ,prxchange('s/:\$(?=[0-9 ])/:\$char/i',-1,_infile_) );
+        %if %str(&_debug) ge 128 %then %do;
+          if _n_<20 then putlog _infile_;
+          else stop;
+        %end;
+        %else %do;
+          stop;
+        %end;
+      run;
+
+      data &&_webin_name&i;
+        infile indata firstobs=2 dsd termstr=crlf ;
         input &input_statement;
       run;
+      %let sasjs_tables=&sasjs_tables &&_webin_name&i;
     %end;
   %end;
-  %else %do i=1 %to &_webin_file_count;
-    /* read in any files that are sent */
-    %if &_EXECUTIONTASKS=true %then %do;
-      filename indata "%sysfunc(pathname(&&_webin_fileref&i))" lrecl=999999;
+  %else %if &action=OPEN %then %do;
+    /* setup webout */
+    OPTIONS NOBOMFILE;
+    %if "X&SYS_JES_JOB_URI.X"="XX" %then %do;
+      filename _webout temp lrecl=999999 mod;
     %end;
     %else %do;
-      filename indata filesrvc "&&_webin_fileuri&i" lrecl=999999;
+      filename _webout filesrvc parenturi="&SYS_JES_JOB_URI" name="_webout.json"
+        lrecl=999999 mod;
     %end;
+
+    /* setup temp ref */
+    %if %upcase(&fref) ne _WEBOUT %then %do;
+      filename &fref temp lrecl=999999
+        permission='A::u::rwx,A::g::rw-,A::o::---';
+    %end;
+
+    /* setup json */
     data _null_;
-      infile indata termstr=crlf lrecl=32767;
-      input;
-      /* a plain $ informat strips leading blanks - use $char instead */
-      if _n_=1 then call symputx('input_statement'
-        ,prxchange('s/:\$(?=[0-9 ])/:\$char/i',-1,_infile_)
-      );
-      %if %str(&_debug) ge 128 %then %do;
-        if _n_<20 then putlog _infile_;
-        else stop;
+      file &fref;
+      %if %str(&_debug) ge 128 and &_EXECUTIONTASKS=true %then %do;
+        put '>>weboutBEGIN<<';
       %end;
-      %else %do;
-        stop;
-      %end;
+      put '{"SYSDATE" : "' "&SYSDATE" '"';
+      put ',"SYSTIME" : "' "&SYSTIME" '"';
     run;
-    data &&_webin_name&i;
-      infile indata firstobs=2 dsd termstr=crlf ;
-      input &input_statement;
-    run;
-    %let sasjs_tables=&sasjs_tables &&_webin_name&i;
   %end;
-%end;
-%else %if &action=OPEN %then %do;
-  /* setup webout */
-  OPTIONS NOBOMFILE;
-  %if "X&SYS_JES_JOB_URI.X"="XX" %then %do;
-    filename _webout temp lrecl=999999 mod;
-  %end;
-  %else %do;
-    filename _webout filesrvc parenturi="&SYS_JES_JOB_URI"
-      name="_webout.json" lrecl=999999 mod;
-  %end;
-
-  /* setup temp ref */
-  %if %upcase(&fref) ne _WEBOUT %then %do;
-    filename &fref temp lrecl=999999 permission='A::u::rwx,A::g::rw-,A::o::---';
-  %end;
-
-  /* setup json */
-  data _null_;file &fref;
-  %if %str(&_debug) ge 128 and &_EXECUTIONTASKS=true %then %do;
-    put '>>weboutBEGIN<<';
-  %end;
-    put '{"SYSDATE" : "' "&SYSDATE" '"';
-    put ',"SYSTIME" : "' "&SYSTIME" '"';
-  run;
-%end;
-%else %if &action=ARR or &action=OBJ %then %do;
+  %else %if &action=ARR or &action=OBJ %then %do;
     %mp_jsonout(&action,&ds,dslabel=&dslabel,fmt=&fmt,jref=&fref
-      ,engine=DATASTEP,missing=&missing,showmeta=&showmeta,maxobs=&maxobs
-    )
-%end;
-%else %if &action=CLOSE %then %do;
-  %if %str(&workobs) > 0 %then %do;
-    /* send back first XX records of each work table for debugging */
-    data;run;%let tempds=%scan(&syslast,2,.);
-    ods output Members=&tempds;
-    proc datasets library=WORK memtype=data;
-    %local wtcnt;%let wtcnt=0;
-    data _null_;
-      set &tempds;
-      if not (upcase(name) =:"DATA"); /* ignore temp datasets */
-      i+1;
-      call symputx(cats('wt',i),name,'l');
-      call symputx('wtcnt',i,'l');
-    data _null_; file &fref mod; put ",""WORK"":{";
-    %do i=1 %to &wtcnt;
-      %let wt=&&wt&i;
-      data _null_; file &fref mod;
-        dsid=open("WORK.&wt",'is');
-        nlobs=attrn(dsid,'NLOBS');
-        nvars=attrn(dsid,'NVARS');
-        rc=close(dsid);
-        if &i>1 then put ','@;
-        put " ""&wt"" : {";
-        put '"nlobs":' nlobs;
-        put ',"nvars":' nvars;
-      %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=Y
-        ,maxobs=&workobs
-      )
-      data _null_; file &fref mod;put "}";
+      ,engine=DATASTEP,missing=&missing,showmeta=&showmeta,maxobs=&maxobs )
+  %end;
+  %else %if &action=CLOSE %then %do;
+    %if %str(&workobs) > 0 %then %do;
+      /* send back first XX records of each work table for debugging */
+      data;
+      run;
+      %let tempds=%scan(&syslast,2,.);
+      ods output Members=&tempds;
+
+      proc datasets library=WORK memtype=data;
+        %local wtcnt;
+        %let wtcnt=0;
+
+      data _null_;
+        set &tempds;
+        if not (upcase(name) =:"DATA"); /* ignore temp datasets */
+        i+1;
+        call symputx(cats('wt',i),name,'l');
+        call symputx('wtcnt',i,'l');
+
+      data _null_;
+        file &fref mod;
+        put ",""WORK"":{";
+        %do i=1 %to &wtcnt;
+          %let wt=&&wt&i;
+
+        data _null_;
+          file &fref mod;
+          dsid=open("WORK.&wt",'is');
+          nlobs=attrn(dsid,'NLOBS');
+          nvars=attrn(dsid,'NVARS');
+          rc=close(dsid);
+          if &i>1 then put ','@;
+          put " ""&wt"" : {";
+          put '"nlobs":' nlobs;
+          put ',"nvars":' nvars;
+          %mp_jsonout(OBJ,&wt,jref=&fref,dslabel=first10rows,showmeta=Y
+            ,maxobs=&workobs )
+
+      data _null_;
+        file &fref mod;
+        put "}";
+        %end;
+
+      data _null_;
+        file &fref mod;
+        put "}";
+      run;
     %end;
-    data _null_; file &fref mod;put "}";run;
-  %end;
 
-  /* close off json */
-  data _null_;file &fref mod;
-    length SYSPROCESSNAME syserrortext syswarningtext autoexec $512;
-    put ",""_DEBUG"" : ""&_debug"" ";
-    _PROGRAM=quote(trim(resolve(symget('_PROGRAM'))));
-    put ',"_PROGRAM" : ' _PROGRAM ;
-    autoexec=quote(urlencode(trim(getoption('autoexec'))));
-    put ',"AUTOEXEC" : ' autoexec;
-    put ",""MF_GETUSER"" : ""%mf_getuser()"" ";
-    SYS_JES_JOB_URI=quote(trim(resolve(symget('SYS_JES_JOB_URI'))));
-    put ',"SYS_JES_JOB_URI" : ' SYS_JES_JOB_URI ;
-    put ",""SYSJOBID"" : ""&sysjobid"" ";
-    put ",""SYSCC"" : ""&syscc"" ";
-    syserrortext=cats(symget('syserrortext'));
-    if findc(syserrortext,'"\'!!'0A0D09000E0F010210111A'x) then do;
-      syserrortext='"'!!trim(
-        prxchange('s/"/\\"/',-1,        /* double quote */
-        prxchange('s/\x0A/\n/',-1,      /* new line */
-        prxchange('s/\x0D/\r/',-1,      /* carriage return */
-        prxchange('s/\x09/\\t/',-1,     /* tab */
-        prxchange('s/\x00/\\u0000/',-1, /* NUL */
-        prxchange('s/\x0E/\\u000E/',-1, /* SS  */
-        prxchange('s/\x0F/\\u000F/',-1, /* SF  */
-        prxchange('s/\x01/\\u0001/',-1, /* SOH */
-        prxchange('s/\x02/\\u0002/',-1, /* STX */
-        prxchange('s/\x10/\\u0010/',-1, /* DLE */
-        prxchange('s/\x11/\\u0011/',-1, /* DC1 */
-        prxchange('s/\x1A/\\u001A/',-1, /* SUB */
-        prxchange('s/\\/\\\\/',-1,syserrortext)
-      )))))))))))))!!'"';
-    end;
-    else syserrortext=cats('"',syserrortext,'"');
-    put ',"SYSERRORTEXT" : ' syserrortext;
-    put ",""SYSHOSTNAME"" : ""&syshostname"" ";
-    put ",""SYSPROCESSID"" : ""&SYSPROCESSID"" ";
-    put ",""SYSPROCESSMODE"" : ""&SYSPROCESSMODE"" ";
-    SYSPROCESSNAME=quote(urlencode(cats(SYSPROCESSNAME)));
-    put ",""SYSPROCESSNAME"" : " SYSPROCESSNAME;
-    put ",""SYSJOBID"" : ""&sysjobid"" ";
-    put ",""SYSSCPL"" : ""&sysscpl"" ";
-    put ",""SYSSITE"" : ""&syssite"" ";
-    put ",""SYSUSERID"" : ""&sysuserid"" ";
-    sysvlong=quote(trim(symget('sysvlong')));
-    put ',"SYSVLONG" : ' sysvlong;
-    syswarningtext=cats(symget('syswarningtext'));
-    if findc(syswarningtext,'"\'!!'0A0D09000E0F010210111A'x) then do;
-      syswarningtext='"'!!trim(
-        prxchange('s/"/\\"/',-1,        /* double quote */
-        prxchange('s/\x0A/\n/',-1,      /* new line */
-        prxchange('s/\x0D/\r/',-1,      /* carriage return */
-        prxchange('s/\x09/\\t/',-1,     /* tab */
-        prxchange('s/\x00/\\u0000/',-1, /* NUL */
-        prxchange('s/\x0E/\\u000E/',-1, /* SS  */
-        prxchange('s/\x0F/\\u000F/',-1, /* SF  */
-        prxchange('s/\x01/\\u0001/',-1, /* SOH */
-        prxchange('s/\x02/\\u0002/',-1, /* STX */
-        prxchange('s/\x10/\\u0010/',-1, /* DLE */
-        prxchange('s/\x11/\\u0011/',-1, /* DC1 */
-        prxchange('s/\x1A/\\u001A/',-1, /* SUB */
-        prxchange('s/\\/\\\\/',-1,syswarningtext)
-      )))))))))))))!!'"';
-    end;
-    else syswarningtext=cats('"',syswarningtext,'"');
-    put ',"SYSWARNINGTEXT" : ' syswarningtext;
-    put ',"END_DTTM" : "' "%sysfunc(datetime(),E8601DT26.6)" '" ';
-    length memsize $32;
-    memsize="%sysfunc(INPUTN(%sysfunc(getoption(memsize)), best.),sizekmg.)";
-    memsize=quote(cats(memsize));
-    put ',"MEMSIZE" : ' memsize;
-    put "}";
-  %if %str(&_debug) ge 128 and &_EXECUTIONTASKS=true %then %do;
-    put '>>weboutEND<<';
-  %end;
-  %if %upcase(&fref) ne _WEBOUT and &stream=Y %then %do;
-    data _null_; rc=fcopy("&fref","_webout");run;
-  %end;
+    /* close off json */
+    data _null_;
+      file &fref mod;
+      length SYSPROCESSNAME syserrortext syswarningtext autoexec $512;
+      put ",""_DEBUG"" : ""&_debug"" ";
+      _PROGRAM=quote(trim(resolve(symget('_PROGRAM'))));
+      put ',"_PROGRAM" : ' _PROGRAM ;
+      autoexec=quote(urlencode(trim(getoption('autoexec'))));
+      put ',"AUTOEXEC" : ' autoexec;
+      put ",""MF_GETUSER"" : ""%mf_getuser()"" ";
+      SYS_JES_JOB_URI=quote(trim(resolve(symget('SYS_JES_JOB_URI'))));
+      put ',"SYS_JES_JOB_URI" : ' SYS_JES_JOB_URI ;
+      put ",""SYSJOBID"" : ""&sysjobid"" ";
+      put ",""SYSCC"" : ""&syscc"" ";
+      syserrortext=cats(symget('syserrortext'));
+      if findc(syserrortext,'"\'!!'0A0D09000E0F010210111A'x) then do;
+        syserrortext='"'!!trim( prxchange('s/"/\\"/',-1, /* double quote */
+          prxchange('s/\x0A/\n/',-1, /* new line */ prxchange('s/\x0D/\r/',-1,
+          /* carriage return */ prxchange('s/\x09/\\t/',-1, /* tab */
+          prxchange('s/\x00/\\u0000/',-1, /* NUL */
+          prxchange('s/\x0E/\\u000E/',-1, /* SS  */
+          prxchange('s/\x0F/\\u000F/',-1, /* SF  */
+          prxchange('s/\x01/\\u0001/',-1, /* SOH */
+          prxchange('s/\x02/\\u0002/',-1, /* STX */
+          prxchange('s/\x10/\\u0010/',-1, /* DLE */
+          prxchange('s/\x11/\\u0011/',-1, /* DC1 */
+          prxchange('s/\x1A/\\u001A/',-1, /* SUB */
+          prxchange('s/\\/\\\\/',-1,syserrortext) )))))))))))))!!'"';
+      end;
+      else syserrortext=cats('"',syserrortext,'"');
+      put ',"SYSERRORTEXT" : ' syserrortext;
+      put ",""SYSHOSTNAME"" : ""&syshostname"" ";
+      put ",""SYSPROCESSID"" : ""&SYSPROCESSID"" ";
+      put ",""SYSPROCESSMODE"" : ""&SYSPROCESSMODE"" ";
+      SYSPROCESSNAME=quote(urlencode(cats(SYSPROCESSNAME)));
+      put ",""SYSPROCESSNAME"" : " SYSPROCESSNAME;
+      put ",""SYSJOBID"" : ""&sysjobid"" ";
+      put ",""SYSSCPL"" : ""&sysscpl"" ";
+      put ",""SYSSITE"" : ""&syssite"" ";
+      put ",""SYSUSERID"" : ""&sysuserid"" ";
+      sysvlong=quote(trim(symget('sysvlong')));
+      put ',"SYSVLONG" : ' sysvlong;
+      syswarningtext=cats(symget('syswarningtext'));
+      if findc(syswarningtext,'"\'!!'0A0D09000E0F010210111A'x) then do;
+        syswarningtext='"'!!trim( prxchange('s/"/\\"/',-1, /* double quote */
+          prxchange('s/\x0A/\n/',-1, /* new line */ prxchange('s/\x0D/\r/',-1,
+          /* carriage return */ prxchange('s/\x09/\\t/',-1, /* tab */
+          prxchange('s/\x00/\\u0000/',-1, /* NUL */
+          prxchange('s/\x0E/\\u000E/',-1, /* SS  */
+          prxchange('s/\x0F/\\u000F/',-1, /* SF  */
+          prxchange('s/\x01/\\u0001/',-1, /* SOH */
+          prxchange('s/\x02/\\u0002/',-1, /* STX */
+          prxchange('s/\x10/\\u0010/',-1, /* DLE */
+          prxchange('s/\x11/\\u0011/',-1, /* DC1 */
+          prxchange('s/\x1A/\\u001A/',-1, /* SUB */
+          prxchange('s/\\/\\\\/',-1,syswarningtext) )))))))))))))!!'"';
+      end;
+      else syswarningtext=cats('"',syswarningtext,'"');
+      put ',"SYSWARNINGTEXT" : ' syswarningtext;
+      put ',"END_DTTM" : "' "%sysfunc(datetime(),E8601DT26.6)" '" ';
+      length memsize $32;
+      memsize="%sysfunc(INPUTN(%sysfunc(getoption(memsize)), best.),sizekmg.)";
+      memsize=quote(cats(memsize));
+      put ',"MEMSIZE" : ' memsize;
+      put "}";
+      %if %str(&_debug) ge 128 and &_EXECUTIONTASKS=true %then %do;
+        put '>>weboutEND<<';
+      %end;
+      %if %upcase(&fref) ne _WEBOUT and &stream=Y %then %do;
 
-%end;
+      data _null_;
+        rc=fcopy("&fref","_webout");
+      run;
+      %end;
 
-%mend mv_webout;
+      %end;
+
+      %mend mv_webout;

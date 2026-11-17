@@ -21,17 +21,17 @@
 
 %macro mp_wait4file(file, maxwait=0, interval=1);
 
-%if %length(&file)=0 %then %do;
-  %put NOTE: &sysmacroname: no file was provided so it returns immediately;
-  %return;
-%end;
+  %if %length(&file)=0 %then %do;
+    %put NOTE: &sysmacroname: no file was provided so it returns immediately;
+    %return;
+  %end;
 
-data _null_;
-  maxwait=&maxwait;
-  if maxwait=0 then maxwait=60*60*24*46;
-  do until (fileexist("&file") or slept>maxwait );
-    slept=sum(slept,sleep(&interval,1));
-  end;
-run;
+  data _null_;
+    maxwait=&maxwait;
+    if maxwait=0 then maxwait=60*60*24*46;
+    do until (fileexist("&file") or slept>maxwait );
+      slept=sum(slept,sleep(&interval,1));
+    end;
+  run;
 
 %mend mp_wait4file;

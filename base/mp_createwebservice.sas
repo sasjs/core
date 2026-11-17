@@ -11,22 +11,11 @@
 
 **/
 
-%macro mp_createwebservice(path=HOME
-    ,name=initService
-    ,precode=
-    ,code=ft15f001
-    ,desc=This service was created by the mp_createwebservice macro
-    ,replace=YES
-    ,mdebug=0
-)/*/STORE SOURCE*/;
+%macro mp_createwebservice(path=HOME ,name=initService ,precode=,code=ft15f001
+  ,desc=This service was created by the mp_createwebservice macro ,replace=YES
+  ,mdebug=0 )/*/STORE SOURCE*/;
 
-  %mx_createwebservice(path=&path
-    ,name=&name
-    ,precode=&precode
-    ,code=&code
-    ,desc=&desc
-    ,replace=&replace
-    ,mdebug=&mdebug
-  )
+  %mx_createwebservice(path=&path ,name=&name ,precode=&precode ,code=&code
+    ,desc=&desc ,replace=&replace ,mdebug=&mdebug )
 
 %mend mp_createwebservice;

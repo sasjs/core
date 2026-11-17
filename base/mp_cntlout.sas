@@ -38,57 +38,52 @@
   @cond
 **/
 
-%macro mp_cntlout(
-  iftrue=(1=1)
-  ,libcat=
-  ,cntlout=work.fmtextract
-  ,fmtlist=0
-)/*/STORE SOURCE*/;
-%local ddlds cntlds i;
+%macro mp_cntlout( iftrue=(1=1) ,libcat=,cntlout=work.fmtextract ,fmtlist=0
+  )/*/STORE SOURCE*/;
+  %local ddlds cntlds i;
 
-%if not(%eval(%unquote(&iftrue))) %then %return;
+  %if not(%eval(%unquote(&iftrue))) %then %return;
 
-%let ddlds=%mf_getuniquename();
-%let cntlds=%mf_getuniquename();
+  %let ddlds=%mf_getuniquename();
+  %let cntlds=%mf_getuniquename();
 
-%mddl_sas_cntlout(libds=&ddlds)
+  %mddl_sas_cntlout(libds=&ddlds)
 
-%if %index(&libcat,-)>0 and %scan(&libcat,2,-)=FC %then %do;
-  %let libcat=%scan(&libcat,1,-);
-%end;
-
-proc format lib=&libcat cntlout=&cntlds;
-%if "&fmtlist" ne "0" and "&fmtlist" ne "" %then %do;
-  select
-  %do i=1 %to %sysfunc(countw(&fmtlist,%str( )));
-    %scan(&fmtlist,&i,%str( ))
+  %if %index(&libcat,-)>0 and %scan(&libcat,2,-)=FC %then %do;
+    %let libcat=%scan(&libcat,1,-);
   %end;
-  ;
-%end;
-run;
 
-data &cntlout/nonote2err;
-  if 0 then set &ddlds;
-  set &cntlds;
-  by type fmtname notsorted;
+  proc format lib=&libcat cntlout=&cntlds;
+    %if "&fmtlist" ne "0" and "&fmtlist" ne "" %then %do;
+      select %do i=1 %to %sysfunc(countw(&fmtlist,%str( )));
+    %scan(&fmtlist,&i,%str( )) %end;
+    ;
+    %end;
+  run;
 
-  /* align the numeric values to avoid overlapping ranges */
-  if type in ("I","N") then do;
-    %mp_aligndecimal(start,width=16)
-    %mp_aligndecimal(end,width=16)
-  end;
+  data &cntlout/nonote2err;
+    if 0 then set &ddlds;
+    set &cntlds;
+    by type fmtname notsorted;
 
-  /* create row marker. Data cannot be sorted without it! */
-  if first.fmtname then fmtrow=1;
-  else fmtrow+1;
+    /* align the numeric values to avoid overlapping ranges */
+    if type in ("I","N") then do;
+      %mp_aligndecimal(start,width=16)
+      %mp_aligndecimal(end,width=16)
+    end;
 
-run;
-proc sort;
-  by type fmtname fmtrow;
-run;
+    /* create row marker. Data cannot be sorted without it! */
+    if first.fmtname then fmtrow=1;
+    else fmtrow+1;
 
-proc sql;
-drop table &ddlds,&cntlds;
+  run;
+
+  proc sort;
+    by type fmtname fmtrow;
+  run;
+
+  proc sql;
+    drop table &ddlds,&cntlds;
 
 %mend mp_cntlout;
 /** @endcond */

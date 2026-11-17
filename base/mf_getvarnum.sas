@@ -29,18 +29,17 @@ returns:
 
 **/
 
-%macro mf_getvarnum(libds /* two level ds name */
-      , var /* variable name from which to return the format */
-)/*/STORE SOURCE*/;
+%macro mf_getvarnum(libds /* two level ds name */ , var
+  /* variable name from which to return the format */ )/*/STORE SOURCE*/;
   %local dsid vnum rc;
   /* Open dataset */
-  %let dsid = %sysfunc(open(&libds));
+  %let dsid=%sysfunc(open(&libds));
   %if &dsid > 0 %then %do;
     /* Get variable number */
-    %let vnum = %sysfunc(varnum(&dsid, &var));
+    %let vnum=%sysfunc(varnum(&dsid, &var));
     %if(&vnum <= 0) %then %do;
       %put NOTE: Variable &var does not exist in &libds;
-      %let vnum = %str( );
+      %let vnum=%str( );
     %end;
   %end;
   %else %do;
@@ -50,9 +49,8 @@ returns:
   %end;
 
   /* Close dataset */
-  %let rc = %sysfunc(close(&dsid));
+  %let rc=%sysfunc(close(&dsid));
 
   /* Return variable number */
-    &vnum.
-
+  &vnum.
 %mend mf_getvarnum;

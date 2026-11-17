@@ -24,14 +24,12 @@
 
 **/
 
-%macro mm_getusers(
-    outds=work.mm_getusers,
-    user=0
-)/*/STORE SOURCE*/;
+%macro mm_getusers( outds=work.mm_getusers, user=0 )/*/STORE SOURCE*/;
 
-filename response temp;
-%if %superq(user)=0 %then %do;
-  proc metadata in= '<GetMetadataObjects>
+  filename response temp;
+  %if %superq(user)=0 %then %do;
+    proc metadata in=
+      '<GetMetadataObjects>
     <Reposid>$METAREPOSITORY</Reposid>
     <Type>Person</Type>
     <NS>SAS</NS>
@@ -42,55 +40,58 @@ filename response temp;
     </Templates>
     </Options>
     </GetMetadataObjects>'
-    out=response;
-  run;
-%end;
-%else %do;
-  filename inref temp;
+      out=response;
+    run;
+  %end;
+  %else %do;
+    filename inref temp;
+
+    data _null_;
+      file inref;
+      put "<GetMetadataObjects>";
+      put "<Reposid>$METAREPOSITORY</Reposid>";
+      put "<Type>Person</Type>";
+      put "<NS>SAS</NS>";
+      put "<!-- Specify the OMI_XMLSELECT (128) flag  -->";
+      put "<Flags>128</Flags>";
+      put "<Options>";
+      put "<Templates>";
+      put '<Person Name=""/>';
+      put "</Templates>";
+      length string $10000;
+      string=cats('<XMLSELECT search="Person[@Name=',"'&user'",']"/>');
+      put string;
+      put "</Options>";
+      put "</GetMetadataObjects>";
+    run;
+
+    proc metadata in=inref out=response;
+    run;
+  %end;
+
+  filename sxlemap temp;
+
   data _null_;
-    file inref;
-    put "<GetMetadataObjects>";
-    put "<Reposid>$METAREPOSITORY</Reposid>";
-    put "<Type>Person</Type>";
-    put "<NS>SAS</NS>";
-    put "<!-- Specify the OMI_XMLSELECT (128) flag  -->";
-    put "<Flags>128</Flags>";
-    put "<Options>";
-    put "<Templates>";
-    put '<Person Name=""/>';
-    put "</Templates>";
-    length string $10000;
-    string=cats('<XMLSELECT search="Person[@Name=',"'&user'",']"/>');
-    put string;
-    put "</Options>";
-    put "</GetMetadataObjects>";
+    file sxlemap;
+    put '<SXLEMAP version="1.2" name="SASObjects"><TABLE name="SASObjects">';
+    put "<TABLE-PATH syntax='XPath'>/GetMetadataObjects/Objects/Person";
+    put "</TABLE-PATH>";
+    put '<COLUMN name="uri">';
+    put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/Person/@Id</PATH>";
+    put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>32</LENGTH>";
+    put '</COLUMN><COLUMN name="name">';
+    put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/Person/@Name</PATH>";
+    put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>256</LENGTH>";
+    put '</COLUMN></TABLE></SXLEMAP>';
   run;
-  proc metadata in=inref out=response;
+  libname _XML_ xml xmlfileref=response xmlmap=sxlemap;
+
+  proc sort data=_XML_.SASObjects out=&outds;
+    by name;
   run;
-%end;
 
-filename sxlemap temp;
-data _null_;
-  file sxlemap;
-  put '<SXLEMAP version="1.2" name="SASObjects"><TABLE name="SASObjects">';
-  put "<TABLE-PATH syntax='XPath'>/GetMetadataObjects/Objects/Person";
-  put "</TABLE-PATH>";
-  put '<COLUMN name="uri">';
-  put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/Person/@Id</PATH>";
-  put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>32</LENGTH>";
-  put '</COLUMN><COLUMN name="name">';
-  put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/Person/@Name</PATH>";
-  put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>256</LENGTH>";
-  put '</COLUMN></TABLE></SXLEMAP>';
-run;
-libname _XML_ xml xmlfileref=response xmlmap=sxlemap;
-
-proc sort data= _XML_.SASObjects out=&outds;
-  by name;
-run;
-
-filename sxlemap clear;
-filename response clear;
-libname _XML_ clear;
+  filename sxlemap clear;
+  filename response clear;
+  libname _XML_ clear;
 
 %mend mm_getusers;

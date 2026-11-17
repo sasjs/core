@@ -50,53 +50,49 @@
 
 **/
 
-%macro mcf_getfmttype(wrap=YES
-  ,lib=WORK
-  ,cat=SASJS
-  ,pkg=UTILS
-)/*/STORE SOURCE*/;
-%local i var cmpval found;
+%macro mcf_getfmttype(wrap=YES ,lib=WORK ,cat=SASJS ,pkg=UTILS
+  )/*/STORE SOURCE*/;
+  %local i var cmpval found;
 
-%if %mcf_init(mcf_getfmttype)=1 %then %return;
+  %if %mcf_init(mcf_getfmttype)=1 %then %return;
 
-%if &wrap=YES  %then %do;
-  proc fcmp outlib=&lib..&cat..&pkg;
-%end;
+  %if &wrap=YES %then %do;
+    proc fcmp outlib=&lib..&cat..&pkg;
+      %end;
 
-function mcf_getfmttype(fmtnm $) $8;
-  if substr(fmtnm,1,1)='$' then return('CHAR');
-  else do;
-    /* extract NAME */
-    length fmt $32;
-    fmt=scan(fmtnm,1,'.');
-    do while (
-      substr(fmt,length(fmt),1) in ('1','2','3','4','5','6','7','8','9','0')
-      );
-      if length(fmt)=1 then fmt='W';
-      else fmt=substr(fmt,1,length(fmt)-1);
-    end;
+      function mcf_getfmttype(fmtnm $) $8;
+      if substr(fmtnm,1,1)='$' then return('CHAR');
+      else do;
+        /* extract NAME */
+        length fmt $32;
+        fmt=scan(fmtnm,1,'.');
+        do while ( substr(fmt,length(fmt),1) in
+          ('1','2','3','4','5','6','7','8','9','0') );
+          if length(fmt)=1 then fmt='W';
+          else fmt=substr(fmt,1,length(fmt)-1);
+        end;
 
-    /* apply lookups - the format lists live in mf_dttmfmts.sas */
-    if cats(fmt) in (%mf_dttmfmts(DATETIME)) then return('DATETIME');
-    else if cats(fmt) in (%mf_dttmfmts(DATE)) then return('DATE');
-    else if cats(fmt) in (%mf_dttmfmts(TIME)) then return('TIME');
-    else return('NUM');
-  end;
-endsub;
+        /* apply lookups - the format lists live in mf_dttmfmts.sas */
+        if cats(fmt) in (%mf_dttmfmts(DATETIME)) then return('DATETIME');
+        else if cats(fmt) in (%mf_dttmfmts(DATE)) then return('DATE');
+        else if cats(fmt) in (%mf_dttmfmts(TIME)) then return('TIME');
+        else return('NUM');
+      end;
+      endsub;
 
-%if &wrap=YES %then %do;
-  quit;
-%end;
+      %if &wrap=YES %then %do;
+        quit;
+      %end;
 
-/* insert the CMPLIB if not already there */
-%let cmpval=%sysfunc(getoption(cmplib));
-%let found=0;
-%do i=1 %to %sysfunc(countw(&cmpval,%str( %(%))));
-  %let var=%scan(&cmpval,&i,%str( %(%)));
-  %if &var=&lib..&cat %then %let found=1;
-%end;
-%if &found=0 %then %do;
-  options insert=(CMPLIB=(&lib..&cat));
-%end;
+      /* insert the CMPLIB if not already there */
+      %let cmpval=%sysfunc(getoption(cmplib));
+      %let found=0;
+      %do i=1 %to %sysfunc(countw(&cmpval,%str( %(%))));
+        %let var=%scan(&cmpval,&i,%str( %(%)));
+        %if &var=&lib..&cat %then %let found=1;
+      %end;
+      %if &found=0 %then %do;
+        options insert=(CMPLIB=(&lib..&cat));
+      %end;
 
-%mend mcf_getfmttype;
+      %mend mcf_getfmttype;

@@ -56,94 +56,79 @@
 
 **/
 
-%macro mv_tokenauth(inds=mv_registerclient
-    ,outds=mv_tokenauth
-    ,client_id=someclient
-    ,client_secret=somesecret
-    ,grant_type=authorization_code
-    ,code=
-    ,user=
-    ,pass=
-    ,access_token_var=ACCESS_TOKEN
-    ,refresh_token_var=REFRESH_TOKEN
-    ,base_uri=#NOTSET#
-  );
-%global &access_token_var &refresh_token_var;
+%macro mv_tokenauth(inds=mv_registerclient ,outds=mv_tokenauth
+  ,client_id=someclient ,client_secret=somesecret ,grant_type=authorization_code
+  ,code=,user=,pass=,access_token_var=ACCESS_TOKEN
+  ,refresh_token_var=REFRESH_TOKEN ,base_uri=#NOTSET# );
+  %global &access_token_var &refresh_token_var;
 
-%local fref1 fref2 libref;
+  %local fref1 fref2 libref;
 
-/* test the validity of inputs */
-%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password)
-  ,mac=&sysmacroname
-  ,msg=%str(Invalid value for grant_type: &grant_type)
-)
+  /* test the validity of inputs */
+  %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne
+    password) ,mac=&sysmacroname
+    ,msg=%str(Invalid value for grant_type: &grant_type) )
 
-%if %mf_existds(&inds) %then %do;
+  %if %mf_existds(&inds) %then %do;
+    data _null_;
+      set &inds;
+      call symputx('client_id',client_id,'l');
+      call symputx('client_secret',client_secret,'l');
+      if not missing(auth_code) then call symputx('code',auth_code,'l');
+    run;
+  %end;
+
+  %mp_abort(iftrue=(&grant_type=authorization_code and %str(&code)=%str())
+    ,mac=&sysmacroname ,msg=%str(Authorization code required) )
+
+  %mp_abort(iftrue=( &grant_type=password and (%str(&user)=%str() or
+    %str(&pass)=%str())) ,mac=&sysmacroname
+    ,msg=%str(username / password required) )
+
+  /* prepare appropriate grant type */
+  %let fref1=%mf_getuniquefileref();
+
   data _null_;
-    set &inds;
-    call symputx('client_id',client_id,'l');
-    call symputx('client_secret',client_secret,'l');
-    if not missing(auth_code) then call symputx('code',auth_code,'l');
+    file &fref1;
+    if "&grant_type"='authorization_code' then string=cats(
+      'grant_type=authorization_code&code=',symget('code'));
+    else string=cats('grant_type=password&username=',symget('user')
+      ,'&password=',symget(pass));
+    call symputx('grantstring',cats("'",string,"'"));
   run;
-%end;
+  /*data _null_;infile &fref1;input;put _infile_;run;*/
 
-%mp_abort(iftrue=(&grant_type=authorization_code and %str(&code)=%str())
-  ,mac=&sysmacroname
-  ,msg=%str(Authorization code required)
-)
+  /**
+    * Request access token
+    */
+  %if &base_uri=#NOTSET# %then %let base_uri=%mf_getplatform(VIYARESTAPI);
 
-%mp_abort(iftrue=(
-  &grant_type=password and (%str(&user)=%str() or %str(&pass)=%str()))
-  ,mac=&sysmacroname
-  ,msg=%str(username / password required)
-)
+  %let fref2=%mf_getuniquefileref();
 
-/* prepare appropriate grant type */
-%let fref1=%mf_getuniquefileref();
+  proc http method='POST' in=&grantstring out=&fref2
+    url="&base_uri/SASLogon/oauth/token" WEBUSERNAME="&client_id"
+    WEBPASSWORD="&client_secret" AUTH_BASIC;
+    headers "Accept"="application/json"
+      "Content-Type"="application/x-www-form-urlencoded";
+  run;
+  /*data _null_;infile &fref2;input;put _infile_;run;*/
 
-data _null_;
-  file &fref1;
-  if "&grant_type"='authorization_code' then string=cats(
-    'grant_type=authorization_code&code=',symget('code'));
-  else string=cats('grant_type=password&username=',symget('user')
-    ,'&password=',symget(pass));
-  call symputx('grantstring',cats("'",string,"'"));
-run;
-/*data _null_;infile &fref1;input;put _infile_;run;*/
+  /**
+    * Extract access / refresh tokens
+    */
 
-/**
-  * Request access token
-  */
-%if &base_uri=#NOTSET# %then %let base_uri=%mf_getplatform(VIYARESTAPI);
+  %let libref=%mf_getuniquelibref();
+  libname &libref JSON fileref=&fref2;
 
-%let fref2=%mf_getuniquefileref();
-proc http method='POST' in=&grantstring out=&fref2
-  url="&base_uri/SASLogon/oauth/token"
-  WEBUSERNAME="&client_id"
-  WEBPASSWORD="&client_secret"
-  AUTH_BASIC;
-  headers "Accept"="application/json"
-          "Content-Type"="application/x-www-form-urlencoded";
-run;
-/*data _null_;infile &fref2;input;put _infile_;run;*/
+  /* extract the tokens */
+  data &outds;
+    set &libref..root;
+    call symputx("&access_token_var",access_token);
+    call symputx("&refresh_token_var",refresh_token);
+  run;
 
-/**
-  * Extract access / refresh tokens
-  */
-
-%let libref=%mf_getuniquelibref();
-libname &libref JSON fileref=&fref2;
-
-/* extract the tokens */
-data &outds;
-  set &libref..root;
-  call symputx("&access_token_var",access_token);
-  call symputx("&refresh_token_var",refresh_token);
-run;
-
-
-libname &libref clear;
-filename &fref1 clear;
-filename &fref2 clear;
+  libname &libref clear;
+  filename &fref1 clear;
+  filename &fref2 clear;
 
 %mend mv_tokenauth;

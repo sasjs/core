@@ -53,82 +53,67 @@
 
 **/
 
-%macro mv_tokenrefresh(inds=mv_registerclient
-    ,outds=mv_tokenrefresh
-    ,client_id=someclient
-    ,client_secret=somesecret
-    ,grant_type=authorization_code
-    ,user=
-    ,pass=
-    ,access_token_var=ACCESS_TOKEN
-    ,refresh_token_var=REFRESH_TOKEN
-  );
-%global &access_token_var &refresh_token_var;
-options noquotelenmax;
+%macro mv_tokenrefresh(inds=mv_registerclient ,outds=mv_tokenrefresh
+  ,client_id=someclient ,client_secret=somesecret ,grant_type=authorization_code
+  ,user=,pass=,access_token_var=ACCESS_TOKEN ,refresh_token_var=REFRESH_TOKEN );
+  %global &access_token_var &refresh_token_var;
+  options noquotelenmax;
 
-%local fref1 libref;
+  %local fref1 libref;
 
-/* test the validity of inputs */
-%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password)
-  ,mac=&sysmacroname
-  ,msg=%str(Invalid value for grant_type: &grant_type)
-)
+  /* test the validity of inputs */
+  %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne
+    password) ,mac=&sysmacroname
+    ,msg=%str(Invalid value for grant_type: &grant_type) )
 
-%mp_abort(
-  iftrue=(&grant_type=password and (%str(&user)=%str() or %str(&pass)=%str()))
-  ,mac=&sysmacroname
-  ,msg=%str(username / password required)
-)
+  %mp_abort( iftrue=(&grant_type=password and (%str(&user)=%str() or
+    %str(&pass)=%str())) ,mac=&sysmacroname
+    ,msg=%str(username / password required) )
 
-%if %mf_existds(&inds) %then %do;
-  data _null_;
-    set &inds;
-    call symputx('client_id',client_id,'l');
-    call symputx('client_secret',client_secret,'l');
-    call symputx("&refresh_token_var",&refresh_token_var,'l');
+  %if %mf_existds(&inds) %then %do;
+    data _null_;
+      set &inds;
+      call symputx('client_id',client_id,'l');
+      call symputx('client_secret',client_secret,'l');
+      call symputx("&refresh_token_var",&refresh_token_var,'l');
+    run;
+  %end;
+
+  %mp_abort(iftrue=(%str(&client_id)=%str() or %str(&client_secret)=%str())
+    ,mac=&sysmacroname ,msg=%str(client / secret must both be provided) )
+
+  /**
+    * Request access token
+    */
+  %local base_uri; /* location of rest apis */
+  %let base_uri=%mf_getplatform(VIYARESTAPI);
+
+  %let fref1=%mf_getuniquefileref();
+
+  proc http method='POST'
+    in="grant_type=refresh_token%nrstr(&)refresh_token=&&&refresh_token_var"
+    out=&fref1 url="&base_uri/SASLogon/oauth/token" WEBUSERNAME="&client_id"
+    WEBPASSWORD="&client_secret" AUTH_BASIC;
+    headers "Accept"="application/json"
+      "Content-Type"="application/x-www-form-urlencoded";
   run;
-%end;
+  /*data _null_;infile &fref1;input;put _infile_;run;*/
 
-%mp_abort(iftrue=(%str(&client_id)=%str() or %str(&client_secret)=%str())
-  ,mac=&sysmacroname
-  ,msg=%str(client / secret must both be provided)
-)
+  /**
+    * Extract access / refresh tokens
+    */
 
-/**
-  * Request access token
-  */
-%local base_uri; /* location of rest apis */
-%let base_uri=%mf_getplatform(VIYARESTAPI);
+  %let libref=%mf_getuniquelibref();
+  libname &libref JSON fileref=&fref1;
 
-%let fref1=%mf_getuniquefileref();
-proc http method='POST'
-  in="grant_type=refresh_token%nrstr(&)refresh_token=&&&refresh_token_var"
-  out=&fref1
-  url="&base_uri/SASLogon/oauth/token"
-  WEBUSERNAME="&client_id"
-  WEBPASSWORD="&client_secret"
-  AUTH_BASIC;
-  headers "Accept"="application/json"
-          "Content-Type"="application/x-www-form-urlencoded";
-run;
-/*data _null_;infile &fref1;input;put _infile_;run;*/
+  /* extract the token */
+  data &outds;
+    set &libref..root;
+    call symputx("&access_token_var",access_token);
+    call symputx("&refresh_token_var",refresh_token);
+  run;
 
-/**
-  * Extract access / refresh tokens
-  */
-
-%let libref=%mf_getuniquelibref();
-libname &libref JSON fileref=&fref1;
-
-/* extract the token */
-data &outds;
-  set &libref..root;
-  call symputx("&access_token_var",access_token);
-  call symputx("&refresh_token_var",refresh_token);
-run;
-
-
-libname &libref clear;
-filename &fref1 clear;
+  libname &libref clear;
+  filename &fref1 clear;
 
 %mend mv_tokenrefresh;

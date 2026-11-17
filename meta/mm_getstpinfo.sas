@@ -21,48 +21,45 @@
   @sasjslint {"maxLineLength": 292}
 **/
 
-%macro mm_getstpinfo(pgm
-  ,outds=work.mm_getstpinfo
-  ,mDebug=0
-);
+%macro mm_getstpinfo(pgm ,outds=work.mm_getstpinfo ,mDebug=0 );
 
-%local mD;
-%if &mDebug=1 %then %let mD=;
-%else %let mD=%str(*);
-%&mD.put Executing &sysmacroname..sas;
-%&mD.put _local_;
+  %local mD;
+  %if &mDebug=1 %then %let mD=;
+  %else %let mD=%str(*);
+  %&mD.put Executing &sysmacroname..sas;
+  %&mD.put _local_;
 
-data &outds;
-  length type stp_uri tsuri servercontext value $200
-    StoredProcessConfiguration $1000 sourcecode_first32k $32767;
-  keep path stp_uri sourcecode_first32k StoredProcessConfiguration
-    servercontext;
-  call missing (of _all_);
-  path="&pgm(StoredProcess)";
-  /* first, find the STP ID */
-  if metadata_pathobj("",path,"StoredProcess",type,stp_uri)>0 then do;
-    /* get attributes */
-    cnt=1;
-    do while (metadata_getnasn(stp_uri,"Notes",cnt,tsuri)>0);
-      rc1=metadata_getattr(tsuri,"Name",value);
-      &mD.put tsuri= value=;
-      if value="SourceCode" then do;
-        rc2=metadata_getattr(tsuri,"StoredText",sourcecode_first32k);
+  data &outds;
+    length type stp_uri tsuri servercontext value $200
+      StoredProcessConfiguration $1000 sourcecode_first32k $32767;
+    keep path stp_uri sourcecode_first32k StoredProcessConfiguration
+      servercontext;
+    call missing (of _all_);
+    path="&pgm(StoredProcess)";
+    /* first, find the STP ID */
+    if metadata_pathobj("",path,"StoredProcess",type,stp_uri)>0 then do;
+      /* get attributes */
+      cnt=1;
+      do while (metadata_getnasn(stp_uri,"Notes",cnt,tsuri)>0);
+        rc1=metadata_getattr(tsuri,"Name",value);
+        &mD.put tsuri= value=;
+        if value="SourceCode" then do;
+          rc2=metadata_getattr(tsuri,"StoredText",sourcecode_first32k);
+        end;
+        else if value="Stored Process" then do;
+          rc3=metadata_getattr(tsuri,"StoredText",StoredProcessConfiguration);
+        end;
+        cnt+1;
       end;
-      else if value="Stored Process" then do;
-        rc3=metadata_getattr(tsuri,"StoredText",StoredProcessConfiguration);
-      end;
-      cnt+1;
+      /* get context (should only be one) */
+      rc4=metadata_getnasn(stp_uri,"ComputeLocations",1,tsuri);
+      rc5=metadata_getattr(tsuri,"Name",servercontext);
     end;
-    /* get context (should only be one) */
-    rc4=metadata_getnasn(stp_uri,"ComputeLocations",1,tsuri);
-    rc5=metadata_getattr(tsuri,"Name",servercontext);
-  end;
-  else do;
-    put 'ERR' +(-1) "OR: could not find " path;
-    put (_all_)(=);
-  end;
-  &md.put (_all_)(=);
-run;
+    else do;
+      put 'ERR' +(-1) "OR: could not find " path;
+      put (_all_)(=);
+    end;
+    &md.put (_all_)(=);
+  run;
 
 %mend mm_getstpinfo ;

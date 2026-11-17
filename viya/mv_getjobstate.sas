@@ -90,83 +90,78 @@
   @sasjslint {"maxLineLength": 102}
 **/
 
-%macro mv_getjobstate(uri=0,outds=work.mv_getjobstate
-    ,contextName=SAS Job Execution compute context
-    ,access_token_var=ACCESS_TOKEN
-    ,grant_type=sas_services
-  );
-%local oauth_bearer;
-%if &grant_type=detect %then %do;
-  %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
-  %else %let grant_type=sas_services;
-%end;
-%if &grant_type=sas_services %then %do;
+%macro mv_getjobstate(uri=0,outds=work.mv_getjobstate ,contextName=SAS Job
+  Execution compute context ,access_token_var=ACCESS_TOKEN
+  ,grant_type=sas_services );
+  %local oauth_bearer;
+  %if &grant_type=detect %then %do;
+    %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
+    %else %let grant_type=sas_services;
+  %end;
+  %if &grant_type=sas_services %then %do;
     %let oauth_bearer=oauth_bearer=sas_services;
     %let &access_token_var=;
-%end;
+  %end;
 
-%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
-    and &grant_type ne sas_services
-  )
-  ,mac=&sysmacroname
-  ,msg=%str(Invalid value for grant_type: &grant_type)
-)
+  %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne
+    password and &grant_type ne sas_services ) ,mac=&sysmacroname
+    ,msg=%str(Invalid value for grant_type: &grant_type) )
 
-/* validation in datastep for better character safety */
-%local errmsg errflg;
-data _null_;
-  uri=symget('uri');
-  if length(uri)<12 then do;
-    call symputx('errflg',1);
-    call symputx('errmsg',"URI is invalid (too short) - '&uri'",'l');
-  end;
-  if scan(uri,-1) ne 'state' or scan(uri,1) ne 'jobExecution' then do;
+  /* validation in datastep for better character safety */
+  %local errmsg errflg;
 
-    call symputx('errflg',1);
-    call symputx('errmsg',
-      "URI should be in format /jobExecution/jobs/$$$$UUID$$$$/state"
-      !!" but is actually like: &uri",'l');
-  end;
-run;
+  data _null_;
+    uri=symget('uri');
+    if length(uri)<12 then do;
+      call symputx('errflg',1);
+      call symputx('errmsg',"URI is invalid (too short) - '&uri'",'l');
+    end;
+    if scan(uri,-1) ne 'state' or scan(uri,1) ne 'jobExecution' then do;
 
-%mp_abort(iftrue=(&errflg=1)
-  ,mac=&sysmacroname
-  ,msg=%str(&errmsg)
-)
+      call symputx('errflg',1);
+      call symputx('errmsg',
+        "URI should be in format /jobExecution/jobs/$$$$UUID$$$$/state"
+        !!" but is actually like: &uri",'l');
+    end;
+  run;
 
-options noquotelenmax;
-%local base_uri; /* location of rest apis */
-%let base_uri=%mf_getplatform(VIYARESTAPI);
+  %mp_abort(iftrue=(&errflg=1) ,mac=&sysmacroname ,msg=%str(&errmsg) )
 
-%local fname0;
-%let fname0=%mf_getuniquefileref();
+  options noquotelenmax;
+  %local base_uri; /* location of rest apis */
+  %let base_uri=%mf_getplatform(VIYARESTAPI);
 
-proc http method='GET' out=&fname0 &oauth_bearer url="&base_uri/&uri";
-  headers "Accept"="text/plain"
-  %if &grant_type=authorization_code %then %do;
-          "Authorization"="Bearer &&&access_token_var"
-  %end;  ;
-run;
-%if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201 %then
-%do;
-  data _null_;infile &fname0;input;putlog _infile_;run;
-  %mp_abort(mac=&sysmacroname
-    ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
-  )
-%end;
+  %local fname0;
+  %let fname0=%mf_getuniquefileref();
 
-data;
-  format uri $128. state $32. timestamp datetime19.;
-  infile &fname0;
-  uri="&uri";
-  timestamp=datetime();
-  input;
-  state=_infile_;
-run;
+  proc http method='GET' out=&fname0 &oauth_bearer url="&base_uri/&uri";
+    headers "Accept"="text/plain" %if &grant_type=authorization_code %then %do;
+    "Authorization"="Bearer &&&access_token_var" %end;
+    ;
+  run;
+  %if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201
+    %then %do;
+    data _null_;
+      infile &fname0;
+      input;
+      putlog _infile_;
+    run;
+    %mp_abort(mac=&sysmacroname
+      ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE) )
+  %end;
 
-proc append base=&outds data=&syslast;
-run;
+  data;
+    format uri $128. state $32. timestamp datetime19.;
+    infile &fname0;
+    uri="&uri";
+    timestamp=datetime();
+    input;
+    state=_infile_;
+  run;
 
-filename &fname0 clear;
+  proc append base=&outds data=&syslast;
+  run;
+
+  filename &fname0 clear;
 
 %mend mv_getjobstate;

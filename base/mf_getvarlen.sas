@@ -27,20 +27,19 @@
 
 **/
 
-%macro mf_getvarlen(libds /* two level ds name */
-      , var /* variable name from which to return the length */
-)/*/STORE SOURCE*/;
+%macro mf_getvarlen(libds /* two level ds name */ , var
+  /* variable name from which to return the length */ )/*/STORE SOURCE*/;
   %local dsid vnum vlen rc;
   /* Open dataset */
-  %let dsid = %sysfunc(open(&libds));
+  %let dsid=%sysfunc(open(&libds));
   %if &dsid > 0 %then %do;
     /* Get variable number */
-    %let vnum = %sysfunc(varnum(&dsid, &var));
+    %let vnum=%sysfunc(varnum(&dsid, &var));
     /* Get variable format */
-    %if(&vnum > 0) %then %let vlen = %sysfunc(varlen(&dsid, &vnum));
+    %if(&vnum > 0) %then %let vlen=%sysfunc(varlen(&dsid, &vnum));
     %else %do;
       %put NOTE: Variable &var does not exist in &libds;
-      %let vlen = %str( );
+      %let vlen=%str( );
     %end;
   %end;
   %else %do;
@@ -50,7 +49,7 @@
   %end;
 
   /* Close dataset */
-  %let rc = %sysfunc(close(&dsid));
+  %let rc=%sysfunc(close(&dsid));
   /* Return variable format */
   &vlen
 %mend mf_getvarlen;

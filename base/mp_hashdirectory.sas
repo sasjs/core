@@ -68,99 +68,90 @@
   @author Allan Bowe
 **/
 
-%macro mp_hashdirectory(inloc,
-  outds=work.mp_hashdirectory,
-  method=MD5,
-  maxdepth=0,
-  iftrue=%str(1=1)
-)/*/STORE SOURCE*/;
+%macro mp_hashdirectory(inloc, outds=work.mp_hashdirectory, method=MD5,
+  maxdepth=0, iftrue=%str(1=1) )/*/STORE SOURCE*/;
 
-%local curlevel tempds maxlevel;
+  %local curlevel tempds maxlevel;
 
-%if not(%eval(%unquote(&iftrue))) %then %return;
+  %if not(%eval(%unquote(&iftrue))) %then %return;
 
-/* get the directory listing */
-%mp_dirlist(path=&inloc, outds=&outds, maxdepth=&maxdepth, showparent=YES)
+  /* get the directory listing */
+  %mp_dirlist(path=&inloc, outds=&outds, maxdepth=&maxdepth, showparent=YES)
 
-/* create the hashes */
-data &outds;
-  set &outds (rename=(filepath=file_path));
-  length FILE_HASH $32 HASH_DURATION 8;
-  keep directory file_hash hash_duration file_path file_or_folder level;
+  /* create the hashes */
+  data &outds;
+    set &outds (rename=(filepath=file_path));
+    length FILE_HASH $32 HASH_DURATION 8;
+    keep directory file_hash hash_duration file_path file_or_folder level;
 
-  ts=datetime();
-  if file_or_folder='file' then do;
-    /* if file is empty, hashing_file will break - so ignore / delete */
-    length fname val $8;
-    drop fname val fid is_empty;
-    rc=filename(fname,file_path);
-    fid=fopen(fname);
-    if fid > 0 then do;
-      rc=fread(fid);
-      is_empty=fget(fid,val);
+    ts=datetime();
+    if file_or_folder='file' then do;
+      /* if file is empty, hashing_file will break - so ignore / delete */
+      length fname val $8;
+      drop fname val fid is_empty;
+      rc=filename(fname,file_path);
+      fid=fopen(fname);
+      if fid > 0 then do;
+        rc=fread(fid);
+        is_empty=fget(fid,val);
+      end;
+      rc=fclose(fid);
+      rc=filename(fname);
+      if is_empty ne 0 then delete;
+      else file_hash=hashing_file("&method",cats(file_path),0);
     end;
-    rc=fclose(fid);
-    rc=filename(fname);
-    if is_empty ne 0 then delete;
-    else file_hash=hashing_file("&method",cats(file_path),0);
-  end;
-  hash_duration=datetime()-ts;
-run;
-
-proc sort data=&outds ;
-  by descending level directory file_path;
-run;
-
-%let maxlevel=0;
-data _null_;
-  set &outds;
-  call symputx('maxlevel',level,'l');
-  stop;
-run;
-
-/* now hash the hashes to populate folder hashes, starting from the bottom */
-%do curlevel=&maxlevel %to 0 %by -1;
-  data work._data_ (keep=directory file_hash);
-    set &outds;
-    where level=&curlevel;
-    by descending level directory file_path;
-    length str $32767 tmp_hash $32;
-    retain str tmp_hash ;
-    /* reset vars when starting a new directory */
-    if first.directory then do;
-      str='';
-      tmp_hash='';
-      i=0;
-    end;
-    /* hash each chunk of 100 file paths */
-    i+1;
-    str=cats(str,file_hash);
-    if mod(i,100)=0 or last.directory then do;
-      tmp_hash=hashing("&method",cats(tmp_hash,str));
-      str='';
-    end;
-    /* output the hash at directory level */
-    if last.directory then do;
-      file_hash=tmp_hash;
-      output;
-    end;
-    if last.level then stop;
+    hash_duration=datetime()-ts;
   run;
-  %let tempds=&syslast;
-  /* join the hash back into the main table */
-  proc sql undo_policy=none;
-  create table &outds as
-    select a.directory
-      ,coalesce(b.file_hash,a.file_hash) as file_hash
-      ,a.hash_duration
-      ,a.file_path
-      ,a.file_or_folder
-      ,a.level
-    from &outds a
-    left join &tempds b
-    on a.file_path=b.directory
-    order by level desc, directory, file_path;
-  drop table &tempds;
-%end;
 
-%mend mp_hashdirectory;
+  proc sort data=&outds ;
+    by descending level directory file_path;
+  run;
+
+  %let maxlevel=0;
+
+  data _null_;
+    set &outds;
+    call symputx('maxlevel',level,'l');
+    stop;
+  run;
+
+  /* now hash the hashes to populate folder hashes, starting from the bottom */
+  %do curlevel=&maxlevel %to 0 %by -1;
+    data work._data_ (keep=directory file_hash);
+      set &outds;
+      where level=&curlevel;
+      by descending level directory file_path;
+      length str $32767 tmp_hash $32;
+      retain str tmp_hash ;
+      /* reset vars when starting a new directory */
+      if first.directory then do;
+        str='';
+        tmp_hash='';
+        i=0;
+      end;
+      /* hash each chunk of 100 file paths */
+      i+1;
+      str=cats(str,file_hash);
+      if mod(i,100)=0 or last.directory then do;
+        tmp_hash=hashing("&method",cats(tmp_hash,str));
+        str='';
+      end;
+      /* output the hash at directory level */
+      if last.directory then do;
+        file_hash=tmp_hash;
+        output;
+      end;
+      if last.level then stop;
+    run;
+    %let tempds=&syslast;
+
+    /* join the hash back into the main table */
+    proc sql undo_policy=none;
+      create table &outds as select a.directory
+        ,coalesce(b.file_hash,a.file_hash) as file_hash ,a.hash_duration
+        ,a.file_path ,a.file_or_folder ,a.level from &outds a left join &tempds
+        b on a.file_path=b.directory order by level desc, directory, file_path;
+      drop table &tempds;
+      %end;
+
+    %mend mp_hashdirectory;

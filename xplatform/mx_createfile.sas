@@ -53,75 +53,66 @@
 
 **/
 
-%macro mx_createfile(filepath
-    ,inref=0
-    ,mdebug=0
-)/*/STORE SOURCE*/;
+%macro mx_createfile(filepath ,inref=0 ,mdebug=0 )/*/STORE SOURCE*/;
 
-%local platform name shortloc;
-%let platform=%mf_getplatform();
+  %local platform name shortloc;
+  %let platform=%mf_getplatform();
 
-%if &inref=0 %then %do;
-  %put %str(ERR)OR: &sysmacroname requires a valid inref fileref;
-  %return;
-%end;
-
-%if &platform=SASJS %then %do;
-  %ms_createfile(%superq(filepath), inref=&inref, mdebug=&mdebug)
-%end;
-%else %if &platform=SASVIYA %then %do;
-  /* extract name & path from &filepath */
-  data _null_;
-    filepath=symget('filepath');
-    name=scan(filepath,-1,'/');
-    shortloc=substr(filepath,1,length(filepath)-length(name)-1);
-    call symputx('name',name,'l');
-    call symputx('shortloc',shortloc,'l');
-  run;
-  %mv_createfile(path=%superq(shortloc)
-    ,name=%superq(name)
-    ,inref=&inref
-    ,mdebug=&mdebug
-  )
-%end;
-%else %if &platform=SAS9 or &platform=SASMETA %then %do;
-  /* no file concept - create a type 2 STP (source code saved in metadata).
-    The mm_createstp macro requires a physical file, so copy the inref
-    content to WORK first.  It then loads the source code, meaning no
-    separate mm_updatestpsourcecode call is needed. */
-  data _null_;
-    filepath=symget('filepath');
-    name=scan(filepath,-1,'/');
-    shortloc=substr(filepath,1,length(filepath)-length(name)-1);
-    call symputx('name',name,'l');
-    call symputx('shortloc',shortloc,'l');
-  run;
-  %local fref;
-  %let fref=%mf_getuniquefileref();
-  filename &fref "%sysfunc(getoption(work))/%superq(name).sas";
-  data _null_;
-    infile &inref lrecl=32767;
-    file &fref lrecl=32767;
-    input;
-    put _infile_;
-  run;
-  %mm_createstp(stpname=%superq(name)
-    ,tree=%superq(shortloc)
-    ,filename=%superq(name).sas
-    ,directory=%sysfunc(getoption(work))
-    ,stptype=2
-    ,mdebug=&mdebug
-  )
-  %if &mdebug=0 %then %do;
-    /* remove the temporary physical file */
-    %local rc;
-    %let rc=%sysfunc(fdelete(&fref));
-    filename &fref clear;
+  %if &inref=0 %then %do;
+    %put %str(ERR)OR: &sysmacroname requires a valid inref fileref;
+    %return;
   %end;
-%end;
-%else %do;
-  %put %str(ERR)OR: &sysmacroname: &platform is unsupported!!!;
-  %let syscc=1012;
-%end;
+
+  %if &platform=SASJS %then %do;
+    %ms_createfile(%superq(filepath), inref=&inref, mdebug=&mdebug)
+  %end;
+  %else %if &platform=SASVIYA %then %do;
+    /* extract name & path from &filepath */
+    data _null_;
+      filepath=symget('filepath');
+      name=scan(filepath,-1,'/');
+      shortloc=substr(filepath,1,length(filepath)-length(name)-1);
+      call symputx('name',name,'l');
+      call symputx('shortloc',shortloc,'l');
+    run;
+    %mv_createfile(path=%superq(shortloc) ,name=%superq(name) ,inref=&inref
+      ,mdebug=&mdebug )
+  %end;
+  %else %if &platform=SAS9 or &platform=SASMETA %then %do;
+    /* no file concept - create a type 2 STP (source code saved in metadata).
+      The mm_createstp macro requires a physical file, so copy the inref
+      content to WORK first.  It then loads the source code, meaning no
+      separate mm_updatestpsourcecode call is needed. */
+    data _null_;
+      filepath=symget('filepath');
+      name=scan(filepath,-1,'/');
+      shortloc=substr(filepath,1,length(filepath)-length(name)-1);
+      call symputx('name',name,'l');
+      call symputx('shortloc',shortloc,'l');
+    run;
+    %local fref;
+    %let fref=%mf_getuniquefileref();
+    filename &fref "%sysfunc(getoption(work))/%superq(name).sas";
+
+    data _null_;
+      infile &inref lrecl=32767;
+      file &fref lrecl=32767;
+      input;
+      put _infile_;
+    run;
+    %mm_createstp(stpname=%superq(name) ,tree=%superq(shortloc)
+      ,filename=%superq(name).sas ,directory=%sysfunc(getoption(work))
+      ,stptype=2 ,mdebug=&mdebug )
+    %if &mdebug=0 %then %do;
+      /* remove the temporary physical file */
+      %local rc;
+      %let rc=%sysfunc(fdelete(&fref));
+      filename &fref clear;
+    %end;
+  %end;
+  %else %do;
+    %put %str(ERR)OR: &sysmacroname: &platform is unsupported!!!;
+    %let syscc=1012;
+  %end;
 
 %mend mx_createfile;

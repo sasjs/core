@@ -46,43 +46,43 @@
 
 **/
 
-%macro mp_prevobs(action,record,history=5,prefix=mp_prevobs
-)/*/STORE SOURCE*/;
-%let action=%upcase(&action);
-%let prefix=%upcase(&prefix);
-%let record=%eval((&record+0) * -1);
+%macro mp_prevobs(action,record,history=5,prefix=mp_prevobs )/*/STORE SOURCE*/;
+  %let action=%upcase(&action);
+  %let prefix=%upcase(&prefix);
+  %let record=%eval((&record+0) * -1);
 
-%if &action=INIT %then %do;
+  %if &action=INIT %then %do;
 
-  if _n_ eq 1 then do;
-    attrib &prefix._VAR length=$64;
-    dcl hash &prefix._HASH(ordered:'Y');
-    &prefix._KEY=0;
-    &prefix._HASH.defineKey("&prefix._KEY");
-    do while(1);
-      call vnext(&prefix._VAR);
-      if &prefix._VAR='' then leave;
-      if &prefix._VAR eq "&prefix._VAR" then continue;
-      else if &prefix._VAR eq "&prefix._KEY" then continue;
-      &prefix._HASH.defineData(&prefix._VAR);
+    if _n_ eq 1 then do;
+      attrib &prefix._VAR length=$64;
+      dcl hash &prefix._HASH(ordered:'Y');
+      &prefix._KEY=0;
+      &prefix._HASH.defineKey("&prefix._KEY");
+      do while(1);
+        call vnext(&prefix._VAR);
+        if &prefix._VAR='' then leave;
+        if &prefix._VAR eq "&prefix._VAR" then continue;
+        else if &prefix._VAR eq "&prefix._KEY" then continue;
+        &prefix._HASH.defineData(&prefix._VAR);
+      end;
+      &prefix._HASH.defineDone();
     end;
-    &prefix._HASH.defineDone();
-  end;
-  /* this part has to happen before FETCHing */
-  &prefix._KEY+1;
-  &prefix._rc=&prefix._HASH.add();
-  if &prefix._rc then putlog 'adding' &prefix._rc=;
-  %if &history>0 %then %do;
-    if &prefix._key>&history+1 then
-      &prefix._HASH.remove(key: &prefix._KEY - &history - 1);
-    if &prefix._rc then putlog 'removing' &prefix._rc=;
+    /* this part has to happen before FETCHing */
+    &prefix._KEY+1;
+    &prefix._rc=&prefix._HASH.add();
+    if &prefix._rc then putlog 'adding' &prefix._rc=;
+    %if &history>0 %then %do;
+      if &prefix._key>&history+1 then &prefix._HASH.remove(key: &prefix._KEY -
+        &history - 1);
+      if &prefix._rc then putlog 'removing' &prefix._rc=;
+    %end;
   %end;
-%end;
-%else %if &action=FETCH %then %do;
-  if &record>&prefix._key then putlog "Not enough records in &Prefix._hash yet";
-  else &prefix._rc=&prefix._HASH.find(key: &prefix._KEY - &record);
-  if &prefix._rc then putlog &prefix._rc= " when fetching " &prefix._KEY=
-    "with record &record and " _n_=;
-%end;
+  %else %if &action=FETCH %then %do;
+    if &record>&prefix._key then putlog
+      "Not enough records in &Prefix._hash yet";
+    else &prefix._rc=&prefix._HASH.find(key: &prefix._KEY - &record);
+    if &prefix._rc then putlog &prefix._rc=" when fetching " &prefix._KEY=
+      "with record &record and " _n_=;
+  %end;
 
 %mend mp_prevobs;

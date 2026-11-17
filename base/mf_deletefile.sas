@@ -22,10 +22,9 @@
   @author Allan Bowe
 **/
 
-%macro mf_deletefile(file
-)/*/STORE SOURCE*/;
+%macro mf_deletefile(file )/*/STORE SOURCE*/;
   %local rc fref;
-  %let rc= %sysfunc(filename(fref,&file));
+  %let rc=%sysfunc(filename(fref,&file));
   %if %sysfunc(fdelete(&fref)) ne 0 %then %put %sysfunc(sysmsg());
-  %let rc= %sysfunc(filename(fref));
+  %let rc=%sysfunc(filename(fref));
 %mend mf_deletefile;

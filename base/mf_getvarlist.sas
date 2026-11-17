@@ -31,11 +31,8 @@
 
 **/
 
-%macro mf_getvarlist(libds
-      ,dlm=%str( )
-      ,quote=no
-      ,typefilter=A
-)/*/STORE SOURCE*/;
+%macro mf_getvarlist(libds ,dlm=%str( ) ,quote=no ,typefilter=A
+  )/*/STORE SOURCE*/;
   /* declare local vars */
   %local outvar dsid nvars x rc dlm q var vtype;
 
@@ -67,8 +64,9 @@
   %end;
   %else %do;
     %put &sysmacroname: Unable to open &libds (rc=&dsid);
-    %put &sysmacroname: SYSMSG= %sysfunc(sysmsg());
+    %put &sysmacroname: SYSMSG=%sysfunc(sysmsg());
     %let rc=%sysfunc(close(&dsid));
   %end;
-  %do;%unquote(&outvar)%end;
+  %do;
+  %unquote(&outvar)%end;
 %mend mf_getvarlist;

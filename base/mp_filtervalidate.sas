@@ -53,68 +53,63 @@
 
 %macro mp_filtervalidate(inref,targetds,abort=YES,outds=work.mp_filtervalidate);
 
-%mp_abort(iftrue= (&syscc ne 0 or &syserr ne 0)
-  ,mac=&sysmacroname
-  ,msg=%str(syscc=&syscc / syserr=&syserr - on macro entry)
-)
+  %mp_abort(iftrue=(&syscc ne 0 or &syserr ne 0) ,mac=&sysmacroname
+    ,msg=%str(syscc=&syscc / syserr=&syserr - on macro entry) )
 
-%local fref1 flt_clause flt_msg;
-%let fref1=%mf_getuniquefileref();
+  %local fref1 flt_clause flt_msg;
+  %let fref1=%mf_getuniquefileref();
 
-data _null_;
-  file &fref1;
-  infile &inref end=eof;
-  length flt_clause $4000;
-  retain flt_clause;
-  if _n_=1 then do;
-    put "proc sql;";
-    put "validate select * from &targetds";
-    put "where " ;
-  end;
-  input;
-  put _infile_;
-  putlog _infile_;
-  /* the generated clause, kept so a failure can name the inputs it was given -
-    the SQL message reports only the clashing data types */
-  flt_clause=cats(flt_clause,ifc(_n_>1,' ',''),strip(_infile_));
-  if eof then do;
-    put ";quit;";
-    call symputx('flt_clause',flt_clause,'l');
-  end;
-run;
+  data _null_;
+    file &fref1;
+    infile &inref end=eof;
+    length flt_clause $4000;
+    retain flt_clause;
+    if _n_=1 then do;
+      put "proc sql;";
+      put "validate select * from &targetds";
+      put "where " ;
+    end;
+    input;
+    put _infile_;
+    putlog _infile_;
+    /* the generated clause, kept so a failure can name the inputs it was given
+      - the SQL message reports only the clashing data types */
+    flt_clause=cats(flt_clause,ifc(_n_>1,' ',''),strip(_infile_));
+    if eof then do;
+      put ";quit;";
+      call symputx('flt_clause',flt_clause,'l');
+    end;
+  run;
 
-%inc &fref1;
+  %inc &fref1;
 
-data &outds;
-  if &sqlrc or &syscc or &syserr then do;
-    REASON_CD='VALIDATION_ERR'!!'OR: '!!
-      coalescec(symget('SYSERRORTEXT'),symget('SYSWARNINGTEXT'));
-    output;
-  end;
-  else stop;
-run;
+  data &outds;
+    if &sqlrc or &syscc or &syserr then do;
+      REASON_CD='VALIDATION_ERR'!!'OR: '!!
+        coalescec(symget('SYSERRORTEXT'),symget('SYSWARNINGTEXT'));
+      output;
+    end;
+    else stop;
+  run;
 
-filename &fref1 clear;
+  filename &fref1 clear;
 
-%if %mf_nobs(&outds)>0 %then %do;
-  %if &abort=YES %then %do;
-    data _null_;
-      set &outds;
-      length flt_msg $4000;
-      call symputx('REASON_CD',reason_cd,'l');
-      /* the clause is reported with the reason: the SQL message says which
-        types clashed but not which inputs produced it */
-      flt_msg=catx(' ','Filter validation issues:',reason_cd
-        ,catx(' ','Clause: where',symget('flt_clause')));
-      call symputx('flt_msg',flt_msg,'l');
-      stop;
-    run;
-    %mp_abort(
-      mac=&sysmacroname,
-      msg=%superq(flt_msg)
-    )
+  %if %mf_nobs(&outds)>0 %then %do;
+    %if &abort=YES %then %do;
+      data _null_;
+        set &outds;
+        length flt_msg $4000;
+        call symputx('REASON_CD',reason_cd,'l');
+        /* the clause is reported with the reason: the SQL message says which
+          types clashed but not which inputs produced it */
+        flt_msg=catx(' ','Filter validation issues:',reason_cd
+          ,catx(' ','Clause: where',symget('flt_clause')));
+        call symputx('flt_msg',flt_msg,'l');
+        stop;
+      run;
+      %mp_abort( mac=&sysmacroname, msg=%superq(flt_msg) )
+    %end;
+    %let syscc=1008;
   %end;
-  %let syscc=1008;
-%end;
 
 %mend mp_filtervalidate;

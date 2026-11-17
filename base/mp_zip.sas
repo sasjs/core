@@ -35,54 +35,50 @@
 
 **/
 
-%macro mp_zip(
-  in=
-  ,type=FILE
-  ,outname=FILE
-  ,outpath=%sysfunc(pathname(WORK))
-  ,incol=
-  ,debug=NO
-)/*/STORE SOURCE*/;
+%macro mp_zip( in=,type=FILE ,outname=FILE ,outpath=%sysfunc(pathname(WORK))
+  ,incol=,debug=NO )/*/STORE SOURCE*/;
 
-%let type=%upcase(&type);
-%local ds;
+  %let type=%upcase(&type);
+  %local ds;
 
-ods package open nopf;
+  ods package open nopf;
 
-%if &type=FILE %then %do;
-  ods package add file="&in" mimetype="application/x-compress";
-%end;
-%else %if &type=DIRECTORY %then %do;
-  /* a literal outds of _data_ makes mp_dirlist create "data _data_" which SAS
-    reads as the last dataset in the session - give it a real unique name */
-  %let ds=%mf_getuniquename(prefix=mpzip);
-  %mp_dirlist(path=&in,outds=&ds)
-  data _null_;
-    set &ds;
-    length __command $4000;
-    if file_or_folder='file';
-    __command=cats('ods package add file="',filepath
-      ,'" mimetype="application/x-compress";');
-    call execute(__command);
-  run;
-  /* tidy up */
-  %if &debug=NO %then %do;
-    proc sql; drop table &ds;quit;
+  %if &type=FILE %then %do;
+    ods package add file="&in" mimetype="application/x-compress";
   %end;
-%end;
-%else %if &type=DATASET %then %do;
-  data _null_;
-    set &in;
-    length __command $4000;
-    __command=cats('ods package add file="',&incol
-      ,'" mimetype="application/x-compress";');
-    call execute(__command);
-  run;
-%end;
+  %else %if &type=DIRECTORY %then %do;
+    /* a literal outds of _data_ makes mp_dirlist create "data _data_" which SAS
+      reads as the last dataset in the session - give it a real unique name */
+    %let ds=%mf_getuniquename(prefix=mpzip);
+    %mp_dirlist(path=&in,outds=&ds)
 
+    data _null_;
+      set &ds;
+      length __command $4000;
+      if file_or_folder='file';
+      __command=cats('ods package add file="',filepath
+        ,'" mimetype="application/x-compress";');
+      call execute(__command);
+    run;
+    /* tidy up */
+    %if &debug=NO %then %do;
+      proc sql;
+        drop table &ds;
+      quit;
+    %end;
+  %end;
+  %else %if &type=DATASET %then %do;
+    data _null_;
+      set &in;
+      length __command $4000;
+      __command=cats('ods package add file="',&incol
+        ,'" mimetype="application/x-compress";');
+      call execute(__command);
+    run;
+  %end;
 
-ods package publish archive properties
-  (archive_name="&outname..zip" archive_path="&outpath");
-ods package close;
+  ods package publish archive properties (archive_name="&outname..zip"
+    archive_path="&outpath");
+  ods package close;
 
 %mend mp_zip;

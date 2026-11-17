@@ -24,45 +24,41 @@
 
 **/
 
-%macro mm_gettree(
-    tree=
-    ,inds=
-    ,outds=work.mm_getTree
-    ,mDebug=0
-)/*/STORE SOURCE*/;
+%macro mm_gettree( tree=,inds=,outds=work.mm_getTree ,mDebug=0
+  )/*/STORE SOURCE*/;
 
-%local mD;
-%if &mDebug=1 %then %let mD=;
-%else %let mD=%str(*);
-%&mD.put Executing mm_getTree.sas;
-%&mD.put _local_;
+  %local mD;
+  %if &mDebug=1 %then %let mD=;
+  %else %let mD=%str(*);
+  %&mD.put Executing mm_getTree.sas;
+  %&mD.put _local_;
 
-data &outds;
-  length treeuri __parenturi __type __name $256 treepath $512;
-%if %length(&inds)>0 %then %do;
-  set &inds;
-%end;
-  __rc1=metadata_resolve("&tree",__type,treeuri);
+  data &outds;
+    length treeuri __parenturi __type __name $256 treepath $512;
+    %if %length(&inds)>0 %then %do;
+      set &inds;
+    %end;
+    __rc1=metadata_resolve("&tree",__type,treeuri);
 
-  if __type='Tree' then do;
-    __rc2=metadata_getattr(treeuri,"Name",__name);
-    treepath=cats('/',__name);
-    /* get parents */
-    do while (metadata_getnasn(treeuri,"ParentTree",1,__parenturi)>0);
-      __rc3=metadata_getattr(__parenturi,"Name",__name);
-      treepath=cats('/',__name,treepath);
-      treeuri=__parenturi;
+    if __type='Tree' then do;
+      __rc2=metadata_getattr(treeuri,"Name",__name);
+      treepath=cats('/',__name);
+      /* get parents */
+      do while (metadata_getnasn(treeuri,"ParentTree",1,__parenturi)>0);
+        __rc3=metadata_getattr(__parenturi,"Name",__name);
+        treepath=cats('/',__name,treepath);
+        treeuri=__parenturi;
+      end;
+      treeuri="&tree";
     end;
-    treeuri="&tree";
-  end;
-  else do;
-    __rc2=metadata_pathobj(' ',"&tree",'Folder',__type,treeuri);
-    treepath="&tree";
-  end;
+    else do;
+      __rc2=metadata_pathobj(' ',"&tree",'Folder',__type,treeuri);
+      treepath="&tree";
+    end;
 
-  &mD.put (_all_)(=);
-  drop __:;
-  if treeuri ne "" and treepath ne "" then output;
-  stop;
-run;
+    &mD.put (_all_)(=);
+    drop __:;
+    if treeuri ne "" and treepath ne "" then output;
+    stop;
+  run;
 %mend mm_gettree;

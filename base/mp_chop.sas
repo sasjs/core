@@ -73,123 +73,115 @@
 
 **/
 
-%macro mp_chop(infile,
-  matchvar=,
-  matchpoint=START,
-  keep=FIRST,
-  offset=0,
-  mdebug=0,
-  outfile=0
-)/*/STORE SOURCE*/;
+%macro mp_chop(infile, matchvar=, matchpoint=START, keep=FIRST, offset=0,
+  mdebug=0, outfile=0 )/*/STORE SOURCE*/;
 
-%local fref0 dttm ds1 outref;
-%let fref0=%mf_getuniquefileref();
-%let ds1=%mf_getuniquename(prefix=allchars);
-%let ds2=%mf_getuniquename(prefix=startmark);
+  %local fref0 dttm ds1 outref;
+  %let fref0=%mf_getuniquefileref();
+  %let ds1=%mf_getuniquename(prefix=allchars);
+  %let ds2=%mf_getuniquename(prefix=startmark);
 
-%if &outfile=0 %then %let outfile=&infile;
+  %if &outfile=0 %then %let outfile=&infile;
 
-%mp_abort(iftrue= (%length(%superq(&matchvar))=0)
-  ,mac=mp_chop.sas
-  ,msg=%str(&matchvar is an empty variable)
-)
+  %mp_abort(iftrue=(%length(%superq(&matchvar))=0) ,mac=mp_chop.sas
+    ,msg=%str(&matchvar is an empty variable) )
 
-/* START */
-%let dttm=%sysfunc(datetime());
+  /* START */
+  %let dttm=%sysfunc(datetime());
 
-filename &fref0 &infile lrecl=1 recfm=n;
+  filename &fref0 &infile lrecl=1 recfm=n;
 
-/* create dataset with one char per row */
-data &ds1;
-  infile &fref0;
-  input sourcechar $char1. @@;
-  format sourcechar hex2.;
-run;
+  /* create dataset with one char per row */
+  data &ds1;
+    infile &fref0;
+    input sourcechar $char1. @@;
+    format sourcechar hex2.;
+  run;
 
-/* get start & stop position of first matchvar string (one row, two vars) */
-data &ds2;
-  /* set find string to length in bytes to cover trailing spaces */
-  length string $ %length(%superq(&matchvar));
-  string =symget("&matchvar");
-  drop string;
+  /* get start & stop position of first matchvar string (one row, two vars) */
+  data &ds2;
+    /* set find string to length in bytes to cover trailing spaces */
+    length string $ %length(%superq(&matchvar));
+    string=symget("&matchvar");
+    drop string;
 
-  firstchar=char(string,1);
-  findlen=lengthm(string); /* <- for trailing bytes */
-
-  do _N_=1 to nobs;
-    set &ds1 nobs=nobs point=_N_;
-    if sourcechar=firstchar then do;
-      pos=1;
-      s=0;
-      do point=_N_ to min(_N_ + findlen -1,nobs);
-        set &ds1 point=point;
-        if sourcechar=char(string, pos) then s + 1;
-        else goto _leave_;
-        pos+1;
-      end;
-      _leave_:
-      if s=findlen then do;
-        START =_N_;
-        _N_ =_N_+ s - 1;
-        STOP =_N_;
-        output;
-        /* matched! */
-        stop;
+    firstchar=char(string,1);
+    findlen=lengthm(string); /* <- for trailing bytes */
+    do _N_=1 to nobs;
+      set &ds1 nobs=nobs point=_N_;
+      if sourcechar=firstchar then do;
+        pos=1;
+        s=0;
+        do point=_N_ to min(_N_ + findlen -1,nobs);
+          set &ds1 point=point;
+          if sourcechar=char(string, pos) then s + 1;
+          else goto _leave_;
+          pos+1;
+        end;
+_leave_:
+        if s=findlen then do;
+          START=_N_;
+          _N_=_N_+ s - 1;
+          STOP=_N_;
+          output;
+          /* matched! */
+          stop;
+        end;
       end;
     end;
-  end;
-  stop;
-  keep START STOP;
-run;
-
-%local split;
-%let split=0;
-data _null_;
-  set &ds2;
-  if "&matchpoint"='START' then do;
-    if "&keep"='FIRST' then mp=start;
-    else if "&keep"='LAST' then mp=start-1;
-  end;
-  else if "&matchpoint"='END' then do;
-    if "&keep"='FIRST' then mp=stop+1;
-    else if "&keep"='LAST' then mp=stop;
-  end;
-  split=mp+&offset;
-  call symputx('split',split,'l');
-%if &mdebug=1 %then %do;
-  put (_all_)(=);
-  %put &=offset;
-%end;
-run;
-%if &split=0 %then %do;
-  %put &sysmacroname: No match found in &infile for string %superq(&matchvar);
-  %return;
-%end;
-
-data _null_;
-  file &outfile recfm=n;
-  set &ds1;
-%if &keep=FIRST %then %do;
-  if _n_ ge &split then stop;
-%end;
-%else %do;
-  if _n_ gt &split;
-%end;
-  put sourcechar char1.;
-run;
-
-%if &mdebug=0 %then %do;
-  filename &fref0 clear;
-%end;
-%else %do;
-  data _null_;
-    infile &outfile lrecl=32767;
-    input;
-    list;
-    if _n_>200 then stop;
+    stop;
+    keep START STOP;
   run;
-%end;
-/* END */
-%put &sysmacroname took %sysevalf(%sysfunc(datetime())-&dttm) seconds to run;
+
+  %local split;
+  %let split=0;
+
+  data _null_;
+    set &ds2;
+    if "&matchpoint"='START' then do;
+      if "&keep"='FIRST' then mp=start;
+      else if "&keep"='LAST' then mp=start-1;
+    end;
+    else if "&matchpoint"='END' then do;
+      if "&keep"='FIRST' then mp=stop+1;
+      else if "&keep"='LAST' then mp=stop;
+    end;
+    split=mp+&offset;
+    call symputx('split',split,'l');
+    %if &mdebug=1 %then %do;
+      put (_all_)(=);
+      %put &=offset;
+    %end;
+  run;
+  %if &split=0 %then %do;
+    %put &sysmacroname: No match found in &infile for string %superq(&matchvar);
+    %return;
+  %end;
+
+  data _null_;
+    file &outfile recfm=n;
+    set &ds1;
+    %if &keep=FIRST %then %do;
+      if _n_ ge &split then stop;
+    %end;
+    %else %do;
+      if _n_ gt &split;
+    %end;
+    put sourcechar char1.;
+  run;
+
+  %if &mdebug=0 %then %do;
+    filename &fref0 clear;
+  %end;
+  %else %do;
+    data _null_;
+      infile &outfile lrecl=32767;
+      input;
+      list;
+      if _n_>200 then stop;
+    run;
+  %end;
+  /* END */
+  %put &sysmacroname took %sysevalf(%sysfunc(datetime())-&dttm) seconds to run;
 
 %mend mp_chop;

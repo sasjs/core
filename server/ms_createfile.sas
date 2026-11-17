@@ -25,88 +25,83 @@
 
 **/
 
-%macro ms_createfile(driveloc
-    ,inref=0
-    ,mdebug=0
-  );
+%macro ms_createfile(driveloc ,inref=0 ,mdebug=0 );
 
-/* first, delete in case it exists */
-%ms_deletefile(&driveloc,mdebug=&mdebug)
+  /* first, delete in case it exists */
+  %ms_deletefile(&driveloc,mdebug=&mdebug)
 
-%local fname0 fname1 fname2 boundary fname statcd msg optval;
-%let fname0=%mf_getuniquefileref();
-%let fname1=%mf_getuniquefileref();
-%let fname2=%mf_getuniquefileref();
-%let boundary=%mf_getuniquename();
+  %local fname0 fname1 fname2 boundary fname statcd msg optval;
+  %let fname0=%mf_getuniquefileref();
+  %let fname1=%mf_getuniquefileref();
+  %let fname2=%mf_getuniquefileref();
+  %let boundary=%mf_getuniquename();
 
-/* avoid sending bom marker to API */
-%let optval=%sysfunc(getoption(bomfile));
-options nobomfile;
+  /* avoid sending bom marker to API */
+  %let optval=%sysfunc(getoption(bomfile));
+  options nobomfile;
 
-data _null_;
-  file &fname0 termstr=crlf lrecl=32767;
-  infile &inref end=eof lrecl=32767;
-  if _n_ = 1 then do;
-    put "--&boundary.";
-    put 'Content-Disposition: form-data; name="filePath"';
-    put ;
-    put "&driveloc";
-    put "--&boundary";
-    put 'Content-Disposition: form-data; name="file"; filename="ignore.sas"';
-    put "Content-Type: text/plain";
-    put ;
-  end;
-  input;
-  put _infile_; /* add the actual file to be sent */
-  if eof then do;
-    put ;
-    put "--&boundary--";
-  end;
-run;
-
-data _null_;
-  file &fname1 lrecl=1000;
-  infile "&_sasjs_tokenfile" lrecl=1000;
-  input;
-  if _n_=1 then put "Content-Type: multipart/form-data; boundary=&boundary";
-  put _infile_;
-run;
-
-%if &mdebug=1 %then %do;
   data _null_;
-    infile &fname0 lrecl=32767;
+    file &fname0 termstr=crlf lrecl=32767;
+    infile &inref end=eof lrecl=32767;
+    if _n_=1 then do;
+      put "--&boundary.";
+      put 'Content-Disposition: form-data; name="filePath"';
+      put ;
+      put "&driveloc";
+      put "--&boundary";
+      put 'Content-Disposition: form-data; name="file"; filename="ignore.sas"';
+      put "Content-Type: text/plain";
+      put ;
+    end;
     input;
-    put _infile_;
+    put _infile_; /* add the actual file to be sent */
+    if eof then do;
+      put ;
+      put "--&boundary--";
+    end;
+  run;
+
   data _null_;
-    infile &fname1 lrecl=32767;
+    file &fname1 lrecl=1000;
+    infile "&_sasjs_tokenfile" lrecl=1000;
     input;
+    if _n_=1 then put "Content-Type: multipart/form-data; boundary=&boundary";
     put _infile_;
   run;
-%end;
 
-proc http method='POST' in=&fname0 headerin=&fname1 out=&fname2
-  url="&_sasjs_apiserverurl/SASjsApi/drive/file";
-%if &mdebug=1 %then %do;
-  debug level=1;
-%end;
-run;
+  %if &mdebug=1 %then %do;
+    data _null_;
+      infile &fname0 lrecl=32767;
+      input;
+      put _infile_;
 
-%let statcd=0;
-data _null_;
-  infile &fname2;
-  input;
-  putlog _infile_;
-  if _infile_='{"status":"success"}' then call symputx('statcd',1,'l');
-  else call symputx('msg',_infile_,'l');
-run;
+    data _null_;
+      infile &fname1 lrecl=32767;
+      input;
+      put _infile_;
+    run;
+  %end;
 
-%mp_abort(
-  iftrue=(&statcd=0)
-  ,mac=ms_createfile.sas
-  ,msg=%superq(msg)
-)
+  proc http method='POST' in=&fname0 headerin=&fname1 out=&fname2
+    url="&_sasjs_apiserverurl/SASjsApi/drive/file";
+    %if &mdebug=1 %then %do;
+      debug level=1;
+    %end;
+  run;
 
-/* reset options */
-options &optval;
+  %let statcd=0;
+
+  data _null_;
+    infile &fname2;
+    input;
+    putlog _infile_;
+    if _infile_='{"status":"success"}' then call symputx('statcd',1,'l');
+    else call symputx('msg',_infile_,'l');
+  run;
+
+  %mp_abort( iftrue=(&statcd=0) ,mac=ms_createfile.sas ,msg=%superq(msg) )
+
+  /* reset options */
+  options &optval;
 
 %mend ms_createfile;

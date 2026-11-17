@@ -23,20 +23,19 @@ Usage:
 
 **/
 
-%macro mf_getvartype(libds /* two level name */
-      , var /* variable name from which to return the type */
-)/*/STORE SOURCE*/;
+%macro mf_getvartype(libds /* two level name */ , var
+  /* variable name from which to return the type */ )/*/STORE SOURCE*/;
   %local dsid vnum vtype rc;
   /* Open dataset */
-  %let dsid = %sysfunc(open(&libds));
+  %let dsid=%sysfunc(open(&libds));
   %if &dsid. > 0 %then %do;
     /* Get variable number */
-    %let vnum = %sysfunc(varnum(&dsid, &var));
+    %let vnum=%sysfunc(varnum(&dsid, &var));
     /* Get variable type (C/N) */
-    %if(&vnum. > 0) %then %let vtype = %sysfunc(vartype(&dsid, &vnum.));
+    %if(&vnum. > 0) %then %let vtype=%sysfunc(vartype(&dsid, &vnum.));
     %else %do;
       %put NOTE: Variable &var does not exist in &libds;
-      %let vtype = %str( );
+      %let vtype=%str( );
     %end;
   %end;
   %else %do;
@@ -46,7 +45,7 @@ Usage:
   %end;
 
   /* Close dataset */
-  %let rc = %sysfunc(close(&dsid));
+  %let rc=%sysfunc(close(&dsid));
   /* Return variable type */
   &vtype
 %mend mf_getvartype;

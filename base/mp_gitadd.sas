@@ -35,11 +35,11 @@
 
 %macro mp_gitadd(gitdir,inds=work.mp_gitadd,mdebug=0);
 
-data _null_;
-  set &inds;
-  if STAGED ne "TRUE";
-  rc=git_index_add("&gitdir",cats(path),status);
-  if rc ne 0 or &mdebug=1 then put rc=;
-run;
+  data _null_;
+    set &inds;
+    if STAGED ne "TRUE";
+    rc=git_index_add("&gitdir",cats(path),status);
+    if rc ne 0 or &mdebug=1 then put rc=;
+  run;
 
 %mend mp_gitadd;

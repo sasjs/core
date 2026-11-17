@@ -22,27 +22,25 @@
 
 **/
 
-%macro ms_deletefile(driveloc
-    ,mdebug=0
-  );
+%macro ms_deletefile(driveloc ,mdebug=0 );
 
-%local headref;
-%let headref=%mf_getuniquefileref();
+  %local headref;
+  %let headref=%mf_getuniquefileref();
 
-data _null_;
-  file &headref lrecl=1000;
-  infile "&_sasjs_tokenfile" lrecl=1000;
-  input;
-  put _infile_;
-run;
+  data _null_;
+    file &headref lrecl=1000;
+    infile "&_sasjs_tokenfile" lrecl=1000;
+    input;
+    put _infile_;
+  run;
 
-proc http method='DELETE' headerin=&headref
-  url="&_sasjs_apiserverurl/SASjsApi/drive/file?_filePath=&driveloc";
-%if &mdebug=1 %then %do;
-  debug level=2;
-%end;
-run;
+  proc http method='DELETE' headerin=&headref
+    url="&_sasjs_apiserverurl/SASjsApi/drive/file?_filePath=&driveloc";
+    %if &mdebug=1 %then %do;
+      debug level=2;
+    %end;
+  run;
 
-filename &headref clear;
+  filename &headref clear;
 
 %mend ms_deletefile;

@@ -25,5 +25,4 @@
   %let &macro_name=%eval(&&&macro_name+&incr);
   /* return the value */
   &&&macro_name
-
 %mend mf_increment;

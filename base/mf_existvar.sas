@@ -16,26 +16,23 @@
   @version 9.2
   @author Allan Bowe
 **/
+
 /** @cond */
 
-%macro mf_existvar(libds /* 2 part dataset name */
-      , var /* variable name */
-)/*/STORE SOURCE*/;
+%macro mf_existvar(libds /* 2 part dataset name */ , var /* variable name */
+  )/*/STORE SOURCE*/;
 
   %local dsid rc;
   %let dsid=%sysfunc(open(&libds,is));
 
   %if &dsid=0 %then %do;
     %put %sysfunc(sysmsg());
-    0
-  %end;
+  0 %end;
   %else %if %length(&var)=0 %then %do;
-    0
-    %let rc=%sysfunc(close(&dsid));
+    0 %let rc=%sysfunc(close(&dsid));
   %end;
   %else %do;
-    %sysfunc(varnum(&dsid,&var))
-    %let rc=%sysfunc(close(&dsid));
+    %sysfunc(varnum(&dsid,&var)) %let rc=%sysfunc(close(&dsid));
   %end;
 
 %mend mf_existvar;

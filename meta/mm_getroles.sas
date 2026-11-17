@@ -25,13 +25,13 @@
 
 **/
 
-%macro mm_getroles(
-    outds=work.mm_getroles
-)/*/STORE SOURCE*/;
+%macro mm_getroles( outds=work.mm_getroles )/*/STORE SOURCE*/;
 
-filename response temp;
-options noquotelenmax;
-proc metadata in= '<GetMetadataObjects><Reposid>$METAREPOSITORY</Reposid>
+  filename response temp;
+  options noquotelenmax;
+
+  proc metadata in=
+    '<GetMetadataObjects><Reposid>$METAREPOSITORY</Reposid>
   <Type>IdentityGroup</Type><NS>SAS</NS><Flags>388</Flags>
   <Options>
   <Templates><IdentityGroup Name="" Desc="" PublicType=""/></Templates>
@@ -39,36 +39,37 @@ proc metadata in= '<GetMetadataObjects><Reposid>$METAREPOSITORY</Reposid>
   </Options>
   </GetMetadataObjects>'
     out=response;
-run;
+  run;
 
-filename sxlemap temp;
-data _null_;
-  file sxlemap;
-  put '<SXLEMAP version="1.2" name="roles"><TABLE name="roles">';
-  put "<TABLE-PATH syntax='XPath'>/GetMetadataObjects/Objects/IdentityGroup";
-  put "</TABLE-PATH>";
-  put '<COLUMN name="roleuri">';
-  put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/IdentityGroup/@Id";
-  put "</PATH>";
-  put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>32</LENGTH>";
-  put '</COLUMN><COLUMN name="rolename">';
-  put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/IdentityGroup/@Name";
-  put "</PATH>";
-  put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>256</LENGTH>";
-  put '</COLUMN><COLUMN name="roledesc">';
-  put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/IdentityGroup/@Desc";
-  put "</PATH>";
-  put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>500</LENGTH>";
-  put '</COLUMN></TABLE></SXLEMAP>';
-run;
-libname _XML_ xml xmlfileref=response xmlmap=sxlemap;
+  filename sxlemap temp;
 
-proc sort data= _XML_.roles out=&outds;
-  by rolename;
-run;
+  data _null_;
+    file sxlemap;
+    put '<SXLEMAP version="1.2" name="roles"><TABLE name="roles">';
+    put "<TABLE-PATH syntax='XPath'>/GetMetadataObjects/Objects/IdentityGroup";
+    put "</TABLE-PATH>";
+    put '<COLUMN name="roleuri">';
+    put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/IdentityGroup/@Id";
+    put "</PATH>";
+    put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>32</LENGTH>";
+    put '</COLUMN><COLUMN name="rolename">';
+    put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/IdentityGroup/@Name";
+    put "</PATH>";
+    put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>256</LENGTH>";
+    put '</COLUMN><COLUMN name="roledesc">';
+    put "<PATH syntax='XPath'>/GetMetadataObjects/Objects/IdentityGroup/@Desc";
+    put "</PATH>";
+    put "<TYPE>character</TYPE><DATATYPE>string</DATATYPE><LENGTH>500</LENGTH>";
+    put '</COLUMN></TABLE></SXLEMAP>';
+  run;
+  libname _XML_ xml xmlfileref=response xmlmap=sxlemap;
 
-filename sxlemap clear;
-filename response clear;
-libname _XML_ clear;
+  proc sort data=_XML_.roles out=&outds;
+    by rolename;
+  run;
+
+  filename sxlemap clear;
+  filename response clear;
+  libname _XML_ clear;
 
 %mend mm_getroles;

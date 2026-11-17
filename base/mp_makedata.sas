@@ -46,61 +46,60 @@
 
 **/
 
-%macro mp_makedata(libds
-  ,obs=500
-  ,seed=1
-)/*/STORE SOURCE*/;
+%macro mp_makedata(libds ,obs=500 ,seed=1 )/*/STORE SOURCE*/;
 
-%local ds1 ds2 lib ds pk_fields i col charvars numvars ispk;
+  %local ds1 ds2 lib ds pk_fields i col charvars numvars ispk;
 
-%if %mf_islibds(&libds)=0 %then %do;
-  %put &sysmacroname: Invalid libds (&libds) - should be library.dataset format;
-  %return;
-%end;
-%else %if %mf_nobs(&libds)>0 %then %do;
-  %put &sysmacroname: &libds has data, it will not be recreated;
-  %return;
-%end;
+  %if %mf_islibds(&libds)=0 %then %do;
+    %put &sysmacroname: Invalid libds (&libds) - should be library.dataset
+      format;
+    %return;
+  %end;
+  %else %if %mf_nobs(&libds)>0 %then %do;
+    %put &sysmacroname: &libds has data, it will not be recreated;
+    %return;
+  %end;
 
-/* set up temporary vars */
-%let ds1=%mf_getuniquename(prefix=mp_makedatads1);
-%let ds2=%mf_getuniquename(prefix=mp_makedatads2);
-%let lib=%scan(&libds,1,.);
-%let ds=%scan(&libds,2,.);
+  /* set up temporary vars */
+  %let ds1=%mf_getuniquename(prefix=mp_makedatads1);
+  %let ds2=%mf_getuniquename(prefix=mp_makedatads2);
+  %let lib=%scan(&libds,1,.);
+  %let ds=%scan(&libds,2,.);
 
-/* grab the primary key vars */
-%mp_getpk(&lib,ds=&ds,outds=&ds1)
+  /* grab the primary key vars */
+  %mp_getpk(&lib,ds=&ds,outds=&ds1)
 
-proc sql noprint;
-select coalescec(pk_fields,'_all_') into: pk_fields from &ds1;
+  proc sql noprint;
+    select coalescec(pk_fields,'_all_') into: pk_fields from &ds1;
 
-data &ds2;
-  if 0 then set &libds;
-  do _n_=1 to &obs;
-    %let charvars=%mf_getvarlist(&libds,typefilter=C);
-    %if &charvars ^= %then %do i=1 %to %sysfunc(countw(&charvars));
-      %let col=%scan(&charvars,&i);
-      /* create random value based on observation number and colum length */
-      &col=repeat(put(md5(cats(_n_)),$hex32.),%mf_getvarlen(&libds,&col)/32);
-    %end;
+  data &ds2;
+    if 0 then set &libds;
+    do _n_=1 to &obs;
+      %let charvars=%mf_getvarlist(&libds,typefilter=C);
+      %if &charvars ^= %then %do i=1 %to %sysfunc(countw(&charvars));
+        %let col=%scan(&charvars,&i);
+        /* create random value based on observation number and colum length */
+        &col=repeat(put(md5(cats(_n_)),$hex32.),%mf_getvarlen(&libds,&col)/32);
+      %end;
 
-    %let numvars=%mf_getvarlist(&libds,typefilter=N);
-    %if &numvars ^= %then %do i=1 %to %sysfunc(countw(&numvars));
-      %let col=%scan(&numvars,&i);
-      &col=_n_;
-    %end;
-    output;
-  end;
-  stop;
-run;
-proc sort data=&ds2 nodupkey;
-  by &pk_fields;
-run;
+      %let numvars=%mf_getvarlist(&libds,typefilter=N);
+      %if &numvars ^= %then %do i=1 %to %sysfunc(countw(&numvars));
+        %let col=%scan(&numvars,&i);
+        &col=_n_;
+      %end;
+      output;
+    end;
+    stop;
+  run;
 
-proc append base=&libds data=&ds2;
-run;
+  proc sort data=&ds2 nodupkey;
+    by &pk_fields;
+  run;
 
-proc sql;
-drop table &ds1, &ds2;
+  proc append base=&libds data=&ds2;
+  run;
+
+  proc sql;
+    drop table &ds1, &ds2;
 
 %mend mp_makedata;

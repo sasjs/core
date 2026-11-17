@@ -33,38 +33,36 @@
 **/
 
 %macro mp_createconstraints(inds=mp_getconstraints
-  ,outds=work.mp_createconstraints
-  ,execute=NO
-)/*/STORE SOURCE*/;
+  ,outds=work.mp_createconstraints ,execute=NO )/*/STORE SOURCE*/;
 
-proc sort data=&inds out=&outds;
-  by libref table_name constraint_name;
-run;
+  proc sort data=&inds out=&outds;
+    by libref table_name constraint_name;
+  run;
 
-data &outds;
-  set &outds;
-  by libref table_name constraint_name;
-  length create_statement $500;
-  if _n_=1 and "&execute"="YES" then call execute('proc sql;');
-  if first.constraint_name then do;
-    if constraint_type='PRIMARY' then type='PRIMARY KEY';
-    else type=constraint_type;
-    create_statement=catx(" ","alter table",libref,".",table_name
-      ,"add constraint",constraint_name,type,"(");
-    if last.constraint_name then
-      create_statement=cats(create_statement,column_name,");");
-    else create_statement=cats(create_statement,column_name,",");
-    if "&execute"="YES" then call execute(create_statement);
-  end;
-  else if last.constraint_name then do;
-    create_statement=cats(column_name,");");
-    if "&execute"="YES" then call execute(create_statement);
-  end;
-  else do;
-    create_statement=cats(column_name,",");
-    if "&execute"="YES" then call execute(create_statement);
-  end;
-  output;
-run;
+  data &outds;
+    set &outds;
+    by libref table_name constraint_name;
+    length create_statement $500;
+    if _n_=1 and "&execute"="YES" then call execute('proc sql;');
+    if first.constraint_name then do;
+      if constraint_type='PRIMARY' then type='PRIMARY KEY';
+      else type=constraint_type;
+      create_statement=catx(" ","alter table",libref,".",table_name
+        ,"add constraint",constraint_name,type,"(");
+      if last.constraint_name then
+        create_statement=cats(create_statement,column_name,");");
+      else create_statement=cats(create_statement,column_name,",");
+      if "&execute"="YES" then call execute(create_statement);
+    end;
+    else if last.constraint_name then do;
+      create_statement=cats(column_name,");");
+      if "&execute"="YES" then call execute(create_statement);
+    end;
+    else do;
+      create_statement=cats(column_name,",");
+      if "&execute"="YES" then call execute(create_statement);
+    end;
+    output;
+  run;
 
 %mend mp_createconstraints;

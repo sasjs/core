@@ -27,12 +27,8 @@
   @author Allan Bowe
 **/
 
-
-%macro mf_getquotedstr(IN_STR
-  ,DLM=%str(,)
-  ,QUOTE=S
-  ,indlm=%str( )
-)/*/STORE SOURCE*/;
+%macro mf_getquotedstr(IN_STR ,DLM=%str(,) ,QUOTE=S ,indlm=%str( )
+  )/*/STORE SOURCE*/;
   /* credit Rowland Hale  - byte34 is double quote, 39 is single quote */
   %if &quote=S %then %let quote=%qsysfunc(byte(39));
   %else %if &quote=D %then %let quote=%qsysfunc(byte(34));
@@ -44,14 +40,13 @@
     %if %bquote(&QUOTE) ne %then %let item=&QUOTE%qtrim(&item)&QUOTE;
     %else %let item=%qtrim(&item);
 
-    %if (&i = 1) %then %let buffer =%qtrim(&item);
-    %else %let buffer =&buffer&DLM%qtrim(&item);
+    %if (&i=1) %then %let buffer=%qtrim(&item);
+    %else %let buffer=&buffer&DLM%qtrim(&item);
 
-    %let i = %eval(&i+1);
+    %let i=%eval(&i+1);
   %end;
 
   %let buffer=%sysfunc(coalescec(%qtrim(&buffer),&QUOTE&QUOTE));
 
   &buffer
-
 %mend mf_getquotedstr;

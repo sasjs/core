@@ -39,30 +39,31 @@
 
 %macro mp_gitstatus(gitdir,outds=work.mp_gitstatus,mdebug=0);
 
-data &outds;
-  LENGTH gitdir path $ 1024 STATUS $ 64 STAGED $ 32;
-  call missing (of _all_);
-  gitdir=symget('gitdir');
-  cnt=git_status(trim(gitdir));
-  if cnt=-1 then do;
-    put "The libgit2 library is unavailable and no Git operations can be used.";
-    put "See: https://stackoverflow.com/questions/74082874";
-  end;
-  else if cnt=-2 then do;
-    put "The libgit2 library is available, but the status function failed.";
-    put "See the log for details.";
-  end;
-  else do n=1 to cnt;
-    rc=GIT_STATUS_GET(n,gitdir,'PATH',path);
-    rc=GIT_STATUS_GET(n,gitdir,'STAGED',staged);
-    rc=GIT_STATUS_GET(n,gitdir,'STATUS',status);
-    output;
-  %if &mdebug=1 %then %do;
-    putlog (_all_)(=);
-  %end;
-  end;
-  rc=git_status_free(trim(gitdir));
-  drop rc cnt;
-run;
+  data &outds;
+    LENGTH gitdir path $ 1024 STATUS $ 64 STAGED $ 32;
+    call missing (of _all_);
+    gitdir=symget('gitdir');
+    cnt=git_status(trim(gitdir));
+    if cnt=-1 then do;
+      put
+        "The libgit2 library is unavailable and no Git operations can be used.";
+      put "See: https://stackoverflow.com/questions/74082874";
+    end;
+    else if cnt=-2 then do;
+      put "The libgit2 library is available, but the status function failed.";
+      put "See the log for details.";
+    end;
+    else do n=1 to cnt;
+      rc=GIT_STATUS_GET(n,gitdir,'PATH',path);
+      rc=GIT_STATUS_GET(n,gitdir,'STAGED',staged);
+      rc=GIT_STATUS_GET(n,gitdir,'STATUS',status);
+      output;
+      %if &mdebug=1 %then %do;
+        putlog (_all_)(=);
+      %end;
+    end;
+    rc=git_status_free(trim(gitdir));
+    drop rc cnt;
+  run;
 
 %mend mp_gitstatus;

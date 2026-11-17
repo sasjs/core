@@ -25,20 +25,20 @@
 
 **/
 
-%macro mf_getfmtname(fmt
-)/*/STORE SOURCE*/ /minoperator mindelimiter=' ';
+%macro mf_getfmtname(fmt )/*/STORE SOURCE*/ /minoperator mindelimiter=' ';
 
-%local out dsid nvars x rc fmt;
+  %local out dsid nvars x rc fmt;
 
-/* extract actual format name from the format definition */
-%let fmt=%scan(&fmt,1,.);
-%do %while(%substr(&fmt,%length(&fmt),1) in 1 2 3 4 5 6 7 8 9 0);
-  %if %length(&fmt)=1 %then %let fmt=W;
-  %else %let fmt=%substr(&fmt,1,%length(&fmt)-1);
-%end;
+  /* extract actual format name from the format definition */
+  %let fmt=%scan(&fmt,1,.);
+  %do %while(%substr(&fmt,%length(&fmt),1) in 1 2 3 4 5 6 7 8 9 0);
+    %if %length(&fmt)=1 %then %let fmt=W;
+    %else %let fmt=%substr(&fmt,1,%length(&fmt)-1);
+  %end;
 
-%if &fmt=$ %then %let fmt=$CHAR;
+  %if &fmt=$ %then %let fmt=$CHAR;
 
-/* send them out without spaces or quote markers */
-%do;%unquote(%upcase(&fmt))%end;
+  /* send them out without spaces or quote markers */
+  %do;
+  %unquote(%upcase(&fmt))%end;
 %mend mf_getfmtname;

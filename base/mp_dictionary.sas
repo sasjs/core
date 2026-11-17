@@ -42,12 +42,13 @@
 
 %macro mp_dictionary(lib=WORK)/*/STORE SOURCE*/;
   %local list i mem;
+
   proc sql noprint;
-  create view &lib..dictionaries as select * from dictionary.dictionaries;
-  select distinct memname into: list separated by ' '  from &lib..dictionaries;
-  %do i=1 %to %sysfunc(countw(&list,%str( )));
-    %let mem=%scan(&list,&i,%str( ));
-    create view &lib..&mem as select * from dictionary.&mem;
-  %end;
+    create view &lib..dictionaries as select * from dictionary.dictionaries;
+    select distinct memname into: list separated by ' ' from &lib..dictionaries;
+    %do i=1 %to %sysfunc(countw(&list,%str( )));
+      %let mem=%scan(&list,&i,%str( ));
+      create view &lib..&mem as select * from dictionary.&mem;
+    %end;
   quit;
 %mend mp_dictionary;

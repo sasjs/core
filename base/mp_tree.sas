@@ -32,41 +32,39 @@ https://communities.sas.com/t5/SAS-Programming/listing-all-files-of-all-types-fr
   @sasjslint {"maxLineLength": 135}
 **/
 
-%macro mp_tree(dir=/tmp
-  ,outds=work.mp_tree
-)/*/STORE SOURCE*/;
+%macro mp_tree(dir=/tmp ,outds=work.mp_tree )/*/STORE SOURCE*/;
 
-data &outds ;
-  length dir 8 ext filename dirname $256 fullpath $512 ;
-  call missing(of _all_);
-  fullpath = "&dir";
-run;
+  data &outds ;
+    length dir 8 ext filename dirname $256 fullpath $512 ;
+    call missing(of _all_);
+    fullpath="&dir";
+  run;
 
-%local sep;
-%if &sysscp=WIN or &SYSSCP eq DNTHOST %then %let sep=\;
-%else %let sep=/;
+  %local sep;
+  %if &sysscp=WIN or &SYSSCP eq DNTHOST %then %let sep=\;
+  %else %let sep=/;
 
-data &outds ;
-  modify &outds ;
-  retain sep "&sep";
-  rc=filename('tmp',fullpath);
-  dir_id=dopen('tmp');
-  dir = (dir_id ne 0) ;
-  if dir then dirname=fullpath;
-  else do;
-    filename=scan(fullpath,-1,sep) ;
-    dirname =substrn(fullpath,1,length(fullpath)-length(filename));
-    if index(filename,'.')>1 then ext=scan(filename,-1,'.');
-  end;
-  replace;
-  if dir then do;
-    do i=1 to dnum(dir_id);
-      fullpath=cats(dirname,sep,dread(dir_id,i));
-      output;
+  data &outds ;
+    modify &outds ;
+    retain sep "&sep";
+    rc=filename('tmp',fullpath);
+    dir_id=dopen('tmp');
+    dir=(dir_id ne 0) ;
+    if dir then dirname=fullpath;
+    else do;
+      filename=scan(fullpath,-1,sep) ;
+      dirname=substrn(fullpath,1,length(fullpath)-length(filename));
+      if index(filename,'.')>1 then ext=scan(filename,-1,'.');
     end;
-    rc=dclose(dir_id);
-  end;
-  rc=filename('tmp');
-run;
+    replace;
+    if dir then do;
+      do i=1 to dnum(dir_id);
+        fullpath=cats(dirname,sep,dread(dir_id,i));
+        output;
+      end;
+      rc=dclose(dir_id);
+    end;
+    rc=filename('tmp');
+  run;
 
 %mend mp_tree;

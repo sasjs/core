@@ -36,44 +36,31 @@
   @sasjslint {"maxLineLength": 81}
 **/
 
-%macro mp_lib2cards(lib=
-    ,outloc=%sysfunc(pathname(work))
-    ,maxobs=max
-    ,random_sample=NO
-    ,outfile=0
-)/*/STORE SOURCE*/;
+%macro mp_lib2cards(lib=,outloc=%sysfunc(pathname(work)) ,maxobs=max
+  ,random_sample=NO ,outfile=0 )/*/STORE SOURCE*/;
 
-/* Find the tables */
-%local x ds memlist;
-proc sql noprint;
-select distinct lowcase(memname)
-  into: memlist
-  separated by ' '
-  from dictionary.tables
-  where upcase(libname)="%upcase(&lib)";
+  /* Find the tables */
+  %local x ds memlist;
 
-/* trim trailing slash, if provided */
-%let outloc=%mf_trimstr(&outloc,/);
-%let outloc=%mf_trimstr(&outloc,\);
+  proc sql noprint;
+    select distinct lowcase(memname) into: memlist separated by ' ' from
+      dictionary.tables where upcase(libname)="%upcase(&lib)";
 
-/* create the output directory */
-%mf_mkdir(&outloc)
+    /* trim trailing slash, if provided */
+    %let outloc=%mf_trimstr(&outloc,/);
+    %let outloc=%mf_trimstr(&outloc,\);
 
-/* create the cards files */
-%do x=1 %to %sysfunc(countw(&memlist));
-  %let ds=%scan(&memlist,&x);
-  %mp_ds2cards(base_ds=&lib..&ds
-    ,maxobs=&maxobs
-    ,random_sample=&random_sample
-  %if "&outfile" ne "0" %then %do;
-    ,append=YES
-    ,cards_file="&outloc/&outfile"
-  %end;
-  %else %do;
-    ,append=NO
-    ,cards_file="&outloc/&ds..sas"
-  %end;
-  )
-%end;
+    /* create the output directory */
+    %mf_mkdir(&outloc)
+
+    /* create the cards files */
+    %do x=1 %to %sysfunc(countw(&memlist));
+      %let ds=%scan(&memlist,&x);
+      %mp_ds2cards(base_ds=&lib..&ds ,maxobs=&maxobs
+        ,random_sample=&random_sample %if "&outfile" ne "0" %then %do;
+    ,append=YES ,cards_file="&outloc/&outfile" %end;
+    %else %do;
+    ,append=NO ,cards_file="&outloc/&ds..sas" %end;
+    ) %end;
 
 %mend mp_lib2cards;

@@ -23,11 +23,11 @@
 **/
 
 %macro mf_abort(mac=mf_abort.sas, msg=, iftrue=%str(1=1)
-)/des='ungraceful abort' /*STORE SOURCE*/;
+  )/des='ungraceful abort' /*STORE SOURCE*/;
 
   %if not(%eval(%unquote(&iftrue))) %then %return;
 
-  %put NOTE: ///  mf_abort macro executing //;
+  %put NOTE: /// mf_abort macro executing //;
   %if %length(&mac)>0 %then %put NOTE- called by &mac;
   %put NOTE - &msg;
 

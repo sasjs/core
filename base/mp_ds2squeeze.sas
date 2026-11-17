@@ -47,74 +47,71 @@
   @author Allan Bowe
 **/
 
-%macro mp_ds2squeeze(
-  libds,
-  outds=work.mp_ds2squeeze,
-  mdebug=0
-)/*/STORE SOURCE*/;
-%local dbg source;
-%if &mdebug=1 %then %do;
-  %put &sysmacroname entry vars:;
-  %put _local_;
-%end;
-%else %do;
-  %let dbg=*;
-  %let source=/source2;
-%end;
+%macro mp_ds2squeeze( libds, outds=work.mp_ds2squeeze, mdebug=0
+  )/*/STORE SOURCE*/;
+  %local dbg source;
+  %if &mdebug=1 %then %do;
+    %put &sysmacroname entry vars:;
+    %put _local_;
+  %end;
+  %else %do;
+    %let dbg=*;
+    %let source=/source2;
+  %end;
 
-%local optval ds fref startsize;
-%let ds=%mf_getuniquename();
-%let fref=%mf_getuniquefileref();
-%let startsize=%mf_getfilesize(libds=&libds,format=yes);
+  %local optval ds fref startsize;
+  %let ds=%mf_getuniquename();
+  %let fref=%mf_getuniquefileref();
+  %let startsize=%mf_getfilesize(libds=&libds,format=yes);
 
-%mp_getmaxvarlengths(&libds,outds=&ds)
+  %mp_getmaxvarlengths(&libds,outds=&ds)
 
-data _null_;
-  set &ds end=last;
-  file &fref;
-  /* grab the types */
-  retain dsid;
-  if _n_=1 then dsid=open("&libds",'is');
-  if dsid le 0 then do;
-    msg=sysmsg();
-    put msg=;
-    stop;
-  end;
-  type=vartype(dsid,varnum(dsid, name));
-  if last then rc=close(dsid);
-  /* write out the length statement */
-  if _n_=1 then put 'length ';
-  length len $6;
-  if type='C' then do;
-    if maxlen=0 then len='$1';
-    else len=cats('$',maxlen);
-  end;
-  else do;
-    if maxlen=0 then len='3';
-    else len=cats(maxlen);
-  end;
-  put '  ' name ' ' len;
-  if last then put ';';
-run;
+  data _null_;
+    set &ds end=last;
+    file &fref;
+    /* grab the types */
+    retain dsid;
+    if _n_=1 then dsid=open("&libds",'is');
+    if dsid le 0 then do;
+      msg=sysmsg();
+      put msg=;
+      stop;
+    end;
+    type=vartype(dsid,varnum(dsid, name));
+    if last then rc=close(dsid);
+    /* write out the length statement */
+    if _n_=1 then put 'length ';
+    length len $6;
+    if type='C' then do;
+      if maxlen=0 then len='$1';
+      else len=cats('$',maxlen);
+    end;
+    else do;
+      if maxlen=0 then len='3';
+      else len=cats(maxlen);
+    end;
+    put '  ' name ' ' len;
+    if last then put ';';
+  run;
 
-/* configure varlenchk - as we are explicitly shortening the variables */
-%let optval=%sysfunc(getoption(varlenchk));
-options varlenchk=NOWARN;
+  /* configure varlenchk - as we are explicitly shortening the variables */
+  %let optval=%sysfunc(getoption(varlenchk));
+  options varlenchk=NOWARN;
 
-data &outds;
-  %inc &fref &source;
-  set &libds;
-run;
+  data &outds;
+    %inc &fref &source;
+    set &libds;
+  run;
 
-options varlenchk=&optval;
+  options varlenchk=&optval;
 
-%if &mdebug=0 %then %do;
-  proc sql;
-  drop table &ds;
-  filename &fref clear;
-%end;
+  %if &mdebug=0 %then %do;
+    proc sql;
+      drop table &ds;
+      filename &fref clear;
+      %end;
 
-%put &sysmacroname: &libds was &startsize;
-%put &sysmacroname: &outds is %mf_getfilesize(libds=&outds,format=yes);
+      %put &sysmacroname: &libds was &startsize;
+      %put &sysmacroname: &outds is %mf_getfilesize(libds=&outds,format=yes);
 
-%mend mp_ds2squeeze;
+    %mend mp_ds2squeeze;

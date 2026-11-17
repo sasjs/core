@@ -58,63 +58,45 @@
 
 **/
 
-%macro mp_assertcolvals(indscol,
-  checkvals=0,
-  test=ALLVALS,
-  desc=mp_assertcolvals - no desc provided,
-  outds=work.test_results
-)/*/STORE SOURCE*/;
+%macro mp_assertcolvals(indscol, checkvals=0, test=ALLVALS,
+  desc=mp_assertcolvals - no desc provided, outds=work.test_results
+  )/*/STORE SOURCE*/;
 
-  %mp_abort(iftrue= (&syscc ne 0)
-    ,mac=&sysmacroname
-    ,msg=%str(syscc=&syscc - on macro entry)
-  )
+  %mp_abort(iftrue=(&syscc ne 0) ,mac=&sysmacroname
+    ,msg=%str(syscc=&syscc - on macro entry) )
 
   %local lib ds col clib cds ccol nobs;
   %let lib=%scan(&indscol,1,%str(.));
   %let ds=%scan(&indscol,2,%str(.));
   %let col=%scan(&indscol,3,%str(.));
-  %mp_abort(iftrue= (%mf_existds(&lib..&ds)=0)
-    ,mac=&sysmacroname
-    ,msg=%str(&lib..&ds not found!)
-  )
+  %mp_abort(iftrue=(%mf_existds(&lib..&ds)=0) ,mac=&sysmacroname
+    ,msg=%str(&lib..&ds not found!) )
 
-  %mp_abort(iftrue= (&checkvals=0)
-    ,mac=&sysmacroname
-    ,msg=%str(Set CHECKVALS to a library.dataset.column containing check vals)
-  )
+  %mp_abort(iftrue=(&checkvals=0) ,mac=&sysmacroname
+    ,msg=%str(Set CHECKVALS to a library.dataset.column containing check vals) )
   %let clib=%scan(&checkvals,1,%str(.));
   %let cds=%scan(&checkvals,2,%str(.));
   %let ccol=%scan(&checkvals,3,%str(.));
-  %mp_abort(iftrue= (%mf_existds(&clib..&cds)=0)
-    ,mac=&sysmacroname
-    ,msg=%str(&clib..&cds not found!)
-  )
+  %mp_abort(iftrue=(%mf_existds(&clib..&cds)=0) ,mac=&sysmacroname
+    ,msg=%str(&clib..&cds not found!) )
   %let nobs=%mf_nobs(&clib..&cds);
-  %mp_abort(iftrue= (&nobs=0)
-    ,mac=&sysmacroname
-    ,msg=%str(&clib..&cds is empty!)
-  )
+  %mp_abort(iftrue=(&nobs=0) ,mac=&sysmacroname ,msg=%str(&clib..&cds is empty!)
+    )
 
   %let test=%upcase(&test);
 
   %if &test ne ALLVALS and &test ne ANYVAL and &test ne NOVAL %then %do;
-    %mp_abort(
-      mac=&sysmacroname,
-      msg=%str(Invalid test - &test)
-    )
+    %mp_abort( mac=&sysmacroname, msg=%str(Invalid test - &test) )
   %end;
 
   %local result orig;
   %let result=-1;
   %let orig=-1;
+
   proc sql noprint;
-  select count(*) into: result trimmed
-    from &lib..&ds
-    where &col not in (
-      select &ccol from &clib..&cds
-    );
-  select count(*) into: orig trimmed from &lib..&ds;
+    select count(*) into: result trimmed from &lib..&ds where &col not in (
+      select &ccol from &clib..&cds );
+    select count(*) into: orig trimmed from &lib..&ds;
   quit;
 
   %local notfound tmp1 tmp2;
@@ -123,24 +105,19 @@
 
   /* this is a bit convoluted - but using sql outobs=10 throws warnings */
   proc sql noprint;
-  create view &tmp1 as
-    select distinct &col
-    from &lib..&ds
-    where &col not in (
-      select &ccol from &clib..&cds
-    );
+    create view &tmp1 as select distinct &col from &lib..&ds where &col not in (
+      select &ccol from &clib..&cds );
+
   data &tmp2;
     set &tmp1;
     if _n_>10 then stop;
   run;
+
   proc sql;
-  select distinct &col  into: notfound separated by ' ' from &tmp2;
+    select distinct &col into: notfound separated by ' ' from &tmp2;
 
-
-  %mp_abort(iftrue= (&syscc ne 0)
-    ,mac=&sysmacroname
-    ,msg=%str(syscc=&syscc after macro query)
-  )
+    %mp_abort(iftrue=(&syscc ne 0) ,mac=&sysmacroname
+      ,msg=%str(syscc=&syscc after macro query) )
 
   data;
     length test_result $5 test_description $256 test_comments $256;
@@ -148,25 +125,27 @@
     test_result='FAIL';
     test_comments="&sysmacroname: &lib..&ds..&col has &result/&orig values "
       !!"not in &clib..&cds..&ccol.. First 10 vals:"!!symget('notfound');
-  %if &test=ANYVAL %then %do;
-    if &result < &orig then test_result='PASS';
-  %end;
-  %else %if &test=ALLVALS %then %do;
-    if &result=0 then test_result='PASS';
-  %end;
-  %else %if &test=NOVAL %then %do;
-    if &result=&orig then test_result='PASS';
-  %end;
-  %else %do;
-    test_comments="&sysmacroname: Unsatisfied test condition - &test";
-  %end;
+    %if &test=ANYVAL %then %do;
+      if &result < &orig then test_result='PASS';
+    %end;
+    %else %if &test=ALLVALS %then %do;
+      if &result=0 then test_result='PASS';
+    %end;
+    %else %if &test=NOVAL %then %do;
+      if &result=&orig then test_result='PASS';
+    %end;
+    %else %do;
+      test_comments="&sysmacroname: Unsatisfied test condition - &test";
+    %end;
   run;
 
   %local ds;
   %let ds=&syslast;
+
   proc append base=&outds data=&ds;
   run;
+
   proc sql;
-  drop table &ds;
+    drop table &ds;
 
 %mend mp_assertcolvals;

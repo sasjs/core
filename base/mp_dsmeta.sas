@@ -66,46 +66,50 @@
 
 %macro mp_dsmeta(libds,outds=work.dsmeta);
 
-%local ds1 ds2;
-data;run; %let ds1=&syslast;
-data;run; %let ds2=&syslast;
+  %local ds1 ds2;
 
-/* setup the ODS capture */
-ods output attributes=&ds1 enginehost=&ds2;
+  data;
+  run;
+  %let ds1=&syslast;
 
-/* export the metadata */
-proc contents data=&libds;
-run;
+  data;
+  run;
+  %let ds2=&syslast;
 
-/* load it into a single table */
-data &outds (keep=ods_table name value);
-  length ods_table $10 name label2 label1 label $100
-    value cvalue cvalue1 cvalue2 $1000
-    nvalue nvalue1 nvalue2 8;
-  if _n_=1 then call missing (of _all_);
-  /*putlog (_all_)(=);*/
-  set &ds1 (in=atrs) &ds2 (in=eng);
-  if atrs then do;
-    ods_table='ATTRIBUTES';
-    name=coalescec(label1,label);
-    value=coalescec(cvalue1,cvalue,put(coalesce(nvalue1,nvalue),best.));
-    output;
-    if label2 ne '' then do;
-    name=label2;
-    value=coalescec(cvalue2,put(nvalue2,best.));
-    output;
+  /* setup the ODS capture */
+  ods output attributes=&ds1 enginehost=&ds2;
+
+  /* export the metadata */
+  proc contents data=&libds;
+  run;
+
+  /* load it into a single table */
+  data &outds (keep=ods_table name value);
+    length ods_table $10 name label2 label1 label $100 value cvalue cvalue1
+      cvalue2 $1000 nvalue nvalue1 nvalue2 8;
+    if _n_=1 then call missing (of _all_);
+    /*putlog (_all_)(=);*/
+    set &ds1 (in=atrs) &ds2 (in=eng);
+    if atrs then do;
+      ods_table='ATTRIBUTES';
+      name=coalescec(label1,label);
+      value=coalescec(cvalue1,cvalue,put(coalesce(nvalue1,nvalue),best.));
+      output;
+      if label2 ne '' then do;
+        name=label2;
+        value=coalescec(cvalue2,put(nvalue2,best.));
+        output;
+      end;
     end;
-  end;
-  else if eng then do;
-    ods_table='ENGINEHOST';
-    name=coalescec(label1,label);
-    value=coalescec(cvalue1,cvalue,put(coalesce(nvalue1,nvalue),best.));
-    output;
-  end;
-run;
+    else if eng then do;
+      ods_table='ENGINEHOST';
+      name=coalescec(label1,label);
+      value=coalescec(cvalue1,cvalue,put(coalesce(nvalue1,nvalue),best.));
+      output;
+    end;
+  run;
 
-proc sql;
-drop table &ds1, &ds2;
+  proc sql;
+    drop table &ds1, &ds2;
 
 %mend mp_dsmeta;
-

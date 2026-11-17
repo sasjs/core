@@ -16,6 +16,5 @@
 
 %macro mf_mval(var);
   %if %symexist(&var) %then %do;
-    %superq(&var)
-  %end;
+  %superq(&var) %end;
 %mend mf_mval;

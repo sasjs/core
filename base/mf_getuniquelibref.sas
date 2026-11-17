@@ -29,24 +29,21 @@
 
   %if ( %length(&prefix) gt 7 ) %then %do;
     %put %str(ERR)OR: The prefix parameter cannot exceed 7 characters.;
-    0
-    %return;
+    0 %return;
   %end;
   %else %if (%sysfunc(NVALID(&prefix,v7))=0) %then %do;
     %put %str(ERR)OR: Invalid prefix (&prefix);
-    0
-    %return;
+    0 %return;
   %end;
 
   /* Set maxtries equal to '10 to the power of [# unused characters] - 1' */
   %let maxtries=%eval(10**(8-%length(&prefix))-1);
 
-  %do x = 0 %to &maxtries;
+  %do x=0 %to &maxtries;
     %if %sysfunc(libref(&prefix&x)) ne 0 %then %do;
-      &prefix&x
-      %return;
+      &prefix&x %return;
     %end;
-    %let x = %eval(&x + 1);
+    %let x=%eval(&x + 1);
   %end;
 
   %put %str(ERR)OR: No usable libref in range &prefix.0-&maxtries;

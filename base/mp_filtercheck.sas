@@ -67,234 +67,231 @@
 
 %macro mp_filtercheck(inds,targetds=,outds=work.badrecords,abort=YES);
 
-%mp_abort(iftrue= (&syscc ne 0)
-  ,mac=&sysmacroname
-  ,msg=%str(syscc=&syscc - on macro entry)
-)
+  %mp_abort(iftrue=(&syscc ne 0) ,mac=&sysmacroname
+    ,msg=%str(syscc=&syscc - on macro entry) )
 
-/* Validate input column */
-%local vtype;
-%let vtype=%mf_getvartype(&inds,RAW_VALUE);
-%mp_abort(iftrue=(&abort=YES and &vtype ne C),
-  mac=&sysmacroname,
-  msg=%str(%str(ERR)OR: RAW_VALUE must be character)
-)
-%if &vtype ne C %then %do;
-  %put &sysmacroname: RAW_VALUE must be character;
-  %let syscc=42;
-  %return;
-%end;
+  /* Validate input column */
+  %local vtype;
+  %let vtype=%mf_getvartype(&inds,RAW_VALUE);
+  %mp_abort(iftrue=(&abort=YES and &vtype ne C), mac=&sysmacroname,
+    msg=%str(%str(ERR)OR: RAW_VALUE must be character) )
+  %if &vtype ne C %then %do;
+    %put &sysmacroname: RAW_VALUE must be character;
+    %let syscc=42;
+    %return;
+  %end;
 
+  /**
+    * Sanitise the values based on valid value lists, then strip out
+    * quotes, commas, periods and spaces.
+    */
+  %local reason_cd nobs;
+  %let nobs=0;
 
-/**
-  * Sanitise the values based on valid value lists, then strip out
-  * quotes, commas, periods and spaces.
-  */
-%local reason_cd nobs;
-%let nobs=0;
-data &outds;
-  /*length GROUP_LOGIC SUBGROUP_LOGIC $3 SUBGROUP_ID 8 VARIABLE_NM $32
-    OPERATOR_NM $10 RAW_VALUE $4000;*/
-  set &inds end=last;
-  length reason_cd $4032 vtype vtype2 $1 vnum dsid 8 tmp $4000 re_temporal 8
-    vref $64;
-  drop tmp re_temporal vref;
-  retain re_temporal;
-  /* SAS temporal literals - date, datetime and time */
-  if _n_=1 then re_temporal=prxparse("/^'[^']*'(dt|d|t)$/i");
+  data &outds;
+    /*length GROUP_LOGIC SUBGROUP_LOGIC $3 SUBGROUP_ID 8 VARIABLE_NM $32
+      OPERATOR_NM $10 RAW_VALUE $4000;*/
+    set &inds end=last;
+    length reason_cd $4032 vtype vtype2 $1 vnum dsid 8 tmp $4000 re_temporal 8
+      vref $64;
+    drop tmp re_temporal vref;
+    retain re_temporal;
+    /* SAS temporal literals - date, datetime and time */
+    if _n_=1 then re_temporal=prxparse("/^'[^']*'(dt|d|t)$/i");
 
-  /* quick check to ensure column exists */
-  if upcase(VARIABLE_NM) not in
-  (%upcase(%mf_getvarlist(&targetds,dlm=%str(,),quote=SINGLE)))
-  then do;
-    REASON_CD="Variable "!!cats(variable_nm)!!" not in &targetds";
-    putlog REASON_CD= VARIABLE_NM=;
-    call symputx('reason_cd',reason_cd,'l');
-    call symputx('nobs',_n_,'l');
-    output;
-    return;
-  end;
-
-  /* need to open the dataset to get the column type */
-  retain dsid;
-  if _n_=1 then dsid=open("&targetds","i");
-  if dsid>0 then do;
-    vnum=varnum(dsid,VARIABLE_NM);
-    if vnum<1 then do;
-      /* should not happen as was also tested for above */
-      REASON_CD=cats("Variable (",VARIABLE_NM,") not found in &targetds");
-      putlog REASON_CD= dsid=;
+    /* quick check to ensure column exists */
+    if upcase(VARIABLE_NM) not in
+      (%upcase(%mf_getvarlist(&targetds,dlm=%str(,),quote=SINGLE))) then do;
+      REASON_CD="Variable "!!cats(variable_nm)!!" not in &targetds";
+      putlog REASON_CD= VARIABLE_NM=;
       call symputx('reason_cd',reason_cd,'l');
       call symputx('nobs',_n_,'l');
       output;
-      goto endstep;
+      return;
     end;
-    /* now we can get the type */
-    else vtype=vartype(dsid,vnum);
-  end;
-  else do;
+
+    /* need to open the dataset to get the column type */
+    retain dsid;
+    if _n_=1 then dsid=open("&targetds","i");
+    if dsid>0 then do;
+      vnum=varnum(dsid,VARIABLE_NM);
+      if vnum<1 then do;
+        /* should not happen as was also tested for above */
+        REASON_CD=cats("Variable (",VARIABLE_NM,") not found in &targetds");
+        putlog REASON_CD= dsid=;
+        call symputx('reason_cd',reason_cd,'l');
+        call symputx('nobs',_n_,'l');
+        output;
+        goto endstep;
+      end;
+      /* now we can get the type */
+      else vtype=vartype(dsid,vnum);
+    end;
+    else do;
       REASON_CD=cats("Could not open &targetds");
       putlog REASON_CD= dsid=;
       call symputx('reason_cd',reason_cd,'l');
       call symputx('nobs',_n_,'l');
       output;
       stop;
-  end;
-
-  /* closed list checks */
-  if GROUP_LOGIC not in ('AND','OR') then do;
-    REASON_CD='GROUP_LOGIC should be AND/OR, not:'!!cats(GROUP_LOGIC);
-    putlog REASON_CD= GROUP_LOGIC=;
-    call symputx('reason_cd',reason_cd,'l');
-    call symputx('nobs',_n_,'l');
-    output;
-  end;
-  if SUBGROUP_LOGIC not in ('AND','OR') then do;
-    REASON_CD='SUBGROUP_LOGIC should be AND/OR, not:'!!cats(SUBGROUP_LOGIC);
-    putlog REASON_CD= SUBGROUP_LOGIC=;
-    call symputx('reason_cd',reason_cd,'l');
-    call symputx('nobs',_n_,'l');
-    output;
-  end;
-  if mod(SUBGROUP_ID,1) ne 0 then do;
-    REASON_CD='SUBGROUP_ID should be integer, not '!!cats(subgroup_id);
-    putlog REASON_CD= SUBGROUP_ID=;
-    call symputx('reason_cd',reason_cd,'l');
-    call symputx('nobs',_n_,'l');
-    output;
-  end;
-  if OPERATOR_NM not in
-  ('=','>','<','<=','>=','NE','GE','LE','BETWEEN','IN','NOT IN','CONTAINS')
-  then do;
-    REASON_CD='Invalid OPERATOR_NM: '!!cats(OPERATOR_NM);
-    putlog REASON_CD= OPERATOR_NM=;
-    call symputx('reason_cd',reason_cd,'l');
-    call symputx('nobs',_n_,'l');
-    output;
-  end;
-
-  /* CONTAINS is a character-only operator - the engine rejects a numeric
-    operand, so catch the pairing here rather than letting the generated
-    clause fail validation with no reference to the offending variable */
-  if vtype='N' & OPERATOR_NM='CONTAINS' then do;
-    vref=cats("&targetds",'.',VARIABLE_NM);
-    REASON_CD=catx(' ','CONTAINS is only valid for character variables -'
-      ,vref,'is numeric');
-    putlog REASON_CD= OPERATOR_NM=;
-    call symputx('reason_cd',reason_cd,'l');
-    call symputx('nobs',_n_,'l');
-    output;
-    return;
-  end;
-
-  /* the operand must be a string literal or a character variable - the
-    engine rejects an unquoted numeric value even where the column is
-    character, eg 'name contains 12' */
-  if vtype='C' & OPERATOR_NM='CONTAINS'
-    & subpad(strip(raw_value),1,1) not in ('"',"'")
-  then do;
-    vref=cats("&targetds",'.',VARIABLE_NM);
-    /* a bare value can only be a variable reference if it is a valid name */
-    vnum=0;
-    if prxmatch('/^[a-z_][a-z0-9_]*$/i',strip(raw_value))>0 then do;
-      vnum=varnum(dsid,strip(raw_value));
     end;
-    if vnum>=1 then do;
-      /* the name is a variable of this table - the type must be character */
-      vtype2=vartype(dsid,vnum);
-      if vtype2='C' then return;
-      REASON_CD=catx(' ',"Compared Type ("!!vtype2!!") is not (C) -"
-        ,vref,'CONTAINS',cats(raw_value));
-    end;
-    else REASON_CD=catx(' ','CONTAINS requires a quoted value or a character'
-      ,'variable -',vref,'CONTAINS',cats(raw_value));
-    putlog REASON_CD= OPERATOR_NM=;
-    call symputx('reason_cd',reason_cd,'l');
-    call symputx('nobs',_n_,'l');
-    output;
-    return;
-  end;
 
-  /* special missing logic */
-  if vtype='N' & OPERATOR_NM in ('=','>','<','<=','>=','NE','GE','LE') then do;
-    if cats(upcase(raw_value)) in (
-      '.','.A','.B','.C','.D','.E','.F','.G','.H','.I','.J','.K','.L','.M','.N'
-      '.N','.O','.P','.Q','.R','.S','.T','.U','.V','.W','.X','.Y','.Z','._'
-    )
-    then do;
-      /* valid numeric - exit data step loop */
+    /* closed list checks */
+    if GROUP_LOGIC not in ('AND','OR') then do;
+      REASON_CD='GROUP_LOGIC should be AND/OR, not:'!!cats(GROUP_LOGIC);
+      putlog REASON_CD= GROUP_LOGIC=;
+      call symputx('reason_cd',reason_cd,'l');
+      call symputx('nobs',_n_,'l');
+      output;
+    end;
+    if SUBGROUP_LOGIC not in ('AND','OR') then do;
+      REASON_CD='SUBGROUP_LOGIC should be AND/OR, not:'!!cats(SUBGROUP_LOGIC);
+      putlog REASON_CD= SUBGROUP_LOGIC=;
+      call symputx('reason_cd',reason_cd,'l');
+      call symputx('nobs',_n_,'l');
+      output;
+    end;
+    if mod(SUBGROUP_ID,1) ne 0 then do;
+      REASON_CD='SUBGROUP_ID should be integer, not '!!cats(subgroup_id);
+      putlog REASON_CD= SUBGROUP_ID=;
+      call symputx('reason_cd',reason_cd,'l');
+      call symputx('nobs',_n_,'l');
+      output;
+    end;
+    if OPERATOR_NM not in
+      ('=','>','<','<=','>=','NE','GE','LE','BETWEEN','IN','NOT IN','CONTAINS')
+      then do;
+      REASON_CD='Invalid OPERATOR_NM: '!!cats(OPERATOR_NM);
+      putlog REASON_CD= OPERATOR_NM=;
+      call symputx('reason_cd',reason_cd,'l');
+      call symputx('nobs',_n_,'l');
+      output;
+    end;
+
+    /* CONTAINS is a character-only operator - the engine rejects a numeric
+      operand, so catch the pairing here rather than letting the generated
+      clause fail validation with no reference to the offending variable */
+    if vtype='N' & OPERATOR_NM='CONTAINS' then do;
+      vref=cats("&targetds",'.',VARIABLE_NM);
+      REASON_CD=catx(' ','CONTAINS is only valid for character variables -'
+        ,vref,'is numeric');
+      putlog REASON_CD= OPERATOR_NM=;
+      call symputx('reason_cd',reason_cd,'l');
+      call symputx('nobs',_n_,'l');
+      output;
       return;
     end;
-    else if subpad(upcase(raw_value),1,1) in (
-      'A','B','C','D','E','F','G','H','I','J','K','L','M','N'
-      'N','O','P','Q','R','S','T','U','V','W','X','Y','Z','_'
-    )
-    then do;
-      /* check if the raw_value contains a valid variable NAME */
-      vnum=varnum(dsid,subpad(raw_value,1,32));
-      if vnum>0 then do;
-        /* now we can get the type */
+
+    /* the operand must be a string literal or a character variable - the
+      engine rejects an unquoted numeric value even where the column is
+      character, eg 'name contains 12' */
+    if vtype='C' & OPERATOR_NM='CONTAINS' & subpad(strip(raw_value),1,1) not in
+      ('"',"'") then do;
+      vref=cats("&targetds",'.',VARIABLE_NM);
+      /* a bare value can only be a variable reference if it is a valid name */
+      vnum=0;
+      if prxmatch('/^[a-z_][a-z0-9_]*$/i',strip(raw_value))>0 then do;
+        vnum=varnum(dsid,strip(raw_value));
+      end;
+      if vnum>=1 then do;
+        /* the name is a variable of this table - the type must be character */
         vtype2=vartype(dsid,vnum);
-        /* check type matches */
-        if vtype2=vtype then do;
-          /* valid target var - exit loop */
-          return;
+        if vtype2='C' then return;
+        REASON_CD=catx(' ',"Compared Type ("!!vtype2!!") is not (C) -"
+          ,vref,'CONTAINS',cats(raw_value));
+      end;
+      else REASON_CD=catx(' ','CONTAINS requires a quoted value or a character'
+        ,'variable -',vref,'CONTAINS',cats(raw_value));
+      putlog REASON_CD= OPERATOR_NM=;
+      call symputx('reason_cd',reason_cd,'l');
+      call symputx('nobs',_n_,'l');
+      output;
+      return;
+    end;
+
+    /* special missing logic */
+    if vtype='N' & OPERATOR_NM in ('=','>','<','<=','>=','NE','GE','LE') then
+      do;
+      if cats(upcase(raw_value)) in (
+        '.','.A','.B','.C','.D','.E','.F','.G','.H','.I','.J','.K','.L','.M','.N'
+        '.N','.O','.P','.Q','.R','.S','.T','.U','.V','.W','.X','.Y','.Z','._' )
+        then do;
+        /* valid numeric - exit data step loop */
+        return;
+      end;
+      else if subpad(upcase(raw_value),1,1) in (
+        'A','B','C','D','E','F','G','H','I','J','K','L','M','N'
+        'N','O','P','Q','R','S','T','U','V','W','X','Y','Z','_' ) then do;
+        /* check if the raw_value contains a valid variable NAME */
+        vnum=varnum(dsid,subpad(raw_value,1,32));
+        if vnum>0 then do;
+          /* now we can get the type */
+          vtype2=vartype(dsid,vnum);
+          /* check type matches */
+          if vtype2=vtype then do;
+            /* valid target var - exit loop */
+            return;
+          end;
+          else do;
+            REASON_CD=cats("Compared Type (",vtype2,") is not (",vtype,")");
+            putlog REASON_CD= dsid=;
+            call symputx('reason_cd',reason_cd,'l');
+            call symputx('nobs',_n_,'l');
+            output;
+            goto endstep;
+          end;
         end;
-        else do;
-          REASON_CD=cats("Compared Type (",vtype2,") is not (",vtype,")");
-          putlog REASON_CD= dsid=;
+      end;
+    end;
+
+    /* a SAS temporal literal is a valid value for a numeric column */
+    if vtype='N' and prxmatch(re_temporal,cats(raw_value))>0 then return;
+
+    /* special logic */
+    if OPERATOR_NM in ('IN','NOT IN','BETWEEN') then do;
+      if OPERATOR_NM='BETWEEN' then raw_value1=tranwrd(raw_value,' AND ',',');
+      else do;
+        if substr(raw_value,1,1) ne '(' or substr(cats(reverse(raw_value)),1,1)
+          ne ')' then do;
+          REASON_CD='Missing start/end bracket in RAW_VALUE';
+          putlog REASON_CD= OPERATOR_NM= raw_value= raw_value1= ;
           call symputx('reason_cd',reason_cd,'l');
           call symputx('nobs',_n_,'l');
           output;
-          goto endstep;
         end;
+        else raw_value1=substr(raw_value,2,max(length(raw_value)-2,0));
       end;
-    end;
-  end;
-
-  /* a SAS temporal literal is a valid value for a numeric column */
-  if vtype='N' and prxmatch(re_temporal,cats(raw_value))>0 then return;
-
-  /* special logic */
-  if OPERATOR_NM in ('IN','NOT IN','BETWEEN') then do;
-    if OPERATOR_NM='BETWEEN' then raw_value1=tranwrd(raw_value,' AND ',',');
-    else do;
-      if substr(raw_value,1,1) ne '('
-      or substr(cats(reverse(raw_value)),1,1) ne ')'
-      then do;
-        REASON_CD='Missing start/end bracket in RAW_VALUE';
-        putlog REASON_CD= OPERATOR_NM= raw_value= raw_value1= ;
-        call symputx('reason_cd',reason_cd,'l');
-        call symputx('nobs',_n_,'l');
-        output;
-      end;
-      else raw_value1=substr(raw_value,2,max(length(raw_value)-2,0));
-    end;
-    /* we now have a comma seperated list of values */
-    if vtype='N' then do i=1 to countc(raw_value1, ',')+1;
-      tmp=scan(raw_value1,i,',');
-      if cats(tmp) ne '.' and input(tmp, ?? 8.) eq . then do;
-        /* a SAS temporal literal is a valid value for a numeric column */
-        if prxmatch(re_temporal,cats(tmp))=0 then do;
-          if OPERATOR_NM ='BETWEEN' and subpad(upcase(tmp),1,1) in (
-            'A','B','C','D','E','F','G','H','I','J','K','L','M','N'
-            'N','O','P','Q','R','S','T','U','V','W','X','Y','Z','_'
-          )
-          then do;
-            /* check if the raw_value contains a valid variable NAME */
-            /* is not valid syntax for IN or NOT IN */
-            vnum=varnum(dsid,subpad(tmp,1,32));
-            if vnum>0 then do;
-              /* now we can get the type */
-              vtype2=vartype(dsid,vnum);
-              /* check type matches */
-              if vtype2 ne vtype then do;
-                REASON_CD=cats("Compared Type (",vtype2,") is not (",vtype,")");
-                putlog REASON_CD= dsid=;
+      /* we now have a comma seperated list of values */
+      if vtype='N' then do i=1 to countc(raw_value1, ',')+1;
+        tmp=scan(raw_value1,i,',');
+        if cats(tmp) ne '.' and input(tmp, ?? 8.) eq . then do;
+          /* a SAS temporal literal is a valid value for a numeric column */
+          if prxmatch(re_temporal,cats(tmp))=0 then do;
+            if OPERATOR_NM='BETWEEN' and subpad(upcase(tmp),1,1) in (
+              'A','B','C','D','E','F','G','H','I','J','K','L','M','N'
+              'N','O','P','Q','R','S','T','U','V','W','X','Y','Z','_' ) then do;
+              /* check if the raw_value contains a valid variable NAME */
+              /* is not valid syntax for IN or NOT IN */
+              vnum=varnum(dsid,subpad(tmp,1,32));
+              if vnum>0 then do;
+                /* now we can get the type */
+                vtype2=vartype(dsid,vnum);
+                /* check type matches */
+                if vtype2 ne vtype then do;
+                  REASON_CD=cats("Compared Type (",vtype2,") is not (",vtype,")");
+                  putlog REASON_CD= dsid=;
+                  call symputx('reason_cd',reason_cd,'l');
+                  call symputx('nobs',_n_,'l');
+                  output;
+                  goto endstep;
+                end;
+              end;
+              else do;
+                REASON_CD='Non Numeric value provided';
+                putlog REASON_CD= OPERATOR_NM= raw_value= raw_value1= ;
                 call symputx('reason_cd',reason_cd,'l');
                 call symputx('nobs',_n_,'l');
                 output;
-                goto endstep;
               end;
             end;
             else do;
@@ -305,99 +302,86 @@ data &outds;
               output;
             end;
           end;
+        end;
+      end;
+      /* every value of a numeric IN / BETWEEN list is checked one by one above,
+        so a numeric list skips the generic check below - that would only flag
+        the list syntax itself.  A character list is unchanged. */
+      if vtype='N' then return;
+    end;
+    else raw_value1=raw_value;
+
+    /* remove nested literals eg '' */
+    raw_value1=tranwrd(raw_value1,"''",'');
+
+    /* now match string literals (always single quotes) */
+    raw_value2=raw_value1;
+    regex=prxparse("s/(\').*?(\')//");
+    call prxchange(regex,-1,raw_value2);
+
+    /* remove commas and periods*/
+    raw_value3=compress(raw_value2,',.');
+
+    /* output records that contain values other than digits and spaces */
+    if notdigit(compress(raw_value3,' '))>0 then do;
+      if vtype='C' and subpad(upcase(raw_value),1,1) in (
+        'A','B','C','D','E','F','G','H','I','J','K','L','M','N'
+        'N','O','P','Q','R','S','T','U','V','W','X','Y','Z','_' ) then do;
+        /* check if the raw_value contains a valid variable NAME */
+        vnum=varnum(dsid,subpad(raw_value,1,32));
+        if vnum>0 then do;
+          /* now we can get the type */
+          vtype2=vartype(dsid,vnum);
+          /* check type matches */
+          if vtype2=vtype then do;
+            /* valid target var - exit loop */
+            return;
+          end;
           else do;
-            REASON_CD='Non Numeric value provided';
-            putlog REASON_CD= OPERATOR_NM= raw_value= raw_value1= ;
+            REASON_CD=cats("Compared Char Type (",vtype2,") is not (",vtype,")");
+            putlog REASON_CD= dsid=;
             call symputx('reason_cd',reason_cd,'l');
             call symputx('nobs',_n_,'l');
             output;
+            goto endstep;
           end;
         end;
       end;
-    end;
-    /* every value of a numeric IN / BETWEEN list is checked one by one above,
-      so a numeric list skips the generic check below - that would only flag
-      the list syntax itself.  A character list is unchanged. */
-    if vtype='N' then return;
-  end;
-  else raw_value1=raw_value;
 
-  /* remove nested literals eg '' */
-  raw_value1=tranwrd(raw_value1,"''",'');
-
-  /* now match string literals (always single quotes) */
-  raw_value2=raw_value1;
-  regex = prxparse("s/(\').*?(\')//");
-  call prxchange(regex,-1,raw_value2);
-
-  /* remove commas and periods*/
-  raw_value3=compress(raw_value2,',.');
-
-  /* output records that contain values other than digits and spaces */
-  if notdigit(compress(raw_value3,' '))>0 then do;
-    if vtype='C' and subpad(upcase(raw_value),1,1) in (
-      'A','B','C','D','E','F','G','H','I','J','K','L','M','N'
-      'N','O','P','Q','R','S','T','U','V','W','X','Y','Z','_'
-    )
-    then do;
-      /* check if the raw_value contains a valid variable NAME */
-      vnum=varnum(dsid,subpad(raw_value,1,32));
-      if vnum>0 then do;
-        /* now we can get the type */
-        vtype2=vartype(dsid,vnum);
-        /* check type matches */
-        if vtype2=vtype then do;
-          /* valid target var - exit loop */
-          return;
-        end;
-        else do;
-          REASON_CD=cats("Compared Char Type (",vtype2,") is not (",vtype,")");
-          putlog REASON_CD= dsid=;
-          call symputx('reason_cd',reason_cd,'l');
-          call symputx('nobs',_n_,'l');
-          output;
-          goto endstep;
-        end;
-      end;
+      putlog raw_value3=$hex32.;
+      REASON_CD=cats('Invalid RAW_VALUE:',raw_value);
+      putlog (_all_)(=);
+      call symputx('reason_cd',reason_cd,'l');
+      call symputx('nobs',_n_,'l');
+      output;
     end;
 
-    putlog raw_value3= $hex32.;
-    REASON_CD=cats('Invalid RAW_VALUE:',raw_value);
+endstep:
+    if last then rc=close(dsid);
+  run;
+
+  data _null_;
+    set &outds end=last;
     putlog (_all_)(=);
-    call symputx('reason_cd',reason_cd,'l');
-    call symputx('nobs',_n_,'l');
-    output;
-  end;
+  run;
 
-  endstep:
-  if last then rc=close(dsid);
-run;
+  %mp_abort(iftrue=(&abort=YES and &nobs>0), mac=&sysmacroname,
+    msg=%str(Data issue: %superq(reason_cd)) )
 
+  %if &nobs>0 %then %do;
+    %let syscc=1008;
+    %return;
+  %end;
 
-data _null_;
-  set &outds end=last;
-  putlog (_all_)(=);
-run;
+  /**
+    * syntax checking passed but it does not mean the filter is valid
+    * for that we can run a proc sql validate query
+    */
+  %local fref1;
+  %let fref1=%mf_getuniquefileref();
+  %mp_filtergenerate(&inds,outref=&fref1)
 
-%mp_abort(iftrue=(&abort=YES and &nobs>0),
-  mac=&sysmacroname,
-  msg=%str(Data issue: %superq(reason_cd))
-)
-
-%if &nobs>0 %then %do;
-  %let syscc=1008;
-  %return;
-%end;
-
-/**
-  * syntax checking passed but it does not mean the filter is valid
-  * for that we can run a proc sql validate query
-  */
-%local fref1;
-%let fref1=%mf_getuniquefileref();
-%mp_filtergenerate(&inds,outref=&fref1)
-
-/* this macro will also set syscc to 1008 if any issues found */
-%mp_filtervalidate(&fref1,&targetds,outds=&outds,abort=&abort)
+  /* this macro will also set syscc to 1008 if any issues found */
+  %mp_filtervalidate(&fref1,&targetds,outds=&outds,abort=&abort)
 
 %mend mp_filtercheck;

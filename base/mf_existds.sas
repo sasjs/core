@@ -21,8 +21,7 @@
   @author Allan Bowe
 **/
 
-%macro mf_existds(libds
-)/*/STORE SOURCE*/;
+%macro mf_existds(libds )/*/STORE SOURCE*/;
 
   %if %sysfunc(exist(&libds)) ne 1 & %sysfunc(exist(&libds,VIEW)) ne 1 %then 0;
   %else 1;

@@ -25,25 +25,26 @@
 **/
 
 %macro mp_cleancsv(in=NOTPROVIDED,out=NOTPROVIDED,qchar='22'x);
-%if "&in"="NOTPROVIDED" or "&out"="NOTPROVIDED" %then %do;
-  %put %str(ERR)OR: Please provide valid input (&in) & output (&out) locations;
-  %return;
-%end;
+  %if "&in"="NOTPROVIDED" or "&out"="NOTPROVIDED" %then %do;
+    %put %str(ERR)OR: Please provide valid input (&in) & output (&out)
+      locations;
+    %return;
+  %end;
 
-/* presence of a period(.) indicates a physical location */
-%if %index(&in,.) %then %let in="&in";
-%if %index(&out,.) %then %let out="&out";
+  /* presence of a period(.) indicates a physical location */
+  %if %index(&in,.) %then %let in="&in";
+  %if %index(&out,.) %then %let out="&out";
 
-/**
-  * convert all cr and crlf within quotes to lf
-  * convert all other cr or lf to crlf
-  */
+  /**
+    * convert all cr and crlf within quotes to lf
+    * convert all other cr or lf to crlf
+    */
   data _null_;
     infile &in recfm=n ;
     file &out recfm=n;
     retain isq iscrlf 0 qchar &qchar;
     input inchar $char1. ;
-    if inchar=qchar then isq = mod(isq+1,2);
+    if inchar=qchar then isq=mod(isq+1,2);
     if isq then do;
       /* inside a quote change cr and crlf to lf */
       if inchar='0D'x then do;
@@ -51,7 +52,7 @@
         input inchar $char1.;
         if inchar ne '0A'x then do;
           put inchar $char1.;
-          if inchar=qchar then isq = mod(isq+1,2);
+          if inchar=qchar then isq=mod(isq+1,2);
         end;
       end;
       else put inchar $char1.;
@@ -59,7 +60,7 @@
     else do;
       /* outside a quote, change cr and lf to crlf */
       if inchar='0D'x then do;
-        crblank:
+crblank:
         put '0D0A'x;
         input inchar $char1.;
         if inchar='0D'x then do;
@@ -68,7 +69,7 @@
         end;
         else if inchar ne '0A'x then do;
           put inchar $char1.;
-          if inchar=qchar then isq = mod(isq+1,2);
+          if inchar=qchar then isq=mod(isq+1,2);
         end;
       end;
       else if inchar='0A'x then put '0D0A'x;

@@ -53,49 +53,31 @@ Usage:
 
 **/
 
-%macro mx_createwebservice(path=HOME
-    ,name=initService
-    ,precode=
-    ,code=ft15f001
-    ,desc=This service was created by the mp_createwebservice macro
-    ,replace=YES
-    ,mdebug=0
-)/*/STORE SOURCE*/;
+%macro mx_createwebservice(path=HOME ,name=initService ,precode=,code=ft15f001
+  ,desc=This service was created by the mp_createwebservice macro ,replace=YES
+  ,mdebug=0 )/*/STORE SOURCE*/;
 
-%if &syscc ge 4 %then %do;
-  %put syscc=&syscc - &sysmacroname will not execute in this state;
-  %return;
-%end;
+  %if &syscc ge 4 %then %do;
+    %put syscc=&syscc - &sysmacroname will not execute in this state;
+    %return;
+  %end;
 
-%local platform; %let platform=%mf_getplatform();
-%if &platform=SASVIYA %then %do;
-  %if "&path"="HOME" %then %let path=/Users/&sysuserid/My Folder;
-  %mv_createwebservice(path=&path
-    ,name=&name
-    ,code=&code
-    ,precode=&precode
-    ,desc=&desc
-    ,replace=&replace
-  )
-%end;
-%else %if &platform=SASJS %then %do;
-  %if "&path"="HOME" %then %let path=/Users/&_sasjs_username/My Folder;
-  %ms_createwebservice(path=&path
-    ,name=&name
-    ,code=&code
-    ,precode=&precode
-    ,mdebug=&mdebug
-  )
-%end;
-%else %do;
-  %if "&path"="HOME" %then %let path=/User Folders/&_METAPERSON/My Folder;
-  %mm_createwebservice(path=&path
-    ,name=&name
-    ,code=&code
-    ,precode=&precode
-    ,desc=&desc
-    ,replace=&replace
-  )
-%end;
+  %local platform;
+  %let platform=%mf_getplatform();
+  %if &platform=SASVIYA %then %do;
+    %if "&path"="HOME" %then %let path=/Users/&sysuserid/My Folder;
+    %mv_createwebservice(path=&path ,name=&name ,code=&code ,precode=&precode
+      ,desc=&desc ,replace=&replace )
+  %end;
+  %else %if &platform=SASJS %then %do;
+    %if "&path"="HOME" %then %let path=/Users/&_sasjs_username/My Folder;
+    %ms_createwebservice(path=&path ,name=&name ,code=&code ,precode=&precode
+      ,mdebug=&mdebug )
+  %end;
+  %else %do;
+    %if "&path"="HOME" %then %let path=/User Folders/&_METAPERSON/My Folder;
+    %mm_createwebservice(path=&path ,name=&name ,code=&code ,precode=&precode
+      ,desc=&desc ,replace=&replace )
+  %end;
 
 %mend mx_createwebservice;

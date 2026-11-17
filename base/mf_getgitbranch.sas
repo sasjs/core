@@ -29,9 +29,7 @@
   @author Allan Bowe
 **/
 
-%macro mf_getgitbranch(gitdir
-)/*/STORE SOURCE*/;
+%macro mf_getgitbranch(gitdir )/*/STORE SOURCE*/;
 
   %scan(%mf_readfile(&gitdir/.git/HEAD),-1)
-
 %mend mf_getgitbranch;

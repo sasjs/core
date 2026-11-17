@@ -16,55 +16,62 @@
 
 **/
 
-%macro mm_deletestp(
-    target=
-)/*/STORE SOURCE*/;
+%macro mm_deletestp( target=)/*/STORE SOURCE*/;
 
-/**
-  * Check STP does exist
-  */
-%local cmtype;
-data _null_;
-  length type uri $256;
-  rc=metadata_pathobj("","&target",'StoredProcess',type,uri);
-  call symputx('cmtype',type,'l');
-  call symputx('stpuri',uri,'l');
-run;
-%if &cmtype ne ClassifierMap %then %do;
-  %put NOTE: No Stored Process found at &target;
-  %return;
-%end;
+  /**
+    * Check STP does exist
+    */
+  %local cmtype;
 
-filename __in temp lrecl=10000;
-filename __out temp lrecl=10000;
-data _null_ ;
-  file __in ;
-  put "<DeleteMetadata><Metadata><ClassifierMap Id='&stpuri'/>";
-  put "</Metadata><NS>SAS</NS><Flags>268436480</Flags><Options/>";
-  put "</DeleteMetadata>";
-run ;
-proc metadata in=__in out=__out verbose;run;
+  data _null_;
+    length type uri $256;
+    rc=metadata_pathobj("","&target",'StoredProcess',type,uri);
+    call symputx('cmtype',type,'l');
+    call symputx('stpuri',uri,'l');
+  run;
+  %if &cmtype ne ClassifierMap %then %do;
+    %put NOTE: No Stored Process found at &target;
+    %return;
+  %end;
 
-/* list the result */
-data _null_;infile __out; input; list; run;
+  filename __in temp lrecl=10000;
+  filename __out temp lrecl=10000;
 
-filename __in clear;
-filename __out clear;
+  data _null_ ;
+    file __in ;
+    put "<DeleteMetadata><Metadata><ClassifierMap Id='&stpuri'/>";
+    put "</Metadata><NS>SAS</NS><Flags>268436480</Flags><Options/>";
+    put "</DeleteMetadata>";
+  run ;
 
-/**
-  * Check deletion
-  */
-%local isgone;
-data _null_;
-  length type uri $256;
-  call missing (of _all_);
-  rc=metadata_pathobj("","&target",'Note',type,uri);
-  call symputx('isgone',type,'l');
-run;
-%if &isgone = ClassifierMap %then %do;
-  %put %str(ERR)OR: STP not deleted from &target;
-  %let syscc=4;
-  %return;
-%end;
+  proc metadata in=__in out=__out verbose;
+  run;
+
+  /* list the result */
+  data _null_;
+    infile __out;
+    input;
+    list;
+  run;
+
+  filename __in clear;
+  filename __out clear;
+
+  /**
+    * Check deletion
+    */
+  %local isgone;
+
+  data _null_;
+    length type uri $256;
+    call missing (of _all_);
+    rc=metadata_pathobj("","&target",'Note',type,uri);
+    call symputx('isgone',type,'l');
+  run;
+  %if &isgone=ClassifierMap %then %do;
+    %put %str(ERR)OR: STP not deleted from &target;
+    %let syscc=4;
+    %return;
+  %end;
 
 %mend mm_deletestp;

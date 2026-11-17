@@ -92,254 +92,259 @@
   @sasjslint {"maxLineLength": 118}
 **/
 
-%macro mv_getjoblog(uri=0,outref=0
-    ,access_token_var=ACCESS_TOKEN
-    ,grant_type=sas_services
-    ,mdebug=0
-  );
-%local dbg libref1 libref2 loglocation fname1 fname2 jobstate err_httpcode
-  err_msg abortmsg;
-%if &mdebug=1 %then %do;
-  %put &sysmacroname entry vars:;
-  %put _local_;
-%end;
-%else %let dbg=*;
+%macro mv_getjoblog(uri=0,outref=0 ,access_token_var=ACCESS_TOKEN
+  ,grant_type=sas_services ,mdebug=0 );
+  %local dbg libref1 libref2 loglocation fname1 fname2 jobstate err_httpcode
+    err_msg abortmsg;
+  %if &mdebug=1 %then %do;
+    %put &sysmacroname entry vars:;
+    %put _local_;
+  %end;
+  %else %let dbg=*;
 
-%local oauth_bearer;
-%if &grant_type=detect %then %do;
-  %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
-  %else %let grant_type=sas_services;
-%end;
-%if &grant_type=sas_services %then %do;
+  %local oauth_bearer;
+  %if &grant_type=detect %then %do;
+    %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
+    %else %let grant_type=sas_services;
+  %end;
+  %if &grant_type=sas_services %then %do;
     %let oauth_bearer=oauth_bearer=sas_services;
     %let &access_token_var=;
-%end;
-
-%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
-    and &grant_type ne sas_services
-  )
-  ,mac=&sysmacroname
-  ,msg=%str(Invalid value for grant_type: &grant_type)
-)
-
-/* validation in datastep for better character safety */
-%local errmsg errflg;
-data _null_;
-  uri=symget('uri');
-  if length(uri)<12 then do;
-    call symputx('errflg',1);
-    call symputx('errmsg',"URI is too short - "!!uri,'l');
-  end;
-  if scan(uri,-1)='state' or scan(uri,1) ne 'jobExecution' then do;
-    call symputx('errflg',1);
-    call symputx('errmsg',
-      "URI should be in format /jobExecution/jobs/$$$$UUID$$$$"
-      !!" but is actually like:"!!uri,'l');
-  end;
-run;
-
-%mp_abort(iftrue=(&errflg=1)
-  ,mac=&sysmacroname
-  ,msg=%str(&errmsg)
-)
-
-%mp_abort(iftrue=(&outref=0)
-  ,mac=&sysmacroname
-  ,msg=%str(Output fileref should be provided)
-)
-
-%if %mf_existfileref(&outref) ne 1 %then %do;
-  filename &outref temp;
-%end;
-
-options noquotelenmax;
-%local base_uri; /* location of rest apis */
-%let base_uri=%mf_getplatform(VIYARESTAPI);
-
-/* prepare request*/
-%let fname1=%mf_getuniquefileref();
-%let fname2=%mf_getuniquefileref();
-proc http method='GET' out=&fname1 &oauth_bearer
-  url="&base_uri&uri";
-  headers
-  %if &grant_type=authorization_code %then %do;
-          "Authorization"="Bearer &&&access_token_var"
   %end;
-  ;
-run;
-%if &mdebug=1 %then %do;
-  %put &sysmacroname: fetching log loc from &uri;
-  data _null_;infile &fname1;input;putlog _infile_;run;
-%end;
-%if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201 %then
-%do;
-  data _null_;infile &fname1;input;putlog _infile_;run;
-  %mp_abort(mac=&sysmacroname
-    ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
-  )
-%end;
 
-%let libref1=%mf_getuniquelibref();
-libname &libref1 JSON fileref=&fname1;
-data _null_;
-  set &libref1..root;
-  call symputx('loglocation',loglocation,'l');
-  %if %mf_existvar(&libref1..root,state) %then %do;
-    call symputx('jobstate',state,'l');
+  %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne
+    password and &grant_type ne sas_services ) ,mac=&sysmacroname
+    ,msg=%str(Invalid value for grant_type: &grant_type) )
+
+  /* validation in datastep for better character safety */
+  %local errmsg errflg;
+
+  data _null_;
+    uri=symget('uri');
+    if length(uri)<12 then do;
+      call symputx('errflg',1);
+      call symputx('errmsg',"URI is too short - "!!uri,'l');
+    end;
+    if scan(uri,-1)='state' or scan(uri,1) ne 'jobExecution' then do;
+      call symputx('errflg',1);
+      call symputx('errmsg',
+        "URI should be in format /jobExecution/jobs/$$$$UUID$$$$"
+        !!" but is actually like:"!!uri,'l');
+    end;
+  run;
+
+  %mp_abort(iftrue=(&errflg=1) ,mac=&sysmacroname ,msg=%str(&errmsg) )
+
+  %mp_abort(iftrue=(&outref=0) ,mac=&sysmacroname
+    ,msg=%str(Output fileref should be provided) )
+
+  %if %mf_existfileref(&outref) ne 1 %then %do;
+    filename &outref temp;
   %end;
-  %else %do;
-    call symputx('jobstate','unknown','l');
-  %end;
-run;
-/* If root had zero observations, jobstate was never set - fall back to
-  "unknown" so the abort message below reads cleanly. */
-%if %str(&jobstate)= %then %let jobstate=unknown;
 
-/* A real loglocation is always a /files/files/<uuid> URI (48+ chars), so
-  length<2 unambiguously means the job has no log (empty or SAS missing
-  value) - the job likely failed before a compute session was created
-  (e.g. 403 on session creation). Read the failure details from the job
-  response so the actual failure reason is reported instead of the
-  opaque "URI is too short" message. */
-%if &mdebug=1 %then %do;
-  %put &sysmacroname: jobstate=[&jobstate] loglocation=[&loglocation];
-%end;
-%if %length(&loglocation)<2 %then %do;
-  %let err_httpcode=;
-  %let err_msg=;
-  %if %sysfunc(exist(&libref1..error)) %then %do;
-    data _null_;
-      set &libref1..error;
-      call symputx('err_httpcode',httpStatusCode,'l');
-      call symputx('err_msg',message,'l');
-      putlog "&sysmacroname: Job &jobstate - unexpected response " httpStatusCode ": " message;
-      stop;
-    run;
-  %end;
-  /* Build the abort message so it reads cleanly whether or not error
-    details were available (err_msg stays empty if the table is absent
-    or has zero observations).  Include the job URI so the full JSON
-    response can be fetched directly via a GET to &base_uri&uri. */
-  %let abortmsg=Job &jobstate, no log available. GET &uri;
-  %if %length(&err_msg)>0 %then %let abortmsg=Job &jobstate, no log available. HTTP &err_httpcode: &err_msg. GET &uri;
-  /* A canceled job does not always provide a loglocation (eg a job
-    that was aborted by design, or canceled by the server before a
-    compute session was created).  Aborting here would terminate the
-    calling program, so instead record the reason in the outref and
-    return - the caller can decide how to handle the missing log. */
-  %if &jobstate=canceled %then %do;
-    %put &sysmacroname: &abortmsg;
-    data _null_;
-      file &outref mod;
-      put "&sysmacroname: &abortmsg";
-    run;
-    %return;
-  %end;
-  %mp_abort(iftrue=(1=1)
-    ,mac=&sysmacroname
-    ,msg=%str(&abortmsg)
-  )
-%end;
+  options noquotelenmax;
+  %local base_uri; /* location of rest apis */
+  %let base_uri=%mf_getplatform(VIYARESTAPI);
 
-/* validate log path*/
-%let errflg=1;
-%let errmsg=No loglocation entry in &fname1 fileref;
-data _null_;
-  uri=symget('loglocation');
-  if length(uri)<12 then do;
-    call symputx('errflg',1);
-    call symputx('errmsg',"URI is too short - "!!uri,'l');
-  end;
-  else if (scan(uri,1,'/') ne 'compute' or scan(uri,2,'/') ne 'sessions')
-    and (scan(uri,1,'/') ne 'files' or scan(uri,2,'/') ne 'files')
-  then do;
-    call symputx('errflg',1);
-    call symputx('errmsg',
-      "URI should be in format /compute/sessions/$$$$UUID$$$$/jobs/$$$$UUID$$$$"
-      !!" or /files/files/$$$$UUID$$$$"
-      !!" but is actually like:"!!uri,'l');
-  end;
-  else do;
-    call symputx('errflg',0,'l');
-    call symputx('logloc',uri,'l');
-  end;
-run;
+  /* prepare request*/
+  %let fname1=%mf_getuniquefileref();
+  %let fname2=%mf_getuniquefileref();
 
-%mp_abort(iftrue=(%str(&errflg)=1)
-  ,mac=&sysmacroname
-  ,msg=%str(&errmsg)
-)
-
-/* we have a log uri - now fetch the log */
-%&dbg.put &sysmacroname: querying &base_uri&logloc/content;
-proc http method='GET' out=&fname2 &oauth_bearer
-  url="&base_uri&logloc/content?limit=10000";
-  headers
-  %if &grant_type=authorization_code %then %do;
-          "Authorization"="Bearer &&&access_token_var"
-  %end;
-  ;
-run;
-
-%if &mdebug=1 %then %do;
-  %put &sysmacroname: fetching log content from &base_uri&logloc/content;
-  data _null_;infile &fname2;input;putlog _infile_;run;
-%end;
-
-%if &SYS_PROCHTTP_STATUS_CODE=400 %then %do;
-  /* fetch log from parent session */
-  %let logloc=%substr(&logloc,1,%index(&logloc,%str(/jobs/))-1);
-  %&dbg.put &sysmacroname: Now querying &base_uri&logloc/log/content;
-  proc http method='GET' out=&fname2 &oauth_bearer
-    url="&base_uri&logloc/log/content?limit=10000";
-    headers
-    %if &grant_type=authorization_code %then %do;
-            "Authorization"="Bearer &&&access_token_var"
-    %end;
+  proc http method='GET' out=&fname1 &oauth_bearer url="&base_uri&uri";
+    headers %if &grant_type=authorization_code %then %do;
+    "Authorization"="Bearer &&&access_token_var" %end;
     ;
   run;
   %if &mdebug=1 %then %do;
-    %put &sysmacroname: fetching log content from &base_uri&logloc/log/content;
-    data _null_;infile &fname2;input;putlog _infile_;run;
-  %end;
-%end;
+    %put &sysmacroname: fetching log loc from &uri;
 
-%if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201
-%then %do;
-  %if &mdebug ne 1 %then %do; /* have already output above */
-    data _null_;infile &fname2;input;putlog _infile_;run;
+    data _null_;
+      infile &fname1;
+      input;
+      putlog _infile_;
+    run;
   %end;
-  %mp_abort(mac=&sysmacroname
-    ,msg=%str(logfetch: &SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
-  )
-%end;
+  %if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201
+    %then %do;
+    data _null_;
+      infile &fname1;
+      input;
+      putlog _infile_;
+    run;
+    %mp_abort(mac=&sysmacroname
+      ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE) )
+  %end;
 
-%let libref2=%mf_getuniquelibref();
-libname &libref2 JSON fileref=&fname2;
-data _null_;
-  file &outref mod;
-  if _n_=1 then do;
-    put "/** SASJS Viya Job Log Extract start: &uri **/";
-  end;
-  set &libref2..items end=last;
+  %let libref1=%mf_getuniquelibref();
+  libname &libref1 JSON fileref=&fname1;
+
+  data _null_;
+    set &libref1..root;
+    call symputx('loglocation',loglocation,'l');
+    %if %mf_existvar(&libref1..root,state) %then %do;
+      call symputx('jobstate',state,'l');
+    %end;
+    %else %do;
+      call symputx('jobstate','unknown','l');
+    %end;
+  run;
+  /* If root had zero observations, jobstate was never set - fall back to
+    "unknown" so the abort message below reads cleanly. */
+  %if %str(&jobstate)=%then %let jobstate=unknown;
+
+  /* A real loglocation is always a /files/files/<uuid> URI (48+ chars), so
+    length<2 unambiguously means the job has no log (empty or SAS missing
+    value) - the job likely failed before a compute session was created
+    (e.g. 403 on session creation). Read the failure details from the job
+    response so the actual failure reason is reported instead of the
+    opaque "URI is too short" message. */
   %if &mdebug=1 %then %do;
-    putlog line;
+    %put &sysmacroname: jobstate=[&jobstate] loglocation=[&loglocation];
   %end;
-  put line;
-  if last then do;
-    put "/** SASJS Viya Job Log Extract end: &uri **/";
-  end;
-run;
+  %if %length(&loglocation)<2 %then %do;
+    %let err_httpcode=;
+    %let err_msg=;
+    %if %sysfunc(exist(&libref1..error)) %then %do;
+      data _null_;
+        set &libref1..error;
+        call symputx('err_httpcode',httpStatusCode,'l');
+        call symputx('err_msg',message,'l');
+        putlog "&sysmacroname: Job &jobstate - unexpected response "
+          httpStatusCode ": " message;
+        stop;
+      run;
+    %end;
+    /* Build the abort message so it reads cleanly whether or not error
+      details were available (err_msg stays empty if the table is absent
+      or has zero observations).  Include the job URI so the full JSON
+      response can be fetched directly via a GET to &base_uri&uri. */
+    %let abortmsg=Job &jobstate, no log available. GET &uri;
+    %if %length(&err_msg)>0 %then %let abortmsg=Job &jobstate, no log available.
+      HTTP &err_httpcode: &err_msg. GET &uri;
+    /* A canceled job does not always provide a loglocation (eg a job
+      that was aborted by design, or canceled by the server before a
+      compute session was created).  Aborting here would terminate the
+      calling program, so instead record the reason in the outref and
+      return - the caller can decide how to handle the missing log. */
+    %if &jobstate=canceled %then %do;
+      %put &sysmacroname: &abortmsg;
 
-%if &mdebug=0 %then %do;
-  filename &fname1 clear;
-  filename &fname2 clear;
-  libname &libref1 clear;
-  libname &libref2 clear;
-%end;
-%else %do;
-  %put &sysmacroname exit vars:;
-  %put _local_;
-%end;
+      data _null_;
+        file &outref mod;
+        put "&sysmacroname: &abortmsg";
+      run;
+      %return;
+    %end;
+    %mp_abort(iftrue=(1=1) ,mac=&sysmacroname ,msg=%str(&abortmsg) )
+  %end;
+
+  /* validate log path*/
+  %let errflg=1;
+  %let errmsg=No loglocation entry in &fname1 fileref;
+
+  data _null_;
+    uri=symget('loglocation');
+    if length(uri)<12 then do;
+      call symputx('errflg',1);
+      call symputx('errmsg',"URI is too short - "!!uri,'l');
+    end;
+    else if (scan(uri,1,'/') ne 'compute' or scan(uri,2,'/') ne 'sessions') and
+      (scan(uri,1,'/') ne 'files' or scan(uri,2,'/') ne 'files') then do;
+      call symputx('errflg',1);
+      call symputx('errmsg',
+        "URI should be in format /compute/sessions/$$$$UUID$$$$/jobs/$$$$UUID$$$$"
+        !!" or /files/files/$$$$UUID$$$$" !!" but is actually like:"!!uri,'l');
+    end;
+    else do;
+      call symputx('errflg',0,'l');
+      call symputx('logloc',uri,'l');
+    end;
+  run;
+
+  %mp_abort(iftrue=(%str(&errflg)=1) ,mac=&sysmacroname ,msg=%str(&errmsg) )
+    /* we have a log uri - now fetch the log */ %&dbg.put &sysmacroname:
+    querying &base_uri&logloc/content;
+
+  proc http method='GET' out=&fname2 &oauth_bearer
+    url="&base_uri&logloc/content?limit=10000";
+    headers %if &grant_type=authorization_code %then %do;
+    "Authorization"="Bearer &&&access_token_var" %end;
+    ;
+  run;
+
+  %if &mdebug=1 %then %do;
+    %put &sysmacroname: fetching log content from &base_uri&logloc/content;
+
+    data _null_;
+      infile &fname2;
+      input;
+      putlog _infile_;
+    run;
+  %end;
+
+  %if &SYS_PROCHTTP_STATUS_CODE=400 %then %do;
+    /* fetch log from parent session */
+    %let logloc=%substr(&logloc,1,%index(&logloc,%str(/jobs/))-1);
+    %&dbg.put &sysmacroname: Now querying &base_uri&logloc/log/content;
+
+    proc http method='GET' out=&fname2 &oauth_bearer
+      url="&base_uri&logloc/log/content?limit=10000";
+      headers %if &grant_type=authorization_code %then %do;
+      "Authorization"="Bearer &&&access_token_var" %end;
+      ;
+    run;
+    %if &mdebug=1 %then %do;
+      %put &sysmacroname: fetching log content from
+        &base_uri&logloc/log/content;
+
+      data _null_;
+        infile &fname2;
+        input;
+        putlog _infile_;
+      run;
+    %end;
+  %end;
+
+  %if &SYS_PROCHTTP_STATUS_CODE ne 200 and &SYS_PROCHTTP_STATUS_CODE ne 201
+    %then %do;
+    %if &mdebug ne 1 %then %do; /* have already output above */
+      data _null_;
+        infile &fname2;
+        input;
+        putlog _infile_;
+      run;
+    %end;
+    %mp_abort(mac=&sysmacroname
+      ,msg=%str(logfetch: &SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
+      )
+  %end;
+
+  %let libref2=%mf_getuniquelibref();
+  libname &libref2 JSON fileref=&fname2;
+
+  data _null_;
+    file &outref mod;
+    if _n_=1 then do;
+      put "/** SASJS Viya Job Log Extract start: &uri **/";
+    end;
+    set &libref2..items end=last;
+    %if &mdebug=1 %then %do;
+      putlog line;
+    %end;
+    put line;
+    if last then do;
+      put "/** SASJS Viya Job Log Extract end: &uri **/";
+    end;
+  run;
+
+  %if &mdebug=0 %then %do;
+    filename &fname1 clear;
+    filename &fname2 clear;
+    libname &libref1 clear;
+    libname &libref2 clear;
+  %end;
+  %else %do;
+    %put &sysmacroname exit vars:;
+    %put _local_;
+  %end;
 %mend mv_getjoblog;
-

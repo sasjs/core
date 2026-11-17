@@ -32,53 +32,51 @@
 
 **/
 
-%macro mp_init(
-)/*/STORE SOURCE*/;
+%macro mp_init( )/*/STORE SOURCE*/;
 
-/* only run once. The guard is the marker: an autoexec that sets it is the
-  documented way to skip this macro, and a second pass would re-apply the
-  options below mid-session. SASJS_PREFIX is the name an existing autoexec
-  would set, so it suppresses initialisation too. */
-%if %symexist(_SASJS_INIT) or %symexist(SASJS_PREFIX) %then %return;
+  /* only run once. The guard is the marker: an autoexec that sets it is the
+    documented way to skip this macro, and a second pass would re-apply the
+    options below mid-session. SASJS_PREFIX is the name an existing autoexec
+    would set, so it suppresses initialisation too. */
+  %if %symexist(_SASJS_INIT) or %symexist(SASJS_PREFIX) %then %return;
 
-%global
-  _SASJS_INIT        /* set to any value by this macro: "already initialised" */
-  _SASJS_PROCESSMODE /* process mode, as the server's pre-program names it    */
-  _SASJS_WEBOUT_HEADERS /* the server's webout header file location           */
-  _SASJS_FUNCTIONS   /* used in mcf_init() to track core function compilation */
-  _SASJS_INIT_NUM    /* initialisation time as numeric                        */
-  _SASJS_INIT_DTTM   /* initialisation time in E8601DT26.6 format             */
-  _SASJS_WORK        /* avoid typing %sysfunc(pathname(work)) every time      */
-;
-%let _sasjs_init=1;
+  %global _SASJS_INIT
+    /* set to any value by this macro: "already initialised" */
+    _SASJS_PROCESSMODE
+    /* process mode, as the server's pre-program names it    */
+    _SASJS_WEBOUT_HEADERS
+    /* the server's webout header file location           */ _SASJS_FUNCTIONS
+    /* used in mcf_init() to track core function compilation */ _SASJS_INIT_NUM
+    /* initialisation time as numeric                        */ _SASJS_INIT_DTTM
+    /* initialisation time in E8601DT26.6 format             */ _SASJS_WORK
+    /* avoid typing %sysfunc(pathname(work)) every time      */ ;
+  %let _sasjs_init=1;
 
-data _null_;
-  dttm=datetime();
-  call symputx('_SASJS_INIT_NUM',dttm,'g');
-  call symputx('_SASJS_INIT_DTTM',put(dttm,E8601DT26.6),'g');
-  call symputx('_SASJS_WORK',pathname('WORK'),'g');
-run;
+  data _null_;
+    dttm=datetime();
+    call symputx('_SASJS_INIT_NUM',dttm,'g');
+    call symputx('_SASJS_INIT_DTTM',put(dttm,E8601DT26.6),'g');
+    call symputx('_SASJS_WORK',pathname('WORK'),'g');
+  run;
 
-options
-  compress=CHAR           /* default is none so ensure we have something!   */
-  datastmtchk=ALLKEYWORDS /* protection from overwriting input datasets     */
-  errorcheck=STRICT       /* catch errs in libname/filename statements      */
-  fmterr                  /* ensure err when a format cannot be found       */
-  mergenoby=%str(ERR)OR   /* throw err when a merge has no BY variables     */
-  missing=.               /* changing this can cause hard to detect errs    */
-  noquotelenmax           /* avoid warnings for long strings                */
-  noreplace               /* avoid overwriting permanent datasets           */
-  ps=max                  /* reduce log size slightly                       */
-  ls=max                  /* reduce log even more and avoid word truncation */
-  validmemname=COMPATIBLE /* avoid special characters etc in table names    */
-  validvarname=V7         /* avoid special characters etc in variable names */
-  varinitchk=%str(ERR)OR  /* avoid data mistakes from variable name typos   */
-  varlenchk=%str(ERR)OR   /* fail hard if truncation (data loss) can result */
-%if "%substr(&sysver,1,1)" ne "4" and "%substr(&sysver,1,1)" ne "5" %then %do;
-  noautocorrect           /* disallow misspelled procedure names            */
-  dsoptions=note2err      /* undocumented - convert bad NOTEs to ERRs       */
-                          /* turn off with dsoptions=nonote2err             */
-%end;
-;
+  options compress=CHAR /* default is none so ensure we have something!   */
+    datastmtchk=ALLKEYWORDS /* protection from overwriting input datasets     */
+    errorcheck=STRICT /* catch errs in libname/filename statements      */
+    fmterr /* ensure err when a format cannot be found       */
+    mergenoby=%str(ERR)OR /* throw err when a merge has no BY variables     */
+    missing=. /* changing this can cause hard to detect errs    */ noquotelenmax
+    /* avoid warnings for long strings                */ noreplace
+    /* avoid overwriting permanent datasets           */ ps=max
+    /* reduce log size slightly                       */ ls=max
+    /* reduce log even more and avoid word truncation */ validmemname=COMPATIBLE
+    /* avoid special characters etc in table names    */ validvarname=V7
+    /* avoid special characters etc in variable names */ varinitchk=%str(ERR)OR
+    /* avoid data mistakes from variable name typos   */ varlenchk=%str(ERR)OR
+    /* fail hard if truncation (data loss) can result */ %if
+    "%substr(&sysver,1,1)" ne "4" and "%substr(&sysver,1,1)" ne "5" %then %do;
+  noautocorrect /* disallow misspelled procedure names            */
+    dsoptions=note2err /* undocumented - convert bad NOTEs to ERRs       */
+    /* turn off with dsoptions=nonote2err             */ %end;
+  ;
 
 %mend mp_init;

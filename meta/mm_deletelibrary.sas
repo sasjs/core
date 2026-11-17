@@ -32,62 +32,66 @@
 
 **/
 
-%macro mm_deletelibrary(
-      name=
-)/*/STORE SOURCE*/;
+%macro mm_deletelibrary( name=)/*/STORE SOURCE*/;
 
+  /**
+    * Check if library exists and get uri
+    */
+  data _null_;
+    length type uri $256;
+    rc=metadata_resolve("omsobj:SASLibrary?@Name='&name'",type,uri);
+    call symputx('checktype',type,'l');
+    call symputx('liburi',uri,'l');
+    putlog (_all_)(=);
+  run;
+  %if &checktype ne SASLibrary %then %do;
+    %put &sysmacroname: Library (&name) was not found, and so will not be
+      deleted;
+    %return;
+  %end;
 
-/**
-  * Check if library exists and get uri
-  */
-data _null_;
-  length type uri $256;
-  rc=metadata_resolve("omsobj:SASLibrary?@Name='&name'",type,uri);
-  call symputx('checktype',type,'l');
-  call symputx('liburi',uri,'l');
-  putlog (_all_)(=);
-run;
-%if &checktype ne SASLibrary %then %do;
-  %put &sysmacroname: Library (&name) was not found, and so will not be deleted;
-  %return;
-%end;
+  %local fname1 fname2;
+  %let fname1=%mf_getuniquefileref();
+  %let fname2=%mf_getuniquefileref();
 
-%local fname1 fname2;
-%let fname1=%mf_getuniquefileref();
-%let fname2=%mf_getuniquefileref();
+  filename &fname1 temp lrecl=10000;
+  filename &fname2 temp lrecl=10000;
 
-filename &fname1 temp lrecl=10000;
-filename &fname2 temp lrecl=10000;
-data _null_ ;
-  file &fname1 ;
-  put "<DeleteMetadata><Metadata><SASLibrary Id='&liburi'/>";
-  put "</Metadata><NS>SAS</NS><Flags>268436480</Flags><Options/>";
-  put "</DeleteMetadata>";
-run ;
-proc metadata in=&fname1 out=&fname2 verbose;run;
+  data _null_ ;
+    file &fname1 ;
+    put "<DeleteMetadata><Metadata><SASLibrary Id='&liburi'/>";
+    put "</Metadata><NS>SAS</NS><Flags>268436480</Flags><Options/>";
+    put "</DeleteMetadata>";
+  run ;
 
-/* list the result */
-data _null_;infile &fname2; input; list; run;
+  proc metadata in=&fname1 out=&fname2 verbose;
+  run;
 
-filename &fname1 clear;
-filename &fname2 clear;
+  /* list the result */
+  data _null_;
+    infile &fname2;
+    input;
+    list;
+  run;
 
-/**
-  * Check deletion
-  */
-%local isgone;
-data _null_;
-  length type uri $256;
-  call missing (of _all_);
-  rc=metadata_resolve("omsobj:SASLibrary?@Id='&liburi'",type,uri);
-  call symputx('isgone',type,'l');
-run;
+  filename &fname1 clear;
+  filename &fname2 clear;
 
-%mp_abort(iftrue=(&isgone = SASLibrary)
-  ,mac=&sysmacroname
-  ,msg=%str(Library (&name) NOT deleted)
-)
+  /**
+    * Check deletion
+    */
+  %local isgone;
 
-%put &sysmacroname: Library &name (&liburi) was successfully deleted;
+  data _null_;
+    length type uri $256;
+    call missing (of _all_);
+    rc=metadata_resolve("omsobj:SASLibrary?@Id='&liburi'",type,uri);
+    call symputx('isgone',type,'l');
+  run;
+
+  %mp_abort(iftrue=(&isgone=SASLibrary) ,mac=&sysmacroname
+    ,msg=%str(Library (&name) NOT deleted) )
+
+  %put &sysmacroname: Library &name (&liburi) was successfully deleted;
 
 %mend mm_deletelibrary;

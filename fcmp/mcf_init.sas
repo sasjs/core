@@ -20,20 +20,17 @@
 
 **/
 
-%macro mcf_init(func
-)/*/STORE SOURCE*/;
+%macro mcf_init(func )/*/STORE SOURCE*/;
 
-%let func=%upcase(&func);
+  %let func=%upcase(&func);
 
-/* the / character is just a seperator */
-%global _SASJS_FUNCTIONS;
-%if %index(&_SASJS_FUNCTIONS,&func/)>0 %then %do;
-  1
-  %return;
-%end;
-%else %do;
-  %let _SASJS_FUNCTIONS=&_SASJS_FUNCTIONS &func/;
-  0
-%end;
+  /* the / character is just a seperator */
+  %global _SASJS_FUNCTIONS;
+  %if %index(&_SASJS_FUNCTIONS,&func/)>0 %then %do;
+    1 %return;
+  %end;
+  %else %do;
+    %let _SASJS_FUNCTIONS=&_SASJS_FUNCTIONS &func/;
+  0 %end;
 
 %mend mcf_init;

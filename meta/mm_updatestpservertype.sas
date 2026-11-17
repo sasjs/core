@@ -18,50 +18,50 @@
 
 **/
 
-%macro mm_updatestpservertype(
-  target=
-  ,type=
-)/*/STORE SOURCE*/;
+%macro mm_updatestpservertype( target=,type=)/*/STORE SOURCE*/;
 
-/**
-  * Check STP does exist
-  */
-%local cmtype;
-data _null_;
-  length type uri $256;
-  rc=metadata_pathobj("","&target",'StoredProcess',type,uri);
-  call symputx('cmtype',type,'l');
-  call symputx('stpuri',uri,'l');
-run;
-%if &cmtype ne ClassifierMap %then %do;
-  %put %str(WARN)ING: No Stored Process found at &target;
-  %return;
-%end;
+  /**
+    * Check STP does exist
+    */
+  %local cmtype;
 
-%local newtype;
-%if &type=WKS %then %let newtype=Wks;
-%else %let newtype=Sps;
+  data _null_;
+    length type uri $256;
+    rc=metadata_pathobj("","&target",'StoredProcess',type,uri);
+    call symputx('cmtype',type,'l');
+    call symputx('stpuri',uri,'l');
+  run;
+  %if &cmtype ne ClassifierMap %then %do;
+    %put %str(WARN)ING: No Stored Process found at &target;
+    %return;
+  %end;
 
-%local result;
-%let result=NOT FOUND;
-data _null_;
-  length uri name value $256;
-  n=1;
-  do while(metadata_getnasn("&stpuri","Notes",n,uri)>0);
-    n+1;
-    rc=metadata_getattr(uri,"Name",name);
-    if name='Stored Process' then do;
-      rc = METADATA_SETATTR(uri,'StoredText'
-        ,'<?xml version="1.0" encoding="UTF-8"?>'
-        !!'<StoredProcess><ServerContext LogicalServerType="'!!"&newtype"
-        !!'" OtherAllowed="false"/><ResultCapabilities Package="false" '
-        !!' Streaming="true"/><OutputParameters/></StoredProcess>');
-      if rc=0 then call symputx('result','SUCCESS');
-      stop;
+  %local newtype;
+  %if &type=WKS %then %let newtype=Wks;
+  %else %let newtype=Sps;
+
+  %local result;
+  %let result=NOT FOUND;
+
+  data _null_;
+    length uri name value $256;
+    n=1;
+    do while(metadata_getnasn("&stpuri","Notes",n,uri)>0);
+      n+1;
+      rc=metadata_getattr(uri,"Name",name);
+      if name='Stored Process' then do;
+        rc=METADATA_SETATTR(uri,'StoredText'
+          ,'<?xml version="1.0" encoding="UTF-8"?>'
+          !!'<StoredProcess><ServerContext LogicalServerType="'!!"&newtype"
+          !!'" OtherAllowed="false"/><ResultCapabilities Package="false" '
+          !!' Streaming="true"/><OutputParameters/></StoredProcess>');
+        if rc=0 then call symputx('result','SUCCESS');
+        stop;
+      end;
     end;
-  end;
-run;
-%if &result=SUCCESS %then %put NOTE: SUCCESS: STP &target changed to &type type;
-%else %put %str(ERR)OR: Issue with &sysmacroname;
+  run;
+  %if &result=SUCCESS %then %put NOTE: SUCCESS: STP &target changed to &type
+    type;
+  %else %put %str(ERR)OR: Issue with &sysmacroname;
 
 %mend mm_updatestpservertype;

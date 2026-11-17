@@ -16,19 +16,17 @@
   @version 9.2
 **/
 
-%macro mf_isdir(path
-)/*/STORE SOURCE*/;
+%macro mf_isdir(path )/*/STORE SOURCE*/;
   %local rc did is_directory fref_t;
 
-  %let is_directory = 0;
-  %let rc = %sysfunc(filename(fref_t, %superq(path)));
-  %let did = %sysfunc(dopen(&fref_t.));
+  %let is_directory=0;
+  %let rc=%sysfunc(filename(fref_t, %superq(path)));
+  %let did=%sysfunc(dopen(&fref_t.));
   %if &did. ^= 0 %then %do;
-    %let is_directory = 1;
-    %let rc = %sysfunc(dclose(&did.));
+    %let is_directory=1;
+    %let rc=%sysfunc(dclose(&did.));
   %end;
-  %let rc = %sysfunc(filename(fref_t));
+  %let rc=%sysfunc(filename(fref_t));
 
   &is_directory
-
 %mend mf_isdir;

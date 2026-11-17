@@ -18,11 +18,12 @@
   @version 9.2
 **/
 
-%macro mf_isint(arg
-)/*/STORE SOURCE*/;
+%macro mf_isint(arg )/*/STORE SOURCE*/;
 
   /* blank val is not an integer */
-  %if "&arg"="" %then %do;0%return;%end;
+  %if "&arg"="" %then %do;
+    0%return;
+  %end;
 
   /* remove minus sign if exists */
   %local val;
@@ -30,7 +31,9 @@
   %else %let val=&arg;
 
   /* check remaining chars */
-  %if %sysfunc(findc(%str(&val),,kd)) %then %do;0%end;
-  %else %do;1%end;
+  %if %sysfunc(findc(%str(&val),,kd)) %then %do;
+  0%end;
+  %else %do;
+  1%end;
 
 %mend mf_isint;

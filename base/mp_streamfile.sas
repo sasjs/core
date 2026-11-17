@@ -38,193 +38,188 @@
 
 **/
 
-%macro mp_streamfile(
-  contenttype=TEXT
-  ,inloc=
-  ,inref=0
-  ,iftrue=%str(1=1)
-  ,outname=
-  ,outref=_webout
-)/*/STORE SOURCE*/;
+%macro mp_streamfile( contenttype=TEXT ,inloc=,inref=0 ,iftrue=%str(1=1)
+  ,outname=,outref=_webout )/*/STORE SOURCE*/;
 
-%if not(%eval(%unquote(&iftrue))) %then %return;
+  %if not(%eval(%unquote(&iftrue))) %then %return;
 
-%let contentype=%upcase(&contenttype);
-%let outref=%upcase(&outref);
-%local platform; %let platform=%mf_getplatform();
+  %let contentype=%upcase(&contenttype);
+  %let outref=%upcase(&outref);
+  %local platform;
+  %let platform=%mf_getplatform();
 
-/**
-  * check engine type to avoid the below err message:
-  * > Function is only valid for filerefs using the CACHE access method.
-  */
-%local streamweb;
-%let streamweb=0;
-data _null_;
-  set sashelp.vextfl(where=(upcase(fileref)="&outref"));
-  if xengine='STREAM' then call symputx('streamweb',1,'l');
-run;
+  /**
+    * check engine type to avoid the below err message:
+    * > Function is only valid for filerefs using the CACHE access method.
+    */
+  %local streamweb;
+  %let streamweb=0;
 
-%if &contentype=CSV %then %do;
-  %if (&platform=SASMETA and &streamweb=1) %then %do;
-    data _null_;
-      rc=stpsrv_header('Content-Type','application/csv');
-      rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
-    run;
+  data _null_;
+    set sashelp.vextfl(where=(upcase(fileref)="&outref"));
+    if xengine='STREAM' then call symputx('streamweb',1,'l');
+  run;
+
+  %if &contentype=CSV %then %do;
+    %if (&platform=SASMETA and &streamweb=1) %then %do;
+      data _null_;
+        rc=stpsrv_header('Content-Type','application/csv');
+        rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
+      run;
+    %end;
+    %else %if &platform=SASVIYA %then %do;
+      filename &outref filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.txt'
+        contenttype='application/csv'
+        contentdisp="attachment; filename=&outname";
+    %end;
+    %else %if &platform=SASJS %then %do;
+      %mfs_httpheader(Content-Type,application/csv)
+      %mfs_httpheader(Content-disposition,%str(attachment; filename=&outname))
+    %end;
   %end;
-  %else %if &platform=SASVIYA %then %do;
-    filename &outref filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.txt'
-      contenttype='application/csv'
-      contentdisp="attachment; filename=&outname";
+  %else %if &contentype=EXCEL %then %do;
+    /* suitable for XLS format */
+    %if (&platform=SASMETA and &streamweb=1) %then %do;
+      data _null_;
+        rc=stpsrv_header('Content-Type','application/vnd.ms-excel');
+        rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
+      run;
+    %end;
+    %else %if &platform=SASVIYA %then %do;
+      filename &outref filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.xls'
+        contenttype='application/vnd.ms-excel'
+        contentdisp="attachment; filename=&outname";
+    %end;
+    %else %if &platform=SASJS %then %do;
+      %mfs_httpheader(Content-Type,application/vnd.ms-excel)
+      %mfs_httpheader(Content-disposition,%str(attachment; filename=&outname))
+    %end;
   %end;
-  %else %if &platform=SASJS %then %do;
-    %mfs_httpheader(Content-Type,application/csv)
-    %mfs_httpheader(Content-disposition,%str(attachment; filename=&outname))
+  %else %if &contentype=GIF or &contentype=JPEG or &contentype=PNG %then %do;
+    %if (&platform=SASMETA and &streamweb=1) %then %do;
+      data _null_;
+        rc=stpsrv_header('Content-Type',"image/%lowcase(&contenttype)");
+      run;
+    %end;
+    %else %if &platform=SASVIYA %then %do;
+      filename &outref filesrvc parenturi="&SYS_JES_JOB_URI"
+        contenttype="image/%lowcase(&contenttype)";
+    %end;
+    %else %if &platform=SASJS %then %do;
+      %mfs_httpheader(Content-Type,image/%lowcase(&contenttype))
+    %end;
   %end;
-%end;
-%else %if &contentype=EXCEL %then %do;
-  /* suitable for XLS format */
-  %if (&platform=SASMETA and &streamweb=1) %then %do;
-    data _null_;
-      rc=stpsrv_header('Content-Type','application/vnd.ms-excel');
-      rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
-    run;
+  %else %if &contentype=HTML or &contenttype=MARKDOWN %then %do;
+    %if (&platform=SASMETA and &streamweb=1) %then %do;
+      data _null_;
+        rc=stpsrv_header('Content-Type',"text/%lowcase(&contenttype)");
+        rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
+      run;
+    %end;
+    %else %if &platform=SASVIYA %then %do;
+      filename &outref filesrvc parenturi="&SYS_JES_JOB_URI" name="_webout.json"
+        contenttype="text/%lowcase(&contenttype)"
+        contentdisp="attachment; filename=&outname";
+    %end;
+    %else %if &platform=SASJS %then %do;
+      %mfs_httpheader(Content-Type,text/%lowcase(&contenttype))
+      %mfs_httpheader(Content-disposition,%str(attachment; filename=&outname))
+    %end;
   %end;
-  %else %if &platform=SASVIYA %then %do;
-    filename &outref filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.xls'
-      contenttype='application/vnd.ms-excel'
-      contentdisp="attachment; filename=&outname";
+  %else %if &contentype=TEXT %then %do;
+    %if (&platform=SASMETA and &streamweb=1) %then %do;
+      data _null_;
+        rc=stpsrv_header('Content-Type','application/text');
+        rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
+      run;
+    %end;
+    %else %if &platform=SASVIYA %then %do;
+      filename &outref filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.txt'
+        contenttype='application/text'
+        contentdisp="attachment; filename=&outname";
+    %end;
+    %else %if &platform=SASJS %then %do;
+      %mfs_httpheader(Content-Type,application/text)
+      %mfs_httpheader(Content-disposition,%str(attachment; filename=&outname))
+    %end;
   %end;
-  %else %if &platform=SASJS %then %do;
-    %mfs_httpheader(Content-Type,application/vnd.ms-excel)
-    %mfs_httpheader(Content-disposition,%str(attachment; filename=&outname))
+  %else %if &contentype=WOFF or &contentype=WOFF2 or &contentype=TTF %then %do;
+    %if (&platform=SASMETA and &streamweb=1) %then %do;
+      data _null_;
+        rc=stpsrv_header('Content-Type',"font/%lowcase(&contenttype)");
+      run;
+    %end;
+    %else %if &platform=SASVIYA %then %do;
+      filename &outref filesrvc parenturi="&SYS_JES_JOB_URI"
+        contenttype="font/%lowcase(&contenttype)";
+    %end;
+    %else %if &platform=SASJS %then %do;
+      %mfs_httpheader(Content-Type,font/%lowcase(&contenttype))
+    %end;
   %end;
-%end;
-%else %if &contentype=GIF or &contentype=JPEG or &contentype=PNG %then %do;
-  %if (&platform=SASMETA and &streamweb=1) %then %do;
-    data _null_;
-      rc=stpsrv_header('Content-Type',"image/%lowcase(&contenttype)");
-    run;
-  %end;
-  %else %if &platform=SASVIYA %then %do;
-    filename &outref filesrvc parenturi="&SYS_JES_JOB_URI"
-      contenttype="image/%lowcase(&contenttype)";
-  %end;
-  %else %if &platform=SASJS %then %do;
-    %mfs_httpheader(Content-Type,image/%lowcase(&contenttype))
-  %end;
-%end;
-%else %if &contentype=HTML or &contenttype=MARKDOWN %then %do;
-  %if (&platform=SASMETA and &streamweb=1) %then %do;
-    data _null_;
-      rc=stpsrv_header('Content-Type',"text/%lowcase(&contenttype)");
-      rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
-    run;
-  %end;
-  %else %if &platform=SASVIYA %then %do;
-    filename &outref filesrvc parenturi="&SYS_JES_JOB_URI" name="_webout.json"
-      contenttype="text/%lowcase(&contenttype)"
-      contentdisp="attachment; filename=&outname";
-  %end;
-  %else %if &platform=SASJS %then %do;
-    %mfs_httpheader(Content-Type,text/%lowcase(&contenttype))
-    %mfs_httpheader(Content-disposition,%str(attachment; filename=&outname))
-  %end;
-%end;
-%else %if &contentype=TEXT %then %do;
-  %if (&platform=SASMETA and &streamweb=1) %then %do;
-    data _null_;
-      rc=stpsrv_header('Content-Type','application/text');
-      rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
-    run;
-  %end;
-  %else %if &platform=SASVIYA %then %do;
-    filename &outref filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.txt'
-      contenttype='application/text'
-      contentdisp="attachment; filename=&outname";
-  %end;
-  %else %if &platform=SASJS %then %do;
-    %mfs_httpheader(Content-Type,application/text)
-    %mfs_httpheader(Content-disposition,%str(attachment; filename=&outname))
-  %end;
-%end;
-%else %if &contentype=WOFF or &contentype=WOFF2 or &contentype=TTF %then %do;
-  %if (&platform=SASMETA and &streamweb=1) %then %do;
-    data _null_;
-      rc=stpsrv_header('Content-Type',"font/%lowcase(&contenttype)");
-    run;
-  %end;
-  %else %if &platform=SASVIYA %then %do;
-    filename &outref filesrvc parenturi="&SYS_JES_JOB_URI"
-      contenttype="font/%lowcase(&contenttype)";
-  %end;
-  %else %if &platform=SASJS %then %do;
-    %mfs_httpheader(Content-Type,font/%lowcase(&contenttype))
-  %end;
-%end;
-%else %if &contentype=XLSX %then %do;
-  %if (&platform=SASMETA and &streamweb=1) %then %do;
-    data _null_;
-      rc=stpsrv_header('Content-Type',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
-    run;
-  %end;
-  %else %if &platform=SASVIYA %then %do;
-    filename &outref filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.xls'
-      contenttype=
+  %else %if &contentype=XLSX %then %do;
+    %if (&platform=SASMETA and &streamweb=1) %then %do;
+      data _null_;
+        rc=stpsrv_header('Content-Type',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
+      run;
+    %end;
+    %else %if &platform=SASVIYA %then %do;
+      filename &outref filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.xls'
+        contenttype=
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      contentdisp="attachment; filename=&outname";
+        contentdisp="attachment; filename=&outname";
+    %end;
+    %else %if &platform=SASJS %then %do;
+      %mfs_httpheader(Content-Type
+        ,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet )
+      %mfs_httpheader(Content-disposition,%str(attachment; filename=&outname))
+    %end;
   %end;
-  %else %if &platform=SASJS %then %do;
-    %mfs_httpheader(Content-Type
-      ,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
-    )
-    %mfs_httpheader(Content-disposition,%str(attachment; filename=&outname))
+  %else %if &contentype=PDF %then %do;
+    %if (&platform=SASMETA and &streamweb=1) %then %do;
+      data _null_;
+        rc=stpsrv_header('Content-Type','application/pdf');
+        rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
+      run;
+    %end;
+    %else %if &platform=SASVIYA %then %do;
+      filename &outref filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.pdf'
+        contenttype='application/pdf'
+        contentdisp="attachment; filename=&outname";
+    %end;
+    %else %if &platform=SASJS %then %do;
+      %mfs_httpheader(Content-Type,application/pdf)
+      %mfs_httpheader(Content-disposition,%str(attachment; filename=&outname))
+    %end;
   %end;
-%end;
-%else %if &contentype=PDF %then %do;
-  %if (&platform=SASMETA and &streamweb=1) %then %do;
-    data _null_;
-      rc=stpsrv_header('Content-Type','application/pdf');
-      rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
-    run;
+  %else %if &contentype=ZIP %then %do;
+    %if (&platform=SASMETA and &streamweb=1) %then %do;
+      data _null_;
+        rc=stpsrv_header('Content-Type','application/zip');
+        rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
+      run;
+    %end;
+    %else %if &platform=SASVIYA %then %do;
+      filename &outref filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.zip'
+        contenttype='application/zip'
+        contentdisp="attachment; filename=&outname";
+    %end;
+    %else %if &platform=SASJS %then %do;
+      %mfs_httpheader(Content-Type,application/zip)
+      %mfs_httpheader(Content-disposition,%str(attachment; filename=&outname))
+    %end;
   %end;
-  %else %if &platform=SASVIYA %then %do;
-    filename &outref filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.pdf'
-      contenttype='application/pdf'
-      contentdisp="attachment; filename=&outname";
+  %else %do;
+    %put %str(ERR)OR: Content Type &contenttype NOT SUPPORTED by &sysmacroname!;
   %end;
-  %else %if &platform=SASJS %then %do;
-    %mfs_httpheader(Content-Type,application/pdf)
-    %mfs_httpheader(Content-disposition,%str(attachment; filename=&outname))
-  %end;
-%end;
-%else %if &contentype=ZIP %then %do;
-  %if (&platform=SASMETA and &streamweb=1) %then %do;
-    data _null_;
-      rc=stpsrv_header('Content-Type','application/zip');
-      rc=stpsrv_header('Content-disposition',"attachment; filename=&outname");
-    run;
-  %end;
-  %else %if &platform=SASVIYA %then %do;
-    filename &outref filesrvc parenturi="&SYS_JES_JOB_URI" name='_webout.zip'
-      contenttype='application/zip'
-      contentdisp="attachment; filename=&outname";
-  %end;
-  %else %if &platform=SASJS %then %do;
-    %mfs_httpheader(Content-Type,application/zip)
-    %mfs_httpheader(Content-disposition,%str(attachment; filename=&outname))
-  %end;
-%end;
-%else %do;
-  %put %str(ERR)OR: Content Type &contenttype NOT SUPPORTED by &sysmacroname!;
-%end;
 
-%if &inref ne 0 %then %do;
-  %mp_binarycopy(inref=&inref,outref=&outref)
-%end;
-%else %do;
-  %mp_binarycopy(inloc="&inloc",outref=&outref)
-%end;
+  %if &inref ne 0 %then %do;
+    %mp_binarycopy(inref=&inref,outref=&outref)
+  %end;
+  %else %do;
+    %mp_binarycopy(inloc="&inloc",outref=&outref)
+  %end;
 
 %mend mp_streamfile;

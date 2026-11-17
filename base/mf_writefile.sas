@@ -30,38 +30,38 @@
   @version 9.2
   @author Allan Bowe
 **/
+
 /** @cond */
 
 %macro mf_writefile(fpath,mode=O,l1=,l2=,l3=,l4=,l5=,l6=,l7=,l8=,l9=,l10=
-)/*/STORE SOURCE*/;
-%local fref rc fid i total_lines;
+  )/*/STORE SOURCE*/;
+  %local fref rc fid i total_lines;
 
-/* find number of lines by reference to first non-blank param */
-%do i=10 %to 1 %by -1;
-  %if %str(&&l&i) ne %str() %then %goto continue;
-%end;
-%continue:
-%let total_lines=&i;
+  /* find number of lines by reference to first non-blank param */
+  %do i=10 %to 1 %by -1;
+    %if %str(&&l&i) ne %str() %then %goto continue;
+  %end;
+  %continue: %let total_lines=&i;
 
-%if %sysfunc(filename(fref,&fpath)) ne 0 %then %do;
-  %put &=fref &=fpath;
-  %put %str(ERR)OR: %sysfunc(sysmsg());
-  %return;
-%end;
+  %if %sysfunc(filename(fref,&fpath)) ne 0 %then %do;
+    %put &=fref &=fpath;
+    %put %str(ERR)OR: %sysfunc(sysmsg());
+    %return;
+  %end;
 
-%let fid=%sysfunc(fopen(&fref,&mode));
+  %let fid=%sysfunc(fopen(&fref,&mode));
 
-%if &fid=0 %then %do;
-  %put %str(ERR)OR: %sysfunc(sysmsg());
-  %return;
-%end;
+  %if &fid=0 %then %do;
+    %put %str(ERR)OR: %sysfunc(sysmsg());
+    %return;
+  %end;
 
-%do i=1 %to &total_lines;
-  %let rc=%sysfunc(fput(&fid, &&l&i));
-  %let rc=%sysfunc(fwrite(&fid));
-%end;
-%let rc=%sysfunc(fclose(&fid));
-%let rc=%sysfunc(filename(&fref));
+  %do i=1 %to &total_lines;
+    %let rc=%sysfunc(fput(&fid, &&l&i));
+    %let rc=%sysfunc(fwrite(&fid));
+  %end;
+  %let rc=%sysfunc(fclose(&fid));
+  %let rc=%sysfunc(filename(&fref));
 
 %mend mf_writefile;
 /** @endcond */

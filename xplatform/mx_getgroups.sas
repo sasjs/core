@@ -35,64 +35,50 @@
 
 **/
 
-%macro mx_getgroups(
-  mdebug=0,
-  user=0,
-  uid=0,
-  repo=foundation,
-  access_token_var=ACCESS_TOKEN,
-  grant_type=sas_services,
-  outds=work.mx_getgroups
-)/*/STORE SOURCE*/;
-%local platform name shortloc;
-%let platform=%mf_getplatform();
+%macro mx_getgroups( mdebug=0, user=0, uid=0, repo=foundation,
+  access_token_var=ACCESS_TOKEN, grant_type=sas_services,
+  outds=work.mx_getgroups )/*/STORE SOURCE*/;
+  %local platform name shortloc;
+  %let platform=%mf_getplatform();
 
-%if &platform=SASJS %then %do;
-  %ms_getgroups(
-    user=&user,
-    uid=&uid,
-    outds=&outds,
-    mdebug=&mdebug
-  )
-  data &outds;
-    length groupuri groupname $32 groupdesc $128 ;
-    set &outds;
-    keep groupuri groupname groupdesc;
-    groupuri=cats(groupid);
-    groupname=name;
-    groupdesc=description;
-  run;
-  proc sort; by groupname; run;
-%end;
-%else %if &platform=SAS9 or &platform=SASMETA %then %do;
-  %if &user=0 %then %let user=;
-  %mm_getGroups(
-    user=&user
-    ,outds=&outds
-    ,repo=&repo
-    ,mDebug=&mdebug
-  )
-  proc sort data=&outds; by groupname; run;
-%end;
-%else %if &platform=SASVIYA %then %do;
-  %if &user=0 %then %do;
-    %mv_getgroups(access_token_var=&access_token_var
-      ,grant_type=&grant_type
-      ,outds=&outds
-    )
+  %if &platform=SASJS %then %do;
+    %ms_getgroups( user=&user, uid=&uid, outds=&outds, mdebug=&mdebug )
+
+    data &outds;
+      length groupuri groupname $32 groupdesc $128 ;
+      set &outds;
+      keep groupuri groupname groupdesc;
+      groupuri=cats(groupid);
+      groupname=name;
+      groupdesc=description;
+    run;
+
+    proc sort;
+      by groupname;
+    run;
   %end;
-  %else %do;
-    %mv_getusergroups(&user
-      ,outds=&outds
-      ,access_token_var=&access_token_var
-      ,grant_type=&grant_type
-    )
+  %else %if &platform=SAS9 or &platform=SASMETA %then %do;
+    %if &user=0 %then %let user=;
+    %mm_getGroups( user=&user ,outds=&outds ,repo=&repo ,mDebug=&mdebug )
+
+    proc sort data=&outds;
+      by groupname;
+    run;
   %end;
-  proc sort
-      data=&outds(rename=(id=groupuri name=groupname description=groupdesc))
-      out=&outds (keep=groupuri groupname groupdesc);
-    by groupname;
-  run;
-%end;
+  %else %if &platform=SASVIYA %then %do;
+    %if &user=0 %then %do;
+      %mv_getgroups(access_token_var=&access_token_var ,grant_type=&grant_type
+        ,outds=&outds )
+    %end;
+    %else %do;
+      %mv_getusergroups(&user ,outds=&outds ,access_token_var=&access_token_var
+        ,grant_type=&grant_type )
+    %end;
+
+    proc sort data=&outds(rename=(id=groupuri name=groupname
+      description=groupdesc)) out=&outds (keep=groupuri groupname groupdesc);
+      by groupname;
+    run;
+  %end;
 
 %mend mx_getgroups;

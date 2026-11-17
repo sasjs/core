@@ -70,37 +70,36 @@
 
 %macro mp_filtergenerate(inds,outref=filter);
 
-%mp_abort(iftrue= (&syscc ne 0)
-  ,mac=&sysmacroname
-  ,msg=%str(syscc=&syscc - on macro entry)
-)
+  %mp_abort(iftrue=(&syscc ne 0) ,mac=&sysmacroname
+    ,msg=%str(syscc=&syscc - on macro entry) )
 
-filename &outref temp;
+  filename &outref temp;
 
-%if %mf_nobs(&inds)=0 %then %do;
-  /* ensure we have a default filter */
-  data _null_;
-    file &outref;
-    put '1=1';
-  run;
-%end;
-%else %do;
-  proc sort data=&inds;
-    by SUBGROUP_ID;
-  run;
-  data _null_;
-    file &outref lrecl=32800;
-    set &inds end=last;
-    by SUBGROUP_ID;
-    if _n_=1 then put '((';
-    else if first.SUBGROUP_ID then put +1 GROUP_LOGIC '(';
-    else put +2 SUBGROUP_LOGIC;
+  %if %mf_nobs(&inds)=0 %then %do;
+    /* ensure we have a default filter */
+    data _null_;
+      file &outref;
+      put '1=1';
+    run;
+  %end;
+  %else %do;
+    proc sort data=&inds;
+      by SUBGROUP_ID;
+    run;
 
-    put +4 VARIABLE_NM OPERATOR_NM RAW_VALUE;
+    data _null_;
+      file &outref lrecl=32800;
+      set &inds end=last;
+      by SUBGROUP_ID;
+      if _n_=1 then put '((';
+      else if first.SUBGROUP_ID then put +1 GROUP_LOGIC '(';
+      else put +2 SUBGROUP_LOGIC;
 
-    if last.SUBGROUP_ID then put ')'@;
-    if last then put ')';
-  run;
-%end;
+      put +4 VARIABLE_NM OPERATOR_NM RAW_VALUE;
+
+      if last.SUBGROUP_ID then put ')'@;
+      if last then put ')';
+    run;
+  %end;
 
 %mend mp_filtergenerate;

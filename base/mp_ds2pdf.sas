@@ -76,82 +76,69 @@
 
 **/
 
-%macro mp_ds2pdf(
-  ds
-  ,outref=pdfout
-  ,title=
-  ,footnote=
-  ,by=
-  ,maxobs=0
-  ,options=
-  ,style=
-  ,orientation=LANDSCAPE
-  ,pagenum=PAGE
-)/*/STORE SOURCE*/;
+%macro mp_ds2pdf( ds ,outref=pdfout ,title=,footnote=,by=,maxobs=0 ,options=
+  ,style=,orientation=LANDSCAPE ,pagenum=PAGE )/*/STORE SOURCE*/;
 
-%local obsopt foot pagetxt odsopts prev_orient;
+  %local obsopt foot pagetxt odsopts prev_orient;
 
-%if %index(&ds,.)=0 %then %let ds=WORK.&ds;
-%let ds=%upcase(&ds);
-%let pagenum=%upcase(&pagenum);
-%let orientation=%upcase(&orientation);
+  %if %index(&ds,.)=0 %then %let ds=WORK.&ds;
+  %let ds=%upcase(&ds);
+  %let pagenum=%upcase(&pagenum);
+  %let orientation=%upcase(&orientation);
 
-%if %sysfunc(exist(&ds))=0 %then %do;
-  %mp_abort(
-    msg=Dataset &ds does not exist
-    ,mac=&sysmacroname
-  )
-%end;
-
-/* the fileref is only assigned when the caller has not done so */
-%if %sysfunc(fileref(&outref)) > 0 %then %do;
-  filename &outref temp;
-%end;
-
-%let obsopt=;
-%if %eval(&maxobs)>0 %then %let obsopt=(obs=&maxobs);
-
-/* the caller's footnote keeps its own text; numbering is appended to it.
-  (*ESC*) is used rather than an escape character so the inline functions work
-  without the caller having set ods escapechar. */
-%if &pagenum=PAGE %then %let pagetxt=Page (*ESC*){thispage};
-%else %if &pagenum=PAGEOF %then
-  %let pagetxt=Page (*ESC*){thispage} of (*ESC*){lastpage};
-
-%let foot=&footnote;
-%if %length(&pagetxt)>0 %then %do;
-  %if %length(&foot)>0 %then %let foot=&foot &pagetxt;
-  %else %let foot=&pagetxt;
-%end;
-
-%let odsopts=notoc;
-%if %length(&options)>0 %then %let odsopts=&odsopts &options;
-
-%let prev_orient=%sysfunc(getoption(orientation));
-options orientation=&orientation;
-
-ods pdf file=&outref &odsopts
-  %if %length(&style)>0 %then style=&style;;
-
-/* each of these needs its own %do block: a bare "%then statement;" swallows
-  the semicolon as part of the %if, so the statements after it are read as a
-  continuation of the same statement */
-%if %length(&title)>0 %then %do;
-  title "&title";
-%end;
-%if %length(&foot)>0 %then %do;
-  footnote "&foot";
-%end;
-
-proc print data=&ds&obsopt noobs;
-  %if %length(&by)>0 %then %do;
-    by &by;
+  %if %sysfunc(exist(&ds))=0 %then %do;
+    %mp_abort( msg=Dataset &ds does not exist ,mac=&sysmacroname )
   %end;
-run;
 
-ods pdf close;
-title;
-footnote;
-options orientation=&prev_orient;
+  /* the fileref is only assigned when the caller has not done so */
+  %if %sysfunc(fileref(&outref)) > 0 %then %do;
+    filename &outref temp;
+  %end;
+
+  %let obsopt=;
+  %if %eval(&maxobs)>0 %then %let obsopt=(obs=&maxobs);
+
+  /* the caller's footnote keeps its own text; numbering is appended to it.
+    (*ESC*) is used rather than an escape character so the inline functions work
+    without the caller having set ods escapechar. */
+  %if &pagenum=PAGE %then %let pagetxt=Page (*ESC*){thispage};
+  %else %if &pagenum=PAGEOF %then %let pagetxt=Page (*ESC*){thispage} of
+    (*ESC*){lastpage};
+
+  %let foot=&footnote;
+  %if %length(&pagetxt)>0 %then %do;
+    %if %length(&foot)>0 %then %let foot=&foot &pagetxt;
+    %else %let foot=&pagetxt;
+  %end;
+
+  %let odsopts=notoc;
+  %if %length(&options)>0 %then %let odsopts=&odsopts &options;
+
+  %let prev_orient=%sysfunc(getoption(orientation));
+  options orientation=&orientation;
+
+  ods pdf file=&outref &odsopts %if %length(&style)>0 %then style=&style;
+  ;
+
+  /* each of these needs its own %do block: a bare "%then statement;" swallows
+    the semicolon as part of the %if, so the statements after it are read as a
+    continuation of the same statement */
+  %if %length(&title)>0 %then %do;
+    title "&title";
+  %end;
+  %if %length(&foot)>0 %then %do;
+    footnote "&foot";
+  %end;
+
+  proc print data=&ds&obsopt noobs;
+    %if %length(&by)>0 %then %do;
+      by &by;
+    %end;
+  run;
+
+  ods pdf close;
+  title;
+  footnote;
+  options orientation=&prev_orient;
 
 %mend mp_ds2pdf;

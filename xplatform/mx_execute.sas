@@ -64,389 +64,361 @@
   @sasjslint {"maxLineLength": 95}
 **/
 
-%macro mx_execute(program,
-  inputfiles=0,
-  inputdatasets=0,
-  inputparams=0,
-  debug=131,
-  mdebug=0,
-  outlib=0,
-  outref=0,
-  outlogds=_null_,
-  outstatus=0,
-  viyaresult=WEBOUT_JSON,
-  viyacontext=SAS Job Execution compute context
-);
-%local dbg pcnt fref1 fref2 webref webrefpath i webcount var platform jobds respref clearmeref
-  msgref abortmsg;
-%if &mdebug=1 %then %do;
-  %put &sysmacroname entry vars:;
-  %put _local_;
-%end;
-%else %let dbg=*;
-
-/* sanitise inputparams */
-%let pcnt=0;
-%if &inputparams ne 0 %then %do;
-  data _null_;
-    set &inputparams;
-    if not nvalid(name,'v7') then putlog (_all_)(=);
-    else if name in (
-      'program','inputfiles','inputparams','debug','outlib','outref'
-    ) then putlog (_all_)(=);
-    else do;
-      x+1;
-      call symputx(name,quote(cats(value)),'l');
-      call symputx(cats('pval',x),name,'l');
-      call symputx('pcnt',x,'l');
-    end;
-  run;
-  %mp_abort(iftrue= (%mf_nobs(&inputparams) ne &pcnt)
-    ,mac=&sysmacroname
-    ,msg=%str(Invalid values in &inputparams)
-  )
-%end;
-
-/* convert inputdatasets to filerefs */
-%if "&inputdatasets" ne "0" %then %do;
-  %if %quote(&inputfiles)=0 %then %let inputfiles=;
-  %do i=1 %to %sysfunc(countw(&inputdatasets,%str( )));
-    %let var=%scan(&inputdatasets,&i,%str( ));
-    %local dsref&i;
-    %let dsref&i=%mf_getuniquefileref();
-    %mp_ds2csv(&var,outref=&&dsref&i,headerformat=SASJS)
-    %let inputfiles=&inputfiles &&dsref&i:%scan(&var,-1,.);
+%macro mx_execute(program, inputfiles=0, inputdatasets=0, inputparams=0,
+  debug=131, mdebug=0, outlib=0, outref=0, outlogds=_null_, outstatus=0,
+  viyaresult=WEBOUT_JSON, viyacontext=SAS Job Execution compute context );
+  %local dbg pcnt fref1 fref2 webref webrefpath i webcount var platform jobds
+    respref clearmeref msgref abortmsg;
+  %if &mdebug=1 %then %do;
+    %put &sysmacroname entry vars:;
+    %put _local_;
   %end;
-%end;
+  %else %let dbg=*;
 
-%let platform=%mf_getplatform();
-%let fref1=%mf_getuniquefileref();
-%let fref2=%mf_getuniquefileref();
-%let webref=%mf_getuniquefileref();
-%let webrefpath=%sysfunc(pathname(work))/%mf_getuniquename();
-/* mp_chop requires a physical path as input */
-filename &webref "&webrefpath";
+  /* sanitise inputparams */
+  %let pcnt=0;
+  %if &inputparams ne 0 %then %do;
+    data _null_;
+      set &inputparams;
+      if not nvalid(name,'v7') then putlog (_all_)(=);
+      else if name in (
+        'program','inputfiles','inputparams','debug','outlib','outref' ) then
+        putlog (_all_)(=);
+      else do;
+        x+1;
+        call symputx(name,quote(cats(value)),'l');
+        call symputx(cats('pval',x),name,'l');
+        call symputx('pcnt',x,'l');
+      end;
+    run;
+    %mp_abort(iftrue=(%mf_nobs(&inputparams) ne &pcnt) ,mac=&sysmacroname
+      ,msg=%str(Invalid values in &inputparams) )
+  %end;
 
-%if &platform=SASMETA %then %do;
-
-  /* parse the input files */
-  %if %quote(&inputfiles) ne 0 %then %do;
-    %let webcount=%sysfunc(countw(&inputfiles));
-    %put &=webcount;
-    %do i=1 %to &webcount;
-      %let var=%scan(&inputfiles,&i,%str( ));
-      %local webfref&i webname&i;
-      %let webref&i=%scan(&var,1,%str(:));
-      %let webname&i=%scan(&var,2,%str(:));
-      %put webref&i=&&webref&i;
-      %put webname&i=&&webname&i;
+  /* convert inputdatasets to filerefs */
+  %if "&inputdatasets" ne "0" %then %do;
+    %if %quote(&inputfiles)=0 %then %let inputfiles=;
+    %do i=1 %to %sysfunc(countw(&inputdatasets,%str( )));
+      %let var=%scan(&inputdatasets,&i,%str( ));
+      %local dsref&i;
+      %let dsref&i=%mf_getuniquefileref();
+      %mp_ds2csv(&var,outref=&&dsref&i,headerformat=SASJS)
+      %let inputfiles=&inputfiles &&dsref&i:%scan(&var,-1,.);
     %end;
   %end;
-  %else %let webcount=0;
 
-  proc stp program="&program";
-    inputparam _program="&program"
-  %do i=1 %to &webcount;
-    %if &webcount=1 %then %do;
-      _webin_fileref="&&webref&i"
-      _webin_name="&&webname&i"
-    %end;
-    %else %do;
-      _webin_fileref&i="&&webref&i"
-      _webin_name&i="&&webname&i"
-    %end;
-  %end;
-    _webin_file_count="&webcount"
-    _debug="&debug"
-  %do i=1 %to &pcnt;
-    /* resolve name only, proc stp fetches value */
-    &&pval&i=&&&&&&pval&i
-  %end;
-    ;
-  %do i=1 %to &webcount;
-    inputfile &&webref&i;
-  %end;
-    outputfile _webout=&webref;
-  run;
+  %let platform=%mf_getplatform();
+  %let fref1=%mf_getuniquefileref();
+  %let fref2=%mf_getuniquefileref();
+  %let webref=%mf_getuniquefileref();
+  %let webrefpath=%sysfunc(pathname(work))/%mf_getuniquename();
+  /* mp_chop requires a physical path as input */
+  filename &webref "&webrefpath";
 
-  data _null_;
-    infile &webref;
-    file &fref1;
-    input;
-    length line $10000;
-    if index(_infile_,'>>weboutBEGIN<<') then do;
+  %if &platform=SASMETA %then %do;
+
+    /* parse the input files */
+    %if %quote(&inputfiles) ne 0 %then %do;
+      %let webcount=%sysfunc(countw(&inputfiles));
+      %put &=webcount;
+      %do i=1 %to &webcount;
+        %let var=%scan(&inputfiles,&i,%str( ));
+        %local webfref&i webname&i;
+        %let webref&i=%scan(&var,1,%str(:));
+        %let webname&i=%scan(&var,2,%str(:));
+        %put webref&i=&&webref&i;
+        %put webname&i=&&webname&i;
+      %end;
+    %end;
+    %else %let webcount=0;
+
+    proc stp program="&program";
+      inputparam _program="&program" %do i=1 %to &webcount;
+      %if &webcount=1 %then %do;
+      _webin_fileref="&&webref&i" _webin_name="&&webname&i" %end;
+      %else %do;
+      _webin_fileref&i="&&webref&i" _webin_name&i="&&webname&i" %end;
+      %end;
+      _webin_file_count="&webcount" _debug="&debug" %do i=1 %to &pcnt;
+      /* resolve name only, proc stp fetches value */
+      &&pval&i=&&&&&&pval&i %end;
+      ;
+      %do i=1 %to &webcount;
+        inputfile &&webref&i;
+      %end;
+      outputfile _webout=&webref;
+    run;
+
+    data _null_;
+      infile &webref;
+      file &fref1;
+      input;
+      length line $10000;
+      if index(_infile_,'>>weboutBEGIN<<') then do;
         line=tranwrd(_infile_,'>>weboutBEGIN<<','');
         put line;
-    end;
-    else if index(_infile_,'>>weboutEND<<') then do;
+      end;
+      else if index(_infile_,'>>weboutEND<<') then do;
         line=tranwrd(_infile_,'>>weboutEND<<','');
         put line;
         stop;
-    end;
-    else put _infile_;
-  run;
-  data _null_;
-    infile &fref1;
-    input;
-    put _infile_;
-  run;
-  %if &outlib ne 0 %then %do;
-    libname &outlib json (&fref1);
-  %end;
-  %if &outref ne 0 %then %do;
-    filename &outref temp;
-    %mp_binarycopy(inref=&webref,outref=&outref)
-  %end;
-
-  %if "&outlogds" ne "_null_" %then %do;
-    /* SAS 9 returns no child log.  Create the dataset all the same, so a caller
-      * that reads it gets no rows rather than a missing table. */
-    data &outlogds;
-      length line $32767;
-      stop;
+      end;
+      else put _infile_;
     run;
-  %end;
 
-  /* proc stp gives no job status - say so rather than imply success */
-  %if "&outstatus" ne "0" %then %do;
-    data &outstatus;
-      length state $256 uri $256 errmsg $256 platform $10;
-      state='unknown';
-      uri='';
-      errmsg='proc stp returns no job status';
-      platform='SASMETA';
-      output;
+    data _null_;
+      infile &fref1;
+      input;
+      put _infile_;
     run;
-  %end;
+    %if &outlib ne 0 %then %do;
+      libname &outlib json (&fref1);
+    %end;
+    %if &outref ne 0 %then %do;
+      filename &outref temp;
+      %mp_binarycopy(inref=&webref,outref=&outref)
+    %end;
 
-%end;
-%else %if &platform=SASVIYA %then %do;
-
-  /* prepare inputparams */
-  %local ds1;
-  %let ds1=%mf_getuniquename();
-  %if "&inputparams" ne "0" %then %do;
-    proc transpose data=&inputparams out=&ds1;
-      id name;
-      var value;
-    run;
-  %end;
-  %else %do;
-    data &ds1;run;
-  %end;
-
-  /* parse the input files - convert to sasjs params */
-  %local webcount i var sasjs_tables;
-  %if %quote(&inputfiles) ne 0 %then %do;
-    %let webcount=%sysfunc(countw(&inputfiles));
-    %put &=webcount;
-    %do i=1 %to &webcount;
-      %let var=%scan(&inputfiles,&i,%str( ));
-      %local webfref&i webname&i sasjs&i.data;
-      %let webref&i=%scan(&var,1,%str(:));
-      %let webname&i=%scan(&var,2,%str(:));
-      %put webref&i=&&webref&i;
-      %put webname&i=&&webname&i;
-
-      %let sasjs_tables=&sasjs_tables &&webname&i;
-      data _null_;
-        infile &&webref&i lrecl=32767;
-        input;
-        if _n_=1 then call symputx("sasjs&i.data",_infile_);
-        else call symputx(
-          "sasjs&i.data",cats(symget("sasjs&i.data"),'0D0A'x,_infile_)
-        );
-        putlog "&sysmacroname infile: " _infile_;
-      run;
-      data &ds1;
-        set &ds1;
-        length sasjs&i.data $32767 sasjs_tables $1000;
-        sasjs&i.data=symget("sasjs&i.data");
-        sasjs_tables=symget("sasjs_tables");
+    %if "&outlogds" ne "_null_" %then %do;
+      /* SAS 9 returns no child log.  Create the dataset all the same, so a caller
+        * that reads it gets no rows rather than a missing table. */
+      data &outlogds;
+        length line $32767;
+        stop;
       run;
     %end;
-  %end;
-  %else %let webcount=0;
 
-  data &ds1;
-    retain _program "&program";
-    retain _contextname "&viyacontext";
-    set &ds1;
-    putlog "&sysmacroname inputparams:";
-    putlog (_all_)(=);
-  run;
-
-  /* the flow table is an internal detail: unique name, thrown away below */
-  %let jobds=%mf_getuniquename(prefix=mx_execute_);
-  %mv_jobflow(inds=&ds1
-    ,maxconcurrency=1
-    ,outds=&jobds
-    ,outref=&fref1
-    ,mdebug=&mdebug
-  )
-  /* show the log */
-  data _null_;
-    infile &fref1;
-    input;
-    putlog _infile_;
-  run;
-  /* and keep it, if the caller asked */
-  %if "&outlogds" ne "_null_" %then %do;
-    data &outlogds;
-      infile &fref1 lrecl=32767 end=eof;
-      length line $32767;
-      do while(not eof);
-        input;
-        line=_infile_;
+    /* proc stp gives no job status - say so rather than imply success */
+    %if "&outstatus" ne "0" %then %do;
+      data &outstatus;
+        length state $256 uri $256 errmsg $256 platform $10;
+        state='unknown';
+        uri='';
+        errmsg='proc stp returns no job status';
+        platform='SASMETA';
         output;
-      end;
+      run;
+    %end;
+
+  %end;
+  %else %if &platform=SASVIYA %then %do;
+
+    /* prepare inputparams */
+    %local ds1;
+    %let ds1=%mf_getuniquename();
+    %if "&inputparams" ne "0" %then %do;
+      proc transpose data=&inputparams out=&ds1;
+        id name;
+        var value;
+      run;
+    %end;
+    %else %do;
+      data &ds1;
+      run;
+    %end;
+
+    /* parse the input files - convert to sasjs params */
+    %local webcount i var sasjs_tables;
+    %if %quote(&inputfiles) ne 0 %then %do;
+      %let webcount=%sysfunc(countw(&inputfiles));
+      %put &=webcount;
+      %do i=1 %to &webcount;
+        %let var=%scan(&inputfiles,&i,%str( ));
+        %local webfref&i webname&i sasjs&i.data;
+        %let webref&i=%scan(&var,1,%str(:));
+        %let webname&i=%scan(&var,2,%str(:));
+        %put webref&i=&&webref&i;
+        %put webname&i=&&webname&i;
+
+        %let sasjs_tables=&sasjs_tables &&webname&i;
+
+        data _null_;
+          infile &&webref&i lrecl=32767;
+          input;
+          if _n_=1 then call symputx("sasjs&i.data",_infile_);
+          else call symputx(
+            "sasjs&i.data",cats(symget("sasjs&i.data"),'0D0A'x,_infile_) );
+          putlog "&sysmacroname infile: " _infile_;
+        run;
+
+        data &ds1;
+          set &ds1;
+          length sasjs&i.data $32767 sasjs_tables $1000;
+          sasjs&i.data=symget("sasjs&i.data");
+          sasjs_tables=symget("sasjs_tables");
+        run;
+      %end;
+    %end;
+    %else %let webcount=0;
+
+    data &ds1;
+      retain _program "&program";
+      retain _contextname "&viyacontext";
+      set &ds1;
+      putlog "&sysmacroname inputparams:";
+      putlog (_all_)(=);
     run;
-  %end;
-  /* get the uri to fetch results */
-  data _null_;
-    set &jobds;
-    call symputx('uri',uri);
-    putlog "&sysmacroname: fetching results for " uri;
-  run;
-  /* the outcome, before the flow table goes away */
-  %if "&outstatus" ne "0" %then %do;
-    data &outstatus;
-      /* state is copied from the flow table, so this length is a ceiling, not a
-        * target.  mp_init's strict set includes varlenchk=ERROR, so a shorter
-        * one fails the step outright: OBS=0 then switches the rest of
-        * the session to syntax check, and every later proc reports a problem
-        * that has nothing to do with it.  256 matches uri and covers a state
-        * read out of JSON. */
-      length state $256 uri $256 errmsg $32767 platform $10;
-      platform='SASVIYA';
-      errmsg='';
-      set &jobds(keep=state uri);
-    run;
-  %end;
-  /* nothing else needs the flow table - do not leave it in the caller's WORK */
-  proc datasets lib=work nolist nowarn;
-    delete &jobds;
-  quit;
-  /* the abort message is not in the job state, it is in the result - so a
-    * result file is needed to read it even when the caller did not ask for one */
-  %let msgref=&outref;
-  %if "&outstatus" ne "0" and "&outref"="0" %then %do;
-    %let msgref=%mf_getuniquefileref();
-    %let clearmeref=1;
-  %end;
-  /* fetch results from webout.json */
-  %mv_getjobresult(uri=&uri,
-    result=&viyaresult,
-    outref=&msgref,
-    outlib=&outlib,
-    mdebug=&mdebug
-  )
-  /* a job that did not complete carries the abort message in its result, so
-    * errmsg is filled from there rather than left blank */
-  %if "&outstatus" ne "0" %then %do;
-    %let abortmsg=;
+
+    /* the flow table is an internal detail: unique name, thrown away below */
+    %let jobds=%mf_getuniquename(prefix=mx_execute_);
+    %mv_jobflow(inds=&ds1 ,maxconcurrency=1 ,outds=&jobds ,outref=&fref1
+      ,mdebug=&mdebug )
+
+    /* show the log */
     data _null_;
-      length line $32767 msg $32767;
-      retain found 0;
-      set &outstatus(keep=state);
-      if state ne 'completed' then do;
-        infile &msgref end=eof lrecl=32767;
+      infile &fref1;
+      input;
+      putlog _infile_;
+    run;
+    /* and keep it, if the caller asked */
+    %if "&outlogds" ne "_null_" %then %do;
+      data &outlogds;
+        infile &fref1 lrecl=32767 end=eof;
+        length line $32767;
         do while(not eof);
           input;
-          if found=0 and index(_infile_,'"MSG"')>0 then do;
-            line=tranwrd(_infile_,'\"','"');
-            if prxmatch('/"MSG" *: *"(.*)"/',line) then do;
-              msg=prxchange('s/.*"MSG" *: *"(.*)".*/$1/',-1,line);
-              found=1;
+          line=_infile_;
+          output;
+        end;
+      run;
+    %end;
+
+    /* get the uri to fetch results */
+    data _null_;
+      set &jobds;
+      call symputx('uri',uri);
+      putlog "&sysmacroname: fetching results for " uri;
+    run;
+    /* the outcome, before the flow table goes away */
+    %if "&outstatus" ne "0" %then %do;
+      data &outstatus;
+        /* state is copied from the flow table, so this length is a ceiling, not a
+          * target.  mp_init's strict set includes varlenchk=ERROR, so a shorter
+          * one fails the step outright: OBS=0 then switches the rest of
+          * the session to syntax check, and every later proc reports a problem
+          * that has nothing to do with it.  256 matches uri and covers a state
+          * read out of JSON. */
+        length state $256 uri $256 errmsg $32767 platform $10;
+        platform='SASVIYA';
+        errmsg='';
+        set &jobds(keep=state uri);
+      run;
+    %end;
+
+    /* nothing else needs the flow table - do not leave it in the caller's WORK */
+    proc datasets lib=work nolist nowarn;
+      delete &jobds;
+    quit;
+    /* the abort message is not in the job state, it is in the result - so a
+      * result file is needed to read it even when the caller did not ask for one */
+    %let msgref=&outref;
+    %if "&outstatus" ne "0" and "&outref"="0" %then %do;
+      %let msgref=%mf_getuniquefileref();
+      %let clearmeref=1;
+    %end;
+    /* fetch results from webout.json */
+    %mv_getjobresult(uri=&uri, result=&viyaresult, outref=&msgref,
+      outlib=&outlib, mdebug=&mdebug )
+    /* a job that did not complete carries the abort message in its result, so
+      * errmsg is filled from there rather than left blank */
+    %if "&outstatus" ne "0" %then %do;
+      %let abortmsg=;
+
+      data _null_;
+        length line $32767 msg $32767;
+        retain found 0;
+        set &outstatus(keep=state);
+        if state ne 'completed' then do;
+          infile &msgref end=eof lrecl=32767;
+          do while(not eof);
+            input;
+            if found=0 and index(_infile_,'"MSG"')>0 then do;
+              line=tranwrd(_infile_,'\"','"');
+              if prxmatch('/"MSG" *: *"(.*)"/',line) then do;
+                msg=prxchange('s/.*"MSG" *: *"(.*)".*/$1/',-1,line);
+                found=1;
+              end;
             end;
           end;
         end;
-      end;
-      if found then call symputx('abortmsg',msg,'l');
-    run;
-    %if %superq(abortmsg) ne %then %do;
+        if found then call symputx('abortmsg',msg,'l');
+      run;
+      %if %superq(abortmsg) ne %then %do;
+        data &outstatus;
+          modify &outstatus;
+          errmsg=symget('abortmsg');
+          replace;
+        run;
+      %end;
+    %end;
+    /* only a ref created here may be cleared */
+    %if %length(&clearmeref)>0 %then %do;
+      filename &msgref clear;
+    %end;
+
+  %end;
+  %else %if &platform=SASJS %then %do;
+
+    /* the response is needed to judge the outcome, even if not requested -
+      * and only a ref we create here may be cleared afterwards */
+    %let respref=&outref;
+    %if "&respref"="0" and "&outstatus" ne "0" %then %do;
+      %let respref=%mf_getuniquefileref();
+      %let clearmeref=1;
+    %end;
+    %ms_testservice(&program ,inputfiles=&inputfiles
+      ,inputdatasets=&inputdatasets ,inputparams=&inputparams ,debug=&debug
+      ,mdebug=&mdebug ,outlib=&outlib ,outref=&respref ,outlogds=&outlogds )
+    %if "&outstatus" ne "0" %then %do;
       data &outstatus;
-        modify &outstatus;
-        errmsg=symget('abortmsg');
-        replace;
+        length state $256 uri $256 errmsg $32767 platform $10;
+        length line $32767;
+        retain state 'completed' uri '' errmsg '' platform 'SASJS' abortseen 0;
+        infile &respref end=eof lrecl=32767;
+        /* scan the whole response - the abort block is not always on the first
+          * line - but only take a message from inside that block, so a service
+          * with its own MSG field does not look like an abort */
+        do while(not eof);
+          input;
+          if index(_infile_,'"sasjsAbort"')>0 then do;
+            state='canceled';
+            abortseen=1;
+          end;
+          if abortseen=1 and errmsg='' and index(_infile_,'"MSG"')>0 then do;
+            /* a quote inside the message arrives escaped, and the capture below
+              * used to stop at it, returning the part before the first \" and
+              * dropping the rest.  The escaped pairs are unescaped first, so the
+              * value is captured whole: the match is greedy and runs to the
+              * closing quote of the value rather than to the first quote after
+              * the field name. */
+            line=tranwrd(_infile_,'\"','"');
+            if prxmatch('/"MSG" *: *"(.*)"/',line) then
+              errmsg=prxchange('s/.*"MSG" *: *"(.*)".*/$1/',-1,line);
+          end;
+        end;
+        /* one row, whatever the response contained */
+        output;
       run;
     %end;
+    %if %length(&clearmeref)>0 %then %do;
+      filename &respref clear;
+    %end;
+
   %end;
-  /* only a ref created here may be cleared */
-  %if %length(&clearmeref)>0 %then %do;
-    filename &msgref clear;
+  %else %do;
+    %put %str(ERR)OR: Unrecognised platform: &platform;
   %end;
 
-%end;
-%else %if &platform=SASJS %then %do;
-
-  /* the response is needed to judge the outcome, even if not requested -
-    * and only a ref we create here may be cleared afterwards */
-  %let respref=&outref;
-  %if "&respref"="0" and "&outstatus" ne "0" %then %do;
-    %let respref=%mf_getuniquefileref();
-    %let clearmeref=1;
+  %if &mdebug=0 %then %do;
+    filename &fref1 clear;
+    %if &platform ne SASJS %then %do;
+      filename &fref2 clear;
+      filename &webref clear;
+    %end;
   %end;
-  %ms_testservice(&program
-    ,inputfiles=&inputfiles
-    ,inputdatasets=&inputdatasets
-    ,inputparams=&inputparams
-    ,debug=&debug
-    ,mdebug=&mdebug
-    ,outlib=&outlib
-    ,outref=&respref
-    ,outlogds=&outlogds
-  )
-  %if "&outstatus" ne "0" %then %do;
-    data &outstatus;
-      length state $256 uri $256 errmsg $32767 platform $10;
-      length line $32767;
-      retain state 'completed' uri '' errmsg '' platform 'SASJS' abortseen 0;
-      infile &respref end=eof lrecl=32767;
-      /* scan the whole response - the abort block is not always on the first
-        * line - but only take a message from inside that block, so a service
-        * with its own MSG field does not look like an abort */
-      do while(not eof);
-        input;
-        if index(_infile_,'"sasjsAbort"')>0 then do;
-          state='canceled';
-          abortseen=1;
-        end;
-        if abortseen=1 and errmsg='' and index(_infile_,'"MSG"')>0 then do;
-          /* a quote inside the message arrives escaped, and the capture below
-            * used to stop at it, returning the part before the first \" and
-            * dropping the rest.  The escaped pairs are unescaped first, so the
-            * value is captured whole: the match is greedy and runs to the
-            * closing quote of the value rather than to the first quote after
-            * the field name. */
-          line=tranwrd(_infile_,'\"','"');
-          if prxmatch('/"MSG" *: *"(.*)"/',line) then
-            errmsg=prxchange('s/.*"MSG" *: *"(.*)".*/$1/',-1,line);
-        end;
-      end;
-      /* one row, whatever the response contained */
-      output;
-    run;
+  %else %do;
+    %put &sysmacroname exit vars:;
+    %put _local_;
   %end;
-  %if %length(&clearmeref)>0 %then %do;
-    filename &respref clear;
-  %end;
-
-%end;
-%else %do;
-  %put %str(ERR)OR: Unrecognised platform:  &platform;
-%end;
-
-%if &mdebug=0 %then %do;
-  filename &fref1 clear;
-  %if &platform ne SASJS %then %do;
-    filename &fref2 clear;
-    filename &webref clear;
-  %end;
-%end;
-%else %do;
-  %put &sysmacroname exit vars:;
-  %put _local_;
-%end;
 
 %mend mx_execute;

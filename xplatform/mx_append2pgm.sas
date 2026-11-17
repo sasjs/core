@@ -54,95 +54,88 @@
 
 **/
 
-%macro mx_append2pgm(loc
-    ,inref=0
-    ,mdebug=0
-)/*/STORE SOURCE*/;
+%macro mx_append2pgm(loc ,inref=0 ,mdebug=0 )/*/STORE SOURCE*/;
 
-%local platform name shortloc coderef combref work tmpfile viyaref;
-%let platform=%mf_getplatform();
+  %local platform name shortloc coderef combref work tmpfile viyaref;
+  %let platform=%mf_getplatform();
 
-%if &mdebug=1 %then %do;
-  %put &sysmacroname entry vars:;
-  %put _local_;
-%end;
-%if &syscc ne 0 %then %do;
-  %put syscc=&syscc - &sysmacroname will not execute in this state;
-  %return;
-%end;
+  %if &mdebug=1 %then %do;
+    %put &sysmacroname entry vars:;
+    %put _local_;
+  %end;
+  %if &syscc ne 0 %then %do;
+    %put syscc=&syscc - &sysmacroname will not execute in this state;
+    %return;
+  %end;
 
-/* extract name & path from loc */
-data _null_;
-  length name shortloc $500;
-  loc=symget('loc');
-  name=scan(loc,-1,'/');
-  shortloc=substr(loc,1,length(loc)-length(name)-1);
-  call symputx('name',name,'l');
-  call symputx('shortloc',shortloc,'l');
-run;
-
-/* create a combined fileref with original + appended content */
-%let combref=%mf_getuniquefileref();
-%let work=%sysfunc(pathname(work));
-%let tmpfile=&combref..sas;
-filename &combref "&work/&tmpfile" lrecl=32000;
-
-%if &platform=SASVIYA %then %do;
-  /* On Viya, read the SAS program file from SAS Drive using filesrvc */
-  %let viyaref=%mf_getuniquefileref();
-  filename &viyaref filesrvc folderpath="&shortloc";
+  /* extract name & path from loc */
   data _null_;
-    file &combref lrecl=32000 termstr=crlf;
-    infile &viyaref("&name..sas") lrecl=32000 end=last;
+    length name shortloc $500;
+    loc=symget('loc');
+    name=scan(loc,-1,'/');
+    shortloc=substr(loc,1,length(loc)-length(name)-1);
+    call symputx('name',name,'l');
+    call symputx('shortloc',shortloc,'l');
+  run;
+
+  /* create a combined fileref with original + appended content */
+  %let combref=%mf_getuniquefileref();
+  %let work=%sysfunc(pathname(work));
+  %let tmpfile=&combref..sas;
+  filename &combref "&work/&tmpfile" lrecl=32000;
+
+  %if &platform=SASVIYA %then %do;
+    /* On Viya, read the SAS program file from SAS Drive using filesrvc */
+    %let viyaref=%mf_getuniquefileref();
+    filename &viyaref filesrvc folderpath="&shortloc";
+
+    data _null_;
+      file &combref lrecl=32000 termstr=crlf;
+      infile &viyaref("&name..sas") lrecl=32000 end=last;
+      input;
+      put _infile_;
+    run;
+    filename &viyaref clear;
+    %symdel _FILESRVC_&viyaref._URI;
+  %end;
+  %else %do;
+    /* For SAS9 and SASJS, use mx_getcode */
+    %let coderef=%mf_getuniquefileref();
+    %mx_getcode(&loc, outref=&coderef)
+
+    data _null_;
+      file &combref lrecl=32000 termstr=crlf;
+      infile &coderef lrecl=32000 end=last;
+      input;
+      put _infile_;
+    run;
+    filename &coderef clear;
+  %end;
+
+  /* append the new content */
+  data _null_;
+    file &combref lrecl=32000 termstr=crlf mod;
+    infile &inref lrecl=32000;
     input;
     put _infile_;
   run;
-  filename &viyaref clear;
-  %symdel _FILESRVC_&viyaref._URI;
-%end;
-%else %do;
-  /* For SAS9 and SASJS, use mx_getcode */
-  %let coderef=%mf_getuniquefileref();
-  %mx_getcode(&loc, outref=&coderef)
-  data _null_;
-    file &combref lrecl=32000 termstr=crlf;
-    infile &coderef lrecl=32000 end=last;
-    input;
-    put _infile_;
-  run;
-  filename &coderef clear;
-%end;
 
-/* append the new content */
-data _null_;
-  file &combref lrecl=32000 termstr=crlf mod;
-  infile &inref lrecl=32000;
-  input;
-  put _infile_;
-run;
+  /* delete and recreate the target item */
+  %if &platform=SASJS %then %do;
+    %ms_deletefile(&loc..sas)
+    %ms_createfile(&loc..sas, inref=&combref, mdebug=&mdebug)
+  %end;
+  %else %if &platform=SASVIYA %then %do;
+    %mv_deletefoldermember(path=&shortloc, name=&name..sas, contenttype=file)
+    %mv_createfile(path=&shortloc, name=&name..sas, inref=&combref)
+  %end;
+  %else %do;
+    /* SAS 9 */
+    %mm_deletestp(target=&loc)
+    %mm_createstp(stpname=&name ,filename=&tmpfile ,directory=&work
+      ,tree=&shortloc ,stptype=2 ,mDebug=&mdebug ,minify=NO )
+  %end;
 
-/* delete and recreate the target item */
-%if &platform=SASJS %then %do;
-  %ms_deletefile(&loc..sas)
-  %ms_createfile(&loc..sas, inref=&combref, mdebug=&mdebug)
-%end;
-%else %if &platform=SASVIYA %then %do;
-  %mv_deletefoldermember(path=&shortloc, name=&name..sas, contenttype=file)
-  %mv_createfile(path=&shortloc, name=&name..sas, inref=&combref)
-%end;
-%else %do;
-  /* SAS 9 */
-  %mm_deletestp(target=&loc)
-  %mm_createstp(stpname=&name
-    ,filename=&tmpfile
-    ,directory=&work
-    ,tree=&shortloc
-    ,stptype=2
-    ,mDebug=&mdebug
-    ,minify=NO
-  )
-%end;
-
-filename &combref clear;
+  filename &combref clear;
 
 %mend mx_append2pgm;

@@ -24,40 +24,39 @@
   @version 9.2
   @author Allan Bowe
 **/
+
 /** @cond */
 
-%macro mf_readfile(fpath
-)/*/STORE SOURCE*/;
-%local fref rc fid fcontent;
+%macro mf_readfile(fpath )/*/STORE SOURCE*/;
+  %local fref rc fid fcontent;
 
-/* check file exists */
-%if %sysfunc(filename(fref,&fpath)) ne 0 %then %do;
-  %put &=fref &=fpath;
-  %put %str(ERR)OR: %sysfunc(sysmsg());
-  %return;
-%end;
+  /* check file exists */
+  %if %sysfunc(filename(fref,&fpath)) ne 0 %then %do;
+    %put &=fref &=fpath;
+    %put %str(ERR)OR: %sysfunc(sysmsg());
+    %return;
+  %end;
 
-%let fid=%sysfunc(fopen(&fref,I));
+  %let fid=%sysfunc(fopen(&fref,I));
 
-%if &fid=0 %then %do;
-  %put %str(ERR)OR: %sysfunc(sysmsg());
-  %return;
-%end;
+  %if &fid=0 %then %do;
+    %put %str(ERR)OR: %sysfunc(sysmsg());
+    %return;
+  %end;
 
-%if %sysfunc(fread(&fid)) = 0 %then %do;
-  %let rc=%sysfunc(fget(&fid,fcontent,65534));
-  &fcontent
-%end;
+  %if %sysfunc(fread(&fid))=0 %then %do;
+    %let rc=%sysfunc(fget(&fid,fcontent,65534));
+  &fcontent %end;
 
-/*
-%do %while(%sysfunc(fread(&fid)) = 0);
-  %let rc=%sysfunc(fget(&fid,fcontent,65534));
-  &fcontent
-%end;
-*/
+  /*
+  %do %while(%sysfunc(fread(&fid)) = 0);
+    %let rc=%sysfunc(fget(&fid,fcontent,65534));
+    &fcontent
+  %end;
+  */
 
-%let rc=%sysfunc(fclose(&fid));
-%let rc=%sysfunc(filename(&fref));
+  %let rc=%sysfunc(fclose(&fid));
+  %let rc=%sysfunc(filename(&fref));
 
 %mend mf_readfile;
 /** @endcond */

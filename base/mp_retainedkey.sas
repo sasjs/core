@@ -72,176 +72,148 @@
 
 **/
 
-%macro mp_retainedkey(
-  base_lib=WORK
-  ,base_dsn=BASETABLE
-  ,append_lib=WORK
-  ,append_dsn=APPENDTABLE
-  ,retained_key=DEFAULT_RK
-  ,business_key= PK1 PK2
-  ,check_uniqueness=NO
-  ,maxkeytable=0
-  ,locktable=0
-  ,outds=WORK.APPEND
-  ,filter_str=
-);
-%put &sysmacroname entry vars:;
-%put _local_;
+%macro mp_retainedkey( base_lib=WORK ,base_dsn=BASETABLE ,append_lib=WORK
+  ,append_dsn=APPENDTABLE ,retained_key=DEFAULT_RK ,business_key=PK1 PK2
+  ,check_uniqueness=NO ,maxkeytable=0 ,locktable=0 ,outds=WORK.APPEND
+  ,filter_str=);
+  %put &sysmacroname entry vars:;
+  %put _local_;
 
-%local base_libds app_libds key_field check maxkey idx_pk newkey_cnt iserr
-  msg x tempds1 tempds2 comma_pk appnobs checknobs dropvar tempvar idx_val;
-%let base_libds=%upcase(&base_lib..&base_dsn);
-%let app_libds=%upcase(&append_lib..&append_dsn);
-%let tempds1=%mf_getuniquename();
-%let tempds2=%mf_getuniquename();
-%let comma_pk=%mf_getquotedstr(in_str=%str(&business_key),dlm=%str(,),quote=);
-%let outds=%sysfunc(ifc(%index(&outds,.)=0,work.&outds,&outds));
-/* validation checks */
-%let iserr=0;
-%if &syscc>0 %then %do;
-  %let iserr=1;
-  %let msg=%str(SYSCC=&syscc on macro entry);
-%end;
-%else %if %sysfunc(exist(&base_libds))=0 %then %do;
-  %let iserr=1;
-  %let msg=%str(Base LIBDS (&base_libds) expected but NOT FOUND);
-%end;
-%else %if %sysfunc(exist(&app_libds))=0 %then %do;
-  %let iserr=1;
-  %let msg=%str(Append LIBDS (&app_libds) expected but NOT FOUND);
-%end;
-%else %if &maxkeytable ne 0 and %sysfunc(exist(&maxkeytable))=0  %then %do;
-  %let iserr=1;
-  %let msg=%str(Maxkeytable (&maxkeytable) expected but NOT FOUND);
-%end;
-%else %if &maxkeytable ne 0 and %sysfunc(exist(&locktable))=0  %then %do;
-  %let iserr=1;
-  %let msg=%str(Locktable (&locktable) expected but NOT FOUND);
-%end;
-%else %if %length(&business_key)=0 %then %do;
-  %let iserr=1;
-  %let msg=%str(Business key (&business_key) expected but NOT FOUND);
-%end;
+  %local base_libds app_libds key_field check maxkey idx_pk newkey_cnt iserr msg
+    x tempds1 tempds2 comma_pk appnobs checknobs dropvar tempvar idx_val;
+  %let base_libds=%upcase(&base_lib..&base_dsn);
+  %let app_libds=%upcase(&append_lib..&append_dsn);
+  %let tempds1=%mf_getuniquename();
+  %let tempds2=%mf_getuniquename();
+  %let comma_pk=%mf_getquotedstr(in_str=%str(&business_key),dlm=%str(,),quote=);
+  %let outds=%sysfunc(ifc(%index(&outds,.)=0,work.&outds,&outds));
+  /* validation checks */
+  %let iserr=0;
+  %if &syscc>0 %then %do;
+    %let iserr=1;
+    %let msg=%str(SYSCC=&syscc on macro entry);
+  %end;
+  %else %if %sysfunc(exist(&base_libds))=0 %then %do;
+    %let iserr=1;
+    %let msg=%str(Base LIBDS (&base_libds) expected but NOT FOUND);
+  %end;
+  %else %if %sysfunc(exist(&app_libds))=0 %then %do;
+    %let iserr=1;
+    %let msg=%str(Append LIBDS (&app_libds) expected but NOT FOUND);
+  %end;
+  %else %if &maxkeytable ne 0 and %sysfunc(exist(&maxkeytable))=0 %then %do;
+    %let iserr=1;
+    %let msg=%str(Maxkeytable (&maxkeytable) expected but NOT FOUND);
+  %end;
+  %else %if &maxkeytable ne 0 and %sysfunc(exist(&locktable))=0 %then %do;
+    %let iserr=1;
+    %let msg=%str(Locktable (&locktable) expected but NOT FOUND);
+  %end;
+  %else %if %length(&business_key)=0 %then %do;
+    %let iserr=1;
+    %let msg=%str(Business key (&business_key) expected but NOT FOUND);
+  %end;
 
-%do x=1 %to %sysfunc(countw(&business_key));
-  /* check business key values exist */
-  %let key_field=%scan(&business_key,&x,%str( ));
-  %if not %mf_existvar(&app_libds,&key_field) %then %do;
-    %let iserr=1;
-    %let msg=Business key (&key_field) not found on &app_libds!;
-    %goto err;
+  %do x=1 %to %sysfunc(countw(&business_key));
+    /* check business key values exist */
+    %let key_field=%scan(&business_key,&x,%str( ));
+    %if not %mf_existvar(&app_libds,&key_field) %then %do;
+      %let iserr=1;
+      %let msg=Business key (&key_field) not found on &app_libds!;
+      %goto err;
+    %end;
+    %else %if not %mf_existvar(&base_libds,&key_field) %then %do;
+      %let iserr=1;
+      %let msg=Business key (&key_field) not found on &base_libds!;
+      %goto err;
+    %end;
   %end;
-  %else %if not %mf_existvar(&base_libds,&key_field) %then %do;
-    %let iserr=1;
-    %let msg=Business key (&key_field) not found on &base_libds!;
-    %goto err;
-  %end;
-%end;
-%err:
-%if &iserr=1 %then %do;
+  %err: %if &iserr=1 %then %do;
   /* err case so first perform an unlock of the base table before exiting */
   %mp_lockanytable(
-    UNLOCK,lib=&base_lib,ds=&base_dsn,ref=%superq(msg),ctl_ds=&locktable
-  )
-%end;
-%mp_abort(iftrue=(&iserr=1),mac=mp_retainedkey,msg=%superq(msg))
-
-proc sql noprint;
-select sum(max(&retained_key),0) format=32. into: maxkey trimmed
-  from &base_libds;
-
-/**
-  * get base table RK and bus field values for lookup
-  */
-proc sql noprint;
-create table &tempds1 as
-  select distinct &comma_pk,&retained_key
-  from &base_libds &filter_str
-  order by &comma_pk,&retained_key;
-
-%if &check_uniqueness=YES %then %do;
-  select count(*) into:checknobs
-    from (select distinct &comma_pk from &app_libds);
-  select count(*) into: appnobs from &app_libds; /* might be view */
-  %if &checknobs ne &appnobs %then %do;
-    %let msg=Source table &app_libds is not unique on (&business_key);
-    %let iserr=1;
+    UNLOCK,lib=&base_lib,ds=&base_dsn,ref=%superq(msg),ctl_ds=&locktable )
   %end;
-%end;
-%if &iserr=1 %then %do;
-  /* err case so first perform an unlock of the base table before exiting */
-  %mp_lockanytable(
-    UNLOCK,lib=&base_lib,ds=&base_dsn,ref=%superq(msg),ctl_ds=&locktable
-  )
-%end;
-%mp_abort(iftrue= (&iserr=1),mac=mp_retainedkey,msg=%superq(msg))
+  %mp_abort(iftrue=(&iserr=1),mac=mp_retainedkey,msg=%superq(msg))
 
-%if %mf_existvar(&app_libds,&retained_key)
-%then %let dropvar=(drop=&retained_key);
-
-/* prepare interim table with retained key populated for matching keys */
-proc sql noprint;
-create table &tempds2 as
-  select b.&retained_key, a.*
-  from &app_libds &dropvar a
-  left join &tempds1 b
-  on 1
-  %do idx_pk=1 %to %sysfunc(countw(&business_key));
-    %let idx_val=%scan(&business_key,&idx_pk);
-    and a.&idx_val=b.&idx_val
-  %end;
-  order by &retained_key;
-
-/* identify the number of entries without retained keys (new records) */
-select count(*) into: newkey_cnt
-  from &tempds2
-  where missing(&retained_key);
-quit;
-
-/**
-  * Update maxkey table if link provided
-  */
-%if &maxkeytable ne 0 %then %do;
   proc sql noprint;
-  select count(*) into: check from &maxkeytable
-    where upcase(keytable)="&base_libds";
+    select sum(max(&retained_key),0) format=32. into: maxkey trimmed from
+      &base_libds;
 
-  %mp_lockanytable(LOCK
-    ,lib=%scan(&maxkeytable,1,.)
-    ,ds=%scan(&maxkeytable,2,.)
-    ,ref=Updating maxkeyvalues with mp_retainedkey
-    ,ctl_ds=&locktable
-  )
-  proc sql;
-  %if &check=0 %then %do;
-  insert into &maxkeytable
-    set keytable="&base_libds"
-      ,keycolumn="&retained_key"
-      ,max_key=%sysevalf(&maxkey+&newkey_cnt)
-      ,processed_dttm="%sysfunc(datetime(),%mf_fmtdttm())"dt;
-  %end;
-  %else %do;
-  update &maxkeytable
-    set max_key=%sysevalf(&maxkey+&newkey_cnt)
-      ,processed_dttm="%sysfunc(datetime(),%mf_fmtdttm())"dt
-    where keytable="&base_libds";
-  %end;
-  %mp_lockanytable(UNLOCK
-    ,lib=%scan(&maxkeytable,1,.)
-    ,ds=%scan(&maxkeytable,2,.)
-    ,ref=Updating maxkeyvalues with maxkey=%sysevalf(&maxkey+&newkey_cnt)
-    ,ctl_ds=&locktable
-  )
-%end;
+  /**
+    * get base table RK and bus field values for lookup
+    */
+  proc sql noprint;
+    create table &tempds1 as select distinct &comma_pk,&retained_key from
+      &base_libds &filter_str order by &comma_pk,&retained_key;
 
-/* fill in the missing retained key values */
-%let tempvar=%mf_getuniquename();
-data &outds(drop=&tempvar);
-  retain &tempvar %sysevalf(&maxkey+1);
-  set &tempds2;
-  if &retained_key =. then &retained_key=&tempvar;
-  &tempvar=&tempvar+1;
-run;
+    %if &check_uniqueness=YES %then %do;
+      select count(*) into:checknobs from (select distinct &comma_pk from
+        &app_libds);
+      select count(*) into: appnobs from &app_libds; /* might be view */
+      %if &checknobs ne &appnobs %then %do;
+        %let msg=Source table &app_libds is not unique on (&business_key);
+        %let iserr=1;
+      %end;
+    %end;
+    %if &iserr=1 %then %do;
+      /* err case so first perform an unlock of the base table before exiting */
+      %mp_lockanytable(
+        UNLOCK,lib=&base_lib,ds=&base_dsn,ref=%superq(msg),ctl_ds=&locktable )
+    %end;
+    %mp_abort(iftrue=(&iserr=1),mac=mp_retainedkey,msg=%superq(msg))
 
-%mend mp_retainedkey;
+    %if %mf_existvar(&app_libds,&retained_key) %then %let
+      dropvar=(drop=&retained_key);
 
+  /* prepare interim table with retained key populated for matching keys */
+  proc sql noprint;
+    create table &tempds2 as select b.&retained_key, a.* from &app_libds
+      &dropvar a left join &tempds1 b on 1 %do idx_pk=1 %to
+      %sysfunc(countw(&business_key));
+    %let idx_val=%scan(&business_key,&idx_pk);
+    and a.&idx_val=b.&idx_val %end;
+    order by &retained_key;
+
+    /* identify the number of entries without retained keys (new records) */
+    select count(*) into: newkey_cnt from &tempds2 where missing(&retained_key);
+  quit;
+
+  /**
+    * Update maxkey table if link provided
+    */
+  %if &maxkeytable ne 0 %then %do;
+    proc sql noprint;
+      select count(*) into: check from &maxkeytable where
+        upcase(keytable)="&base_libds";
+
+      %mp_lockanytable(LOCK ,lib=%scan(&maxkeytable,1,.)
+        ,ds=%scan(&maxkeytable,2,.) ,ref=Updating maxkeyvalues with
+        mp_retainedkey ,ctl_ds=&locktable )
+
+    proc sql;
+      %if &check=0 %then %do;
+        insert into &maxkeytable set keytable="&base_libds"
+          ,keycolumn="&retained_key" ,max_key=%sysevalf(&maxkey+&newkey_cnt)
+          ,processed_dttm="%sysfunc(datetime(),%mf_fmtdttm())"dt;
+      %end;
+      %else %do;
+        update &maxkeytable set max_key=%sysevalf(&maxkey+&newkey_cnt)
+          ,processed_dttm="%sysfunc(datetime(),%mf_fmtdttm())"dt where
+          keytable="&base_libds";
+      %end;
+      %mp_lockanytable(UNLOCK ,lib=%scan(&maxkeytable,1,.)
+        ,ds=%scan(&maxkeytable,2,.) ,ref=Updating maxkeyvalues with
+        maxkey=%sysevalf(&maxkey+&newkey_cnt) ,ctl_ds=&locktable )
+      %end;
+
+      /* fill in the missing retained key values */
+      %let tempvar=%mf_getuniquename();
+
+    data &outds(drop=&tempvar);
+      retain &tempvar %sysevalf(&maxkey+1);
+      set &tempds2;
+      if &retained_key=. then &retained_key=&tempvar;
+      &tempvar=&tempvar+1;
+    run;
+
+    %mend mp_retainedkey;

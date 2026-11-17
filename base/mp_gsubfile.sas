@@ -42,11 +42,8 @@
   @author Allan Bowe
 **/
 
-%macro mp_gsubfile(file=0,
-  patternvar=,
-  replacevar=,
-  outfile=0
-)/*/STORE SOURCE*/;
+%macro mp_gsubfile(file=0, patternvar=, replacevar=, outfile=0
+  )/*/STORE SOURCE*/;
 
   %if "%substr(&sysver.XX,1,4)"="V.04" %then %do;
     %put %str(ERR)OR: Viya 4 does not support the IO library in lua;

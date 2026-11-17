@@ -17,19 +17,14 @@
   @sasjslint {"maxLineLength": 101}
 **/
 
-%macro mf_getattrc(
-    libds
-    ,attr
-)/*/STORE SOURCE*/;
+%macro mf_getattrc( libds ,attr )/*/STORE SOURCE*/;
   %local dsid rc;
   %let dsid=%sysfunc(open(&libds,is));
-  %if &dsid = 0 %then %do;
+  %if &dsid=0 %then %do;
     %put %str(WARN)ING: Cannot open %trim(&libds), system message below;
     %put %sysfunc(sysmsg());
-    -1
-  %end;
+  -1 %end;
   %else %do;
-    %sysfunc(attrc(&dsid,&attr))
-    %let rc=%sysfunc(close(&dsid));
+    %sysfunc(attrc(&dsid,&attr)) %let rc=%sysfunc(close(&dsid));
   %end;
 %mend mf_getattrc;

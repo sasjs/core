@@ -44,19 +44,17 @@
 **/
 
 %macro mp_md5(cvars=,nvars=);
-%local i var sep;
-put(md5(
-  %do i=1 %to %sysfunc(countw(&cvars));
-    %let var=%scan(&cvars,&i,%str( ));
-    &sep put(md5(trim(&var)),$hex32.)
-    %let sep=!!;
+  %local i var sep;
+  put(md5( %do i=1 %to %sysfunc(countw(&cvars));
+  %let var=%scan(&cvars,&i,%str( ));
+  &sep put(md5(trim(&var)),$hex32.) %let sep=!!;
   %end;
   %do i=1 %to %sysfunc(countw(&nvars));
     %let var=%scan(&nvars,&i,%str( ));
     /* multiply by 1 to strip precision errors (eg 0 != 0) */
     /* but ONLY if not missing, else will lose any special missing values */
     &sep put(md5(trim(put(ifn(missing(&var),&var,&var*1),binary64.))),$hex32.)
-    %let sep=!!;
+      %let sep=!!;
   %end;
-),$hex32.)
+  ),$hex32.)
 %mend mp_md5;

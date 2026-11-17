@@ -54,52 +54,53 @@ https://documentation.sas.com/doc/ko/pgmsascdc/v_033/lefunctionsref/n1qo5miyvry1
 
 %macro mp_gitlog(gitdir,outds=work.mp_gitlog,mdebug=0,filter=BRANCHONLY,nobs=0);
 
-%local varlist i var;
-%let varlist=author children_ids committer committer_email email id
-  in_current_branch parent_ids stash time ;
+  %local varlist i var;
+  %let varlist=author children_ids committer committer_email email id
+    in_current_branch parent_ids stash time ;
 
-data &outds;
-  LENGTH gitdir branch $ 1024 message $4000 &varlist $128 commit_time_num 8.
-    commit_time_str $32;
-  call missing (of _all_);
-  branch="%mf_getgitbranch(&gitdir)";
-  gitdir=symget('gitdir');
-  rc=git_status_free(trim(gitdir));
-  if rc=-1 then do;
-    put "The libgit2 library is unavailable and no Git operations can be used.";
-    put "See: https://stackoverflow.com/questions/74082874";
-    stop;
-  end;
-  else if rc=-2 then do;
-    put "The libgit2 library is available, but the status function failed.";
-    put "See the log for details.";
-    stop;
-  end;
-  entries=git_commit_log(trim(gitdir));
-  do n=1 to entries;
-
-  %do i=1 %to %sysfunc(countw(&varlist message));
-    %let var=%scan(&varlist message,&i,%str( ));
-    rc=git_commit_get(n,trim(gitdir),"&var",&var);
-  %end;
-    /* convert unix time to SAS time - https://4gl.uk/corelink0 */
-    /* Number of seconds between 01JAN1960 and 01JAN1970: 315619200 */
-    format commit_time_num datetime19.;
-    commit_time_num=sum(input(cats(time),best.),315619200);
-    commit_time_str=put(commit_time_num,datetime19.);
-  %if &mdebug=1 %then %do;
-    putlog (_all_)(=);
-  %end;
-    if "&filter"="BRANCHONLY" then do;
-      if cats(in_current_branch)='TRUE' then output;
+  data &outds;
+    LENGTH gitdir branch $ 1024 message $4000 &varlist $128 commit_time_num 8.
+      commit_time_str $32;
+    call missing (of _all_);
+    branch="%mf_getgitbranch(&gitdir)";
+    gitdir=symget('gitdir');
+    rc=git_status_free(trim(gitdir));
+    if rc=-1 then do;
+      put
+        "The libgit2 library is unavailable and no Git operations can be used.";
+      put "See: https://stackoverflow.com/questions/74082874";
+      stop;
     end;
-    else output;
-  %if &nobs>0 %then %do;
-    if n ge &nobs then stop;
-  %end;
-  end;
-  rc=git_commit_free(trim(gitdir));
-  keep gitdir branch &varlist message time commit_time_num commit_time_str;
-run;
+    else if rc=-2 then do;
+      put "The libgit2 library is available, but the status function failed.";
+      put "See the log for details.";
+      stop;
+    end;
+    entries=git_commit_log(trim(gitdir));
+    do n=1 to entries;
+
+      %do i=1 %to %sysfunc(countw(&varlist message));
+        %let var=%scan(&varlist message,&i,%str( ));
+        rc=git_commit_get(n,trim(gitdir),"&var",&var);
+      %end;
+      /* convert unix time to SAS time - https://4gl.uk/corelink0 */
+      /* Number of seconds between 01JAN1960 and 01JAN1970: 315619200 */
+      format commit_time_num datetime19.;
+      commit_time_num=sum(input(cats(time),best.),315619200);
+      commit_time_str=put(commit_time_num,datetime19.);
+      %if &mdebug=1 %then %do;
+        putlog (_all_)(=);
+      %end;
+      if "&filter"="BRANCHONLY" then do;
+        if cats(in_current_branch)='TRUE' then output;
+      end;
+      else output;
+      %if &nobs>0 %then %do;
+        if n ge &nobs then stop;
+      %end;
+    end;
+    rc=git_commit_free(trim(gitdir));
+    keep gitdir branch &varlist message time commit_time_num commit_time_str;
+  run;
 
 %mend mp_gitlog;

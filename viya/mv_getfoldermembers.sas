@@ -43,176 +43,165 @@
   @sasjslint {"maxLineLength": 230}
 **/
 
-%macro mv_getfoldermembers(root=/
-    ,access_token_var=ACCESS_TOKEN
-    ,grant_type=sas_services
-    ,outds=mv_getfolders
-  );
-%local oauth_bearer;
-%if &grant_type=detect %then %do;
-  %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
-  %else %let grant_type=sas_services;
-%end;
-%if &grant_type=sas_services %then %do;
+%macro mv_getfoldermembers(root=/ ,access_token_var=ACCESS_TOKEN
+  ,grant_type=sas_services ,outds=mv_getfolders );
+  %local oauth_bearer;
+  %if &grant_type=detect %then %do;
+    %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
+    %else %let grant_type=sas_services;
+  %end;
+  %if &grant_type=sas_services %then %do;
     %let oauth_bearer=oauth_bearer=sas_services;
     %let &access_token_var=;
-%end;
+  %end;
 
-%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
-    and &grant_type ne sas_services
-  )
-  ,mac=&sysmacroname
-  ,msg=%str(Invalid value for grant_type: &grant_type)
-)
+  %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne
+    password and &grant_type ne sas_services ) ,mac=&sysmacroname
+    ,msg=%str(Invalid value for grant_type: &grant_type) )
 
-%if %mf_isblank(&root)=1 %then %let root=/;
+  %if %mf_isblank(&root)=1 %then %let root=/;
 
-options noquotelenmax;
+  options noquotelenmax;
 
-/* request the client details */
-%local fname1 libref1;
-%let fname1=%mf_getuniquefileref();
-%let libref1=%mf_getuniquelibref();
+  /* request the client details */
+  %local fname1 libref1;
+  %let fname1=%mf_getuniquefileref();
+  %let libref1=%mf_getuniquelibref();
 
-%local base_uri; /* location of rest apis */
-%let base_uri=%mf_getplatform(VIYARESTAPI);
+  %local base_uri; /* location of rest apis */
+  %let base_uri=%mf_getplatform(VIYARESTAPI);
 
-%if "&root"="/" %then %do;
-  /* if root just list root folders */
-  proc http method='GET' out=&fname1 &oauth_bearer
+  %if "&root"="/" %then %do;
+    /* if root just list root folders */
+    proc http method='GET' out=&fname1 &oauth_bearer
       url="&base_uri/folders/rootFolders?limit=1000";
-  %if &grant_type=authorization_code %then %do;
-      headers "Authorization"="Bearer &&&access_token_var";
-  %end;
-  run;
-  libname &libref1 JSON fileref=&fname1;
-  /* an empty collection produces no items dataset at all, so a straight SET
-    would fail with "File ...ITEMS.DATA does not exist" and leave syscc dirty */
-  %if %sysfunc(exist(&libref1..items))=1 %then %do;
-    data &outds;
-      /* the documented columns are declared on every path, so a caller reads
-        the same columns whether the collection is empty or full - an empty
-        collection's items dataset carries a narrower shape (no createdBy,
-        no timestamps) than a populated one.  The declared lengths are at
-        least the engine's own, which are sized to the payload */
-      length ordinal_root 8 ordinal_items 8
-        creationTimeStamp $32 modifiedTimeStamp $32
-        createdBy $64 modifiedBy $64
-        id $36 uri $512 added $32 type $32
-        name $256 description $256;
-      /* initialise the declared columns - an empty collection's items
-        dataset carries none of the member columns, and referencing one that
-        the input does not supply raises "Variable x is uninitialized" */
-      call missing(of _all_);
-      set &libref1..items;
-      /* the engine emits one all-missing row for an empty collection */
-      if missing(name) and missing(uri) then delete;
+      %if &grant_type=authorization_code %then %do;
+        headers "Authorization"="Bearer &&&access_token_var";
+      %end;
     run;
+    libname &libref1 JSON fileref=&fname1;
+    /* an empty collection produces no items dataset at all, so a straight SET
+      would fail with "File ...ITEMS.DATA does not exist" and leave syscc dirty */
+    %if %sysfunc(exist(&libref1..items))=1 %then %do;
+      data &outds;
+        /* the documented columns are declared on every path, so a caller reads
+          the same columns whether the collection is empty or full - an empty
+          collection's items dataset carries a narrower shape (no createdBy,
+          no timestamps) than a populated one.  The declared lengths are at
+          least the engine's own, which are sized to the payload */
+        length ordinal_root 8 ordinal_items 8 creationTimeStamp $32
+          modifiedTimeStamp $32 createdBy $64 modifiedBy $64 id $36 uri $512
+          added $32 type $32 name $256 description $256;
+        /* initialise the declared columns - an empty collection's items
+          dataset carries none of the member columns, and referencing one that
+          the input does not supply raises "Variable x is uninitialized" */
+        call missing(of _all_);
+        set &libref1..items;
+        /* the engine emits one all-missing row for an empty collection */
+        if missing(name) and missing(uri) then delete;
+      run;
+    %end;
+    %else %do;
+      %put NOTE: &sysmacroname - no root folders found;
+
+      data &outds;
+        length ordinal_root 8 ordinal_items 8 creationTimeStamp $32
+          modifiedTimeStamp $32 createdBy $64 modifiedBy $64 id $36 uri $512
+          added $32 type $32 name $256 description $256;
+        call missing(of _all_);
+        stop;
+      run;
+    %end;
   %end;
   %else %do;
-    %put NOTE: &sysmacroname - no root folders found;
-    data &outds;
-      length ordinal_root 8 ordinal_items 8
-        creationTimeStamp $32 modifiedTimeStamp $32
-        createdBy $64 modifiedBy $64
-        id $36 uri $512 added $32 type $32
-        name $256 description $256;
-      call missing(of _all_);
-      stop;
-    run;
-  %end;
-%end;
-%else %do;
-  /* first get parent folder id */
-  proc http method='GET' out=&fname1 &oauth_bearer
+    /* first get parent folder id */
+    proc http method='GET' out=&fname1 &oauth_bearer
       url="&base_uri/folders/folders/@item?path=&root";
-  %if &grant_type=authorization_code %then %do;
-      headers "Authorization"="Bearer &&&access_token_var";
-  %end;
-  run;
-  /*data _null_;infile &fname1;input;putlog _infile_;run;*/
-  libname &libref1 JSON fileref=&fname1;
-  /* now get the followon link to list members */
-  %local href cnt;
-  %let cnt=0;
-  /* a root that is not a folder (a member path, for instance) answers
-    without a links dataset, so a straight SET would leave syscc dirty */
-  %if %sysfunc(exist(&libref1..links))=1 %then %do;
-    data _null_;
-      length rel href $512;
-      call missing(rel,href);
-      set &libref1..links;
-      if rel='members' then do;
-        url=cats("'","&base_uri",href,"?limit=10000'");
-        call symputx('href',url,'l');
-        call symputx('cnt',1,'l');
-      end;
+      %if &grant_type=authorization_code %then %do;
+        headers "Authorization"="Bearer &&&access_token_var";
+      %end;
     run;
-  %end;
-  %if &cnt=0 %then %do;
-    %put NOTE:;%put NOTE-  No members found in &root!!;%put NOTE-;
-    /* the folder answered without a members link, so there is nothing to list -
-      the output dataset is still created, with the documented columns */
-    data &outds;
-      length ordinal_root 8 ordinal_items 8
-        creationTimeStamp $32 modifiedTimeStamp $32
-        createdBy $64 modifiedBy $64
-        id $36 uri $512 added $32 type $32
-        name $256 description $256;
-      call missing(of _all_);
-      stop;
-    run;
-    filename &fname1 clear;
-    libname &libref1 clear;
-    %return;
-  %end;
-  %local fname2 libref2;
-  %let fname2=%mf_getuniquefileref();
-  %let libref2=%mf_getuniquelibref();
-  proc http method='GET' out=&fname2 &oauth_bearer
+    /*data _null_;infile &fname1;input;putlog _infile_;run;*/
+    libname &libref1 JSON fileref=&fname1;
+    /* now get the followon link to list members */
+    %local href cnt;
+    %let cnt=0;
+    /* a root that is not a folder (a member path, for instance) answers
+      without a links dataset, so a straight SET would leave syscc dirty */
+    %if %sysfunc(exist(&libref1..links))=1 %then %do;
+      data _null_;
+        length rel href $512;
+        call missing(rel,href);
+        set &libref1..links;
+        if rel='members' then do;
+          url=cats("'","&base_uri",href,"?limit=10000'");
+          call symputx('href',url,'l');
+          call symputx('cnt',1,'l');
+        end;
+      run;
+    %end;
+    %if &cnt=0 %then %do;
+      %put NOTE:;
+      %put NOTE- No members found in &root!!;
+      %put NOTE-;
+
+      /* the folder answered without a members link, so there is nothing to list -
+        the output dataset is still created, with the documented columns */
+      data &outds;
+        length ordinal_root 8 ordinal_items 8 creationTimeStamp $32
+          modifiedTimeStamp $32 createdBy $64 modifiedBy $64 id $36 uri $512
+          added $32 type $32 name $256 description $256;
+        call missing(of _all_);
+        stop;
+      run;
+      filename &fname1 clear;
+      libname &libref1 clear;
+      %return;
+    %end;
+    %local fname2 libref2;
+    %let fname2=%mf_getuniquefileref();
+    %let libref2=%mf_getuniquelibref();
+
+    proc http method='GET' out=&fname2 &oauth_bearer
       url=%unquote(%superq(href));
-  %if &grant_type=authorization_code %then %do;
-      headers "Authorization"="Bearer &&&access_token_var";
-  %end;
-  run;
-  libname &libref2 JSON fileref=&fname2;
-  /* an emptied folder produces no items dataset at all, so a straight SET would
-    fail with "File ...ITEMS.DATA does not exist" and leave syscc dirty */
-  %if %sysfunc(exist(&libref2..items))=1 %then %do;
-    data &outds;
-      length ordinal_root 8 ordinal_items 8
-        creationTimeStamp $32 modifiedTimeStamp $32
-        createdBy $64 modifiedBy $64
-        id $36 uri $512 added $32 type $32
-        name $256 description $256;
-      /* initialise the declared columns - an empty collection's items
-        dataset carries none of the member columns, and referencing one that
-        the input does not supply raises "Variable x is uninitialized" */
-      call missing(of _all_);
-      set &libref2..items;
-      /* the engine emits one all-missing row for an empty collection */
-      if missing(name) and missing(uri) then delete;
+      %if &grant_type=authorization_code %then %do;
+        headers "Authorization"="Bearer &&&access_token_var";
+      %end;
     run;
-  %end;
-  %else %do;
-    %put NOTE: &sysmacroname - &root is empty;
-    data &outds;
-      length ordinal_root 8 ordinal_items 8
-        creationTimeStamp $32 modifiedTimeStamp $32
-        createdBy $64 modifiedBy $64
-        id $36 uri $512 added $32 type $32
-        name $256 description $256;
-      call missing(of _all_);
-      stop;
-    run;
-  %end;
-  filename &fname2 clear;
-  libname &libref2 clear;
-%end;
+    libname &libref2 JSON fileref=&fname2;
+    /* an emptied folder produces no items dataset at all, so a straight SET would
+      fail with "File ...ITEMS.DATA does not exist" and leave syscc dirty */
+    %if %sysfunc(exist(&libref2..items))=1 %then %do;
+      data &outds;
+        length ordinal_root 8 ordinal_items 8 creationTimeStamp $32
+          modifiedTimeStamp $32 createdBy $64 modifiedBy $64 id $36 uri $512
+          added $32 type $32 name $256 description $256;
+        /* initialise the declared columns - an empty collection's items
+          dataset carries none of the member columns, and referencing one that
+          the input does not supply raises "Variable x is uninitialized" */
+        call missing(of _all_);
+        set &libref2..items;
+        /* the engine emits one all-missing row for an empty collection */
+        if missing(name) and missing(uri) then delete;
+      run;
+    %end;
+    %else %do;
+      %put NOTE: &sysmacroname - &root is empty;
 
+      data &outds;
+        length ordinal_root 8 ordinal_items 8 creationTimeStamp $32
+          modifiedTimeStamp $32 createdBy $64 modifiedBy $64 id $36 uri $512
+          added $32 type $32 name $256 description $256;
+        call missing(of _all_);
+        stop;
+      run;
+    %end;
+    filename &fname2 clear;
+    libname &libref2 clear;
+  %end;
 
-/* clear refs */
-filename &fname1 clear;
-libname &libref1 clear;
+  /* clear refs */
+  filename &fname1 clear;
+  libname &libref1 clear;
 
 %mend mv_getfoldermembers;

@@ -33,21 +33,20 @@
   @version 9.2
 **/
 
-%macro mf_getvarformat(libds /* two level ds name */
-      , var /* variable name from which to return the format */
-      , force=0
-)/*/STORE SOURCE*/;
+%macro mf_getvarformat(libds /* two level ds name */ , var
+  /* variable name from which to return the format */ , force=0
+  )/*/STORE SOURCE*/;
   %local dsid vnum vformat rc vlen vtype;
   /* Open dataset */
-  %let dsid = %sysfunc(open(&libds));
+  %let dsid=%sysfunc(open(&libds));
   %if &dsid > 0 %then %do;
     /* Get variable number */
-    %let vnum = %sysfunc(varnum(&dsid, &var));
+    %let vnum=%sysfunc(varnum(&dsid, &var));
     /* Get variable format */
     %if(&vnum > 0) %then %let vformat=%sysfunc(varfmt(&dsid, &vnum));
     %else %do;
       %put NOTE: Variable &var does not exist in &libds;
-      %let rc = %sysfunc(close(&dsid));
+      %let rc=%sysfunc(close(&dsid));
       %return;
     %end;
   %end;
@@ -59,15 +58,14 @@
 
   /* supply a default if no format available */
   %if %length(&vformat)<2 & &force=1 %then %do;
-    %let vlen = %sysfunc(varlen(&dsid, &vnum));
-    %let vtype = %sysfunc(vartype(&dsid, &vnum.));
+    %let vlen=%sysfunc(varlen(&dsid, &vnum));
+    %let vtype=%sysfunc(vartype(&dsid, &vnum.));
     %if &vtype=C %then %let vformat=$&vlen..;
     %else %let vformat=best.;
   %end;
 
-
   /* Close dataset */
-  %let rc = %sysfunc(close(&dsid));
+  %let rc=%sysfunc(close(&dsid));
   /* Return variable format */
   &vformat
 %mend mf_getvarformat;

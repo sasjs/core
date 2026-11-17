@@ -68,133 +68,121 @@
 
 **/
 
-%macro mp_derivedvarcheck(inds=,
-  outds=work.dv_check,
-  physlist=0,
-  reserved=0,
-  denyfuncs=0
-);
+%macro mp_derivedvarcheck(inds=, outds=work.dv_check, physlist=0, reserved=0,
+  denyfuncs=0 );
 
-%local deny denycnt physcnt resv_list phys_list i w bad_deny denyrx w_ok;
+  %local deny denycnt physcnt resv_list phys_list i w bad_deny denyrx w_ok;
 
-%mp_abort(iftrue= (%length(&inds)=0)
-  ,mac=&sysmacroname
-  ,msg=%str(Please provide the definitions to check in inds)
-)
-%mp_abort(iftrue= (%mf_existds(libds=&inds) ne 1)
-  ,mac=&sysmacroname
-  ,msg=%str(Definitions not found: &inds)
-)
+  %mp_abort(iftrue=(%length(&inds)=0) ,mac=&sysmacroname
+    ,msg=%str(Please provide the definitions to check in inds) )
+  %mp_abort(iftrue=(%mf_existds(libds=&inds) ne 1) ,mac=&sysmacroname
+    ,msg=%str(Definitions not found: &inds) )
 
-/* the capabilities that are refused - a function name cannot be assembled at
-  run time, so naming them is a control the expression cannot evade.  The
-  file system is covered in both directions: the read vocabulary (FOPEN,
-  FREAD, FGET, FCLOSE) and the write, copy and delete vocabulary
-  (FILENAME, FDELETE, FCOPY, DCREATE, DLCREATE) */
-%let deny=DOSUBL|JAVAOBJ|JAVAMETA|SYMGET|SYMPUTX?|SYSGET|GETOPTION;
-%let deny=&deny.|PATHNAME|FILEEXIST|FOPEN|FREAD|FGET|FCLOSE;
-%let deny=&deny.|DOPEN|DREAD|DNUM|MOPEN|SLEEP;
-%let deny=&deny.|FILENAME|FDELETE|FCOPY|DCREATE|DLCREATE;
-%let bad_deny=0;
-/* a token has to be a function name: a pattern metacharacter here would make
-  the PRXMATCH below fail, and a failed match passes every row */
-%let denyrx=%str(/^[A-Z][A-Z0-9_]*$/);
-%let denycnt=%sysfunc(countw(&denyfuncs,%str( )));
-%if "%upcase(&denyfuncs)" ne "0" %then %do i=1 %to &denycnt;
-  %let w=%upcase(%scan(&denyfuncs,&i,%str( )));
-  %let w_ok=%sysfunc(prxmatch(&denyrx,&w));
-  %if &w_ok=0 %then %let bad_deny=1;
-  %else %let deny=&deny.|&w;
-%end;
-%mp_abort(iftrue= (&bad_deny=1)
-  ,mac=&sysmacroname
-  ,msg=%str(denyfuncs must be a space separated list of function names)
-)
-
-/* the target columns, as a quoted list - supplied only when the caller has the
-  table to hand */
-%let phys_list=;
-%let physcnt=%sysfunc(countw(&physlist,%str( )));
-%if %length(&physlist)>0 and "%upcase(&physlist)" ne "0"
-  %then %do i=1 %to &physcnt;
-  %let w=%scan(&physlist,&i,%str( ));
-  %let phys_list=&phys_list.%str(,)%str(%")%upcase(&w)%str(%");
-%end;
-%if %length(&phys_list)>0 %then %let phys_list=%substr(&phys_list,2);
-
-/* build a quoted list of reserved names, or an empty list */
-%let resv_list=;
-%if "&reserved" ne "0" %then %do i=1 %to %sysfunc(countw(&reserved,%str( )));
-  %let w=%scan(&reserved,&i,%str( ));
-  %let resv_list=&resv_list.%str(,)%str(%")%upcase(&w)%str(%");
-%end;
-%if %length(&resv_list)>0 %then %let resv_list=%substr(&resv_list,2);
-
-data &outds(keep=name reason);
-  set &inds;
-  length name $32 reason $200 l $4000;
-  call missing(reason);
-  name=upcase(strip(var_nm));
-
-  /* quoted literals are data, not calls - strip them before the vocabulary
-    check so a label or a value that names a refused function is allowed */
-  l=prxchange("s/'([^']|'')*'//",-1,var_logic);
-  l=prxchange('s/\"([^\"]|\"\")*\"//',-1,l);
-
-  if name='' then reason='VAR_NM is required';
-  else if verify(strip(name),'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_')>0
-    then reason='VAR_NM must be a valid SAS name';
-  else if verify(substr(name,1,1),'0123456789')=0
-    then reason='VAR_NM must not start with a digit';
-  else if name in ('_N_','_ERROR_','_IORC_')
-    then reason='VAR_NM is an automatic variable of the data step';
-  %if %length(&phys_list)>0 %then %do;
-  else if name in (%unquote(&phys_list))
-    then reason='VAR_NM collides with a column in the target table';
+  /* the capabilities that are refused - a function name cannot be assembled at
+    run time, so naming them is a control the expression cannot evade.  The
+    file system is covered in both directions: the read vocabulary (FOPEN,
+    FREAD, FGET, FCLOSE) and the write, copy and delete vocabulary
+    (FILENAME, FDELETE, FCOPY, DCREATE, DLCREATE) */
+  %let deny=DOSUBL|JAVAOBJ|JAVAMETA|SYMGET|SYMPUTX?|SYSGET|GETOPTION;
+  %let deny=&deny.|PATHNAME|FILEEXIST|FOPEN|FREAD|FGET|FCLOSE;
+  %let deny=&deny.|DOPEN|DREAD|DNUM|MOPEN|SLEEP;
+  %let deny=&deny.|FILENAME|FDELETE|FCOPY|DCREATE|DLCREATE;
+  %let bad_deny=0;
+  /* a token has to be a function name: a pattern metacharacter here would make
+    the PRXMATCH below fail, and a failed match passes every row */
+  %let denyrx=%str(/^[A-Z][A-Z0-9_]*$/);
+  %let denycnt=%sysfunc(countw(&denyfuncs,%str( )));
+  %if "%upcase(&denyfuncs)" ne "0" %then %do i=1 %to &denycnt;
+    %let w=%upcase(%scan(&denyfuncs,&i,%str( )));
+    %let w_ok=%sysfunc(prxmatch(&denyrx,&w));
+    %if &w_ok=0 %then %let bad_deny=1;
+    %else %let deny=&deny.|&w;
   %end;
-  %if %length(&resv_list)>0 %then %do;
-  else if name in (%unquote(&resv_list))
-    then reason='VAR_NM is reserved';
+  %mp_abort(iftrue=(&bad_deny=1) ,mac=&sysmacroname
+    ,msg=%str(denyfuncs must be a space separated list of function names) )
+
+  /* the target columns, as a quoted list - supplied only when the caller has
+    the table to hand */
+  %let phys_list=;
+  %let physcnt=%sysfunc(countw(&physlist,%str( )));
+  %if %length(&physlist)>0 and "%upcase(&physlist)" ne "0" %then %do i=1 %to
+    &physcnt;
+    %let w=%scan(&physlist,&i,%str( ));
+    %let phys_list=&phys_list.%str(,)%str(%")%upcase(&w)%str(%");
   %end;
-  else if upcase(strip(var_type)) not in ('C','N')
-    then reason='VAR_TYPE must be C or N';
-  else if missing(var_len) or var_len ne int(var_len) or var_len<1
-    then reason='VAR_LEN must be a positive integer';
-  else if upcase(strip(var_type))='C' and var_len>32767
-    then reason='VAR_LEN exceeds 32767 for a character variable';
-  else if upcase(strip(var_type))='N' and var_len>8
-    then reason='VAR_LEN exceeds 8 for a numeric variable';
-  else if index(var_fmt,';')>0 or indexc(var_fmt,'&%')>0
-    or index(var_fmt,'/*')>0 or index(var_fmt,'*/')>0
-    then reason='VAR_FMT must be a format name, without ; & % or /* */';
-  else if verify(strip(upcase(var_fmt))
-      ,'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_$.')>0
-    then reason='VAR_FMT must be a format name';
-  %if %mf_existvar(&inds,VAR_LABEL) gt 0 %then %do;
-  /* VAR_LABEL is free text - any script, any character - because the quotes
-    in it are escaped when the attrib statement is built.  A line break is
-    flattened to a space, which is what a label has always become, so only
-    the remaining control characters are refused */
-  else if anycntrl(translate(var_label,' ','0D0A'x))>0
-    then reason='VAR_LABEL must be plain text - no control characters';
-  else if klength(var_label)>256
-    then reason='VAR_LABEL exceeds 256 characters';
+  %if %length(&phys_list)>0 %then %let phys_list=%substr(&phys_list,2);
+
+  /* build a quoted list of reserved names, or an empty list */
+  %let resv_list=;
+  %if "&reserved" ne "0" %then %do i=1 %to %sysfunc(countw(&reserved,%str( )));
+    %let w=%scan(&reserved,&i,%str( ));
+    %let resv_list=&resv_list.%str(,)%str(%")%upcase(&w)%str(%");
   %end;
-  else if missing(var_logic)
-    then reason='VAR_LOGIC is required';
-  else if klength(var_logic)>4000
-    then reason='VAR_LOGIC exceeds 4000 characters';
-  else if index(var_logic,';')>0
-    then reason='VAR_LOGIC must be a single expression - remove the ;';
-  else if indexc(var_logic,'&%')>0
-    then reason='VAR_LOGIC must not contain macro triggers';
-  else if index(var_logic,'/*')>0 or index(var_logic,'*/')>0
-    then reason='VAR_LOGIC must not contain comments';
-  else if prxmatch("/\b(&deny)\s*\(/",upcase(l))>0
-    then reason='VAR_LOGIC may not call a function that submits code or'
+  %if %length(&resv_list)>0 %then %let resv_list=%substr(&resv_list,2);
+
+  data &outds(keep=name reason);
+    set &inds;
+    length name $32 reason $200 l $4000;
+    call missing(reason);
+    name=upcase(strip(var_nm));
+
+    /* quoted literals are data, not calls - strip them before the vocabulary
+      check so a label or a value that names a refused function is allowed */
+    l=prxchange("s/'([^']|'')*'//",-1,var_logic);
+    l=prxchange('s/\"([^\"]|\"\")*\"//',-1,l);
+
+    if name='' then reason='VAR_NM is required';
+    else if verify(strip(name),'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_')>0 then
+      reason='VAR_NM must be a valid SAS name';
+    else if verify(substr(name,1,1),'0123456789')=0 then
+      reason='VAR_NM must not start with a digit';
+    else if name in ('_N_','_ERROR_','_IORC_') then
+      reason='VAR_NM is an automatic variable of the data step';
+    %if %length(&phys_list)>0 %then %do;
+      else if name in (%unquote(&phys_list)) then
+        reason='VAR_NM collides with a column in the target table';
+    %end;
+    %if %length(&resv_list)>0 %then %do;
+      else if name in (%unquote(&resv_list)) then reason='VAR_NM is reserved';
+    %end;
+    else if upcase(strip(var_type)) not in ('C','N') then
+      reason='VAR_TYPE must be C or N';
+    else if missing(var_len) or var_len ne int(var_len) or var_len<1 then
+      reason='VAR_LEN must be a positive integer';
+    else if upcase(strip(var_type))='C' and var_len>32767 then
+      reason='VAR_LEN exceeds 32767 for a character variable';
+    else if upcase(strip(var_type))='N' and var_len>8 then
+      reason='VAR_LEN exceeds 8 for a numeric variable';
+    else if index(var_fmt,';')>0 or indexc(var_fmt,'&%')>0 or
+      index(var_fmt,'/*')>0 or index(var_fmt,'*/')>0 then
+      reason='VAR_FMT must be a format name, without ; & % or /* */';
+    else if verify(strip(upcase(var_fmt))
+      ,'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_$.')>0 then
+      reason='VAR_FMT must be a format name';
+    %if %mf_existvar(&inds,VAR_LABEL) gt 0 %then %do;
+      /* VAR_LABEL is free text - any script, any character - because the quotes
+        in it are escaped when the attrib statement is built.  A line break is
+        flattened to a space, which is what a label has always become, so only
+        the remaining control characters are refused */
+      else if anycntrl(translate(var_label,' ','0D0A'x))>0 then
+        reason='VAR_LABEL must be plain text - no control characters';
+      else if klength(var_label)>256 then
+        reason='VAR_LABEL exceeds 256 characters';
+    %end;
+    else if missing(var_logic) then reason='VAR_LOGIC is required';
+    else if klength(var_logic)>4000 then
+      reason='VAR_LOGIC exceeds 4000 characters';
+    else if index(var_logic,';')>0 then
+      reason='VAR_LOGIC must be a single expression - remove the ;';
+    else if indexc(var_logic,'&%')>0 then
+      reason='VAR_LOGIC must not contain macro triggers';
+    else if index(var_logic,'/*')>0 or index(var_logic,'*/')>0 then
+      reason='VAR_LOGIC must not contain comments';
+    else if prxmatch("/\b(&deny)\s*\(/",upcase(l))>0 then
+      reason='VAR_LOGIC may not call a function that submits code or'
       ||' reaches the file system, the environment or the macro symbol table';
 
-  if missing(reason)=0 then output;
-run;
+    if missing(reason)=0 then output;
+  run;
 
 %mend mp_derivedvarcheck;

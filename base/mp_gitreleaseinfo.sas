@@ -40,35 +40,35 @@
 **/
 
 %macro mp_gitreleaseinfo(provider,project,server=0,outlib=GITREL,mdebug=0);
-%local url fref;
+  %local url fref;
 
-%let provider=%upcase(&provider);
+  %let provider=%upcase(&provider);
 
-%if &provider=GITHUB %then %do;
-  %if "&server"="0" %then %let server=https://api.github.com;
-  %let url=&server/repos/&project/releases/latest;
-%end;
-%else %if &provider=GITLAB %then %do;
-  %if "&server"="0" %then %let server=https://gitlab.com;
-  %let url=&server/api/v4/projects/&project/releases;
-%end;
+  %if &provider=GITHUB %then %do;
+    %if "&server"="0" %then %let server=https://api.github.com;
+    %let url=&server/repos/&project/releases/latest;
+  %end;
+  %else %if &provider=GITLAB %then %do;
+    %if "&server"="0" %then %let server=https://gitlab.com;
+    %let url=&server/api/v4/projects/&project/releases;
+  %end;
 
-%let fref=%mf_getuniquefileref();
+  %let fref=%mf_getuniquefileref();
 
-proc http method='GET' out=&fref url="&url";
-%if &mdebug=1 %then %do;
-  debug level = 3;
-%end;
-run;
-
-libname &outlib JSON fileref=&fref;
-
-%if &mdebug=1 %then %do;
-  data _null_;
-    infile &fref;
-    input;
-    putlog _infile_;
+  proc http method='GET' out=&fref url="&url";
+    %if &mdebug=1 %then %do;
+      debug level=3;
+    %end;
   run;
-%end;
+
+  libname &outlib JSON fileref=&fref;
+
+  %if &mdebug=1 %then %do;
+    data _null_;
+      infile &fref;
+      input;
+      putlog _infile_;
+    run;
+  %end;
 
 %mend mp_gitreleaseinfo;

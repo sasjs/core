@@ -37,55 +37,48 @@
   @author Allan Bowe
 **/
 
-%macro mp_hashdataset(
-  libds,
-  outds=work._data_,
-  salt=,
-  iftrue=%str(1=1)
-)/*/STORE SOURCE*/;
+%macro mp_hashdataset( libds, outds=work._data_, salt=, iftrue=%str(1=1)
+  )/*/STORE SOURCE*/;
 
-%local keyvar /* roll up the md5 */
-  prevkeyvar /* retain prev record md5 */
-  lastvar /* last var in input ds */;
+  %local keyvar /* roll up the md5 */ prevkeyvar /* retain prev record md5 */
+    lastvar /* last var in input ds */;
 
-%if not(%eval(%unquote(&iftrue))) %then %return;
+  %if not(%eval(%unquote(&iftrue))) %then %return;
 
-/* avoid naming conflict for hash key vars */
-%let keyvar=%mf_getuniquename();
-%let prevkeyvar=%mf_getuniquename();
-%let lastvar=%mf_getuniquename();
+  /* avoid naming conflict for hash key vars */
+  %let keyvar=%mf_getuniquename();
+  %let prevkeyvar=%mf_getuniquename();
+  %let lastvar=%mf_getuniquename();
 
-%if %mf_getattrn(&libds,NLOBS)=0 %then %do;
-  data &outds;
-    length hashkey $32;
-    hashkey=put(md5("&salt"),$hex32.);
-    output;
-    stop;
-  run;
-  %put &sysmacroname: Dataset &libds is empty, or is not a dataset;
-  %put &sysmacroname: hashkey of &outds is based on salt (&salt) only;
-%end;
-%else %if %mf_getattrn(&libds,NLOBS)<0 %then %do;
-  %put %str(ERR)OR: Dataset &libds is not a dataset;
-%end;
-%else %do;
-  data &outds(rename=(&keyvar=hashkey) keep=&keyvar)
-  %if "%substr(&sysver,1,1)" ne "4" and "%substr(&sysver,1,1)" ne "5" %then %do;
-    /nonote2err
+  %if %mf_getattrn(&libds,NLOBS)=0 %then %do;
+    data &outds;
+      length hashkey $32;
+      hashkey=put(md5("&salt"),$hex32.);
+      output;
+      stop;
+    run;
+    %put &sysmacroname: Dataset &libds is empty, or is not a dataset;
+    %put &sysmacroname: hashkey of &outds is based on salt (&salt) only;
   %end;
-  ;
-    length &prevkeyvar &keyvar $32;
-    retain &prevkeyvar;
-    if _n_=1 then &prevkeyvar=put(md5("&salt"),$hex32.);
-    set &libds end=&lastvar;
-    /* hash should include previous row - listed first so it is hashed first */
-    %mp_rowhash(
-      md5_col=&keyvar
-      ,cvars=&prevkeyvar %mf_getvarlist(&libds,typefilter=C)
-      ,nvars=%mf_getvarlist(&libds,typefilter=N)
-    );
-    &prevkeyvar=&keyvar;
-    if &lastvar then output;
-  run;
-%end;
+  %else %if %mf_getattrn(&libds,NLOBS)<0 %then %do;
+    %put %str(ERR)OR: Dataset &libds is not a dataset;
+  %end;
+  %else %do;
+    data &outds(rename=(&keyvar=hashkey) keep=&keyvar) %if
+      "%substr(&sysver,1,1)" ne "4" and "%substr(&sysver,1,1)" ne "5" %then %do;
+      /nonote2err %end;
+      ;
+      length &prevkeyvar &keyvar $32;
+      retain &prevkeyvar;
+      if _n_=1 then &prevkeyvar=put(md5("&salt"),$hex32.);
+      set &libds end=&lastvar;
+      /* hash should include previous row - listed first so it is hashed
+        first */
+      %mp_rowhash( md5_col=&keyvar ,cvars=&prevkeyvar
+        %mf_getvarlist(&libds,typefilter=C)
+        ,nvars=%mf_getvarlist(&libds,typefilter=N) );
+      &prevkeyvar=&keyvar;
+      if &lastvar then output;
+    run;
+  %end;
 %mend mp_hashdataset;

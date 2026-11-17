@@ -29,12 +29,10 @@
   @version 9.2
 **/
 
-%macro mf_islibds(libds
-)/*/STORE SOURCE*/;
+%macro mf_islibds(libds )/*/STORE SOURCE*/;
 
-%local regex;
-%let regex=%sysfunc(prxparse(%str(/^[_a-z]\w{0,7}\.[_a-z]\w{0,31}$/i)));
+  %local regex;
+  %let regex=%sysfunc(prxparse(%str(/^[_a-z]\w{0,7}\.[_a-z]\w{0,31}$/i)));
 
-%sysfunc(prxmatch(&regex,&libds))
-
+  %sysfunc(prxmatch(&regex,&libds))
 %mend mf_islibds;

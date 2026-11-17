@@ -42,81 +42,71 @@
 
 **/
 
-%macro mp_sortinplace(libds
-)/*/STORE SOURCE*/;
+%macro mp_sortinplace(libds )/*/STORE SOURCE*/;
 
-%local lib ds tempds1 tempds2 tempvw sortkey;
+  %local lib ds tempds1 tempds2 tempvw sortkey;
 
-/* perform validations */
-%mp_abort(iftrue=(%sysfunc(countc(&libds,.)) ne 1)
-  ,mac=mp_sortinplace
-  ,msg=%str(LIBDS (&libds) should have LIBREF.DATASET format)
-)
-%mp_abort(iftrue=(%mf_existds(&libds)=0)
-  ,mac=mp_sortinplace
-  ,msg=%str(&libds does not exist)
-)
+  /* perform validations */
+  %mp_abort(iftrue=(%sysfunc(countc(&libds,.)) ne 1) ,mac=mp_sortinplace
+    ,msg=%str(LIBDS (&libds) should have LIBREF.DATASET format) )
+  %mp_abort(iftrue=(%mf_existds(&libds)=0) ,mac=mp_sortinplace
+    ,msg=%str(&libds does not exist) )
 
-%let lib=%scan(&libds,1,.);
-%let ds=%scan(&libds,2,.);
-%mp_abort(iftrue=(%mf_getengine(&lib) ne V9)
-  ,mac=mp_sortinplace
-  ,msg=%str(&lib is not a BASE engine library)
-)
+  %let lib=%scan(&libds,1,.);
+  %let ds=%scan(&libds,2,.);
+  %mp_abort(iftrue=(%mf_getengine(&lib) ne V9) ,mac=mp_sortinplace
+    ,msg=%str(&lib is not a BASE engine library) )
 
-/* grab a copy of the constraints so we know what to sort by */
-%let tempds1=%mf_getuniquename(prefix=&sysmacroname);
-%mp_getpk(lib=&lib,ds=&ds,outds=work.&tempds1)
+  /* grab a copy of the constraints so we know what to sort by */
+  %let tempds1=%mf_getuniquename(prefix=&sysmacroname);
+  %mp_getpk(lib=&lib,ds=&ds,outds=work.&tempds1)
 
-%if %mf_nobs(work.&tempds1)=0 %then %do;
-  %put &sysmacroname: No PK found in &lib..&ds;
-  %put Sorting will not take place;
-  %return;
-%end;
+  %if %mf_nobs(work.&tempds1)=0 %then %do;
+    %put &sysmacroname: No PK found in &lib..&ds;
+    %put Sorting will not take place;
+    %return;
+  %end;
 
-/* fallback sortkey is all fields */
-%let sortkey=%mf_getvarlist(&libds);
+  /* fallback sortkey is all fields */
+  %let sortkey=%mf_getvarlist(&libds);
 
-/* overlay actual sort key if it exists */
-data _null_;
-  set work.&tempds1;
-  call symputx('sortkey',coalescec(pk_fields,symget('sortkey')));
-run;
+  /* overlay actual sort key if it exists */
+  data _null_;
+    set work.&tempds1;
+    call symputx('sortkey',coalescec(pk_fields,symget('sortkey')));
+  run;
 
+  /* create empty copy, with ALL constraints, in the same library */
+  %let tempds2=%mf_getuniquename(prefix=&sysmacroname);
 
-/* create empty copy, with ALL constraints, in the same library */
-%let tempds2=%mf_getuniquename(prefix=&sysmacroname);
-proc append base=&lib..&tempds2 data=&libds(obs=0);
-run;
+  proc append base=&lib..&tempds2 data=&libds(obs=0);
+  run;
 
-/* create sorted view */
-%let tempvw=%mf_getuniquename(prefix=&sysmacroname);
-proc sql;
-create view work.&tempvw as select * from &lib..&ds
-order by %mf_getquotedstr(&sortkey,quote=N);
+  /* create sorted view */
+  %let tempvw=%mf_getuniquename(prefix=&sysmacroname);
 
-/* append sorted data */
-proc append base=&lib..&tempds2 data=work.&tempvw;
-run;
+  proc sql;
+    create view work.&tempvw as select * from &lib..&ds order by
+      %mf_getquotedstr(&sortkey,quote=N);
 
-/* do validations */
-%mp_abort(iftrue=(&syscc ne 0)
-  ,mac=mp_sortinplace
-  ,msg=%str(syscc=&syscc prior to replace operation)
-)
-%mp_abort(iftrue=(%mf_nobs(&lib..&tempds2) ne %mf_nobs(&lib..&ds))
-  ,mac=mp_sortinplace
-  ,msg=%str(new dataset has a different number of logical obs to the old)
-)
+  /* append sorted data */
+  proc append base=&lib..&tempds2 data=work.&tempvw;
+  run;
 
-/* drop old dataset */
-proc sql;
-drop table &lib..&ds;
+  /* do validations */
+  %mp_abort(iftrue=(&syscc ne 0) ,mac=mp_sortinplace
+    ,msg=%str(syscc=&syscc prior to replace operation) )
+  %mp_abort(iftrue=(%mf_nobs(&lib..&tempds2) ne %mf_nobs(&lib..&ds))
+    ,mac=mp_sortinplace
+    ,msg=%str(new dataset has a different number of logical obs to the old) )
 
-/* rename the new dataset */
-proc datasets library=&lib;
-  change &tempds2=&ds;
-run;
+  /* drop old dataset */
+  proc sql;
+    drop table &lib..&ds;
 
+  /* rename the new dataset */
+  proc datasets library=&lib;
+    change &tempds2=&ds;
+  run;
 
 %mend mp_sortinplace;

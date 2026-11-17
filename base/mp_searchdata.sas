@@ -42,90 +42,82 @@
   @author Allan Bowe
 **/
 
-%macro mp_searchdata(lib=
-  ,ds=
-  ,string= /* the query will use a contains (?) operator */
-  ,numval= /* numeric must match exactly */
-  ,outloc=0
-  ,outlib=MPSEARCH
-  ,outobs=-1
-  ,filter_text=%str(1=1)
-)/*/STORE SOURCE*/;
+%macro mp_searchdata(lib=,ds=,string=
+  /* the query will use a contains (?) operator */ ,numval=
+  /* numeric must match exactly */ ,outloc=0 ,outlib=MPSEARCH ,outobs=-1
+  ,filter_text=%str(1=1) )/*/STORE SOURCE*/;
 
-%local table_list table table_num table colnum col start_tm check_tm vars type
-  coltype;
-%put process began at %sysfunc(datetime(),datetime19.);
+  %local table_list table table_num table colnum col start_tm check_tm vars type
+    coltype;
+  %put process began at %sysfunc(datetime(),datetime19.);
 
-%if &syscc ge 4 %then %do;
-  %put %str(WAR)NING: SYSCC=&syscc on macro entry;
-  %return;
-%end;
-
-%if &string = %then %let type=N;
-%else %let type=C;
-
-%if "&outloc"="0" %then %do;
-  %let outloc=%sysfunc(pathname(work))/%mf_getuniquename();
-%end;
-
-%mf_mkdir(&outloc)
-libname &outlib "&outloc";
-
-/* get the list of tables in the library */
-proc sql noprint;
-select distinct memname into: table_list separated by ' '
-  from dictionary.tables
-  where upcase(libname)="%upcase(&lib)"
-%if &ds ne %then %do;
-  and upcase(memname)=%upcase("&ds")
-%end;
-  ;
-/* check that we have something to check */
-%if %length(&table_list)=0 %then %put library &lib contains no tables!;
-/* loop through each table */
-%else %do table_num=1 %to %sysfunc(countw(&table_list,%str( )));
-  %let table=%scan(&table_list,&table_num,%str( ));
-  %let vars=%mf_getvarlist(&lib..&table);
-  %if %length(&vars)=0 %then %do;
-    %put NO COLUMNS IN &lib..&table!  This will be skipped.;
+  %if &syscc ge 4 %then %do;
+    %put %str(WAR)NING: SYSCC=&syscc on macro entry;
+    %return;
   %end;
-  %else %do;
-    %let check_tm=%sysfunc(datetime());
-    /* prep input */
-    data &outlib..&table;
-      set &lib..&table;
-      where %unquote(&filter_text) and ( 0
-    /* loop through columns */
-    %do colnum=1 %to %sysfunc(countw(&vars,%str( )));
-      %let col=%scan(&vars,&colnum,%str( ));
-      %let coltype=%mf_getvartype(&lib..&table,&col);
-      %if &type=C and &coltype=C %then %do;
-        /* if a char column, see if it contains the string */
-        or ("&col"n ? "&string")
+
+  %if &string=%then %let type=N;
+  %else %let type=C;
+
+  %if "&outloc"="0" %then %do;
+    %let outloc=%sysfunc(pathname(work))/%mf_getuniquename();
+  %end;
+
+  %mf_mkdir(&outloc)
+  libname &outlib "&outloc";
+
+  /* get the list of tables in the library */
+  proc sql noprint;
+    select distinct memname into: table_list separated by ' ' from
+      dictionary.tables where upcase(libname)="%upcase(&lib)" %if &ds ne %then
+      %do;
+    and upcase(memname)=%upcase("&ds") %end;
+    ;
+    /* check that we have something to check */
+    %if %length(&table_list)=0 %then %put library &lib contains no tables!;
+    /* loop through each table */
+    %else %do table_num=1 %to %sysfunc(countw(&table_list,%str( )));
+      %let table=%scan(&table_list,&table_num,%str( ));
+      %let vars=%mf_getvarlist(&lib..&table);
+      %if %length(&vars)=0 %then %do;
+        %put NO COLUMNS IN &lib..&table! This will be skipped.;
       %end;
-      %else %if &type=N and &coltype=N %then %do;
-        /* if numeric match exactly */
-        or ("&col"n = &numval)
+      %else %do;
+        %let check_tm=%sysfunc(datetime());
+
+      /* prep input */
+      data &outlib..&table;
+        set &lib..&table;
+        where %unquote(&filter_text) and ( 0 /* loop through columns */ %do
+          colnum=1 %to %sysfunc(countw(&vars,%str( )));
+        %let col=%scan(&vars,&colnum,%str( ));
+        %let coltype=%mf_getvartype(&lib..&table,&col);
+        %if &type=C and &coltype=C %then %do;
+          /* if a char column, see if it contains the string */
+        or ("&col"n ? "&string") %end;
+        %else %if &type=N and &coltype=N %then %do;
+          /* if numeric match exactly */
+        or ("&col"n=&numval) %end;
+        %end;
+        );
+        %if &outobs>-1 %then %do;
+          if _n_ > &outobs then stop;
+        %end;
+      run;
+      %put Search query for &table took
+        %sysevalf(%sysfunc(datetime())-&check_tm) seconds;
+      %if &syscc ne 0 %then %do;
+        %put %str(ERR)ROR: SYSCC=&syscc when processing &lib..&table;
+        %return;
       %end;
-    %end;
-      );
-    %if &outobs>-1 %then %do;
-      if _n_ > &outobs then stop;
-    %end;
-    run;
-    %put Search query for &table took
-      %sysevalf(%sysfunc(datetime())-&check_tm) seconds;
-    %if &syscc ne 0 %then %do;
-      %put %str(ERR)ROR: SYSCC=&syscc when processing &lib..&table;
-      %return;
-    %end;
-    %if %mf_nobs(&outlib..&table)=0 %then %do;
+      %if %mf_nobs(&outlib..&table)=0 %then %do;
+
       proc sql;
-      drop table &outlib..&table;
-    %end;
-  %end;
-%end;
+        drop table &outlib..&table;
+        %end;
+        %end;
+        %end;
 
-%put process finished at %sysfunc(datetime(),datetime19.);
+        %put process finished at %sysfunc(datetime(),datetime19.);
 
-%mend mp_searchdata;
+      %mend mp_searchdata;

@@ -66,40 +66,38 @@ https://documentation.sas.com/doc/en/pgmsascdc/9.4_3.5/mcrolref/n1j5tcc0n2xczyn1
   @sasjslint {"maxLineLength": 96}
 **/
 
-%macro mp_include(fileref
-  ,opts=SOURCE2
-  ,errds=work.mp_abort_errds
-)/*/STORE SOURCE*/;
+%macro mp_include(fileref ,opts=SOURCE2 ,errds=work.mp_abort_errds
+  )/*/STORE SOURCE*/;
 
-/* prepare precode */
-%local tempref;
-%let tempref=%mf_getuniquefileref();
-data _null_;
-  file &tempref;
-  set sashelp.vextfl(where=(fileref="%upcase(&fileref)"));
-  put '%let _SYSINCLUDEFILEDEVICE=' xengine ';';
-  name=scan(xpath,-1,'/\');
-  put '%let _SYSINCLUDEFILENAME=' name ';';
-  path=subpad(xpath,1,length(xpath)-length(name)-1);
-  put '%let _SYSINCLUDEFILEDIR=' path ';';
-  put '%let _SYSINCLUDEFILEFILEREF=' "&fileref;";
-run;
+  /* prepare precode */
+  %local tempref;
+  %let tempref=%mf_getuniquefileref();
 
-/* prepare the errds */
-data &errds;
-  length msg mac $1000;
-  call missing(msg,mac);
-  iftrue='1=0';
-run;
+  data _null_;
+    file &tempref;
+    set sashelp.vextfl(where=(fileref="%upcase(&fileref)"));
+    put '%let _SYSINCLUDEFILEDEVICE=' xengine ';';
+    name=scan(xpath,-1,'/\');
+    put '%let _SYSINCLUDEFILENAME=' name ';';
+    path=subpad(xpath,1,length(xpath)-length(name)-1);
+    put '%let _SYSINCLUDEFILEDIR=' path ';';
+    put '%let _SYSINCLUDEFILEFILEREF=' "&fileref;";
+  run;
 
-/* include the include */
-%inc &tempref &fileref/&opts;
+  /* prepare the errds */
+  data &errds;
+    length msg mac $1000;
+    call missing(msg,mac);
+    iftrue='1=0';
+  run;
 
-%mp_abort(iftrue= (&syscc ne 0)
-  ,mac=%str(&_SYSINCLUDEFILEDIR/&_SYSINCLUDEFILENAME)
-  ,msg=%str(syscc=&syscc after executing &_SYSINCLUDEFILENAME)
-)
+  /* include the include */
+  %inc &tempref &fileref/&opts;
 
-filename &tempref clear;
+  %mp_abort(iftrue=(&syscc ne 0)
+    ,mac=%str(&_SYSINCLUDEFILEDIR/&_SYSINCLUDEFILENAME)
+    ,msg=%str(syscc=&syscc after executing &_SYSINCLUDEFILENAME) )
+
+  filename &tempref clear;
 
 %mend mp_include;

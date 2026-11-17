@@ -36,17 +36,13 @@
 
 %macro mp_copyfolder(source,target,copymax=MAX);
 
-  %mp_abort(iftrue=(%mf_isdir(&source)=0)
-    ,mac=&sysmacroname
-    ,msg=%str(Source dir does not exist (&source))
-  )
+  %mp_abort(iftrue=(%mf_isdir(&source)=0) ,mac=&sysmacroname
+    ,msg=%str(Source dir does not exist (&source)) )
 
   %mf_mkdir(&target)
 
-  %mp_abort(iftrue=(%mf_isdir(&target)=0)
-    ,mac=&sysmacroname
-    ,msg=%str(Target dir could not be created (&target))
-  )
+  %mp_abort(iftrue=(%mf_isdir(&target)=0) ,mac=&sysmacroname
+    ,msg=%str(Target dir could not be created (&target)) )
 
   /* prep temp table */
   %local tempds;
@@ -60,7 +56,7 @@
     length msg $200;
     call missing(msg);
     set work.&tempds;
-    if _n_ = 1 then dpos+sum(length(directory),2);
+    if _n_=1 then dpos+sum(length(directory),2);
     filepath2="&target/"!!substr(filepath,dpos);
     if file_or_folder='folder' then call execute('%mf_mkdir('!!filepath2!!')');
     else do;
@@ -79,6 +75,6 @@
 
   /* tidy up */
   proc sql;
-  drop table work.&tempds;
+    drop table work.&tempds;
 
 %mend mp_copyfolder;

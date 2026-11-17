@@ -41,8 +41,7 @@
   %if &prefix=0 %then %do;
     %let rc=%sysfunc(filename(fname,,temp,lrecl=&lrecl));
     %if &rc %then %put %sysfunc(sysmsg());
-    &fname
-  %end;
+  &fname %end;
   %else %do;
     %local x len;
     %let len=%eval(8-%length(&prefix));
@@ -52,8 +51,7 @@
       %if %sysfunc(fileref(&fname)) > 0 %then %do;
         %let rc=%sysfunc(filename(fname,,temp,lrecl=&lrecl));
         %if &rc %then %put %sysfunc(sysmsg());
-        &fname
-        %return;
+        &fname %return;
       %end;
     %end;
     %put unable to find available fileref after &maxtries attempts;

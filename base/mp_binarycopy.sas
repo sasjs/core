@@ -40,14 +40,12 @@
 
 **/
 
-%macro mp_binarycopy(
-    inloc=           /* full path and filename of the object to be copied */
-    ,outloc=          /* full path and filename of object to be created */
-    ,inref=____in   /* override default to use own filerefs */
-    ,outref=____out /* override default to use own filerefs */
-    ,mode=CREATE
-    ,iftrue=%str(1=1)
-)/*/STORE SOURCE*/;
+%macro mp_binarycopy( inloc=
+  /* full path and filename of the object to be copied */ ,outloc=
+  /* full path and filename of object to be created */ ,inref=____in
+  /* override default to use own filerefs */ ,outref=____out
+  /* override default to use own filerefs */ ,mode=CREATE ,iftrue=%str(1=1)
+  )/*/STORE SOURCE*/;
   %local mod;
 
   %if not(%eval(%unquote(&iftrue))) %then %return;
@@ -55,7 +53,7 @@
   %if &mode=APPEND %then %let mod=mod;
 
   /* these IN and OUT filerefs can point to anything */
-  %if &inref = ____in %then %do;
+  %if &inref=____in %then %do;
     filename &inref &inloc lrecl=1048576 ;
   %end;
   %if &outref=____out %then %do;
@@ -71,7 +69,7 @@
     put sourcechar char1. @@;
   run;
 
-  %if &inref = ____in %then %do;
+  %if &inref=____in %then %do;
     filename &inref clear;
   %end;
   %if &outref=____out %then %do;

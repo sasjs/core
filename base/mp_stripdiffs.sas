@@ -47,223 +47,206 @@
   @version 9.2
   @author Allan Bowe
 **/
+
 /** @cond */
 
-%macro mp_stripdiffs(libds
-  ,loadref
-  ,difftable
-  ,filtervar=0
-  ,outds=work.mp_stripdiffs
-  ,mdebug=0
-)/*/STORE SOURCE*/;
-%local dbg;
-%if &mdebug=1 %then %do;
-  %put &sysmacroname entry vars:;
-  %put _local_;
-%end;
-%else %let dbg=*;
-
-%let libds=%upcase(&libds);
-
-/* safety checks */
-%mp_abort(iftrue= (&syscc ne 0)
-  ,mac=&sysmacroname
-  ,msg=%str(SYSCC=&syscc on entry.  Clean session required!)
-)
-%let libds=%upcase(&libds);
-%mp_abort(iftrue= (%mf_islibds(&libds)=0)
-  ,mac=&sysmacroname
-  ,msg=%str(Invalid library.dataset reference - %superq(libds))
-)
-
-/* set up unique and temporary vars */
-%local ds1 ds2 ds3 ds4 ds5 fref1 filterstr;
-%let fref1=%mf_getuniquefileref();
-%if &filtervar ne 0 %then %let filterstr=%superq(&filtervar);
-%else %let filterstr=%str(1=1);
-
-/* get timestamp of the diff to be reverted */
-%local ts;
-proc sql noprint;
-select put(processed_dttm,datetime19.6) into: ts
-  from &difftable where load_ref="&loadref";
-%mp_abort(iftrue= (&sqlobs=0)
-  ,mac=&sysmacroname
-  ,msg=%str(Load ref %superq(loadref) not found!)
-)
-
-/* extract diffs for this base table from this timestamp onwards */
-%let ds1=%upcase(work.%mf_getuniquename(prefix=mpsd_diffs));
-create table &ds1 (drop=libref dsn) as
-  select * from &difftable
-  where upcase(cats(libref))="%scan(&libds,1,.)"
-  and upcase(cats(dsn))="%scan(&libds,2,.)"
-  and processed_dttm ge "&ts"dt
-  order by processed_dttm desc, key_hash, is_pk;
-
-/* extract key values only */
-%let ds2=%upcase(work.%mf_getuniquename(prefix=mpsd_pks));
-%local keyhash processed;
-%let keyhash=%upcase(%mf_getuniquename(prefix=mpsdvar_keyhash));
-%let processed=%upcase(%mf_getuniquename(prefix=mpsdvar_processed));
-create table &ds2 as
-  select key_hash as &keyhash,
-    tgtvar_nm,
-    tgtvar_type,
-    coalescec(oldval_char,newval_char) as charval,
-    coalesce(oldval_num, newval_num) as numval,
-    processed_dttm as &processed
-  from &ds1
-  where is_pk=1
-  order by &keyhash, &processed;
-
-/* grab pk values */
-%local pk;
-select distinct upcase(tgtvar_nm) into: pk separated by ' ' from &ds2;
-
-%let ds3=%upcase(work.%mf_getuniquename(prefix=mpsd_keychar));
-proc transpose data=&ds2(where=(tgtvar_type='C'))
-    out=&ds3(drop=_name_);
-  by &keyhash &processed;
-  id TGTVAR_NM;
-  var charval;
-run;
-
-%let ds4=%upcase(work.%mf_getuniquename(prefix=mpsd_keynum));
-proc transpose data=&ds2(where=(tgtvar_type='N'))
-    out=&ds4(drop=_name_);
-  by &keyhash &processed;
-  id TGTVAR_NM;
-  var numval;
-run;
-/* shorten the lengths */
-%mp_ds2squeeze(&ds3,outds=&ds3)
-%mp_ds2squeeze(&ds4,outds=&ds4)
-
-/* now merge to get all key values and de-dup */
-%let ds5=%upcase(work.%mf_getuniquename(prefix=mpsd_merged));
-data &ds5;
-  length &keyhash $32 &processed 8;
-  merge &ds3 &ds4;
-  by &keyhash &processed;
-  if not missing(&keyhash);
-run;
-proc sort data=&ds5 nodupkey;
-  by &pk;
-run;
-
-/* join to base table for preliminary stage DS */
-proc sql;
-create table &outds as select "No " as _____DELETE__THIS__RECORD_____
-  %do x=1 %to %sysfunc(countw(&pk,%str( )));
-    ,a.%scan(&pk,&x,%str( ))
+%macro mp_stripdiffs(libds ,loadref ,difftable ,filtervar=0
+  ,outds=work.mp_stripdiffs ,mdebug=0 )/*/STORE SOURCE*/;
+  %local dbg;
+  %if &mdebug=1 %then %do;
+    %put &sysmacroname entry vars:;
+    %put _local_;
   %end;
-  %local notpkcols;
-  %let notpkcols=%upcase(%mf_getvarlist(&libds));
-  %let notpkcols=%mf_wordsinstr1butnotstr2(str1=&notpkcols,str2=&pk);
-  %do x=1 %to %sysfunc(countw(&notpkcols,%str( )));
-    ,b.%scan(&notpkcols,&x,%str( ))
-  %end;
-  from &ds5 a
-  left join &libds (where=(&filterstr)) b
-  on 1=1
-%do x=1 %to %sysfunc(countw(&pk,%str( )));
-  and a.%scan(&pk,&x,%str( ))=b.%scan(&pk,&x,%str( ))
-%end;
-;
+  %else %let dbg=*;
 
-/* create SAS code to apply to stage_ds */
-/* numeric values become SQL literals, so a special missing (.A-.Z, ._) must
-  carry its leading period - PUT writes only the letter, which PROC SQL reads
-  as a column name */
-data _null_;
-  set &ds1;
-  file &fref1 lrecl=33000;
-  length charval $32767;
-  if _n_=1 then put 'proc sql noprint;';
-  by descending processed_dttm key_hash is_pk;
-  if move_type='M' then do;
-    if first.key_hash then do;
-      put "update &outds set " @@;
-    end;
-    if IS_PK=0 then do;
-      put "  " tgtvar_nm '=' @@;
-      cnt=count(oldval_char,'"');
-      charval=quote(trim(substr(oldval_char,1,32765-cnt)));
-      if tgtvar_type='C' then put charval @@;
-      else if missing(oldval_num) and oldval_num ne .
-        then put "." oldval_num @@;
-      else put oldval_num @@;
-      if not last.is_pk then put ',';
-    end;
-    else do;
-      if first.is_pk then put "  where 1=1 " @@;
-      put "  and " tgtvar_nm '=' @@;
-      cnt=count(oldval_char,'"');
-      charval=quote(trim(substr(oldval_char,1,32765-cnt)));
-      if tgtvar_type='C' then put charval @@;
-      else if missing(oldval_num) and oldval_num ne .
-        then put "." oldval_num @@;
-      else put oldval_num @@;
-    end;
-  end;
-  else if move_type='A' then do;
-    if first.key_hash then do;
-      put "update &outds set _____DELETE__THIS__RECORD_____='Yes' where 1=1 "@@;
-    end;
-    /* gating if - as only need PK now */
-    if is_pk=1;
-    put '  AND ' tgtvar_nm '=' @@;
-    cnt=count(newval_char,'"');
-    charval=quote(trim(substr(newval_char,1,32765-cnt)));
-    if tgtvar_type='C' then put charval @@;
-    else if missing(newval_num) and newval_num ne .
-      then put "." newval_num @@;
-    else put newval_num @@;
-  end;
-  else if move_type='D' then do;
-    if first.key_hash then do;
-      put "update &outds set _____DELETE__THIS__RECORD_____='No' " @@;
-    end;
-    if IS_PK=0 then do;
-      put "  ," tgtvar_nm '=' @@;
-      cnt=count(oldval_char,'"');
-      charval=quote(trim(substr(oldval_char,1,32765-cnt)));
-      if tgtvar_type='C' then put charval @@;
-      else if missing(oldval_num) and oldval_num ne .
-        then put "." oldval_num @@;
-      else put oldval_num @@;
-    end;
-    else do;
-      if first.is_pk then put "  where 1=1 " @@;
-      put "  and " tgtvar_nm '=' @@;
-      cnt=count(oldval_char,'"');
-      charval=quote(trim(substr(oldval_char,1,32765-cnt)));
-      if tgtvar_type='C' then put charval @@;
-      else if missing(oldval_num) and oldval_num ne .
-        then put "." oldval_num @@;
-      else put oldval_num @@;
-    end;
-  end;
-  if last.key_hash then put ';';
-run;
+  %let libds=%upcase(&libds);
 
-/* apply the modification statements */
-%inc &fref1/source2 lrecl=33000;
+  /* safety checks */
+  %mp_abort(iftrue=(&syscc ne 0) ,mac=&sysmacroname
+    ,msg=%str(SYSCC=&syscc on entry.  Clean session required!) )
+  %let libds=%upcase(&libds);
+  %mp_abort(iftrue=(%mf_islibds(&libds)=0) ,mac=&sysmacroname
+    ,msg=%str(Invalid library.dataset reference - %superq(libds)) )
 
-%if &mdebug=0 %then %do;
-  proc sql;
-  drop table &ds1, &ds2, &ds3, &ds4, &ds5;
-  file &fref1 clear;
-%end;
-%else %do;
-  data _null_;
-    infile &fref1;
-    input;
-    if _n_=1 then putlog "Contents of SQL adjustments";
-    putlog _infile_;
+  /* set up unique and temporary vars */
+  %local ds1 ds2 ds3 ds4 ds5 fref1 filterstr;
+  %let fref1=%mf_getuniquefileref();
+  %if &filtervar ne 0 %then %let filterstr=%superq(&filtervar);
+  %else %let filterstr=%str(1=1);
+
+  /* get timestamp of the diff to be reverted */
+  %local ts;
+
+  proc sql noprint;
+    select put(processed_dttm,datetime19.6) into: ts from &difftable where
+      load_ref="&loadref";
+    %mp_abort(iftrue=(&sqlobs=0) ,mac=&sysmacroname
+      ,msg=%str(Load ref %superq(loadref) not found!) )
+
+    /* extract diffs for this base table from this timestamp onwards */
+    %let ds1=%upcase(work.%mf_getuniquename(prefix=mpsd_diffs));
+    create table &ds1 (drop=libref dsn) as select * from &difftable where
+      upcase(cats(libref))="%scan(&libds,1,.)" and
+      upcase(cats(dsn))="%scan(&libds,2,.)" and processed_dttm ge "&ts"dt order
+      by processed_dttm desc, key_hash, is_pk;
+
+    /* extract key values only */
+    %let ds2=%upcase(work.%mf_getuniquename(prefix=mpsd_pks));
+    %local keyhash processed;
+    %let keyhash=%upcase(%mf_getuniquename(prefix=mpsdvar_keyhash));
+    %let processed=%upcase(%mf_getuniquename(prefix=mpsdvar_processed));
+    create table &ds2 as select key_hash as &keyhash, tgtvar_nm, tgtvar_type,
+      coalescec(oldval_char,newval_char) as charval, coalesce(oldval_num,
+      newval_num) as numval, processed_dttm as &processed from &ds1 where
+      is_pk=1 order by &keyhash, &processed;
+
+    /* grab pk values */
+    %local pk;
+    select distinct upcase(tgtvar_nm) into: pk separated by ' ' from &ds2;
+
+    %let ds3=%upcase(work.%mf_getuniquename(prefix=mpsd_keychar));
+
+  proc transpose data=&ds2(where=(tgtvar_type='C')) out=&ds3(drop=_name_);
+    by &keyhash &processed;
+    id TGTVAR_NM;
+    var charval;
   run;
-%end;
 
-%mend mp_stripdiffs;
-/** @endcond */
+  %let ds4=%upcase(work.%mf_getuniquename(prefix=mpsd_keynum));
+
+  proc transpose data=&ds2(where=(tgtvar_type='N')) out=&ds4(drop=_name_);
+    by &keyhash &processed;
+    id TGTVAR_NM;
+    var numval;
+  run;
+  /* shorten the lengths */
+  %mp_ds2squeeze(&ds3,outds=&ds3)
+  %mp_ds2squeeze(&ds4,outds=&ds4)
+
+  /* now merge to get all key values and de-dup */
+  %let ds5=%upcase(work.%mf_getuniquename(prefix=mpsd_merged));
+
+  data &ds5;
+    length &keyhash $32 &processed 8;
+    merge &ds3 &ds4;
+    by &keyhash &processed;
+    if not missing(&keyhash);
+  run;
+
+  proc sort data=&ds5 nodupkey;
+    by &pk;
+  run;
+
+  /* join to base table for preliminary stage DS */
+  proc sql;
+    create table &outds as select "No " as _____DELETE__THIS__RECORD_____ %do
+      x=1 %to %sysfunc(countw(&pk,%str( )));
+    ,a.%scan(&pk,&x,%str( )) %end;
+    %local notpkcols;
+    %let notpkcols=%upcase(%mf_getvarlist(&libds));
+    %let notpkcols=%mf_wordsinstr1butnotstr2(str1=&notpkcols,str2=&pk);
+    %do x=1 %to %sysfunc(countw(&notpkcols,%str( )));
+    ,b.%scan(&notpkcols,&x,%str( )) %end;
+    from &ds5 a left join &libds (where=(&filterstr)) b on 1=1 %do x=1 %to
+      %sysfunc(countw(&pk,%str( )));
+    and a.%scan(&pk,&x,%str( ))=b.%scan(&pk,&x,%str( )) %end;
+    ;
+
+    /* create SAS code to apply to stage_ds */
+
+  /* numeric values become SQL literals, so a special missing (.A-.Z, ._) must
+    carry its leading period - PUT writes only the letter, which PROC SQL reads
+    as a column name */
+  data _null_;
+    set &ds1;
+    file &fref1 lrecl=33000;
+    length charval $32767;
+    if _n_=1 then put 'proc sql noprint;';
+    by descending processed_dttm key_hash is_pk;
+    if move_type='M' then do;
+      if first.key_hash then do;
+        put "update &outds set " @@;
+      end;
+      if IS_PK=0 then do;
+        put "  " tgtvar_nm '=' @@;
+        cnt=count(oldval_char,'"');
+        charval=quote(trim(substr(oldval_char,1,32765-cnt)));
+        if tgtvar_type='C' then put charval @@;
+        else if missing(oldval_num) and oldval_num ne . then put "." oldval_num
+          @@;
+        else put oldval_num @@;
+        if not last.is_pk then put ',';
+      end;
+      else do;
+        if first.is_pk then put "  where 1=1 " @@;
+        put "  and " tgtvar_nm '=' @@;
+        cnt=count(oldval_char,'"');
+        charval=quote(trim(substr(oldval_char,1,32765-cnt)));
+        if tgtvar_type='C' then put charval @@;
+        else if missing(oldval_num) and oldval_num ne . then put "." oldval_num
+          @@;
+        else put oldval_num @@;
+      end;
+    end;
+    else if move_type='A' then do;
+      if first.key_hash then do;
+        put
+          "update &outds set _____DELETE__THIS__RECORD_____='Yes' where 1=1 "@@;
+      end;
+      /* gating if - as only need PK now */
+      if is_pk=1;
+      put '  AND ' tgtvar_nm '=' @@;
+      cnt=count(newval_char,'"');
+      charval=quote(trim(substr(newval_char,1,32765-cnt)));
+      if tgtvar_type='C' then put charval @@;
+      else if missing(newval_num) and newval_num ne . then put "." newval_num
+        @@;
+      else put newval_num @@;
+    end;
+    else if move_type='D' then do;
+      if first.key_hash then do;
+        put "update &outds set _____DELETE__THIS__RECORD_____='No' " @@;
+      end;
+      if IS_PK=0 then do;
+        put "  ," tgtvar_nm '=' @@;
+        cnt=count(oldval_char,'"');
+        charval=quote(trim(substr(oldval_char,1,32765-cnt)));
+        if tgtvar_type='C' then put charval @@;
+        else if missing(oldval_num) and oldval_num ne . then put "." oldval_num
+          @@;
+        else put oldval_num @@;
+      end;
+      else do;
+        if first.is_pk then put "  where 1=1 " @@;
+        put "  and " tgtvar_nm '=' @@;
+        cnt=count(oldval_char,'"');
+        charval=quote(trim(substr(oldval_char,1,32765-cnt)));
+        if tgtvar_type='C' then put charval @@;
+        else if missing(oldval_num) and oldval_num ne . then put "." oldval_num
+          @@;
+        else put oldval_num @@;
+      end;
+    end;
+    if last.key_hash then put ';';
+  run;
+
+  /* apply the modification statements */
+  %inc &fref1/source2 lrecl=33000;
+
+  %if &mdebug=0 %then %do;
+    proc sql;
+      drop table &ds1, &ds2, &ds3, &ds4, &ds5;
+      file &fref1 clear;
+      %end;
+      %else %do;
+
+      data _null_;
+        infile &fref1;
+        input;
+        if _n_=1 then putlog "Contents of SQL adjustments";
+        putlog _infile_;
+      run;
+      %end;
+
+      %mend mp_stripdiffs;
+      /** @endcond */

@@ -21,9 +21,9 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
   @author Allan Bowe
   @sasjslint {"maxLineLength": 90}
 **/
+
 /** @cond */
-%macro mf_existfunction(name
-)/*/STORE SOURCE*/;
+%macro mf_existfunction(name )/*/STORE SOURCE*/;
 
   %local dsid rc exist;
   %let dsid=%sysfunc(open(sashelp.vfunc(where=(fncname="%upcase(&name)"))));
@@ -31,8 +31,7 @@ https://github.com/yabwon/SAS_PACKAGES/blob/main/packages/baseplus.md#functionex
   %let exist=%sysfunc(fetch(&dsid, NOSET));
   %let rc=%sysfunc(close(&dsid));
 
-  %sysevalf(0 = &exist)
+  %sysevalf(0=&exist)
+  %mend mf_existfunction;
 
-%mend mf_existfunction;
-
-/** @endcond */
+  /** @endcond */

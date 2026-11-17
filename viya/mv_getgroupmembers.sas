@@ -55,95 +55,88 @@
 
 **/
 
-%macro mv_getgroupmembers(group
-    ,access_token_var=ACCESS_TOKEN
-    ,grant_type=sas_services
-    ,outds=work.viyagroupmembers
-  );
-%local oauth_bearer;
-%if &grant_type=detect %then %do;
-  %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
-  %else %let grant_type=sas_services;
-%end;
-%if &grant_type=sas_services %then %do;
+%macro mv_getgroupmembers(group ,access_token_var=ACCESS_TOKEN
+  ,grant_type=sas_services ,outds=work.viyagroupmembers );
+  %local oauth_bearer;
+  %if &grant_type=detect %then %do;
+    %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
+    %else %let grant_type=sas_services;
+  %end;
+  %if &grant_type=sas_services %then %do;
     %let oauth_bearer=oauth_bearer=sas_services;
     %let &access_token_var=;
-%end;
-
-%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
-    and &grant_type ne sas_services
-  )
-  ,mac=&sysmacroname
-  ,msg=%str(Invalid value for grant_type: &grant_type)
-)
-
-options noquotelenmax;
-
-%local base_uri; /* location of rest apis */
-%let base_uri=%mf_getplatform(VIYARESTAPI);
-
-/* fetching folder details for provided path */
-%local fname1;
-%let fname1=%mf_getuniquefileref();
-proc http method='GET' out=&fname1 &oauth_bearer
-  url="&base_uri/identities/groups/&group/members?limit=10000";
-  headers
-  %if &grant_type=authorization_code %then %do;
-          "Authorization"="Bearer &&&access_token_var"
   %end;
-          "Accept"="application/json";
-run;
-/*data _null_;infile &fname1;input;putlog _infile_;run;*/
-%if &SYS_PROCHTTP_STATUS_CODE=404 %then %do;
-  %put NOTE:  Group &group not found!!;
-  /* the same documented columns and zero rows as a group with no members -
-    call missing alone would output one all-missing observation */
-  data &outds;
-    length ordinal_root 8 ordinal_items 8 version 8
-      id $256 name $256 providerId $32 implicit 8 type $32;
-    call missing(of _all_);
-    stop;
+
+  %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne
+    password and &grant_type ne sas_services ) ,mac=&sysmacroname
+    ,msg=%str(Invalid value for grant_type: &grant_type) )
+
+  options noquotelenmax;
+
+  %local base_uri; /* location of rest apis */
+  %let base_uri=%mf_getplatform(VIYARESTAPI);
+
+  /* fetching folder details for provided path */
+  %local fname1;
+  %let fname1=%mf_getuniquefileref();
+
+  proc http method='GET' out=&fname1 &oauth_bearer
+    url="&base_uri/identities/groups/&group/members?limit=10000";
+    headers %if &grant_type=authorization_code %then %do;
+    "Authorization"="Bearer &&&access_token_var" %end;
+    "Accept"="application/json";
   run;
-%end;
-%else %do;
-  %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200)
-    ,mac=&sysmacroname
-    ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
-  )
-  %let libref1=%mf_getuniquelibref();
-  libname &libref1 JSON fileref=&fname1;
-  /* a group with no members returns a collection whose items dataset carries no
-    member columns, so a straight SET would raise "Variable id is uninitialized"
-    and leave syscc dirty.  Only copy when there is something to copy.  The
-    documented columns are declared on both paths, so an empty group hands the
-    caller the same PDV as a populated one.  The lengths are declared because
-    the JSON engine sizes its columns to the longest value in the payload:
-    $256 is the longest an active directory display name or SAM account name
-    can hold, and a shorter declaration lets the engine report "Multiple
-    lengths were specified" on a later member. */
-  %local itemsds hasvars;
-  %let itemsds=&libref1..items;
-  %let hasvars=0;
-  %if %sysfunc(exist(&itemsds))=1 %then %do;
-    %if %mf_existvar(&itemsds,id)>0 %then %let hasvars=1;
-  %end;
-  data &outds;
-    length ordinal_root 8 ordinal_items 8 version 8
-      id $256 name $256 providerId $32 implicit 8 type $32;
-    call missing(of _all_);
-    %if &hasvars=1 %then %do;
-      set &itemsds;
-      /* the engine emits one all-missing row for an empty collection */
-      if missing(id) then delete;
-    %end;
-    %else %do;
+  /*data _null_;infile &fname1;input;putlog _infile_;run;*/
+  %if &SYS_PROCHTTP_STATUS_CODE=404 %then %do;
+    %put NOTE: Group &group not found!!;
+
+    /* the same documented columns and zero rows as a group with no members -
+      call missing alone would output one all-missing observation */
+    data &outds;
+      length ordinal_root 8 ordinal_items 8 version 8 id $256 name $256
+        providerId $32 implicit 8 type $32;
+      call missing(of _all_);
       stop;
+    run;
+  %end;
+  %else %do;
+    %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200) ,mac=&sysmacroname
+      ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE) )
+    %let libref1=%mf_getuniquelibref();
+    libname &libref1 JSON fileref=&fname1;
+    /* a group with no members returns a collection whose items dataset carries
+      no member columns, so a straight SET would raise "Variable id is
+      uninitialized" and leave syscc dirty. Only copy when there is something to
+      copy. The documented columns are declared on both paths, so an empty group
+      hands the caller the same PDV as a populated one. The lengths are declared
+      because the JSON engine sizes its columns to the longest value in the
+      payload: $256 is the longest an active directory display name or SAM
+      account name can hold, and a shorter declaration lets the engine report
+      "Multiple lengths were specified" on a later member. */
+    %local itemsds hasvars;
+    %let itemsds=&libref1..items;
+    %let hasvars=0;
+    %if %sysfunc(exist(&itemsds))=1 %then %do;
+      %if %mf_existvar(&itemsds,id)>0 %then %let hasvars=1;
     %end;
-  run;
-  libname &libref1 clear;
-%end;
 
-/* clear refs */
-filename &fname1 clear;
+    data &outds;
+      length ordinal_root 8 ordinal_items 8 version 8 id $256 name $256
+        providerId $32 implicit 8 type $32;
+      call missing(of _all_);
+      %if &hasvars=1 %then %do;
+        set &itemsds;
+        /* the engine emits one all-missing row for an empty collection */
+        if missing(id) then delete;
+      %end;
+      %else %do;
+        stop;
+      %end;
+    run;
+    libname &libref1 clear;
+  %end;
+
+  /* clear refs */
+  filename &fname1 clear;
 
 %mend mv_getgroupmembers;

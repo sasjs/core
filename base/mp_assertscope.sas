@@ -66,83 +66,73 @@
 
 **/
 
-%macro mp_assertscope(action,
-  desc=Testing Scope Leakage,
-  scope=GLOBAL,
-  scopeds=work.mp_assertscope,
-  ignorelist=,
-  outds=work.test_results
-)/*/STORE SOURCE*/;
-/**
-  * this sets up the global vars, it will also enter STRICT mode.  If this
-  * behaviour is not desired, simply initiate the following global macro
-  * variable to prevent the macro from running: _SASJS_INIT
-  */
-%mp_init()
+%macro mp_assertscope(action, desc=Testing Scope Leakage, scope=GLOBAL,
+  scopeds=work.mp_assertscope, ignorelist=, outds=work.test_results
+  )/*/STORE SOURCE*/;
+  /**
+    * this sets up the global vars, it will also enter STRICT mode.  If this
+    * behaviour is not desired, simply initiate the following global macro
+    * variable to prevent the macro from running: _SASJS_INIT
+    */
+  %mp_init()
 
-%local ds test_result test_comments del add mod ilist;
-%let ilist=%upcase(_SASJS_FUNCTIONS SYS_PROCHTTP_STATUS_CODE
-  SYS_PROCHTTP_STATUS_CODE SYS_PROCHTTP_STATUS_PHRASE &ignorelist);
+  %local ds test_result test_comments del add mod ilist;
+  %let ilist=%upcase(_SASJS_FUNCTIONS SYS_PROCHTTP_STATUS_CODE
+    SYS_PROCHTTP_STATUS_CODE SYS_PROCHTTP_STATUS_PHRASE &ignorelist);
 
-/* get current variables */
-%if &action=SNAPSHOT %then %do;
-  proc sql;
-  create table &scopeds as
-    select name,offset,value
-    from dictionary.macros
-    where scope="&scope" and upcase(name) not in (%mf_getquotedstr(&ilist))
-    order by name,offset;
-  quit;
-%end;
-%else %if &action=COMPARE %then %do;
-
-  proc sql;
-  create table _data_ as
-    select name,offset,value
-    from dictionary.macros
-    where scope="&scope" and upcase(name) not in (%mf_getquotedstr(&ilist))
-    order by name,offset;
-
-  %let ds=&syslast;
-
-  proc compare
-    base=&scopeds(where=(upcase(name) not in (%mf_getquotedstr(&ilist))))
-    compare=&ds noprint;
-  run;
-
-  %if &sysinfo=0 %then %do;
-    %let test_result=PASS;
-    %let test_comments=&scope Variables Unmodified;
+  /* get current variables */
+  %if &action=SNAPSHOT %then %do;
+    proc sql;
+      create table &scopeds as select name,offset,value from dictionary.macros
+        where scope="&scope" and upcase(name) not in (%mf_getquotedstr(&ilist))
+        order by name,offset;
+    quit;
   %end;
-  %else %do;
-    proc sql noprint undo_policy=none;
-    select distinct name into: del separated by ' '  from &scopeds
-      where name not in (select name from &ds);
-    select distinct name into: add separated by ' '  from &ds
-      where name not in (select name from &scopeds);
-    select distinct a.name into: mod separated by ' '
-      from &scopeds a
-      inner join &ds b
-      on a.name=b.name
-        and a.offset=b.offset
-      where a.value ne b.value;
-    %let test_result=FAIL;
-    %let test_comments=%str(Mod:(&mod) Add:(&add) Del:(&del));
-  %end;
+  %else %if &action=COMPARE %then %do;
 
-  data ;
-    length test_result $5 test_description $256 test_comments $256;
-    test_description=symget('desc');
-    test_comments=symget('test_comments');
-    test_result=symget('test_result');
-  run;
+    proc sql;
+      create table _data_ as select name,offset,value from dictionary.macros
+        where scope="&scope" and upcase(name) not in (%mf_getquotedstr(&ilist))
+        order by name,offset;
 
-  %let ds=&syslast;
-  proc append base=&outds data=&ds;
-  run;
-  proc sql;
-  drop table &ds;
-  quit;
-%end;
+      %let ds=&syslast;
 
-%mend mp_assertscope;
+    proc compare base=&scopeds(where=(upcase(name) not in
+      (%mf_getquotedstr(&ilist)))) compare=&ds noprint;
+    run;
+
+    %if &sysinfo=0 %then %do;
+      %let test_result=PASS;
+      %let test_comments=&scope Variables Unmodified;
+    %end;
+    %else %do;
+      proc sql noprint undo_policy=none;
+        select distinct name into: del separated by ' ' from &scopeds where name
+          not in (select name from &ds);
+        select distinct name into: add separated by ' ' from &ds where name not
+          in (select name from &scopeds);
+        select distinct a.name into: mod separated by ' ' from &scopeds a inner
+          join &ds b on a.name=b.name and a.offset=b.offset where a.value ne
+          b.value;
+        %let test_result=FAIL;
+        %let test_comments=%str(Mod:(&mod) Add:(&add) Del:(&del));
+        %end;
+
+      data ;
+        length test_result $5 test_description $256 test_comments $256;
+        test_description=symget('desc');
+        test_comments=symget('test_comments');
+        test_result=symget('test_result');
+      run;
+
+      %let ds=&syslast;
+
+      proc append base=&outds data=&ds;
+      run;
+
+      proc sql;
+        drop table &ds;
+      quit;
+    %end;
+
+    %mend mp_assertscope;

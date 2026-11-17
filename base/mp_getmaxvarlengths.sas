@@ -55,76 +55,63 @@
 
 **/
 
-%macro mp_getmaxvarlengths(
-  libds
-  ,num2char=NO
-  ,outds=work.mp_getmaxvarlengths
-)/*/STORE SOURCE*/;
+%macro mp_getmaxvarlengths( libds ,num2char=NO ,outds=work.mp_getmaxvarlengths
+  )/*/STORE SOURCE*/;
 
-%local vars prefix x var fmt srcds;
-%let vars=%mf_getvarlist(libds=&libds);
-%let prefix=%substr(%mf_getuniquename(),1,25);
-%let num2char=%upcase(&num2char);
+  %local vars prefix x var fmt srcds;
+  %let vars=%mf_getvarlist(libds=&libds);
+  %let prefix=%substr(%mf_getuniquename(),1,25);
+  %let num2char=%upcase(&num2char);
 
-%if &num2char=NO %then %do;
-  /* compile length function for numeric fields */
-  %mcf_length()
-%end;
-
-%if &num2char=NO
-  and ("%substr(&sysver,1,1)"="4" or "%substr(&sysver,1,1)"="5")
-  and %mf_getvarcount(&libds,typefilter=N) gt 0
-%then %do;
-  /* custom functions not supported in summary operations */
-  %let srcds=%mf_getuniquename();
-  data &srcds/view=&srcds;
-    set &libds;
-  %do x=1 %to %sysfunc(countw(&vars,%str( )));
-    %let var=%scan(&vars,&x);
-    %if %mf_getvartype(&libds,&var)=N %then %do;
-      &prefix.&x=mcf_length(&var);
-    %end;
+  %if &num2char=NO %then %do;
+    /* compile length function for numeric fields */
+    %mcf_length()
   %end;
-  run;
-%end;
-%else %let srcds=&libds;
 
-proc sql;
-create table &outds (rename=(
-    %do x=1 %to %sysfunc(countw(&vars,%str( )));
-      &prefix.&x=%scan(&vars,&x)
-    %end;
-    ))
-  as select
-    %do x=1 %to %sysfunc(countw(&vars,%str( )));
-      %let var=%scan(&vars,&x);
-      %if &x>1 %then ,;
-      %if %mf_getvartype(&libds,&var)=C %then %do;
-        max(lengthn(&var)) as &prefix.&x
-      %end;
-      %else %if &num2char=YES %then %do;
-        %let fmt=%mf_getvarformat(&libds,&var);
-        %put fmt=&fmt;
-        %if %str(&fmt)=%str() %then %do;
-          max(lengthn(cats(&var))) as &prefix.&x
-        %end;
-        %else %do;
-          max(lengthn(put(&var,&fmt))) as &prefix.&x
+  %if &num2char=NO and ("%substr(&sysver,1,1)"="4" or
+    "%substr(&sysver,1,1)"="5") and %mf_getvarcount(&libds,typefilter=N) gt 0
+    %then %do;
+    /* custom functions not supported in summary operations */
+    %let srcds=%mf_getuniquename();
+
+    data &srcds/view=&srcds;
+      set &libds;
+      %do x=1 %to %sysfunc(countw(&vars,%str( )));
+        %let var=%scan(&vars,&x);
+        %if %mf_getvartype(&libds,&var)=N %then %do;
+          &prefix.&x=mcf_length(&var);
         %end;
       %end;
+    run;
+  %end;
+  %else %let srcds=&libds;
+
+  proc sql;
+    create table &outds (rename=( %do x=1 %to %sysfunc(countw(&vars,%str( )));
+    &prefix.&x=%scan(&vars,&x) %end;
+    )) as select %do x=1 %to %sysfunc(countw(&vars,%str( )));
+    %let var=%scan(&vars,&x);
+    %if &x>1 %then ,;
+    %if %mf_getvartype(&libds,&var)=C %then %do;
+    max(lengthn(&var)) as &prefix.&x %end;
+    %else %if &num2char=YES %then %do;
+      %let fmt=%mf_getvarformat(&libds,&var);
+      %put fmt=&fmt;
+      %if %str(&fmt)=%str() %then %do;
+      max(lengthn(cats(&var))) as &prefix.&x %end;
       %else %do;
-        %if "%substr(&sysver,1,1)"="4" or "%substr(&sysver,1,1)"="5" %then %do;
-          max(&prefix.&x) as &prefix.&x
-        %end;
-        %else %do;
-          max(mcf_length(&var)) as &prefix.&x
-        %end;
-      %end;
+      max(lengthn(put(&var,&fmt))) as &prefix.&x %end;
     %end;
-  from &srcds;
+    %else %do;
+      %if "%substr(&sysver,1,1)"="4" or "%substr(&sysver,1,1)"="5" %then %do;
+      max(&prefix.&x) as &prefix.&x %end;
+      %else %do;
+      max(mcf_length(&var)) as &prefix.&x %end;
+    %end;
+    %end;
+    from &srcds;
 
-  proc transpose data=&outds
-    out=&outds(rename=(_name_=NAME COL1=MAXLEN));
+  proc transpose data=&outds out=&outds(rename=(_name_=NAME COL1=MAXLEN));
   run;
 
 %mend mp_getmaxvarlengths;

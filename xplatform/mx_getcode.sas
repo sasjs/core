@@ -25,33 +25,28 @@
 
 **/
 
-%macro mx_getcode(loc,outref=0
-)/*/STORE SOURCE*/;
+%macro mx_getcode(loc,outref=0 )/*/STORE SOURCE*/;
 
-%local platform name shortloc;
-%let platform=%mf_getplatform();
+  %local platform name shortloc;
+  %let platform=%mf_getplatform();
 
-%if &platform=SASJS %then %do;
-  %ms_getfile(&loc..sas, outref=&outref)
-%end;
-%else %if &platform=SAS9 or &platform=SASMETA %then %do;
-  %mm_getstpcode(tree=&loc,outref=&outref)
-%end;
-%else %if &platform=SASVIYA %then %do;
-  /* extract name & path from &loc */
-  data _null_;
-    loc=symget('loc');
-    name=scan(loc,-1,'/');
-    shortloc=substr(loc,1,length(loc)-length(name)-1);
-    call symputx('name',name,'l');
-    call symputx('shortloc',shortloc,'l');
-  run;
-  %mv_getjobcode(
-    path=&shortloc,
-    name=&name,
-    outref=&outref
-  )
-%end;
-%else %put &sysmacroname: &platform is unsupported!!!;
+  %if &platform=SASJS %then %do;
+    %ms_getfile(&loc..sas, outref=&outref)
+  %end;
+  %else %if &platform=SAS9 or &platform=SASMETA %then %do;
+    %mm_getstpcode(tree=&loc,outref=&outref)
+  %end;
+  %else %if &platform=SASVIYA %then %do;
+    /* extract name & path from &loc */
+    data _null_;
+      loc=symget('loc');
+      name=scan(loc,-1,'/');
+      shortloc=substr(loc,1,length(loc)-length(name)-1);
+      call symputx('name',name,'l');
+      call symputx('shortloc',shortloc,'l');
+    run;
+    %mv_getjobcode( path=&shortloc, name=&name, outref=&outref )
+  %end;
+  %else %put &sysmacroname: &platform is unsupported!!!;
 
 %mend mx_getcode;

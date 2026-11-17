@@ -29,8 +29,7 @@
   @author [Allan Bowe](https://www.linkedin.com/in/allanbowe/)
 **/
 
-%macro mfv_getpathuri(filepath
-)/*/STORE SOURCE*/;
+%macro mfv_getpathuri(filepath )/*/STORE SOURCE*/;
 
   %local fref rc path name var /* var is used to avoid delete timing issue */;
 
@@ -44,10 +43,9 @@
   %let path=%substr(&filepath,1,%length(&filepath)-%length(&name)-1);
 
   %if %sysfunc(filename(fref,,filesrvc,folderPath="&path" filename="&name"))=0
-  %then %do;
+    %then %do;
     %let var=_FILESRVC_&fref._URI;
-    %str(&&&var)
-    %let rc=%sysfunc(filename(fref));
+    %str(&&&var) %let rc=%sysfunc(filename(fref));
     %symdel &var;
   %end;
   %else %do;

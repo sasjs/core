@@ -43,75 +43,66 @@
 
 **/
 
-%macro mp_base64copy(
-  inref=0,
-  outref=0,
-  action=ENCODE
-)/*/STORE SOURCE*/;
+%macro mp_base64copy( inref=0, outref=0, action=ENCODE )/*/STORE SOURCE*/;
 
-%let inref=%upcase(&inref);
-%let outref=%upcase(&outref);
-%let action=%upcase(&action);
-%local infound outfound;
-%let infound=0;
-%let outfound=0;
-data _null_;
-  set sashelp.vextfl(where=(fileref="&inref" or fileref="&outref"));
-  if fileref="&inref" then call symputx('infound',1,'l');
-  if fileref="&outref" then call symputx('outfound',1,'l');
-run;
+  %let inref=%upcase(&inref);
+  %let outref=%upcase(&outref);
+  %let action=%upcase(&action);
+  %local infound outfound;
+  %let infound=0;
+  %let outfound=0;
 
-%mp_abort(iftrue= (&infound=0)
-  ,mac=&sysmacroname
-  ,msg=%str(INREF &inref NOT FOUND!)
-)
-%mp_abort(iftrue= (&outref=0)
-  ,mac=&sysmacroname
-  ,msg=%str(OUTREF NOT PROVIDED!)
-)
-%mp_abort(iftrue= (&action ne ENCODE and &action ne DECODE)
-  ,mac=&sysmacroname
-  ,msg=%str(Invalid action! Should be ENCODE OR DECODE)
-)
-
-%if &outfound=0 %then %do;
-  filename &outref temp lrecl=2097088;
-%end;
-
-%if &action=ENCODE %then %do;
   data _null_;
-    length b64 $ 76 line $ 57;
-    retain line "";
-    infile &inref recfm=F lrecl= 1 end=eof;
-    input @1 stream $char1.;
-    file &outref recfm=N;
-    substr(line,(_N_-(CEIL(_N_/57)-1)*57),1) = byte(rank(stream));
-    if mod(_N_,57)=0 or EOF then do;
-      if eof then b64=put(trim(line),$base64X76.);
-      else b64=put(line, $base64X76.);
-      put b64 + (-1) @;
-      line="";
-    end;
+    set sashelp.vextfl(where=(fileref="&inref" or fileref="&outref"));
+    if fileref="&inref" then call symputx('infound',1,'l');
+    if fileref="&outref" then call symputx('outfound',1,'l');
   run;
-%end;
-%else %if &action=DECODE %then %do;
-  data _null_;
-    length filein 8 fileout 8;
-    filein = fopen("&inref",'I',4,'B');
-    fileout = fopen("&outref",'O',3,'B');
-    char= '20'x;
-    do while(fread(filein)=0);
-      length raw $4;
-      do i=1 to 4;
-        rc=fget(filein,char,1);
-        substr(raw,i,1)=char;
+
+  %mp_abort(iftrue=(&infound=0) ,mac=&sysmacroname
+    ,msg=%str(INREF &inref NOT FOUND!) )
+  %mp_abort(iftrue=(&outref=0) ,mac=&sysmacroname
+    ,msg=%str(OUTREF NOT PROVIDED!) )
+  %mp_abort(iftrue=(&action ne ENCODE and &action ne DECODE) ,mac=&sysmacroname
+    ,msg=%str(Invalid action! Should be ENCODE OR DECODE) )
+
+  %if &outfound=0 %then %do;
+    filename &outref temp lrecl=2097088;
+  %end;
+
+  %if &action=ENCODE %then %do;
+    data _null_;
+      length b64 $ 76 line $ 57;
+      retain line "";
+      infile &inref recfm=F lrecl=1 end=eof;
+      input @1 stream $char1.;
+      file &outref recfm=N;
+      substr(line,(_N_-(CEIL(_N_/57)-1)*57),1)=byte(rank(stream));
+      if mod(_N_,57)=0 or EOF then do;
+        if eof then b64=put(trim(line),$base64X76.);
+        else b64=put(line, $base64X76.);
+        put b64 + (-1) @;
+        line="";
       end;
-      rc = fput(fileout,input(raw,$base64X4.));
-      rc = fwrite(fileout);
-    end;
-    rc = fclose(filein);
-    rc = fclose(fileout);
-  run;
-%end;
+    run;
+  %end;
+  %else %if &action=DECODE %then %do;
+    data _null_;
+      length filein 8 fileout 8;
+      filein=fopen("&inref",'I',4,'B');
+      fileout=fopen("&outref",'O',3,'B');
+      char='20'x;
+      do while(fread(filein)=0);
+        length raw $4;
+        do i=1 to 4;
+          rc=fget(filein,char,1);
+          substr(raw,i,1)=char;
+        end;
+        rc=fput(fileout,input(raw,$base64X4.));
+        rc=fwrite(fileout);
+      end;
+      rc=fclose(filein);
+      rc=fclose(fileout);
+    run;
+  %end;
 
 %mend mp_base64copy;

@@ -28,26 +28,20 @@
   @author Allan Bowe
 **/
 
-%macro mf_dedup(str
-  ,indlm=%str( )
-  ,outdlm=%str( )
-)/*/STORE SOURCE*/;
+%macro mf_dedup(str ,indlm=%str( ) ,outdlm=%str( ) )/*/STORE SOURCE*/;
 
-%local num word i pos out;
+  %local num word i pos out;
 
-%* loop over each token, searching the target for that token ;
-%let num=%sysfunc(countc(%superq(str),%str(&indlm)));
-%do i=1 %to %eval(&num+1);
-  %let word=%scan(%superq(str),&i,%str(&indlm));
-  %let pos=%sysfunc(indexw(&out,&word,%str(&outdlm)));
-  %if (&pos eq 0) %then %do;
-    %if (&i gt 1) %then %let out=&out%str(&outdlm);
-    %let out=&out&word;
+  %* loop over each token, searching the target for that token ;
+  %let num=%sysfunc(countc(%superq(str),%str(&indlm)));
+  %do i=1 %to %eval(&num+1);
+    %let word=%scan(%superq(str),&i,%str(&indlm));
+    %let pos=%sysfunc(indexw(&out,&word,%str(&outdlm)));
+    %if (&pos eq 0) %then %do;
+      %if (&i gt 1) %then %let out=&out%str(&outdlm);
+      %let out=&out&word;
+    %end;
   %end;
-%end;
 
-%unquote(&out)
-
+  %unquote(&out)
 %mend mf_dedup;
-
-

@@ -59,60 +59,53 @@
 
 **/
 
-%macro mv_getusers(outds=work.mv_getusers
-    ,access_token_var=ACCESS_TOKEN
-    ,grant_type=sas_services
-  );
-%local oauth_bearer;
-%if &grant_type=detect %then %do;
-  %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
-  %else %let grant_type=sas_services;
-%end;
-%if &grant_type=sas_services %then %do;
+%macro mv_getusers(outds=work.mv_getusers ,access_token_var=ACCESS_TOKEN
+  ,grant_type=sas_services );
+  %local oauth_bearer;
+  %if &grant_type=detect %then %do;
+    %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
+    %else %let grant_type=sas_services;
+  %end;
+  %if &grant_type=sas_services %then %do;
     %let oauth_bearer=oauth_bearer=sas_services;
     %let &access_token_var=;
-%end;
-%put &sysmacroname: grant_type=&grant_type;
-%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
-    and &grant_type ne sas_services
-  )
-  ,mac=&sysmacroname
-  ,msg=%str(Invalid value for grant_type: &grant_type)
-)
+  %end;
+  %put &sysmacroname: grant_type=&grant_type;
+  %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne
+    password and &grant_type ne sas_services ) ,mac=&sysmacroname
+    ,msg=%str(Invalid value for grant_type: &grant_type) )
 
-options noquotelenmax;
+  options noquotelenmax;
 
-%local base_uri; /* location of rest apis */
-%let base_uri=%mf_getplatform(VIYARESTAPI);
+  %local base_uri; /* location of rest apis */
+  %let base_uri=%mf_getplatform(VIYARESTAPI);
 
-/* fetching folder details for provided path */
-%local fname1;
-%let fname1=%mf_getuniquefileref();
-%let libref1=%mf_getuniquelibref();
+  /* fetching folder details for provided path */
+  %local fname1;
+  %let fname1=%mf_getuniquefileref();
+  %let libref1=%mf_getuniquelibref();
 
-proc http method='GET' out=&fname1 &oauth_bearer
-  url="&base_uri/identities/users?limit=10000";
-%if &grant_type=authorization_code %then %do;
-  headers "Authorization"="Bearer &&&access_token_var"
-          "Accept"="application/json";
-%end;
-%else %do;
-  headers "Accept"="application/json";
-%end;
-run;
-/*data _null_;infile &fname1;input;putlog _infile_;run;*/
-%mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200)
-  ,mac=&sysmacroname
-  ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
-)
-libname &libref1 JSON fileref=&fname1;
+  proc http method='GET' out=&fname1 &oauth_bearer
+    url="&base_uri/identities/users?limit=10000";
+    %if &grant_type=authorization_code %then %do;
+      headers "Authorization"="Bearer &&&access_token_var"
+        "Accept"="application/json";
+    %end;
+    %else %do;
+      headers "Accept"="application/json";
+    %end;
+  run;
+  /*data _null_;infile &fname1;input;putlog _infile_;run;*/
+  %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200) ,mac=&sysmacroname
+    ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE) )
+  libname &libref1 JSON fileref=&fname1;
 
-data &outds;
-  set &libref1..items;
-run;
+  data &outds;
+    set &libref1..items;
+  run;
 
-/* clear refs */
-filename &fname1 clear;
-libname &libref1 clear;
+  /* clear refs */
+  filename &fname1 clear;
+  libname &libref1 clear;
 
 %mend mv_getusers;

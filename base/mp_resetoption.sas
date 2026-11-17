@@ -19,22 +19,21 @@ https://blogs.sas.com/content/sastraining/2012/08/14/jedi-sas-tricks-reset-sas-s
   @sasjslint {"maxLineLength": 93}
 **/
 
-%macro mp_resetoption(option /* the option to reset */
-)/*/STORE SOURCE*/;
+%macro mp_resetoption(option /* the option to reset */ )/*/STORE SOURCE*/;
 
-%if "%substr(&sysver,1,1)" ne "4" and "%substr(&sysver,1,1)" ne "5" %then %do;
-  data _null_;
-    length code  $1500;
-    startup=getoption("&option",'startupvalue');
-    current=getoption("&option");
-    if startup ne current then do;
-      code =cat('OPTIONS ',getoption("&option",'keyword','startupvalue'),';');
-      putlog "NOTE: Resetting system option: " code ;
-      call execute(code );
-    end;
-  run;
-%end;
-%else %do;
-  %put &sysmacroname: reset option feature unavailable on &sysvlong;
-%end;
+  %if "%substr(&sysver,1,1)" ne "4" and "%substr(&sysver,1,1)" ne "5" %then %do;
+    data _null_;
+      length code $1500;
+      startup=getoption("&option",'startupvalue');
+      current=getoption("&option");
+      if startup ne current then do;
+        code=cat('OPTIONS ',getoption("&option",'keyword','startupvalue'),';');
+        putlog "NOTE: Resetting system option: " code ;
+        call execute(code );
+      end;
+    run;
+  %end;
+  %else %do;
+    %put &sysmacroname: reset option feature unavailable on &sysvlong;
+  %end;
 %mend mp_resetoption;

@@ -208,325 +208,302 @@
   @author Allan Bowe
   @sasjslint {"maxLineLength": 164}
 **/
+
 /** @cond */
 
-%macro mp_stackdiffs(baselibds
-  ,auditlibds
-  ,key
-  ,mdebug=0
-  ,processed_dttm_var=0
-  ,errds=work.errds
-  ,outmod=work.outmod
-  ,outadd=work.outadd
-  ,outdel=work.outdel
-)/*/STORE SOURCE*/;
-%local dbg;
-%if &mdebug=1 %then %do;
-  %put &sysmacroname entry vars:;
-  %put _local_;
-%end;
-%else %let dbg=*;
+%macro mp_stackdiffs(baselibds ,auditlibds ,key ,mdebug=0 ,processed_dttm_var=0
+  ,errds=work.errds ,outmod=work.outmod ,outadd=work.outadd ,outdel=work.outdel
+  )/*/STORE SOURCE*/;
+  %local dbg;
+  %if &mdebug=1 %then %do;
+    %put &sysmacroname entry vars:;
+    %put _local_;
+  %end;
+  %else %let dbg=*;
 
-/* input parameter validations */
-%mp_abort(iftrue= (%mf_islibds(&baselibds) ne 1)
-  ,mac=&sysmacroname
-  ,msg=%str(Invalid baselibds: &baselibds)
-)
-%mp_abort(iftrue= (%mf_islibds(&auditlibds) ne 1)
-  ,mac=&sysmacroname
-  ,msg=%str(Invalid auditlibds: &auditlibds)
-)
-%mp_abort(iftrue= (%length(&key)=0)
-  ,mac=&sysmacroname
-  ,msg=%str(Missing key variables!)
-)
-%mp_abort(iftrue= (
-    %mf_existVarList(&auditlibds,LIBREF DSN MOVE_TYPE KEY_HASH TGTVAR_NM IS_PK
-      IS_DIFF TGTVAR_TYPE OLDVAL_NUM NEWVAL_NUM OLDVAL_CHAR NEWVAL_CHAR)=0
-  )
-  ,mac=&sysmacroname
-  ,msg=%str(Input &auditlibds is missing required columns!)
-)
+  /* input parameter validations */
+  %mp_abort(iftrue=(%mf_islibds(&baselibds) ne 1) ,mac=&sysmacroname
+    ,msg=%str(Invalid baselibds: &baselibds) )
+  %mp_abort(iftrue=(%mf_islibds(&auditlibds) ne 1) ,mac=&sysmacroname
+    ,msg=%str(Invalid auditlibds: &auditlibds) )
+  %mp_abort(iftrue=(%length(&key)=0) ,mac=&sysmacroname
+    ,msg=%str(Missing key variables!) )
+  %mp_abort(iftrue=( %mf_existVarList(&auditlibds,LIBREF DSN MOVE_TYPE KEY_HASH
+    TGTVAR_NM IS_PK IS_DIFF TGTVAR_TYPE OLDVAL_NUM NEWVAL_NUM OLDVAL_CHAR
+    NEWVAL_CHAR)=0 ) ,mac=&sysmacroname
+    ,msg=%str(Input &auditlibds is missing required columns!) )
 
+  /* set up macro vars */
+  %local prefix dslist x var keyjoin commakey keepvars missvars fref;
+  %let prefix=%substr(%mf_getuniquename(),1,25);
+  %let dslist=ds1d ds2d ds3d ds1a ds2a ds3a ds1m ds2m ds3m pks dups base delrec
+    delerr addrec adderr modrec moderr;
+  %do x=1 %to %sysfunc(countw(&dslist));
+    %let var=%scan(&dslist,&x);
+    %local &var;
+    %let &var=%upcase(&prefix._&var);
+  %end;
 
-/* set up macro vars */
-%local prefix dslist x var keyjoin commakey keepvars missvars fref;
-%let prefix=%substr(%mf_getuniquename(),1,25);
-%let dslist=ds1d ds2d ds3d ds1a ds2a ds3a ds1m ds2m ds3m pks dups base
-  delrec delerr addrec adderr modrec moderr;
-%do x=1 %to %sysfunc(countw(&dslist));
-  %let var=%scan(&dslist,&x);
-  %local &var;
-  %let &var=%upcase(&prefix._&var);
-%end;
+  %let key=%upcase(&key);
+  %let commakey=%mf_getquotedstr(&key,quote=N);
 
-%let key=%upcase(&key);
-%let commakey=%mf_getquotedstr(&key,quote=N);
+  %let keyjoin=1=1;
+  %do x=1 %to %sysfunc(countw(&key));
+    %let var=%scan(&key,&x);
+    %let keyjoin=&keyjoin and a.&var=b.&var;
+  %end;
 
-%let keyjoin=1=1;
-%do x=1 %to %sysfunc(countw(&key));
-  %let var=%scan(&key,&x);
-  %let keyjoin=&keyjoin and a.&var=b.&var;
-%end;
+  data &errds;
+    length pk_vars $256 pk_vals $4098 err_msg $512;
+    call missing (of _all_);
+    stop;
+  run;
 
-data &errds;
-  length pk_vars $256 pk_vals $4098 err_msg $512;
-  call missing (of _all_);
-  stop;
-run;
+  /**
+    * Prepare raw DELETE table
+    * Records are in the OLDVAL_xxx columns
+    */
+  %let keepvars=MOVE_TYPE KEY_HASH TGTVAR_NM TGTVAR_TYPE IS_PK OLDVAL_NUM
+    OLDVAL_CHAR NEWVAL_NUM NEWVAL_CHAR;
 
-/**
-  * Prepare raw DELETE table
-  * Records are in the OLDVAL_xxx columns
-  */
-%let keepvars=MOVE_TYPE KEY_HASH TGTVAR_NM TGTVAR_TYPE IS_PK
-              OLDVAL_NUM OLDVAL_CHAR
-              NEWVAL_NUM NEWVAL_CHAR;
-proc sort data=&auditlibds(where=(move_type='D') keep=&keepvars)
-  out=&ds1d(drop=move_type);
-by KEY_HASH TGTVAR_NM;
-run;
-proc transpose data=&ds1d(where=(tgtvar_type='N'))
-    out=&ds2d(drop=_name_);
-  by KEY_HASH;
-  id TGTVAR_NM;
-  var OLDVAL_NUM;
-run;
-proc transpose data=&ds1d(where=(tgtvar_type='C'))
-    out=&ds3d(drop=_name_);
-  by KEY_HASH;
-  id TGTVAR_NM;
-  var OLDVAL_CHAR;
-run;
-%mp_ds2squeeze(&ds2d,outds=&ds2d)
-%mp_ds2squeeze(&ds3d,outds=&ds3d)
-data &outdel;
-  if 0 then set &baselibds;
-  set &ds2d;
-  set &ds3d;
-  drop key_hash;
-  if not missing(%scan(&key,1));
-run;
-proc sort;
-  by &key;
-run;
+  proc sort data=&auditlibds(where=(move_type='D') keep=&keepvars)
+    out=&ds1d(drop=move_type);
+    by KEY_HASH TGTVAR_NM;
+  run;
 
-/**
-  * Prepare raw APPEND table
-  * Records are in the NEWVAL_xxx columns
-  */
-proc sort data=&auditlibds(where=(move_type='A') keep=&keepvars)
+  proc transpose data=&ds1d(where=(tgtvar_type='N')) out=&ds2d(drop=_name_);
+    by KEY_HASH;
+    id TGTVAR_NM;
+    var OLDVAL_NUM;
+  run;
+
+  proc transpose data=&ds1d(where=(tgtvar_type='C')) out=&ds3d(drop=_name_);
+    by KEY_HASH;
+    id TGTVAR_NM;
+    var OLDVAL_CHAR;
+  run;
+  %mp_ds2squeeze(&ds2d,outds=&ds2d)
+  %mp_ds2squeeze(&ds3d,outds=&ds3d)
+
+  data &outdel;
+    if 0 then set &baselibds;
+    set &ds2d;
+    set &ds3d;
+    drop key_hash;
+    if not missing(%scan(&key,1));
+  run;
+
+  proc sort;
+    by &key;
+  run;
+
+  /**
+    * Prepare raw APPEND table
+    * Records are in the NEWVAL_xxx columns
+    */
+  proc sort data=&auditlibds(where=(move_type='A') keep=&keepvars)
     out=&ds1a(drop=move_type);
-  by KEY_HASH TGTVAR_NM;
-run;
-proc transpose data=&ds1a(where=(tgtvar_type='N'))
-    out=&ds2a(drop=_name_);
-  by KEY_HASH;
-  id TGTVAR_NM;
-  var NEWVAL_NUM;
-run;
-proc transpose data=&ds1a(where=(tgtvar_type='C'))
-    out=&ds3a(drop=_name_);
-  by KEY_HASH;
-  id TGTVAR_NM;
-  var NEWVAL_CHAR;
-run;
-%mp_ds2squeeze(&ds2a,outds=&ds2a)
-%mp_ds2squeeze(&ds3a,outds=&ds3a)
-data &outadd;
-  if 0 then set &baselibds;
-  set &ds2a;
-  set &ds3a;
-  drop key_hash;
-  if not missing(%scan(&key,1));
-run;
-proc sort;
-  by &key;
-run;
-
-/**
-  * Prepare raw MODIFY table
-  * Keep only primary key - will add modified values later
-  */
-proc sort data=&auditlibds(
-      where=(move_type='M' and is_pk=1) keep=&keepvars
-    ) out=&ds1m(drop=move_type);
-  by KEY_HASH TGTVAR_NM;
-run;
-proc transpose data=&ds1m(where=(tgtvar_type='N'))
-    out=&ds2m(drop=_name_);
-  by KEY_HASH ;
-  id TGTVAR_NM;
-  var NEWVAL_NUM;
-run;
-proc transpose data=&ds1m(where=(tgtvar_type='C'))
-    out=&ds3m(drop=_name_);
-  by KEY_HASH;
-  id TGTVAR_NM;
-  var NEWVAL_CHAR;
-run;
-%mp_ds2squeeze(&ds2m,outds=&ds2m)
-%mp_ds2squeeze(&ds3m,outds=&ds3m)
-data &outmod;
-  if 0 then set &baselibds;
-  set &ds2m;
-  set &ds3m;
-  if not missing(%scan(&key,1));
-run;
-proc sort;
-  by &key;
-run;
-
-/**
-  * Extract matching records from the base table
-  * Do this in one join for efficiency.
-  * At a later date, this should be optimised for large database tables by using
-  * passthrough and a temporary table.
-  */
-data &pks;
-  if 0 then set &baselibds;
-  set &outadd &outmod &outdel;
-  keep &key;
-run;
-
-proc sort noduprec dupout=&dups;
-by &key;
-run;
-data _null_;
-  set &dups;
-  putlog (_all_)(=);
-run;
-%mp_abort(iftrue= (%mf_nobs(&dups) ne 0)
-  ,mac=&sysmacroname
-  ,msg=%str(duplicates (%mf_nobs(&dups)) found on &auditlibds!)
-)
-
-proc sql;
-create table &base as
-  select a.*
-  from &baselibds a, &pks b
-  where &keyjoin;
-
-/**
-  * delete check
-  * This is straightforward as it relates to records only
-  */
-proc sql;
-create table &delrec as
-  select a.*
-  from &outdel a
-  left join &base b
-  on &keyjoin
-  where b.%scan(&key,1) is null
-  order by &commakey;
-
-data &delerr;
-  if 0 then set &errds;
-  set &delrec;
-  PK_VARS="&key";
-  PK_VALS=catx('/',&commakey);
-  ERR_MSG="Rows cannot be deleted as they do not exist on the Base dataset";
-  keep PK_VARS PK_VALS ERR_MSG;
-run;
-proc append base=&errds data=&delerr;
-run;
-
-data &outdel;
-  merge &outdel (in=a) &delrec (in=b);
-  by &key;
-  if not b;
-run;
-
-/**
-  * add check
-  * Problems - where record already exists, or base table has columns missing
-  */
-%let missvars=%mf_wordsinstr1butnotstr2(
-  Str1=%upcase(%mf_getvarlist(&outadd)),
-  Str2=%upcase(%mf_getvarlist(&baselibds))
-);
-%if %length(&missvars)>0 %then %do;
-    /* add them to the err table */
-  data &adderr;
-    if 0 then set &errds;
-    set &outadd;
-    PK_VARS="&key";
-    PK_VALS=catx('/',&commakey);
-    ERR_MSG="Rows cannot be added due to missing base vars: &missvars";
-    keep PK_VARS PK_VALS ERR_MSG;
-  run;
-  proc append base=&errds data=&adderr;
-  run;
-  proc sql;
-  delete * from &outadd;
-%end;
-%else %do;
-  proc sql;
-  /* find records that already exist on base table */
-  create table &addrec as
-    select a.*
-    from &outadd a
-    inner join &base b
-    on &keyjoin
-    order by &commakey;
-
-  /* add them to the err table */
-  data &adderr;
-    if 0 then set &errds;
-    set &addrec;
-    PK_VARS="&key";
-    PK_VALS=catx('/',&commakey);
-    ERR_MSG="Rows cannot be added as they already exist on the Base dataset";
-    keep PK_VARS PK_VALS ERR_MSG;
-  run;
-  proc append base=&errds data=&adderr;
+    by KEY_HASH TGTVAR_NM;
   run;
 
-  /* remove invalid rows from the outadd table */
+  proc transpose data=&ds1a(where=(tgtvar_type='N')) out=&ds2a(drop=_name_);
+    by KEY_HASH;
+    id TGTVAR_NM;
+    var NEWVAL_NUM;
+  run;
+
+  proc transpose data=&ds1a(where=(tgtvar_type='C')) out=&ds3a(drop=_name_);
+    by KEY_HASH;
+    id TGTVAR_NM;
+    var NEWVAL_CHAR;
+  run;
+  %mp_ds2squeeze(&ds2a,outds=&ds2a)
+  %mp_ds2squeeze(&ds3a,outds=&ds3a)
+
   data &outadd;
-    merge &outadd (in=a) &addrec (in=b);
+    if 0 then set &baselibds;
+    set &ds2a;
+    set &ds3a;
+    drop key_hash;
+    if not missing(%scan(&key,1));
+  run;
+
+  proc sort;
+    by &key;
+  run;
+
+  /**
+    * Prepare raw MODIFY table
+    * Keep only primary key - will add modified values later
+    */
+  proc sort data=&auditlibds( where=(move_type='M' and is_pk=1) keep=&keepvars )
+    out=&ds1m(drop=move_type);
+    by KEY_HASH TGTVAR_NM;
+  run;
+
+  proc transpose data=&ds1m(where=(tgtvar_type='N')) out=&ds2m(drop=_name_);
+    by KEY_HASH ;
+    id TGTVAR_NM;
+    var NEWVAL_NUM;
+  run;
+
+  proc transpose data=&ds1m(where=(tgtvar_type='C')) out=&ds3m(drop=_name_);
+    by KEY_HASH;
+    id TGTVAR_NM;
+    var NEWVAL_CHAR;
+  run;
+  %mp_ds2squeeze(&ds2m,outds=&ds2m)
+  %mp_ds2squeeze(&ds3m,outds=&ds3m)
+
+  data &outmod;
+    if 0 then set &baselibds;
+    set &ds2m;
+    set &ds3m;
+    if not missing(%scan(&key,1));
+  run;
+
+  proc sort;
+    by &key;
+  run;
+
+  /**
+    * Extract matching records from the base table
+    * Do this in one join for efficiency.
+    * At a later date, this should be optimised for large database tables by using
+    * passthrough and a temporary table.
+    */
+  data &pks;
+    if 0 then set &baselibds;
+    set &outadd &outmod &outdel;
+    keep &key;
+  run;
+
+  proc sort noduprec dupout=&dups;
+    by &key;
+  run;
+
+  data _null_;
+    set &dups;
+    putlog (_all_)(=);
+  run;
+  %mp_abort(iftrue=(%mf_nobs(&dups) ne 0) ,mac=&sysmacroname
+    ,msg=%str(duplicates (%mf_nobs(&dups)) found on &auditlibds!) )
+
+  proc sql;
+    create table &base as select a.* from &baselibds a, &pks b where &keyjoin;
+
+  /**
+    * delete check
+    * This is straightforward as it relates to records only
+    */
+  proc sql;
+    create table &delrec as select a.* from &outdel a left join &base b on
+      &keyjoin where b.%scan(&key,1) is null order by &commakey;
+
+  data &delerr;
+    if 0 then set &errds;
+    set &delrec;
+    PK_VARS="&key";
+    PK_VALS=catx('/',&commakey);
+    ERR_MSG="Rows cannot be deleted as they do not exist on the Base dataset";
+    keep PK_VARS PK_VALS ERR_MSG;
+  run;
+
+  proc append base=&errds data=&delerr;
+  run;
+
+  data &outdel;
+    merge &outdel (in=a) &delrec (in=b);
     by &key;
     if not b;
   run;
-%end;
 
-/**
-  * mod check
-  * Problems - where record does not exist or baseds has modified cols missing
-  */
-proc sql noprint;
-select distinct tgtvar_nm into: missvars separated by ' '
-  from &auditlibds
-  where move_type='M' and is_diff=1;
-%let missvars=%mf_wordsinstr1butnotstr2(
-  Str1=&missvars,
-  Str2=%upcase(%mf_getvarlist(&baselibds))
-);
-%if %length(&missvars)>0 %then %do;
+  /**
+    * add check
+    * Problems - where record already exists, or base table has columns missing
+    */
+  %let missvars=%mf_wordsinstr1butnotstr2(
+    Str1=%upcase(%mf_getvarlist(&outadd)),
+    Str2=%upcase(%mf_getvarlist(&baselibds)) );
+  %if %length(&missvars)>0 %then %do;
     /* add them to the err table */
-  data &moderr;
-    if 0 then set &errds;
-    set &outmod;
-    PK_VARS="&key";
-    PK_VALS=catx('/',&commakey);
-    ERR_MSG="Rows cannot be modified due to missing base vars: &missvars";
-    keep PK_VARS PK_VALS ERR_MSG;
-  run;
+    data &adderr;
+      if 0 then set &errds;
+      set &outadd;
+      PK_VARS="&key";
+      PK_VALS=catx('/',&commakey);
+      ERR_MSG="Rows cannot be added due to missing base vars: &missvars";
+      keep PK_VARS PK_VALS ERR_MSG;
+    run;
+
+    proc append base=&errds data=&adderr;
+    run;
+
+    proc sql;
+      delete * from &outadd;
+      %end;
+      %else %do;
+
+      proc sql;
+        /* find records that already exist on base table */
+        create table &addrec as select a.* from &outadd a inner join &base b on
+          &keyjoin order by &commakey;
+
+    /* add them to the err table */
+    data &adderr;
+      if 0 then set &errds;
+      set &addrec;
+      PK_VARS="&key";
+      PK_VALS=catx('/',&commakey);
+      ERR_MSG="Rows cannot be added as they already exist on the Base dataset";
+      keep PK_VARS PK_VALS ERR_MSG;
+    run;
+
+    proc append base=&errds data=&adderr;
+    run;
+
+    /* remove invalid rows from the outadd table */
+    data &outadd;
+      merge &outadd (in=a) &addrec (in=b);
+      by &key;
+      if not b;
+    run;
+  %end;
+
+  /**
+    * mod check
+    * Problems - where record does not exist or baseds has modified cols missing
+    */
+  proc sql noprint;
+    select distinct tgtvar_nm into: missvars separated by ' ' from &auditlibds
+      where move_type='M' and is_diff=1;
+    %let missvars=%mf_wordsinstr1butnotstr2( Str1=&missvars,
+      Str2=%upcase(%mf_getvarlist(&baselibds)) );
+    %if %length(&missvars)>0 %then %do;
+
+    /* add them to the err table */
+    data &moderr;
+      if 0 then set &errds;
+      set &outmod;
+      PK_VARS="&key";
+      PK_VALS=catx('/',&commakey);
+      ERR_MSG="Rows cannot be modified due to missing base vars: &missvars";
+      keep PK_VARS PK_VALS ERR_MSG;
+    run;
+
   proc append base=&errds data=&moderr;
   run;
+
   proc sql;
-  delete * from &outmod;
-%end;
-%else %do;
-  /* now check for records that do not exist (therefore cannot be modified) */
-  proc sql;
-  create table &modrec as
-    select a.*
-    from &outmod a
-    left join &base b
-    on &keyjoin
-    where b.%scan(&key,1) is null
-    order by &commakey;
+    delete * from &outmod;
+    %end;
+    %else %do;
+
+    /* now check for records that do not exist (therefore cannot be modified) */
+    proc sql;
+      create table &modrec as select a.* from &outmod a left join &base b on
+        &keyjoin where b.%scan(&key,1) is null order by &commakey;
+
   data &moderr;
     if 0 then set &errds;
     set &modrec;
@@ -535,25 +512,24 @@ select distinct tgtvar_nm into: missvars separated by ' '
     ERR_MSG="Rows cannot be modified as they do not exist on the Base dataset";
     keep PK_VARS PK_VALS ERR_MSG;
   run;
+
   proc append base=&errds data=&moderr;
   run;
+
   /* delete the above records from the outmod table */
   data &outmod;
     merge &outmod (in=a) &modrec (in=b);
     by &key;
     if not b;
   run;
+
   /* now - we can prepare the final MOD table (which is currently PK only) */
   proc sql undo_policy=none;
-  create table &outmod as
-    select a.key_hash
-      ,b.*
-    from &outmod a
-    inner join &base b
-    on &keyjoin
-    order by &commakey;
-  /* now - to update outmod with modified (is_diff=1) values */
-  %let fref=%mf_getuniquefileref();
+    create table &outmod as select a.key_hash ,b.* from &outmod a inner join
+      &base b on &keyjoin order by &commakey;
+    /* now - to update outmod with modified (is_diff=1) values */
+    %let fref=%mf_getuniquefileref();
+
   data _null_;
     file &fref;
     set &auditlibds(where=(move_type='M')) end=lastobs;
@@ -589,14 +565,14 @@ select distinct tgtvar_nm into: missvars separated by ' '
     if lastobs then put "alter table &outmod drop key_hash;";
   run;
   %inc &fref/source2;
-%end;
+  %end;
 
-%if &mdebug=0 %then %do;
-  proc datasets lib=work;
-    delete &prefix:;
-  run;
-  %put &sysmacroname exit vars:;
-  %put _local_;
-%end;
-%mend mp_stackdiffs;
-/** @endcond */
+  %if &mdebug=0 %then %do;
+    proc datasets lib=work;
+      delete &prefix:;
+      run;
+      %put &sysmacroname exit vars:;
+      %put _local_;
+      %end;
+    %mend mp_stackdiffs;
+    /** @endcond */

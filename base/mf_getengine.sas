@@ -27,28 +27,26 @@
   @li mf_getxengine.sas
 
 **/
+
 /** @cond */
 
-%macro mf_getengine(libref
-)/*/STORE SOURCE*/;
+%macro mf_getengine(libref )/*/STORE SOURCE*/;
   %local dsid engnum rc engine;
 
   /* in case the parameter is a libref.tablename, pull off just the libref */
-  %let libref = %upcase(%scan(&libref, 1, %str(.)));
+  %let libref=%upcase(%scan(&libref, 1, %str(.)));
 
   %let dsid=%sysfunc(
-    open(sashelp.vlibnam(where=(libname="%upcase(&libref)")),i)
-  );
+    open(sashelp.vlibnam(where=(libname="%upcase(&libref)")),i) );
   %if (&dsid ^= 0) %then %do;
     %let engnum=%sysfunc(varnum(&dsid,ENGINE));
     %let rc=%sysfunc(fetch(&dsid));
     %let engine=%sysfunc(getvarc(&dsid,&engnum));
     %put &libref. ENGINE is &engine.;
-    %let rc= %sysfunc(close(&dsid));
+    %let rc=%sysfunc(close(&dsid));
   %end;
 
   %upcase(&engine)
+  %mend mf_getengine;
 
-%mend mf_getengine;
-
-/** @endcond */
+  /** @endcond */

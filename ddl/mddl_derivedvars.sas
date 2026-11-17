@@ -27,25 +27,21 @@
   %else %let lib=%scan(&libds,1,.);
 
   proc sql;
-  create table &libds(
-      libref char(8) label='Library Reference (8 chars)',
-      dsn char(32) label='Dataset Name (32 chars)',
-      var_nm char(32) label='Name of the derived variable',
-      var_deps char(4000) label='Columns and derived variables this uses',
-      var_type char(1) label='Either (C)haracter or (N)umeric',
-      var_len num label='Length of the derived variable',
-      var_fmt char(32) label='SAS format, eg DATE9.',
-      var_label char(256) label='Optional label; defaults to NAME=expression',
-      var_logic char(4000) label='SAS expression that produces the value',
-      active num label='Is the variable active? (1/0)'
-  );
+    create table &libds( libref char(8) label='Library Reference (8 chars)', dsn
+      char(32) label='Dataset Name (32 chars)', var_nm char(32)
+      label='Name of the derived variable', var_deps char(4000)
+      label='Columns and derived variables this uses', var_type char(1)
+      label='Either (C)haracter or (N)umeric', var_len num
+      label='Length of the derived variable', var_fmt char(32)
+      label='SAS format, eg DATE9.', var_label char(256)
+      label='Optional label; defaults to NAME=expression', var_logic char(4000)
+      label='SAS expression that produces the value', active num
+      label='Is the variable active? (1/0)' );
   quit;
 
   proc datasets lib=&lib noprint;
     modify %scan(&libds,-1,.);
-    index create
-      pk_derivedvars=(libref dsn var_nm)
-      /nomiss unique;
+    index create pk_derivedvars=(libref dsn var_nm) /nomiss unique;
   quit;
 
 %mend mddl_derivedvars;

@@ -48,95 +48,74 @@
 
 **/
 
-%macro ms_testservice(program,
-  inputfiles=0,
-  inputdatasets=0,
-  inputparams=0,
-  debug=131,
-  mdebug=0,
-  outlib=0,
-  outref=0,
-  outlogds=_null_
-)/*/STORE SOURCE*/;
-%local dbg i var ds1 fref1 chopout1 chopout2;
-%if &mdebug=1 %then %do;
-  %put &sysmacroname entry vars:;
-  %put _local_;
-%end;
-%else %let dbg=*;
-
-/* convert inputdatasets to filerefs */
-%if "&inputdatasets" ne "0" %then %do;
-  %if %quote(&inputfiles)=0 %then %let inputfiles=;
-  %do i=1 %to %sysfunc(countw(&inputdatasets,%str( )));
-    %let var=%scan(&inputdatasets,&i,%str( ));
-    %local dsref&i;
-    %let dsref&i=%mf_getuniquefileref();
-    %mp_ds2csv(&var,outref=&&dsref&i,headerformat=SASJS)
-    %let inputfiles=&inputfiles &&dsref&i:%scan(&var,-1,.);
+%macro ms_testservice(program, inputfiles=0, inputdatasets=0, inputparams=0,
+  debug=131, mdebug=0, outlib=0, outref=0, outlogds=_null_ )/*/STORE SOURCE*/;
+  %local dbg i var ds1 fref1 chopout1 chopout2;
+  %if &mdebug=1 %then %do;
+    %put &sysmacroname entry vars:;
+    %put _local_;
   %end;
-%end;
+  %else %let dbg=*;
 
-/* parse the filerefs - convert to a dataset */
-%let ds1=%mf_getuniquename();
-data &ds1;
-  length fileref $8 name $32 filename $256 var $300;
-  if "&inputfiles" ne "0" then do;
-    webcount=countw("&inputfiles");
-    do i=1 to webcount;
-      var=scan("&inputfiles",i,' ');
-      fileref=scan(var,1,':');
-      name=scan(var,2,':');
-      filename=cats(name,'.csv');
-      output;
+  /* convert inputdatasets to filerefs */
+  %if "&inputdatasets" ne "0" %then %do;
+    %if %quote(&inputfiles)=0 %then %let inputfiles=;
+    %do i=1 %to %sysfunc(countw(&inputdatasets,%str( )));
+      %let var=%scan(&inputdatasets,&i,%str( ));
+      %local dsref&i;
+      %let dsref&i=%mf_getuniquefileref();
+      %mp_ds2csv(&var,outref=&&dsref&i,headerformat=SASJS)
+      %let inputfiles=&inputfiles &&dsref&i:%scan(&var,-1,.);
+    %end;
+  %end;
+
+  /* parse the filerefs - convert to a dataset */
+  %let ds1=%mf_getuniquename();
+
+  data &ds1;
+    length fileref $8 name $32 filename $256 var $300;
+    if "&inputfiles" ne "0" then do;
+      webcount=countw("&inputfiles");
+      do i=1 to webcount;
+        var=scan("&inputfiles",i,' ');
+        fileref=scan(var,1,':');
+        name=scan(var,2,':');
+        filename=cats(name,'.csv');
+        output;
+      end;
     end;
-  end;
-run;
+  run;
 
+  /* execute the STP. _debug is forwarded to ms_runstp, whose own default is
+    131 - the log separator this macro chops on is only present when the
+    server runs in debug mode, so outlogds needs the default. */
+  %let fref1=%mf_getuniquefileref();
 
-/* execute the STP. _debug is forwarded to ms_runstp, whose own default is
-  131 - the log separator this macro chops on is only present when the
-  server runs in debug mode, so outlogds needs the default. */
-%let fref1=%mf_getuniquefileref();
+  %ms_runstp(&program ,debug=&debug ,inputparams=&inputparams ,inputfiles=&ds1
+    ,outref=&fref1 ,mdebug=&mdebug ,outlogds=&outlogds )
 
-%ms_runstp(&program
-  ,debug=&debug
-  ,inputparams=&inputparams
-  ,inputfiles=&ds1
-  ,outref=&fref1
-  ,mdebug=&mdebug
-  ,outlogds=&outlogds
-)
+  /* chop out JSON section */
+  %local matchstr chopout;
+  %let matchstr=SASJS_LOGS_SEPARATOR_163ee17b6ff24f028928972d80a26784;
+  %let chopout=%sysfunc(pathname(work))/%mf_getuniquename(prefix=chop);
 
+  %mp_chop("%sysfunc(pathname(&fref1,F))" ,matchvar=matchstr ,keep=FIRST
+    ,matchpoint=START ,offset=-1 ,outfile="&chopout" ,mdebug=&mdebug )
 
-/* chop out JSON section */
-%local matchstr chopout;
-%let matchstr=SASJS_LOGS_SEPARATOR_163ee17b6ff24f028928972d80a26784;
-%let chopout=%sysfunc(pathname(work))/%mf_getuniquename(prefix=chop);
+  %if &outlib ne 0 %then %do;
+    libname &outlib json "&chopout";
+  %end;
+  %if &outref ne 0 %then %do;
+    filename &outref "&chopout";
+  %end;
 
-%mp_chop("%sysfunc(pathname(&fref1,F))"
-  ,matchvar=matchstr
-  ,keep=FIRST
-  ,matchpoint=START
-  ,offset=-1
-  ,outfile="&chopout"
-  ,mdebug=&mdebug
-)
-
-%if &outlib ne 0 %then %do;
-  libname &outlib json "&chopout";
-%end;
-%if &outref ne 0 %then %do;
-  filename &outref "&chopout";
-%end;
-
-%if &mdebug=0 %then %do;
-  filename &webref clear;
-  filename &fref1 clear;
-%end;
-%else %do;
-  %put &sysmacroname exit vars:;
-  %put _local_;
-%end;
+  %if &mdebug=0 %then %do;
+    filename &webref clear;
+    filename &fref1 clear;
+  %end;
+  %else %do;
+    %put &sysmacroname exit vars:;
+    %put _local_;
+  %end;
 
 %mend ms_testservice;

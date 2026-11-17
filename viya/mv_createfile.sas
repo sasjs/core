@@ -77,262 +77,222 @@
 
 **/
 
-%macro mv_createfile(path=
-    ,name=
-    ,inref=
-    ,intype=BINARY
-    ,contentdisp=attachment
-    ,ctype=0
-    ,access_token_var=ACCESS_TOKEN
-    ,grant_type=sas_services
-    ,mdebug=0
-    ,outds=_null_
-    ,force=YES
-    ,swap=0
-  );
-%local dbg;
-%if &mdebug=1 %then %do;
-  %put &sysmacroname entry vars:;
-  %put _local_;
-%end;
-%else %let dbg=*;
-
-%mp_abort(
-  iftrue=(&syscc ne 0),
-  msg=Cannot enter &sysmacroname with syscc=&syscc
-)
-
-%local oauth_bearer;
-%if &grant_type=detect %then %do;
-  %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
-  %else %let grant_type=sas_services;
-%end;
-%if &grant_type=sas_services %then %do;
-  %let oauth_bearer=oauth_bearer=sas_services;
-  %let &access_token_var=;
-%end;
-
-%mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne password
-    and &grant_type ne sas_services
-  )
-  ,mac=MV_CREATEFILE
-  ,msg=%str(Invalid value for grant_type: &grant_type)
-)
-
-%mp_abort(iftrue=(%mf_isblank(&path)=1 or %length(&path)=1)
-  ,mac=MV_CREATEFILE
-  ,msg=%str(path value must be provided)
-)
-%mp_abort(iftrue=(%mf_isblank(&name)=1 or %length(&name)=1)
-  ,mac=MV_CREATEFILE
-  ,msg=%str(name value with length >1 must be provided)
-)
-
-/* prep the source file */
-%local fref;
-%let fref=%mf_getuniquefileref();
-
-%if %upcase(&intype)=BINARY %then %let fref=&inref;
-%else %if %upcase(&intype)=BASE64 %then %do;
-  %mp_base64copy(inref=&inref, outref=&fref, action=DECODE)
-%end;
-%else %put %str(ERR)OR: invalid value for intype: &intype;
-
-%if "&swap" ne "0" %then %do;
-  %mp_replace("%sysfunc(pathname(&fref))"
-    ,findvar=%scan(&swap,1,%str( ))
-    ,replacevar=%scan(&swap,2,%str( ))
-  )
-%end;
-
-%if &mdebug=1 %then %do;
-  data _null_;
-    infile &fref lrecl=32767;
-    input;
-    put _infile_;
-  run;
-%end;
-
-options noquotelenmax;
-%local base_uri; /* location of rest apis */
-%let base_uri=%trim(%mf_getplatform(VIYARESTAPI));
-
-/* create folder if it does not already exist */
-%local folderds self_uri;
-%let folderds=%mf_getuniquename(prefix=folderds);
-%mv_createfolder(path=&path
-  ,access_token_var=&access_token_var
-  ,grant_type=&grant_type
-  ,mdebug=&mdebug
-  ,outds=&folderds
-)
-data _null_;
-  set &folderds;
-  call symputx('self_uri',self_uri,'l');
-run;
-
-/* abort or delete if file already exists */
-%let force=%upcase(&force);
-%local fileuri ;
-%let fileuri=%trim(%mfv_getpathuri(&path/&name));
-%mp_abort(iftrue=(%mf_isblank(&fileuri)=0 and &force ne YES)
-  ,mac=MV_CREATEFILE
-  ,msg=%str(File &path/&name already exists and force=&force)
-)
-%mp_abort(
-  iftrue=(&syscc ne 0),
-  mac=MV_CREATEFILE182
-  msg=syscc=&syscc after mfv_getpathuri
-)
-
-%if %mf_isblank(&fileuri)=0 and &force=YES %then %do;
-  proc http method="DELETE" url="&base_uri&fileuri" &oauth_bearer;
-    headers
-  %if &grant_type=authorization_code %then %do;
-        "Authorization"="Bearer &&&access_token_var"
+%macro mv_createfile(path=,name=,inref=,intype=BINARY ,contentdisp=attachment
+  ,ctype=0 ,access_token_var=ACCESS_TOKEN ,grant_type=sas_services ,mdebug=0
+  ,outds=_null_ ,force=YES ,swap=0 );
+  %local dbg;
+  %if &mdebug=1 %then %do;
+    %put &sysmacroname entry vars:;
+    %put _local_;
   %end;
-        "Accept"="*/*";
-  run;
-  %put &sysmacroname DELETE &base_uri&fileuri;
-  %if &SYS_PROCHTTP_STATUS_CODE ne 204 %then %do;
-    %put &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;
+  %else %let dbg=*;
+
+  %mp_abort( iftrue=(&syscc ne 0), msg=Cannot enter &sysmacroname with
+    syscc=&syscc )
+
+  %local oauth_bearer;
+  %if &grant_type=detect %then %do;
+    %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
+    %else %let grant_type=sas_services;
   %end;
-%end;
-
-%local url mimetype ext;
-%let url=&base_uri/files/files?parentFolderUri=&self_uri;
-%let ext=%upcase(%trim(%scan(&name,-1,.)));
-
-/* Get Viya file-extension details into some macro variables */
-%mv_getViyaFileExtParms(&ext
-  ,propertiesVar=viyaProperties
-  ,typeDefNameVar=viyaTypeDefName
-  ,mdebug=&mdebug
-)
-
-/* fetch job info */
-%local fname1;
-%let fname1=%mf_getuniquefileref();
-proc http method='POST' out=&fname1 &oauth_bearer in=&fref
-  %if "&ctype" = "0" %then %do;
-    %let mimetype=%mf_mimetype(&ext);
-    ct="&mimetype"
-  %end;
-  %else %do;
-    ct="&ctype"
+  %if &grant_type=sas_services %then %do;
+    %let oauth_bearer=oauth_bearer=sas_services;
+    %let &access_token_var=;
   %end;
 
-  /* typeDefName */
-  %if not %mf_isBlank(&viyaTypeDefName) %then %do;
-    url="&url%str(&)typeDefName=&viyaTypeDefName";
-  %end;
-  %else %do;
-    %if "&ext"="HTM" or "&ext"="HTML" or "&ext"="XHTML" %then %do;
-      url="&url%str(&)typeDefName=file_html";
-    %end;
-    %else %do;
-      %if "&ext"="CSS" or "&ext"="JS" or "&ext"="PNG" or "&ext"="SVG" %then %do;
-        url="&url%str(&)typeDefName=file_%lowcase(&ext)";
-      %end;
-      %else %do;
-        url="&url";
-      %end;
-    %end;
-  %end;
+  %mp_abort(iftrue=(&grant_type ne authorization_code and &grant_type ne
+    password and &grant_type ne sas_services ) ,mac=MV_CREATEFILE
+    ,msg=%str(Invalid value for grant_type: &grant_type) )
 
-  headers "Accept"="application/json"
-  %if &grant_type=authorization_code %then %do;
-    "Authorization"="Bearer &&&access_token_var"
-  %end;
-  "Content-Disposition"=
-  %if "&ext"="SVG" or "&ext"="HTML" %then %do;
-    "filename=""&name"";"
-  %end;
-  %else %do;
-    "&contentdisp filename=""&name""; name=""&name"";"
-  %end;
-  ;
-run;
-%if &mdebug=1 %then %put &sysmacroname POST &=url
-  &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;
-%mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 201)
-  ,mac=MV_CREATEFILE
-  ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
-)
+  %mp_abort(iftrue=(%mf_isblank(&path)=1 or %length(&path)=1) ,mac=MV_CREATEFILE
+    ,msg=%str(path value must be provided) )
+  %mp_abort(iftrue=(%mf_isblank(&name)=1 or %length(&name)=1) ,mac=MV_CREATEFILE
+    ,msg=%str(name value with length >1 must be provided) )
 
-%local libref2;
-%let libref2=%mf_getuniquelibref();
-libname &libref2 JSON fileref=&fname1;
-/* Grab the follow on link */
-data &outds;
-  set &libref2..links end=last;
-  if rel='createChild' then do;
-    &dbg put (_all_)(=);
-  end;
-run;
+  /* prep the source file */
+  %local fref;
+  %let fref=%mf_getuniquefileref();
 
-/* URI of the created file */
-%let fileuri=%trim(%mfv_getpathuri(&path/&name));
+  %if %upcase(&intype)=BINARY %then %let fref=&inref;
+  %else %if %upcase(&intype)=BASE64 %then %do;
+    %mp_base64copy(inref=&inref, outref=&fref, action=DECODE)
+  %end;
+  %else %put %str(ERR)OR: invalid value for intype: &intype;
 
-/* If properties were found then patch the file to include them */
-%if not %mf_isBlank(%superq(viyaProperties)) %then %do;
-  /* Wrap the properties object in a root object also containing the filename */
-  %local viyapatch;
-  %let viyapatch=%sysfunc(pathname(work))/%mf_getuniquename(prefix=patch_json_);
-  data _null_;
-    length line $32767;
-    file "&viyapatch" lrecl=32767;
-    put '{ "name": "' "&name" '",';
-    line = cat('"properties": ',symget("viyaProperties"));
-    put line;
-    put '}';
-    stop;
-  run;
+  %if "&swap" ne "0" %then %do;
+    %mp_replace("%sysfunc(pathname(&fref))" ,findvar=%scan(&swap,1,%str( ))
+      ,replacevar=%scan(&swap,2,%str( )) )
+  %end;
 
   %if &mdebug=1 %then %do;
     data _null_;
-      if (_n_ eq 1) then put 'DEBUG: ** PATCH JSON **';
-      infile "&viyapatch" end=last;
+      infile &fref lrecl=32767;
       input;
       put _infile_;
     run;
   %end;
 
-  /* Apply the properties to the newly created file, using the PATCH method */
-  %let fref=%mf_getuniquefileref();
-  filename &fref "&viyapatch";
-  %let url=&base_uri&fileuri;
+  options noquotelenmax;
+  %local base_uri; /* location of rest apis */
+  %let base_uri=%trim(%mf_getplatform(VIYARESTAPI));
 
-  proc http method='PATCH' oauth_bearer=sas_services in=&fref
-    url="&url";
-    headers "Accept"="application/json"
-            "Content-Type"="application/json"
-            "If-Match"="*";
-    %if &mdebug=1 %then %do;
-      debug level=2;
-    %end;
+  /* create folder if it does not already exist */
+  %local folderds self_uri;
+  %let folderds=%mf_getuniquename(prefix=folderds);
+  %mv_createfolder(path=&path ,access_token_var=&access_token_var
+    ,grant_type=&grant_type ,mdebug=&mdebug ,outds=&folderds )
+
+  data _null_;
+    set &folderds;
+    call symputx('self_uri',self_uri,'l');
   run;
-  %if &mdebug=1 %then %put &sysmacroname PATCH &=url
-    &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;
-  %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200)
+
+  /* abort or delete if file already exists */
+  %let force=%upcase(&force);
+  %local fileuri ;
+  %let fileuri=%trim(%mfv_getpathuri(&path/&name));
+  %mp_abort(iftrue=(%mf_isblank(&fileuri)=0 and &force ne YES)
     ,mac=MV_CREATEFILE
-    ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
-  )
-%end;
+    ,msg=%str(File &path/&name already exists and force=&force) )
+  %mp_abort( iftrue=(&syscc ne 0), mac=MV_CREATEFILE182 msg=syscc=&syscc after
+    mfv_getpathuri )
 
-%put &sysmacroname: &base_uri&fileuri;
-%put /SASJobExecution?_file=&path/&name;%put;
+  %if %mf_isblank(&fileuri)=0 and &force=YES %then %do;
+    proc http method="DELETE" url="&base_uri&fileuri" &oauth_bearer;
+      headers %if &grant_type=authorization_code %then %do;
+      "Authorization"="Bearer &&&access_token_var" %end;
+      "Accept"="*/*";
+    run;
+    %put &sysmacroname DELETE &base_uri&fileuri;
+    %if &SYS_PROCHTTP_STATUS_CODE ne 204 %then %do;
+      %put &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;
+    %end;
+  %end;
 
-%if &mdebug=0 %then %do;
-  /* clear refs */
-  filename &fname1 clear;
-  filename &fref clear;
-  libname &libref2 clear;
-%end;
+  %local url mimetype ext;
+  %let url=&base_uri/files/files?parentFolderUri=&self_uri;
+  %let ext=%upcase(%trim(%scan(&name,-1,.)));
 
-%mp_abort(
-  iftrue=(&syscc ne 0),
-  msg=Cannot leave &sysmacroname with syscc=&syscc
-)
+  /* Get Viya file-extension details into some macro variables */
+  %mv_getViyaFileExtParms(&ext ,propertiesVar=viyaProperties
+    ,typeDefNameVar=viyaTypeDefName ,mdebug=&mdebug )
+
+  /* fetch job info */
+  %local fname1;
+  %let fname1=%mf_getuniquefileref();
+
+  proc http method='POST' out=&fname1 &oauth_bearer in=&fref %if "&ctype"="0"
+    %then %do;
+    %let mimetype=%mf_mimetype(&ext);
+    ct="&mimetype" %end;
+    %else %do;
+    ct="&ctype" %end;
+
+    /* typeDefName */
+    %if not %mf_isBlank(&viyaTypeDefName) %then %do;
+      url="&url%str(&)typeDefName=&viyaTypeDefName";
+    %end;
+    %else %do;
+      %if "&ext"="HTM" or "&ext"="HTML" or "&ext"="XHTML" %then %do;
+        url="&url%str(&)typeDefName=file_html";
+      %end;
+      %else %do;
+        %if "&ext"="CSS" or "&ext"="JS" or "&ext"="PNG" or "&ext"="SVG" %then
+          %do;
+          url="&url%str(&)typeDefName=file_%lowcase(&ext)";
+        %end;
+        %else %do;
+          url="&url";
+        %end;
+      %end;
+    %end;
+
+    headers "Accept"="application/json" %if &grant_type=authorization_code %then
+      %do;
+    "Authorization"="Bearer &&&access_token_var" %end;
+    "Content-Disposition"=%if "&ext"="SVG" or "&ext"="HTML" %then %do;
+    "filename=""&name"";" %end;
+    %else %do;
+    "&contentdisp filename=""&name""; name=""&name"";" %end;
+    ;
+  run;
+  %if &mdebug=1 %then %put &sysmacroname POST &=url &=SYS_PROCHTTP_STATUS_CODE
+    &=SYS_PROCHTTP_STATUS_PHRASE;
+  %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 201) ,mac=MV_CREATEFILE
+    ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE) )
+
+  %local libref2;
+  %let libref2=%mf_getuniquelibref();
+  libname &libref2 JSON fileref=&fname1;
+
+  /* Grab the follow on link */
+  data &outds;
+    set &libref2..links end=last;
+    if rel='createChild' then do;
+      &dbg put (_all_)(=);
+    end;
+  run;
+
+  /* URI of the created file */
+  %let fileuri=%trim(%mfv_getpathuri(&path/&name));
+
+  /* If properties were found then patch the file to include them */
+  %if not %mf_isBlank(%superq(viyaProperties)) %then %do;
+    /* Wrap the properties object in a root object also containing the
+      filename */
+    %local viyapatch;
+    %let
+      viyapatch=%sysfunc(pathname(work))/%mf_getuniquename(prefix=patch_json_);
+
+    data _null_;
+      length line $32767;
+      file "&viyapatch" lrecl=32767;
+      put '{ "name": "' "&name" '",';
+      line=cat('"properties": ',symget("viyaProperties"));
+      put line;
+      put '}';
+      stop;
+    run;
+
+    %if &mdebug=1 %then %do;
+      data _null_;
+        if (_n_ eq 1) then put 'DEBUG: ** PATCH JSON **';
+        infile "&viyapatch" end=last;
+        input;
+        put _infile_;
+      run;
+    %end;
+
+    /* Apply the properties to the newly created file, using the PATCH method */
+    %let fref=%mf_getuniquefileref();
+    filename &fref "&viyapatch";
+    %let url=&base_uri&fileuri;
+
+    proc http method='PATCH' oauth_bearer=sas_services in=&fref url="&url";
+      headers "Accept"="application/json" "Content-Type"="application/json"
+        "If-Match"="*";
+      %if &mdebug=1 %then %do;
+        debug level=2;
+      %end;
+    run;
+    %if &mdebug=1 %then %put &sysmacroname PATCH &=url
+      &=SYS_PROCHTTP_STATUS_CODE &=SYS_PROCHTTP_STATUS_PHRASE;
+    %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200) ,mac=MV_CREATEFILE
+      ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE) )
+  %end;
+
+  %put &sysmacroname: &base_uri&fileuri;
+  %put /SASJobExecution?_file=&path/&name;
+  %put;
+
+  %if &mdebug=0 %then %do;
+    /* clear refs */
+    filename &fname1 clear;
+    filename &fref clear;
+    libname &libref2 clear;
+  %end;
+
+  %mp_abort( iftrue=(&syscc ne 0), msg=Cannot leave &sysmacroname with
+    syscc=&syscc )
 
 %mend mv_createfile;

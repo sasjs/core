@@ -71,110 +71,110 @@
 
 **/
 
-%macro mp_applyformats(inds,errds=0
-)/*/STORE SOURCE*/;
-%local outds liblist i engine lib msg ;
+%macro mp_applyformats(inds,errds=0 )/*/STORE SOURCE*/;
+  %local outds liblist i engine lib msg ;
 
-/**
-  * Validations
-  */
-proc sort data=&inds;
-  by lib ds var fmt;
-run;
+  /**
+    * Validations
+    */
+  proc sort data=&inds;
+    by lib ds var fmt;
+  run;
 
-%if &errds=0 %then %let outds=%mf_getuniquename(prefix=mp_applyformats);
-%else %let outds=&errds;
+  %if &errds=0 %then %let outds=%mf_getuniquename(prefix=mp_applyformats);
+  %else %let outds=&errds;
 
-data &outds;
-  set &inds;
-  where fmt not in ('','.', '$', '$CHAR.','8.');
-  length msg $128;
-  by lib ds var fmt;
-  if libref(lib) ne 0 then do;
-    msg=catx(' ','libref',lib,'is not assigned!');
-    %if &errds=0 %then %do;
-      putlog 'ERR' +(-1) "OR: " msg;
-    %end;
-    output;
-    return;
-  end;
-  if exist(cats(lib,'.',ds)) ne 1 then do;
-    msg=catx(' ','libds',lib,'.',ds,'does not exist!');
-    %if &errds=0 %then %do;
-      putlog 'ERR' +(-1) "OR: " msg;
-    %end;
-    output;
-    return;
-  end;
-  %mp_validatecol(fmt,FORMAT,is_fmt)
-  if is_fmt=0 then do;
-    msg=catx(' ','format',fmt,'on libds',lib,'.',ds,'.',var,'is not valid!');
-    %if &errds=0 %then %do;
-      putlog 'ERR' +(-1) "OR: " msg;
-    %end;
-    output;
-    return;
-  end;
-
-  if first.ds then do;
-    retain dsid;
-    dsid=open(cats(lib,'.',ds));
-    if dsid=0 then do;
-      msg=catx(' ','libds',lib,'.',ds,' could not be opened!');
+  data &outds;
+    set &inds;
+    where fmt not in ('','.', '$', '$CHAR.','8.');
+    length msg $128;
+    by lib ds var fmt;
+    if libref(lib) ne 0 then do;
+      msg=catx(' ','libref',lib,'is not assigned!');
       %if &errds=0 %then %do;
         putlog 'ERR' +(-1) "OR: " msg;
       %end;
       output;
       return;
     end;
-    if varnum(dsid,var)<1 then do;
-      msg=catx(' ','Variable',lib,'.',ds,'.',var,' was not found!');
+    if exist(cats(lib,'.',ds)) ne 1 then do;
+      msg=catx(' ','libds',lib,'.',ds,'does not exist!');
       %if &errds=0 %then %do;
         putlog 'ERR' +(-1) "OR: " msg;
       %end;
       output;
+      return;
     end;
-  end;
-  if last.ds then rc=close(dsid);
-run;
+    %mp_validatecol(fmt,FORMAT,is_fmt)
+    if is_fmt=0 then do;
+      msg=catx(' ','format',fmt,'on libds',lib,'.',ds,'.',var,'is not valid!');
+      %if &errds=0 %then %do;
+        putlog 'ERR' +(-1) "OR: " msg;
+      %end;
+      output;
+      return;
+    end;
 
-proc sql noprint;
-select distinct lib into: liblist separated by ' ' from &inds;
-%put &=liblist;
-%if %length(&liblist)>0 %then %do i=1 %to %sysfunc(countw(&liblist));
-  %let lib=%scan(&liblist,1);
-  %let engine=%mf_getengine(&lib);
-  %if &engine ne V9 and &engine ne BASE %then %do;
-    %let msg=&lib has &engine engine - formats cannot be applied;
-    insert into &outds set lib="&lib",ds="_all_",var="_all", msg="&msg" ;
-    %if &errds=0 %then %put %str(ERR)OR: &msg;
-  %end;
-%end;
-quit;
+    if first.ds then do;
+      retain dsid;
+      dsid=open(cats(lib,'.',ds));
+      if dsid=0 then do;
+        msg=catx(' ','libds',lib,'.',ds,' could not be opened!');
+        %if &errds=0 %then %do;
+          putlog 'ERR' +(-1) "OR: " msg;
+        %end;
+        output;
+        return;
+      end;
+      if varnum(dsid,var)<1 then do;
+        msg=catx(' ','Variable',lib,'.',ds,'.',var,' was not found!');
+        %if &errds=0 %then %do;
+          putlog 'ERR' +(-1) "OR: " msg;
+        %end;
+        output;
+      end;
+    end;
+    if last.ds then rc=close(dsid);
+  run;
 
-%if %mf_nobs(&outds)>0 %then %return;
+  proc sql noprint;
+    select distinct lib into: liblist separated by ' ' from &inds;
+    %put &=liblist;
+    %if %length(&liblist)>0 %then %do i=1 %to %sysfunc(countw(&liblist));
+      %let lib=%scan(&liblist,1);
+      %let engine=%mf_getengine(&lib);
+      %if &engine ne V9 and &engine ne BASE %then %do;
+        %let msg=&lib has &engine engine - formats cannot be applied;
+        insert into &outds set lib="&lib",ds="_all_",var="_all", msg="&msg" ;
+        %if &errds=0 %then %put %str(ERR)OR: &msg;
+      %end;
+    %end;
+  quit;
 
-/**
-  * Validations complete - now apply the actual formats!
-  */
-%let fref=%mf_getuniquefileref();
-data _null_;
-  set &inds;
-  by lib ds var fmt;
-  where fmt not in ('','.', '$', '$CHAR.','8.');
-  file &fref;
-  if first.lib then put 'proc datasets nolist lib=' lib ';';
-  if first.ds then put '  modify ' ds ';';
-  put '    format ' var fmt ';';
-  if last.ds then put '  run;';
-  if last.lib then put 'quit;';
-run;
+  %if %mf_nobs(&outds)>0 %then %return;
 
-%inc &fref/source2;
+  /**
+    * Validations complete - now apply the actual formats!
+    */
+  %let fref=%mf_getuniquefileref();
 
-%if &errds=0 %then %do;
-  proc sql;
-  drop table &outds;
-%end;
+  data _null_;
+    set &inds;
+    by lib ds var fmt;
+    where fmt not in ('','.', '$', '$CHAR.','8.');
+    file &fref;
+    if first.lib then put 'proc datasets nolist lib=' lib ';';
+    if first.ds then put '  modify ' ds ';';
+    put '    format ' var fmt ';';
+    if last.ds then put '  run;';
+    if last.lib then put 'quit;';
+  run;
 
-%mend mp_applyformats;
+  %inc &fref/source2;
+
+  %if &errds=0 %then %do;
+    proc sql;
+      drop table &outds;
+      %end;
+
+    %mend mp_applyformats;

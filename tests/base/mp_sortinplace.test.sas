@@ -17,6 +17,14 @@ create table work.example as
   select * from sashelp.classfit;
 alter table work.example
   add constraint pk primary key(name);
+
+data work.example_before;
+  set work.example;
+run;
+proc sort data=work.example_before;
+  by name;
+run;
+
 %mp_sortinplace(work.example)
 
 %mp_getconstraints(lib=work,ds=example,outds=work.testme)
@@ -38,6 +46,15 @@ run;
     %str(&test1)=%str(Alfred)
   ),
   desc=Check if sort was appplied,
+  outds=work.test_results
+)
+
+proc compare base=work.example_before compare=work.example noprint;
+run;
+%let sort_compare=&sysinfo;
+%mp_assert(
+  iftrue=(&sort_compare=0),
+  desc=Check all observations and values match the sorted input,
   outds=work.test_results
 )
 

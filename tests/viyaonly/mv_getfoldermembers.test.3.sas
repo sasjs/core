@@ -13,8 +13,8 @@
 %macro mp_abort(iftrue=,mac=,msg=);
   %if not(%eval(%unquote(&iftrue))) %then %return;
   %mp_assert(
-    iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200),
-    desc=The root folder request failed,
+    iftrue=(%index(%superq(msg),Root folders:)>0),
+    desc=The abort message identifies the root folder request,
     outds=work.test_results
   )
   %mp_assert(

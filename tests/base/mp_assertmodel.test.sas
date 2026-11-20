@@ -11,6 +11,7 @@
 
 data work.model;
   length id 8 region $4 value $12;
+  call missing(id,region,value);
   stop;
 run;
 
@@ -35,11 +36,13 @@ run;
 
 data work.wronglen;
   length value $11 region $4 id 8;
+  call missing(value,region,id);
   stop;
 run;
 
 data work.wrongtype;
   length value $12 region $4 id $8;
+  call missing(value,region,id);
   stop;
 run;
 
@@ -70,6 +73,7 @@ run;
 
 data work.assertmodel_results;
   length test_description $256 test_result $5 test_comments $256;
+  call missing(test_description,test_result,test_comments);
   stop;
 run;
 

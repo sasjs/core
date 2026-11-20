@@ -41,7 +41,7 @@
   %local a b i j nbase nactual typ len bn bt bl an
     result comments tmp rc keys keyname pos keylist missvars
     missingrows duplicaterows sqlstatus sqlstatus2 appendstatus
-    outref inref baseref defaultlib;
+    outref inref baseref defaultlib savedobs savedfirstobs;
   /* Reject direct aliases; physical aliases remain a caller precondition. */
   %let outref=%qupcase(%qscan(%superq(outds),1,%str( %( )));
   %let inref=%qupcase(%qscan(%superq(inds),1,%str( %( )));
@@ -68,6 +68,9 @@
     %put %str(ERR)OR: MP_ASSERTMODEL result destination overlaps an input.;
     %return;
   %end;
+  %let savedobs=%sysfunc(getoption(obs,keyword));
+  %let savedfirstobs=%sysfunc(getoption(firstobs,keyword));
+  options obs=max firstobs=1;
   %let result=FAIL;
   %let comments=;
   %let a=0;
@@ -144,11 +147,11 @@
           %let duplicaterows=-1;
           proc sql noprint;
             select count(*) into :missingrows trimmed
-            from &inds(firstobs=1 obs=max) as t where &missvars;
+            from &inds as t where &missvars;
             %let sqlstatus=&sqlrc;
             select count(*) into :duplicaterows trimmed from (
               select &keylist, count(*) as n
-              from &inds(firstobs=1 obs=max) as t
+              from &inds as t
               group by &keylist having count(*)>1
             );
             %let sqlstatus2=&sqlrc;
@@ -182,4 +185,5 @@
   proc datasets lib=work nolist;
     delete %scan(&tmp,2,.);
   quit;
+  options &savedobs &savedfirstobs;
 %mend mp_assertmodel;

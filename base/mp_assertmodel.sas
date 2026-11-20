@@ -50,7 +50,9 @@
       %index(%superq(inref),%str(%")) or
       %index(%superq(baseref),%str(%')) or
       %index(%superq(baseref),%str(%")) %then %do;
-    %put NOTE: MP_ASSERTMODEL cannot safely check literal member references.;
+    data _null_;
+      error 'MP_ASSERTMODEL: dataset name literals are unsupported';
+    run;
     %return;
   %end;
   %let defaultlib=WORK;
@@ -63,7 +65,9 @@
     %let baseref=&defaultlib..&baseref;
   %if %superq(outref)=%superq(inref) or
       %superq(outref)=%superq(baseref) %then %do;
-    %put NOTE: MP_ASSERTMODEL result destination overlaps an input.;
+    data _null_;
+      error 'MP_ASSERTMODEL: result destination overlaps an input';
+    run;
     %return;
   %end;
   %let result=FAIL;

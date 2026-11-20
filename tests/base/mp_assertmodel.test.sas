@@ -82,7 +82,8 @@ run;
   %mp_assertmodel(&inds,base=&base,key=&key,desc=&case,
     outds=work.assertmodel_results)
   proc sql noprint;
-    select count(*),sum(test_result="&expect") into :total trimmed,:matched trimmed
+    select count(*),sum(test_result="&expect")
+      into :total trimmed,:matched trimmed
     from work.assertmodel_results where test_description="&case";
   quit;
   %mp_assert(iftrue=(&total=1 and &matched=1),
@@ -102,7 +103,8 @@ run;
 %check_model(case=wrong_type,inds=work.wrongtype,expect=FAIL)
 %check_model(case=duplicate_key,inds=work.duplicate,key=id region,expect=FAIL)
 %check_model(case=missing_numeric_key,inds=work.missingkey,key=id,expect=FAIL)
-%check_model(case=missing_character_key,inds=work.blankkey,key=id region,expect=FAIL)
+%check_model(case=missing_character_key,inds=work.blankkey,
+  key=id region,expect=FAIL)
 %check_model(case=missing_key_column,inds=work.match,key=absent,expect=FAIL)
 %check_model(case=missing_input,inds=work.notfound,expect=FAIL)
 %check_model(case=missing_base,inds=work.match,base=work.notfound,expect=FAIL)

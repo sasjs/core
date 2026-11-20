@@ -36,7 +36,7 @@ cp tests/manual/mp_assertmodel_errors.sas tests/base/mp_assertmodel_errors.test.
 npx sasjs run tests/base/mp_assertmodel_errors.test.sas -t <target> -c --no-logcheck -l "$HOME/mp_assertmodel_errors.log"
 ```
 
-Remove the copied file after the run. Inspect the log for all seven `PROBE_RESULT: PASS` lines, the expected overlap and invalid-reference diagnostics, and the read-only view append failures. An exit code alone is not a pass: `--no-logcheck` disables automatic log checking because these diagnostics are intentional. Unexpected diagnostics or missing result lines require investigation. The regular suite remains responsible for clean-log assertions.
+Remove the copied file after the run. Inspect the log for all nine `PROBE_RESULT: PASS` lines, the expected overlap and invalid-reference diagnostics, and the read-only view append failures. An exit code alone is not a pass: `--no-logcheck` disables automatic log checking because these diagnostics are intentional. Unexpected diagnostics or missing result lines require investigation. The regular suite remains responsible for clean-log assertions.
 
 ## Test Flow
 

@@ -4,6 +4,7 @@
   @details Run separately from the standard suite because expected errors are
   deliberately emitted. The runner must inspect each assertion row and the
   log. Never interpret these expected errors as a clean normal test run.
+  Dataset names in this probe deliberately include control characters.
   <h4> SAS Macros </h4>
   @li mp_assertmodel.sas
   @li mp_assert.sas
@@ -21,6 +22,17 @@ run;
 %let invalidcc=&syscc;
 %let syscc=0;
 %mp_assert(iftrue=(&invalidcc>4),desc=Invalid reference sets failure status)
+
+/* A trailing control byte in a distinct destination must be rejected. */
+data _null_;
+  call symput('badout',cats('work.control_result','0A'x));
+run;
+%mp_assertmodel(work.input,base=work.input,outds=%superq(badout))
+%let badoutcc=&syscc;
+%let syscc=0;
+%mp_assert(iftrue=(&badoutcc>4),desc=Control character destination rejected)
+%mp_assert(iftrue=(%sysfunc(exist(work.control_result))=0),
+  desc=Control character destination did not create output)
 
 data work.badout / view=work.badout;
   set work.input;

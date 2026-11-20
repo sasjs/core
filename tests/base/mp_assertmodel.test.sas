@@ -199,3 +199,11 @@ run;
   test=EQUALS 1)
 %mp_assertdsobs(work.overlap_model,desc=Model is not modified by overlap,
   test=EQUALS 1)
+
+/* A one-level destination resolves to USER when assigned. */
+libname user "%sysfunc(pathname(work))";
+%mp_assertmodel(work.overlap_input,base=user.overlap_model,
+  desc=do_not_append_to_user_model,outds=overlap_model)
+%mp_assertdsobs(user.overlap_model,
+  desc=One-level destination does not modify USER model,test=EQUALS 1)
+libname user clear;

@@ -67,6 +67,18 @@ data work.blankkey;
   if id=1 then region=' ';
 run;
 
+data work.formattedkey;
+  set work.match;
+  format id z1.;
+  id=id/10;
+run;
+
+data work.keyn;
+  length n 8;
+  n=1; output;
+  n=2; output;
+run;
+
 data work.composite;
   set work.match;
   id=1;
@@ -123,6 +135,8 @@ run;
 %mp_assertscope(COMPARE,desc=Model assertion does not leak macro variables)
 %check_model(case=empty_dataset,inds=work.empty,key=id region,expect=PASS)
 %check_model(case=valid_key,inds=work.match,key=id,expect=PASS)
+%check_model(case=formatted_key,inds=work.formattedkey,key=id,expect=PASS)
+%check_model(case=key_named_n,inds=work.keyn,base=work.keyn,key=n,expect=PASS)
 %check_model(case=composite_key,inds=work.composite,key=id region,expect=PASS)
 %check_model(case=extra_column,inds=work.extra,expect=FAIL)
 %check_model(case=missing_column,inds=work.missingcol,expect=FAIL)

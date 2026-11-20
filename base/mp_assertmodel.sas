@@ -41,10 +41,10 @@
 **/
 %macro mp_assertmodel(inds,base=,key=,desc=Testing dataset model,
     outds=work.test_results);
-  %local a b i result comments tmp rc keys keyname pos keylist missvars
+  %local result comments tmp keylist missvars
     missingrows duplicaterows sqlstatus sqlstatus2 appendstatus
     outref baseds validrefs
-    inlen baselen outlen;
+    inlen baselen outlen keylen;
   /* Resolve unqualified names to WORK and reject direct aliases. */
   %let validrefs=0;
   %let inlen=%length(%superq(inds));
@@ -94,109 +94,99 @@
   %let comments=;
   %let sqlstatus=0;
   %let sqlstatus2=0;
-  %let a=0;
-  %let b=0;
+  %let keylen=%length(%superq(key));
   %let tmp=work.%mf_getuniquename(prefix=am);
-  %let a=%sysfunc(open(%superq(inds),i));
-  %if &a=0 %then %let comments=Input dataset cannot be opened;
-  %else %do;
-    %let b=%sysfunc(open(%superq(baseds),i));
-    %if &b=0 %then %let comments=Model dataset cannot be opened;
-    %else %do;
-      data _null_;
-        length bn $32 comments $256 result $5;
-        a=open(symget('inds'),'i');
-        b=open(symget('baseds'),'i');
-        if a=0 or b=0 then do;
+  data _null_;
+    length bn $32 keyname $32767 comments $256 result $5
+      keys keylist missvars $32767;
+    a=open(symget('inds'),'i');
+    if a ne 0 then b=open(symget('baseds'),'i');
+    else b=0;
+    result='FAIL';
+    if a=0 then comments='Input dataset cannot be opened';
+    else if b=0 then comments='Model dataset cannot be opened';
+    else do;
+      result='PASS';
+      comments='Column names types and lengths match';
+      if attrn(a,'NVARS') ne attrn(b,'NVARS') then do;
+        result='FAIL';
+        comments='Column count differs from model';
+      end;
+      else do i=1 to attrn(b,'NVARS');
+        bn=varname(b,i);
+        pos=varnum(a,bn);
+        if pos=0 then do;
           result='FAIL';
-          comments='Unable to open datasets for metadata comparison';
+          comments=catx(' ','Missing column',bn);
         end;
-        else do;
-          nactual=attrn(a,'NVARS');
-          nbase=attrn(b,'NVARS');
-          result='PASS';
-          comments='Column names types and lengths match';
-          if nactual ne nbase then do;
+        else if vartype(a,pos) ne vartype(b,i) or
+            varlen(a,pos) ne varlen(b,i) then do;
+          result='FAIL';
+          comments=catx(' ','Type or length differs for',bn);
+        end;
+      end;
+      if result='PASS' and &keylen>32767 then do;
+        result='FAIL';
+        comments='Key list too long';
+      end;
+      else if result='PASS' then do;
+        keys=symget('key');
+        do i=1 to countw(keys,' ');
+          keyname=scan(keys,i,' ');
+          if not nvalid(keyname,'V7') then do;
             result='FAIL';
-            comments='Column count differs from model';
+            comments='Invalid key column name';
           end;
-          else do i=1 to nbase;
-            bn=varname(b,i);
-            pos=varnum(a,bn);
-            if pos=0 then do;
+          else if varnum(a,keyname)=0 then do;
+            result='FAIL';
+            comments=catx(' ','Key column not found',keyname);
+          end;
+          else do;
+            if lengthn(missvars)+lengthn(keyname)+11+
+                4*(not missing(missvars))>32767 then do;
               result='FAIL';
-              comments=catx(' ','Missing column',bn);
+              comments='Key expression too long';
+              leave;
             end;
-            else if vartype(a,pos) ne vartype(b,i) or
-                varlen(a,pos) ne varlen(b,i) then do;
-              result='FAIL';
-              comments=catx(' ','Type or length differs for',bn);
+            else do;
+              keylist=catx(',',keylist,cats('t.',keyname));
+              missvars=catx(' or ',missvars,cats('missing(t.',keyname,')'));
             end;
           end;
         end;
-        if a ne 0 then rc=close(a);
-        if b ne 0 then rc=close(b);
-        call symputx('result',result,'L');
-        call symputx('comments',comments,'L');
-      run;
-      %if &result=PASS and %length(%superq(key))>0 %then %do;
-        %let keylist=;
-        %let missvars=;
-        %let keys=%sysfunc(countw(%superq(key),%str( )));
-        %do i=1 %to &keys;
-          %let keyname=%qscan(%superq(key),&i,%str( ));
-          %if %sysfunc(nvalid(%superq(keyname),v7))=0 %then %do;
-            %let result=FAIL;
-            %let comments=Invalid key column name;
-          %end;
-          %else %do;
-            %let pos=%sysfunc(varnum(&a,%superq(keyname)));
-            %if &pos=0 %then %do;
-              %let result=FAIL;
-              %let comments=Key column not found %superq(keyname);
-            %end;
-            %else %do;
-              %if &i>1 %then %let keylist=&keylist,;
-              %let keylist=&keylist t.%superq(keyname);
-              %let missvars=&missvars missing(t.%superq(keyname)) or;
-            %end;
-          %end;
-        %end;
-        %if &result=PASS %then %do;
-          %let missvars=%substr(%superq(missvars),1,
-            %eval(%length(%superq(missvars))-3));
-          %let rc=%sysfunc(close(&a));
-          %let a=0;
-          %let rc=%sysfunc(close(&b));
-          %let b=0;
-          %let missingrows=-1;
-          %let duplicaterows=-1;
-          proc sql noprint;
-            select count(*) into :missingrows trimmed
-            from &inds as t where &missvars;
-            %let sqlstatus=&sqlrc;
-            select count(*) into :duplicaterows trimmed from (
-              select &keylist, count(*) as n
-              from &inds as t
-              group by &keylist having count(*)>1
-            );
-            %let sqlstatus2=&sqlrc;
-          quit;
-          %if &sqlstatus ne 0 or &sqlstatus2 ne 0 %then %do;
-            %let result=FAIL;
-            %let comments=Unable to check key values;
-          %end;
-          %else %if &missingrows ne 0 or &duplicaterows ne 0 %then %do;
-            %let result=FAIL;
-            %let comments=Key contains missing or duplicate values;
-          %end;
-          %else %let comments=Column model and key match;
-        %end;
-      %end;
+      end;
+    end;
+    if a ne 0 then rc=close(a);
+    if b ne 0 then rc=close(b);
+    call symputx('result',result,'L');
+    call symputx('comments',comments,'L');
+    call symputx('keylist',keylist,'L');
+    call symputx('missvars',missvars,'L');
+  run;
+  %if &result=PASS and %length(%superq(keylist))>0 %then %do;
+    %let missingrows=-1;
+    %let duplicaterows=-1;
+    proc sql noprint;
+      select count(*) into :missingrows trimmed
+      from &inds as t where &missvars;
+      %let sqlstatus=&sqlrc;
+      select count(*) into :duplicaterows trimmed from (
+        select &keylist, count(*) as n
+        from &inds as t
+        group by &keylist having count(*)>1
+      );
+      %let sqlstatus2=&sqlrc;
+    quit;
+    %if &sqlstatus ne 0 or &sqlstatus2 ne 0 %then %do;
+      %let result=FAIL;
+      %let comments=Unable to check key values;
     %end;
+    %else %if &missingrows ne 0 or &duplicaterows ne 0 %then %do;
+      %let result=FAIL;
+      %let comments=Key contains missing or duplicate values;
+    %end;
+    %else %let comments=Column model and key match;
   %end;
-  %if &a ne 0 %then %let rc=%sysfunc(close(&a));
-  %if &b ne 0 %then %let rc=%sysfunc(close(&b));
   data &tmp;
     length test_description $256 test_result $5 test_comments $256;
     test_description=symget('desc');

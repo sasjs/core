@@ -154,6 +154,7 @@ run;
 %check_model(case=one_level_work,inds=match,base=model,expect=PASS)
 %check_model(case=empty_dataset,inds=work.empty,key=id region,expect=PASS)
 %check_model(case=valid_key,inds=work.match,key=id,expect=PASS)
+%check_model(case=blank_key,inds=work.match,key=%str(   ),expect=PASS)
 %check_model(case=formatted_key,inds=work.formattedkey,key=id,expect=PASS)
 %check_model(case=key_named_n,inds=work.keyn,base=work.keyn,key=n,expect=PASS)
 %check_model(case=composite_key,inds=work.composite,key=id region,expect=PASS)
@@ -176,6 +177,26 @@ run;
   reason=Key contains missing or duplicate)
 %check_model(case=missing_key_column,inds=work.match,key=absent,expect=FAIL,
   reason=Key column not found)
+%check_model(case=missing_second_key,inds=work.match,key=id absent,expect=FAIL,
+  reason=Key column not found)
+%check_model(case=invalid_key_name,inds=work.match,key=invalid-name,expect=FAIL,
+  reason=Invalid key column name)
+%check_model(case=overlong_key_name,inds=work.match,
+  key=abcdefghijklmnopqrstuvwxyzabcdefg,expect=FAIL,
+  reason=Invalid key column name)
+/* Long composite keys must not silently lose key columns. */
+data _null_;
+  length keylist $32767;
+  keylist=repeat('id ',2499);
+  call symputx('manykeys',keylist);
+run;
+%let oversizedkeys=&manykeys &manykeys &manykeys &manykeys &manykeys;
+%check_model(case=large_key_expression,inds=work.match,key=&manykeys,
+  expect=FAIL,reason=Key expression too long)
+%check_model(case=oversized_key,inds=work.match,key=&oversizedkeys,
+  expect=FAIL,reason=Key list too long)
+%check_model(case=both_inputs_missing,inds=work.notfound,base=work.notfound2,
+  expect=FAIL,reason=Input dataset cannot be opened)
 %check_model(case=missing_input,inds=work.notfound,expect=FAIL,
   reason=Input dataset cannot be opened)
 %check_model(case=missing_base,inds=work.match,base=work.notfound,expect=FAIL,

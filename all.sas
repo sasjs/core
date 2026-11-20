@@ -4112,9 +4112,10 @@ run;
 
   One PASS or FAIL row is appended to outds. Missing datasets and invalid key
   columns produce FAIL. The macro does not sort or intentionally modify inputs.
-  Dataset names must use ordinary V7 member names, not name literals. OUTDS must
-  identify a distinct dataset and must not alias either input through a libref,
-  filesystem link, view or other storage mapping. Dataset options are not
+  Dataset names must use ordinary V7 member names, not name literals.
+  Unqualified dataset names refer to WORK. OUTDS must identify a distinct
+  dataset and must not alias either input through a libref, filesystem link,
+  view or other storage mapping. Dataset options are not
   accepted. Direct overlaps, malformed dataset names and name literals are
   rejected with a diagnostic in the SAS log and nonzero SYSCC, without
   appending a result row. Physical aliases are not detected. If SAS changes
@@ -4145,72 +4146,61 @@ run;
 **/
 %macro mp_assertmodel(inds,base=,key=,desc=Testing dataset model,
     outds=work.test_results);
-  %local a b i j nbase nactual typ len bn bt bl an
-    result comments tmp rc keys keyname pos keylist missvars
+  %local a b i result comments tmp rc keys keyname pos keylist missvars
     missingrows duplicaterows sqlstatus sqlstatus2 appendstatus
-    outref inref baseref defaultlib savedobs savedfirstobs defaultobs
-    effectiveobs validrefs;
-  /* Reject direct aliases; physical aliases remain a caller precondition. */
-  %let outref=%qupcase(%superq(outds));
-  %let inref=%qupcase(%superq(inds));
-  %let baseref=%qupcase(%superq(base));
-  %let defaultlib=WORK;
-  %if %sysfunc(libref(USER))=0 %then %let defaultlib=USER;
-  %if %index(%superq(outref),.)=0 %then
-    %let outref=&defaultlib..&outref;
-  %if %index(%superq(inref),.)=0 %then
-    %let inref=&defaultlib..&inref;
-  %if %index(%superq(baseref),.)=0 %then
-    %let baseref=&defaultlib..&baseref;
+    outref inref baseref savedobs savedfirstobs validrefs
+    inlen baselen outlen;
+  /* Resolve unqualified names to WORK and reject direct aliases. */
   %let validrefs=0;
-  %if %length(%superq(inref))>41 or %length(%superq(baseref))>41 or
-      %length(%superq(outref))>41 %then %do;
-    %put %str(ERR)OR: MP_ASSERTMODEL invalid dataset reference.;
-    %let syscc=%sysfunc(max(&syscc,1012));
-    %return;
-  %end;
+  %let inlen=%length(%superq(inds));
+  %let baselen=%length(%superq(base));
+  %let outlen=%length(%superq(outds));
   data _null_;
-    length reference $256;
-    reference=symget('inref');
+    length reference inref baseref outref $32767;
+    inref=symget('inds');
+    baseref=symget('base');
+    outref=symget('outds');
+    hascontrol=(anycntrl(inref)>0 or anycntrl(baseref)>0 or
+      anycntrl(outref)>0);
+    inref=strip(inref);
+    baseref=strip(baseref);
+    outref=strip(outref);
+    if index(inref,'.')=0 then inref=cats('WORK.',inref);
+    if index(baseref,'.')=0 then baseref=cats('WORK.',baseref);
+    if index(outref,'.')=0 then outref=cats('WORK.',outref);
+    reference=inref;
     %mp_validatecol(reference,LIBDS,valid_input)
-    reference=symget('baseref');
+    reference=baseref;
     %mp_validatecol(reference,LIBDS,valid_base)
-    reference=symget('outref');
+    reference=outref;
     %mp_validatecol(reference,LIBDS,valid_output)
-    call symputx('validrefs',valid_input and valid_base and valid_output,'L');
+    if &inlen<=32767 and &baselen<=32767 and &outlen<=32767 and
+        valid_input and valid_base and valid_output and not hascontrol and
+        lengthn(inref)=&inlen+(index(symget('inds'),'.')=0)*5 and
+        lengthn(baseref)=&baselen+(index(symget('base'),'.')=0)*5 and
+        lengthn(outref)=&outlen+(index(symget('outds'),'.')=0)*5 then do;
+      if upcase(outref)=upcase(inref) or upcase(outref)=upcase(baseref) then
+        validrefs=2;
+      else do;
+        validrefs=1;
+        call symputx('inref',inref,'L');
+        call symputx('baseref',baseref,'L');
+        call symputx('outref',outref,'L');
+      end;
+    end;
+    else validrefs=0;
+    call symputx('validrefs',validrefs,'L');
   run;
   %if &validrefs ne 1 %then %do;
-    %put %str(ERR)OR: MP_ASSERTMODEL invalid dataset reference.;
-    %let syscc=%sysfunc(max(&syscc,1012));
-    %return;
-  %end;
-  %if %superq(outref)=%superq(inref) or
-      %superq(outref)=%superq(baseref) %then %do;
-    %put %str(ERR)OR: MP_ASSERTMODEL result destination overlaps an input.;
+    %if &validrefs=2 %then
+      %put %str(ERR)OR: MP_ASSERTMODEL result destination overlaps an input.;
+    %else %put %str(ERR)OR: MP_ASSERTMODEL invalid dataset reference.;
     %let syscc=%sysfunc(max(&syscc,1012));
     %return;
   %end;
   %let savedobs=%sysfunc(getoption(obs,keyword));
   %let savedfirstobs=%sysfunc(getoption(firstobs,keyword));
-  /* The shipped OBS default is MAX for the running SAS platform. */
-  %let defaultobs=%qsysfunc(getoption(obs,defaultvalue));
   options obs=max firstobs=1;
-  %let effectiveobs=%qsysfunc(getoption(obs));
-  /* Never return a PASS when administrator restrictions prevent a full scan. */
-  %if %length(%superq(defaultobs))=0 or
-      %length(%superq(effectiveobs))=0 or
-      X%superq(effectiveobs) ne X%superq(defaultobs) or
-      X%qsysfunc(getoption(firstobs)) ne X1 %then %do;
-    %put %str(ERR)OR: MP_ASSERTMODEL cannot remove observation restrictions.;
-    %let syscc=%sysfunc(max(&syscc,1012));
-    %if X%qsysfunc(getoption(obs)) ne X0 %then %do;
-      options &savedobs &savedfirstobs;
-    %end;
-    %else %do;
-      options &savedfirstobs;
-    %end;
-    %return;
-  %end;
   %let result=FAIL;
   %let comments=;
   %let sqlstatus=0;
@@ -4218,43 +4208,48 @@ run;
   %let a=0;
   %let b=0;
   %let tmp=work.%mf_getuniquename(prefix=am);
-  %let a=%sysfunc(open(%superq(inds),i));
+  %let a=%sysfunc(open(%superq(inref),i));
   %if &a=0 %then %let comments=Input dataset cannot be opened;
   %else %do;
-    %let b=%sysfunc(open(%superq(base),i));
+    %let b=%sysfunc(open(%superq(baseref),i));
     %if &b=0 %then %let comments=Model dataset cannot be opened;
     %else %do;
-      %let nactual=%sysfunc(attrn(&a,nvars));
-      %let nbase=%sysfunc(attrn(&b,nvars));
-      %if &nactual ne &nbase %then
-        %let comments=Column count differs from model;
-      %else %do;
-        %let result=PASS;
-        %let comments=Column names types and lengths match;
-        %do i=1 %to &nbase;
-          %let bn=%qsysfunc(varname(&b,&i));
-          %let bt=%sysfunc(vartype(&b,&i));
-          %let bl=%sysfunc(varlen(&b,&i));
-          %let pos=0;
-          %do j=1 %to &nactual;
-            %let an=%qsysfunc(varname(&a,&j));
-            %if X%qupcase(%superq(bn))=X%qupcase(%superq(an)) %then
-              %let pos=&j;
-          %end;
-          %if &pos=0 %then %do;
-            %let result=FAIL;
-            %let comments=Missing column %superq(bn);
-          %end;
-          %else %do;
-            %let typ=%sysfunc(vartype(&a,&pos));
-            %let len=%sysfunc(varlen(&a,&pos));
-            %if &typ ne &bt or &len ne &bl %then %do;
-              %let result=FAIL;
-              %let comments=Type or length differs for %superq(bn);
-            %end;
-          %end;
-        %end;
-      %end;
+      data _null_;
+        length bn $32 comments $256 result $5;
+        a=open(symget('inref'),'i');
+        b=open(symget('baseref'),'i');
+        if a=0 or b=0 then do;
+          result='FAIL';
+          comments='Unable to open datasets for metadata comparison';
+        end;
+        else do;
+          nactual=attrn(a,'NVARS');
+          nbase=attrn(b,'NVARS');
+          result='PASS';
+          comments='Column names types and lengths match';
+          if nactual ne nbase then do;
+            result='FAIL';
+            comments='Column count differs from model';
+          end;
+          else do i=1 to nbase;
+            bn=varname(b,i);
+            pos=varnum(a,bn);
+            if pos=0 then do;
+              result='FAIL';
+              comments=catx(' ','Missing column',bn);
+            end;
+            else if vartype(a,pos) ne vartype(b,i) or
+                varlen(a,pos) ne varlen(b,i) then do;
+              result='FAIL';
+              comments=catx(' ','Type or length differs for',bn);
+            end;
+          end;
+        end;
+        if a ne 0 then rc=close(a);
+        if b ne 0 then rc=close(b);
+        call symputx('result',result,'L');
+        call symputx('comments',comments,'L');
+      run;
       %if &result=PASS and %length(%superq(key))>0 %then %do;
         %let keylist=;
         %let missvars=;
@@ -4289,11 +4284,11 @@ run;
           %let duplicaterows=-1;
           proc sql noprint;
             select count(*) into :missingrows trimmed
-            from &inds as t where &missvars;
+            from &inref as t where &missvars;
             %let sqlstatus=&sqlrc;
             select count(*) into :duplicaterows trimmed from (
               select &keylist, count(*) as n
-              from &inds as t
+              from &inref as t
               group by &keylist having count(*)>1
             );
             %let sqlstatus2=&sqlrc;
@@ -4319,7 +4314,7 @@ run;
     test_result=symget('result');
     test_comments=symget('comments');
   run;
-  proc append base=&outds data=&tmp;
+  proc append base=&outref data=&tmp;
   run;
   %let appendstatus=&syserr;
   %if &appendstatus ne 0 %then

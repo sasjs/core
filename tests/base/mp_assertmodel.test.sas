@@ -222,4 +222,3 @@ quit;
   desc=Key check includes rows beyond observation limit)
 %mp_assert(iftrue=("&afterobs"="OBS=1" and "&afterfirstobs"="FIRSTOBS=2"),
   desc=Observation options are restored)
-

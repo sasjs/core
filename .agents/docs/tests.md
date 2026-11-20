@@ -27,7 +27,7 @@ Naming convention: `<macroname>.test.sas`, with numbered variants (`<macroname>.
 
 ## Manual error-path probes
 
-`tests/manual` holds probes that intentionally emit SAS errors and are excluded from `macroFolders` and the normal clean-log test suite. They are not run by `npm test` or CI. Use a disposable, authenticated SAS target: the probe changes session options and resets `SYSCC` after observing expected failures. Do not run it in a production session.
+`tests/manual` holds probes that intentionally emit SAS errors and are excluded from `macroFolders` and the normal clean-log test suite. They are not run by `npm test` or CI. Use a disposable, authenticated SAS target: the probe temporarily sets `NOSYNTAXCHECK` and resets `SYSCC` after observing expected failures. Do not run it in a production session.
 
 To run `mp_assertmodel_errors.sas`, first configure and authenticate a disposable target, then copy the probe into an existing configured macro folder with a `.test.sas` filename so the CLI recognizes it. For example, from a disposable checkout configured with `tests/base`:
 
@@ -36,7 +36,7 @@ cp tests/manual/mp_assertmodel_errors.sas tests/base/mp_assertmodel_errors.test.
 npx sasjs run tests/base/mp_assertmodel_errors.test.sas -t <target> -c --no-logcheck -l "$HOME/mp_assertmodel_errors.log"
 ```
 
-Remove the copied file after the run. Inspect the log for all nine `PROBE_RESULT: PASS` lines, the expected overlap and invalid-reference diagnostics, and the read-only view append failures. An exit code alone is not a pass: `--no-logcheck` disables automatic log checking because these diagnostics are intentional. Unexpected diagnostics or missing result lines require investigation. The regular suite remains responsible for clean-log assertions.
+Remove the copied file after the run. Inspect the log for all five `PROBE_RESULT: PASS` lines, the expected overlap and invalid-reference diagnostics, and the read-only view append failure. An exit code alone is not a pass: `--no-logcheck` disables automatic log checking because these diagnostics are intentional. Unexpected diagnostics or missing result lines require investigation. The regular suite remains responsible for clean-log assertions.
 
 ## Test Flow
 

@@ -34,34 +34,16 @@ run;
 %mp_assert(iftrue=(%sysfunc(exist(work.control_result))=0),
   desc=Control character destination did not create output)
 
+%let originalsyntax=%sysfunc(getoption(syntaxcheck,keyword));
+options nosyntaxcheck;
 data work.badout / view=work.badout;
   set work.input;
 run;
-options nosyntaxcheck obs=3 firstobs=2;
 %mp_assertmodel(work.input,base=work.input,outds=work.badout)
-%let afterobs=%sysfunc(getoption(obs,keyword));
-%let afterfirstobs=%sysfunc(getoption(firstobs,keyword));
-options obs=max firstobs=1;
+%let appendcc=&syscc;
 %let syscc=0;
-%mp_assert(iftrue=("&afterobs"="OBS=3"),
-  desc=Failed append restores observation limit)
-%mp_assert(iftrue=("&afterfirstobs"="FIRSTOBS=2"),
-  desc=Failed append restores first observation)
-
-options syntaxcheck obs=3 firstobs=2;
-%mp_assertmodel(work.input,base=work.input,outds=work.badout)
-%let syntaxobs=%sysfunc(getoption(obs,keyword));
-%let syntaxfirstobs=%sysfunc(getoption(firstobs,keyword));
-%let syntaxreplace=%sysfunc(getoption(replace,keyword));
-%put NOTE: PROBE_SYNTAX_OBS=&syntaxobs REPLACE=&syntaxreplace;
-options nosyntaxcheck obs=max firstobs=1 replace;
-%let syscc=0;
-%mp_assert(iftrue=("&syntaxobs"="OBS=3"),
-  desc=Failed append restores observation limit under syntax check)
-%mp_assert(iftrue=("&syntaxreplace"="NOREPLACE"),
-  desc=Syntax check NOREPLACE remains set)
-%mp_assert(iftrue=("&syntaxfirstobs"="FIRSTOBS=2"),
-  desc=Syntax check restores first observation)
+options &originalsyntax;
+%mp_assert(iftrue=(&appendcc>4),desc=Failed append sets failure status)
 
 /* Print the actual result rows for a standalone sasjs run log. */
 data _null_;

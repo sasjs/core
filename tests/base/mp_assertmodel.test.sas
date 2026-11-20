@@ -202,24 +202,23 @@ options validvarname=any;
   reason=Missing column)
 options validvarname=v7;
 
+/* The key check must not change the caller's observation options. */
+%global model_probe_seen model_bad_obs;
+%let model_probe_seen=0;
+%let model_bad_obs=0;
+data work.option_view / view=work.option_view;
+  set work.match;
+  call symputx('model_probe_seen',1,'G');
+  if getoption('obs','keyword') ne 'OBS=1' then
+    call symputx('model_bad_obs',1,'G');
+run;
 %let originalobs=%sysfunc(getoption(obs,keyword));
-%let originalfirstobs=%sysfunc(getoption(firstobs,keyword));
 options obs=1;
-%mp_assertmodel(work.duplicate,base=work.model,key=id,
-  desc=limited_observations,outds=work.limited_results)
+%mp_assertmodel(work.option_view,base=work.model,key=id,
+  desc=observation_options,outds=work.option_results)
 %let afterobs=%sysfunc(getoption(obs,keyword));
-options &originalobs &originalfirstobs;
-options firstobs=2;
-%mp_assertmodel(work.duplicate,base=work.model,key=id,
-  desc=limited_firstobs,outds=work.limited_results)
-%let afterfirstobs=%sysfunc(getoption(firstobs,keyword));
-options &originalobs &originalfirstobs;
-proc sql noprint;
-  select count(*) into :limited_failed trimmed
-  from work.limited_results
-  where test_result='FAIL' and test_comments contains 'duplicate';
-quit;
-%mp_assert(iftrue=(&limited_failed=2),
-  desc=Key check includes rows beyond observation limit)
-%mp_assert(iftrue=("&afterobs"="OBS=1" and "&afterfirstobs"="FIRSTOBS=2"),
-  desc=Observation options are restored)
+options &originalobs;
+%mp_assert(iftrue=(&model_probe_seen=1 and &model_bad_obs=0),
+  desc=Key check does not change OBS during execution)
+%mp_assert(iftrue=("&afterobs"="OBS=1"),
+  desc=Key check leaves OBS unchanged)

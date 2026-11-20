@@ -141,7 +141,9 @@ run;
   base=work.sqlkeys,key=user,expect=FAIL)
 %check_model(case=reserved_missing,inds=work.sqlkeys_missing,
   base=work.sqlkeys,key=user,expect=FAIL)
+options validvarname=any;
 %check_model(case=special_names,inds=work.anynames,
   base=work.anynames,expect=PASS)
 %check_model(case=special_names_length,inds=work.anynames_bad,
   base=work.anynames,expect=FAIL)
+options validvarname=v7;

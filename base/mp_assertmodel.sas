@@ -32,7 +32,7 @@
 **/
 %macro mp_assertmodel(inds,base=,key=,desc=Testing dataset model,
     outds=work.test_results);
-  %local a b i nbase nactual typ len bn bt bl
+  %local a b i j nbase nactual typ len bn bt bl an
     result comments tmp rc keys keyname pos keylist missvars
     missingrows duplicaterows sqlstatus;
   %let result=FAIL;
@@ -57,7 +57,12 @@
           %let bn=%qsysfunc(varname(&b,&i));
           %let bt=%sysfunc(vartype(&b,&i));
           %let bl=%sysfunc(varlen(&b,&i));
-          %let pos=%sysfunc(varnum(&a,%superq(bn)));
+          %let pos=0;
+          %do j=1 %to &nactual;
+            %let an=%qsysfunc(varname(&a,&j));
+            %if %qupcase(%superq(bn))=%qupcase(%superq(an)) %then
+              %let pos=&j;
+          %end;
           %if &pos=0 %then %do;
             %let result=FAIL;
             %let comments=Missing column %superq(bn);

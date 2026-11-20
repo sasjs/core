@@ -75,7 +75,13 @@
     end;
     else validrefs=0;
     call symputx('validrefs',validrefs,'L');
-    if validrefs ne 1 then stop;
+    if validrefs ne 1 then do;
+      if validrefs=2 then
+        putlog 'ERR' 'OR: MP_ASSERTMODEL result destination overlaps an input.';
+      else putlog 'ERR' 'OR: MP_ASSERTMODEL invalid dataset reference.';
+      call symputx('syscc',max(input(symget('syscc'),best32.),1012),'G');
+      stop;
+    end;
     a=open(inds,'i');
     if a ne 0 then b=open(baseds,'i');
     else b=0;
@@ -140,13 +146,7 @@
     call symputx('keylist',keylist,'L');
     call symputx('missvars',missvars,'L');
   run;
-  %if &validrefs ne 1 %then %do;
-    %if &validrefs=2 %then
-      %put %str(ERR)OR: MP_ASSERTMODEL result destination overlaps an input.;
-    %else %put %str(ERR)OR: MP_ASSERTMODEL invalid dataset reference.;
-    %let syscc=%sysfunc(max(&syscc,1012));
-    %return;
-  %end;
+  %if &validrefs ne 1 %then %return;
   %let sqlstatus=0;
   %let sqlstatus2=0;
   %let tmp=work.%mf_getuniquename(prefix=am);

@@ -203,6 +203,12 @@ options validvarname=v7;
 
 %let originalobs=%sysfunc(getoption(obs,keyword));
 %let originalfirstobs=%sysfunc(getoption(firstobs,keyword));
+%let defaultobs=%sysfunc(getoption(obs,defaultvalue));
+options obs=max;
+%let maxobs=%sysfunc(getoption(obs));
+%mp_assert(iftrue=("&maxobs"="&defaultobs"),
+  desc=OBS maximum matches platform default)
+options &originalobs &originalfirstobs;
 options obs=1;
 %mp_assertmodel(work.duplicate,base=work.model,key=id,
   desc=limited_observations,outds=work.limited_results)

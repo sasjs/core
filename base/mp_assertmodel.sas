@@ -44,7 +44,8 @@
   %local a b i j nbase nactual typ len bn bt bl an
     result comments tmp rc keys keyname pos keylist missvars
     missingrows duplicaterows sqlstatus sqlstatus2 appendstatus
-    outref inref baseref defaultlib savedobs savedfirstobs validrefs;
+    outref inref baseref defaultlib savedobs savedfirstobs defaultobs
+    effectiveobs validrefs;
   /* Reject direct aliases; physical aliases remain a caller precondition. */
   %let outref=%qupcase(%superq(outds));
   %let inref=%qupcase(%superq(inds));
@@ -87,9 +88,14 @@
   %end;
   %let savedobs=%sysfunc(getoption(obs,keyword));
   %let savedfirstobs=%sysfunc(getoption(firstobs,keyword));
+  /* The shipped OBS default is MAX for the running SAS platform. */
+  %let defaultobs=%qsysfunc(getoption(obs,defaultvalue));
   options obs=max firstobs=1;
+  %let effectiveobs=%qsysfunc(getoption(obs));
   /* Never return a PASS when administrator restrictions prevent a full scan. */
-  %if X%qsysfunc(getoption(obs)) ne X9223372036854775807 or
+  %if %length(%superq(defaultobs))=0 or
+      %length(%superq(effectiveobs))=0 or
+      X%superq(effectiveobs) ne X%superq(defaultobs) or
       X%qsysfunc(getoption(firstobs)) ne X1 %then %do;
     %put %str(ERR)OR: MP_ASSERTMODEL cannot remove observation restrictions.;
     %let syscc=%sysfunc(max(&syscc,1012));

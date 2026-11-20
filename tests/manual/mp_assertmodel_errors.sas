@@ -23,9 +23,9 @@ run;
 %let syscc=0;
 %mp_assert(iftrue=(&invalidcc>4),desc=Invalid reference sets failure status)
 
-/* A trailing control byte in a distinct destination must be rejected. */
+/* An embedded control byte in a distinct destination must be rejected. */
 data _null_;
-  call symput('badout',cats('work.control_result','0A'x));
+  call symput('badout','work.control'||'0A'x||'_result');
 run;
 %mp_assertmodel(work.input,base=work.input,outds=%superq(badout))
 %let badoutcc=&syscc;

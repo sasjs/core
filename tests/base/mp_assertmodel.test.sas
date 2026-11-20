@@ -152,6 +152,9 @@ run;
 %check_model(case=match_order_independent,inds=work.match,expect=PASS)
 %mp_assertscope(COMPARE,desc=Model assertion does not leak macro variables)
 %check_model(case=one_level_work,inds=match,base=model,expect=PASS)
+%mp_assertmodel(match,base=model,outds=onelevelresult)
+%mp_assert(iftrue=(%sysfunc(exist(work.onelevelresult))=1),
+  desc=One-level output resolves to WORK)
 %check_model(case=empty_dataset,inds=work.empty,key=id region,expect=PASS)
 %check_model(case=valid_key,inds=work.match,key=id,expect=PASS)
 %check_model(case=blank_key,inds=work.match,key=%str(   ),expect=PASS)

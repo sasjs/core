@@ -109,6 +109,22 @@ data work.anynames_bad;
   length 'a&b'n $5 'pct%value'n 8 'a,b'n $3;
   'a&b'n='x'; 'pct%value'n=1; 'a,b'n='z'; output;
 run;
+data work.model_numeric_name;
+  length '01'n 8;
+  '01'n=1;
+run;
+data work.actual_numeric_name;
+  length '1'n 8;
+  '1'n=1;
+run;
+data work.model_large_name;
+  length '99999999999999999999999999999999'n 8;
+  '99999999999999999999999999999999'n=1;
+run;
+data work.actual_large_name;
+  length '99999999999999999999999999999998'n 8;
+  '99999999999999999999999999999998'n=1;
+run;
 options validvarname=v7;
 
 data work.assertmodel_results;
@@ -161,6 +177,10 @@ options validvarname=any;
   base=work.anynames,expect=PASS)
 %check_model(case=special_names_length,inds=work.anynames_bad,
   base=work.anynames,expect=FAIL)
+%check_model(case=numeric_column_names,inds=work.actual_numeric_name,
+  base=work.model_numeric_name,expect=FAIL)
+%check_model(case=large_numeric_names,inds=work.actual_large_name,
+  base=work.model_large_name,expect=FAIL)
 options validvarname=v7;
 
 /* The result destination must never overwrite either input. */

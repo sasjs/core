@@ -6,6 +6,7 @@
   @li mp_sortinplace.sas
   @li mp_assert.sas
   @li mp_assertdsobs.sas
+  @li mp_assertmodel.sas
   @li mp_getconstraints.sas
 
 **/
@@ -26,6 +27,9 @@ proc sort data=work.example_before;
 run;
 
 %mp_sortinplace(work.example)
+
+%mp_assertmodel(work.example,base=work.example_before,key=name,
+  desc=Sort preserves column model and primary key)
 
 %mp_getconstraints(lib=work,ds=example,outds=work.testme)
 

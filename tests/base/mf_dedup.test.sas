@@ -21,3 +21,34 @@
   desc=Outdlm test,
   outds=work.test_results
 )
+
+%mp_assert(
+  iftrue=("%mf_dedup(alpha|beta|gamma,indlm=%str(|))"="alpha beta gamma"),
+  desc=Input delimiter test,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=("%mf_dedup(alpha|beta|alpha|gamma,indlm=%str(|))"="alpha beta gamma"),
+  desc=Input delimiter duplicate test,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=("%mf_dedup(alpha|beta|alpha|gamma,indlm=%str(|),outdlm=%str(,))"
+    ="alpha,beta,gamma"),
+  desc=Input and output delimiter duplicate test,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=("%mf_dedup(alpha beta gamma)"="alpha beta gamma"),
+  desc=Final unique word test,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=("%mf_dedup(alpha)"="alpha"),
+  desc=Single word test,
+  outds=work.test_results
+)

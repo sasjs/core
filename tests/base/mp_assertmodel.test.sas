@@ -214,6 +214,8 @@ run;
   desc=do_not_append_to_input,outds=work.overlap_input)
 %mp_assertmodel(work.overlap_input,base=work.overlap_model,
   desc=do_not_append_to_model,outds=work.overlap_model)
+%mp_assertmodel(work.overlap_input,base=work.overlap_model,
+  desc=literal_overlap,outds=work.'overlap_input'n)
 %mp_assertdsobs(work.overlap_input,desc=Input is not modified by overlap,
   test=EQUALS 1)
 %mp_assertdsobs(work.overlap_model,desc=Model is not modified by overlap,

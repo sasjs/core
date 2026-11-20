@@ -8,9 +8,10 @@
 
   One PASS or FAIL row is appended to outds. Missing datasets and invalid key
   columns produce FAIL. The macro does not sort or intentionally modify inputs.
-  OUTDS must identify a distinct dataset and must not alias either input through
-  a libref, filesystem link, view or other storage mapping. Direct references
-  to the same member are rejected without appending a result row.
+  Dataset names must use ordinary V7 member names, not name literals. OUTDS must
+  identify a distinct dataset and must not alias either input through a libref,
+  filesystem link, view or other storage mapping.
+  Direct references to the same member are rejected without appending a row.
 
   Example:
 
@@ -43,6 +44,15 @@
   %let outref=%qupcase(%qscan(%superq(outds),1,%str( %( )));
   %let inref=%qupcase(%qscan(%superq(inds),1,%str( %( )));
   %let baseref=%qupcase(%qscan(%superq(base),1,%str( %( )));
+  %if %index(%superq(outref),%str(%')) or
+      %index(%superq(outref),%str(%")) or
+      %index(%superq(inref),%str(%')) or
+      %index(%superq(inref),%str(%")) or
+      %index(%superq(baseref),%str(%')) or
+      %index(%superq(baseref),%str(%")) %then %do;
+    %put NOTE: MP_ASSERTMODEL cannot safely check literal member references.;
+    %return;
+  %end;
   %let defaultlib=WORK;
   %if %sysfunc(libref(USER))=0 %then %let defaultlib=USER;
   %if %index(%superq(outref),.)=0 %then

@@ -4108,7 +4108,8 @@ run;
   @details Compares column names, types and lengths exactly, independent of
   column order, case, formats and labels. The model dataset can be empty.
   When key= is supplied, every component must be nonmissing and each composite
-  key must be unique. An empty dataset has no duplicate or missing keys.
+  key must be unique. A blank key= skips key validation. An empty dataset has
+  no duplicate or missing keys.
 
   One PASS or FAIL row is appended to outds. Missing datasets and invalid key
   columns produce FAIL. The macro does not sort or intentionally modify inputs.

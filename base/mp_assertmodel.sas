@@ -7,7 +7,10 @@
   key must be unique. An empty dataset has no duplicate or missing keys.
 
   One PASS or FAIL row is appended to outds. Missing datasets and invalid key
-  columns produce FAIL. The inputs are not sorted or otherwise modified.
+  columns produce FAIL. The macro does not sort or intentionally modify inputs.
+  OUTDS must identify a distinct dataset and must not alias either input through
+  a libref, filesystem link, view or other storage mapping. Direct references
+  to the same member are rejected without appending a result row.
 
   Example:
 
@@ -34,7 +37,19 @@
     outds=work.test_results);
   %local a b i j nbase nactual typ len bn bt bl an
     result comments tmp rc keys keyname pos keylist missvars
-    missingrows duplicaterows sqlstatus;
+    missingrows duplicaterows sqlstatus outref inref baseref;
+  /* Reject direct aliases; physical aliases remain a caller precondition. */
+  %let outref=%qupcase(%qscan(%superq(outds),1,%str( %( )));
+  %let inref=%qupcase(%qscan(%superq(inds),1,%str( %( )));
+  %let baseref=%qupcase(%qscan(%superq(base),1,%str( %( )));
+  %if %index(%superq(outref),.)=0 %then %let outref=WORK.&outref;
+  %if %index(%superq(inref),.)=0 %then %let inref=WORK.&inref;
+  %if %index(%superq(baseref),.)=0 %then %let baseref=WORK.&baseref;
+  %if %superq(outref)=%superq(inref) or
+      %superq(outref)=%superq(baseref) %then %do;
+    %put NOTE: MP_ASSERTMODEL result destination overlaps an input.;
+    %return;
+  %end;
   %let result=FAIL;
   %let comments=;
   %let a=0;

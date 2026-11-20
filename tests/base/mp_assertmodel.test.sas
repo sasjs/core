@@ -3,6 +3,7 @@
   @brief Test exact dataset model and optional primary key assertions
 
   <h4> SAS Macros </h4>
+  @li mf_getuniquefileref.sas
   @li mp_assert.sas
   @li mp_assertdsobs.sas
   @li mp_assertmodel.sas
@@ -210,21 +211,44 @@ run;
 data work.overlap_model;
   set work.overlap_input;
 run;
+/* Capture deliberately rejected cases separately from the clean test log. */
+%let overlaplog=%mf_getuniquefileref();
+proc printto log=&overlaplog new;
+run;
 %mp_assertmodel(work.overlap_input,base=work.overlap_model,
   desc=do_not_append_to_input,outds=work.overlap_input)
 %mp_assertmodel(work.overlap_input,base=work.overlap_model,
   desc=do_not_append_to_model,outds=work.overlap_model)
 %mp_assertmodel(work.overlap_input,base=work.overlap_model,
   desc=literal_overlap,outds=work.'overlap_input'n)
-%mp_assertdsobs(work.overlap_input,desc=Input is not modified by overlap,
-  test=EQUALS 1)
-%mp_assertdsobs(work.overlap_model,desc=Model is not modified by overlap,
-  test=EQUALS 1)
 
 /* A one-level destination resolves to USER when assigned. */
 libname user "%sysfunc(pathname(work))";
 %mp_assertmodel(work.overlap_input,base=user.overlap_model,
   desc=do_not_append_to_user_model,outds=overlap_model)
-%mp_assertdsobs(user.overlap_model,
-  desc=One-level destination does not modify USER model,test=EQUALS 1)
 libname user clear;
+proc printto;
+run;
+
+data _null_;
+  infile &overlaplog end=eof;
+  length line $32767;
+  retain overlaps 0 literals 0;
+  input;
+  line=_infile_;
+  if line=:cats('ERR','OR: MP_ASSERTMODEL result destination overlaps')
+    then overlaps+1;
+  if line=:cats('ERR','OR: MP_ASSERTMODEL dataset name literals')
+    then literals+1;
+  if eof then do;
+    call symputx('overlaperrors',overlaps);
+    call symputx('literalerrors',literals);
+  end;
+run;
+%mp_assert(iftrue=(&overlaperrors=3 and &literalerrors=1),
+  desc=Rejected destinations produce failure diagnostics)
+%mp_assertdsobs(work.overlap_input,desc=Input is not modified by overlap,
+  test=EQUALS 1)
+%mp_assertdsobs(work.overlap_model,desc=Model is not modified by overlap,
+  test=EQUALS 1)
+filename &overlaplog clear;

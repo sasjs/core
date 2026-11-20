@@ -144,10 +144,11 @@
           %let duplicaterows=-1;
           proc sql noprint;
             select count(*) into :missingrows trimmed
-            from &inds as t where &missvars;
+            from &inds(firstobs=1 obs=max) as t where &missvars;
             %let sqlstatus=&sqlrc;
             select count(*) into :duplicaterows trimmed from (
-              select &keylist, count(*) as n from &inds as t
+              select &keylist, count(*) as n
+              from &inds(firstobs=1 obs=max) as t
               group by &keylist having count(*)>1
             );
             %let sqlstatus2=&sqlrc;

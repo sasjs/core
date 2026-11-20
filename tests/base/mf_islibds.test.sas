@@ -71,6 +71,22 @@
 
 %mp_assert(
   iftrue=(
+    %mf_islibds(work.st_mods)=1
+  ),
+  desc=Accept underscore in dataset name,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=(
+    %mf_islibds(lib_ref.data)=1
+  ),
+  desc=Accept underscore in libref,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=(
     %mf_islibds(WORK.DATA)=1
   ),
   desc=Accept uppercase libref and dataset name,

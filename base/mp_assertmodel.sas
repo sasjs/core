@@ -37,7 +37,8 @@
     outds=work.test_results);
   %local a b i j nbase nactual typ len bn bt bl an
     result comments tmp rc keys keyname pos keylist missvars
-    missingrows duplicaterows sqlstatus outref inref baseref;
+    missingrows duplicaterows sqlstatus sqlstatus2 appendstatus
+    outref inref baseref;
   /* Reject direct aliases; physical aliases remain a caller precondition. */
   %let outref=%qupcase(%qscan(%superq(outds),1,%str( %( )));
   %let inref=%qupcase(%qscan(%superq(inds),1,%str( %( )));
@@ -127,12 +128,18 @@
           proc sql noprint;
             select count(*) into :missingrows trimmed
             from &inds as t where &missvars;
+            %let sqlstatus=&sqlrc;
             select count(*) into :duplicaterows trimmed from (
               select &keylist, count(*) as n from &inds as t
               group by &keylist having count(*)>1
             );
+            %let sqlstatus2=&sqlrc;
           quit;
-          %if &missingrows ne 0 or &duplicaterows ne 0 %then %do;
+          %if &sqlstatus ne 0 or &sqlstatus2 ne 0 %then %do;
+            %let result=FAIL;
+            %let comments=Unable to check key values;
+          %end;
+          %else %if &missingrows ne 0 or &duplicaterows ne 0 %then %do;
             %let result=FAIL;
             %let comments=Key contains missing or duplicate values;
           %end;
@@ -151,6 +158,9 @@
   run;
   proc append base=&outds data=&tmp;
   run;
+  %let appendstatus=&syserr;
+  %if &appendstatus ne 0 %then
+    %put %str(ERR)OR: MP_ASSERTMODEL could not append a result to &outds.;
   proc datasets lib=work nolist;
     delete %scan(&tmp,2,.);
   quit;

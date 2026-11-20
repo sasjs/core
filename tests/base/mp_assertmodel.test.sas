@@ -71,6 +71,22 @@ data work.composite;
   id=1;
 run;
 
+data work.sqlkeys;
+  length case 8 user $12;
+  case=1; user='a'; output;
+  case=2; user='b'; output;
+run;
+
+data work.sqlkeys_duplicate;
+  set work.sqlkeys;
+  user='a';
+run;
+
+data work.sqlkeys_missing;
+  set work.sqlkeys;
+  if case=1 then user=' ';
+run;
+
 data work.assertmodel_results;
   length test_description $256 test_result $5 test_comments $256;
   call missing(test_description,test_result,test_comments);
@@ -108,3 +124,9 @@ run;
 %check_model(case=missing_key_column,inds=work.match,key=absent,expect=FAIL)
 %check_model(case=missing_input,inds=work.notfound,expect=FAIL)
 %check_model(case=missing_base,inds=work.match,base=work.notfound,expect=FAIL)
+%check_model(case=reserved_key,inds=work.sqlkeys,base=work.sqlkeys,
+  key=case user,expect=PASS)
+%check_model(case=reserved_duplicate,inds=work.sqlkeys_duplicate,
+  base=work.sqlkeys,key=user,expect=FAIL)
+%check_model(case=reserved_missing,inds=work.sqlkeys_missing,
+  base=work.sqlkeys,key=user,expect=FAIL)

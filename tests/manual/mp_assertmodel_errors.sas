@@ -56,8 +56,8 @@ options syntaxcheck obs=3 firstobs=2;
 %put NOTE: PROBE_SYNTAX_OBS=&syntaxobs REPLACE=&syntaxreplace;
 options nosyntaxcheck obs=max firstobs=1 replace;
 %let syscc=0;
-%mp_assert(iftrue=("&syntaxobs"="OBS=0"),
-  desc=Syntax check OBS remains zero)
+%mp_assert(iftrue=("&syntaxobs"="OBS=3"),
+  desc=Failed append restores observation limit under syntax check)
 %mp_assert(iftrue=("&syntaxreplace"="NOREPLACE"),
   desc=Syntax check NOREPLACE remains set)
 %mp_assert(iftrue=("&syntaxfirstobs"="FIRSTOBS=2"),

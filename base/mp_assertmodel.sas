@@ -14,9 +14,8 @@
   view or other storage mapping. Dataset options are not
   accepted. Direct overlaps, malformed dataset names and name literals are
   rejected with a diagnostic in the SAS log and nonzero SYSCC, without
-  appending a result row. Physical aliases are not detected. If SAS changes
-  OBS to zero during execution, that setting is preserved to avoid clearing a
-  possible syntax-check state.
+  appending a result row. Physical aliases are not detected. OBS and FIRSTOBS
+  are restored to their original settings, including after an error.
 
   Example:
 
@@ -218,11 +217,5 @@
   proc datasets lib=work nolist;
     delete %scan(&tmp,2,.);
   quit;
-  %if X%qsysfunc(getoption(obs))=X0 %then %do;
-    /* Do not clear a possible SAS syntax-check state. */
-    options &savedfirstobs;
-  %end;
-  %else %do;
-    options &savedobs &savedfirstobs;
-  %end;
+  options &savedobs &savedfirstobs;
 %mend mp_assertmodel;

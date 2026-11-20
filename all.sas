@@ -4114,10 +4114,10 @@ run;
   columns produce FAIL. The macro does not sort or intentionally modify inputs.
   Dataset names must use ordinary V7 member names, not name literals. OUTDS must
   identify a distinct dataset and must not alias either input through a libref,
-  filesystem link, view or other storage mapping.
-  Direct references to the same member and name literals are rejected with a
-  diagnostic in the SAS log, without appending a result row. The caller must
-  check the log because no assertion row can be safely written.
+  filesystem link, view or other storage mapping. Dataset options are not
+  accepted. Direct overlaps, malformed dataset names and name literals are
+  rejected with a diagnostic in the SAS log, without appending a result row.
+  The caller must check the log because no assertion row can be safely written.
 
   Example:
 
@@ -4132,6 +4132,7 @@ run;
 
   <h4> SAS Macros </h4>
   @li mf_getuniquename.sas
+  @li mp_validatecol.sas
 
   <h4> Related Macros </h4>
   @li mp_assert.sas
@@ -4145,20 +4146,11 @@ run;
   %local a b i j nbase nactual typ len bn bt bl an
     result comments tmp rc keys keyname pos keylist missvars
     missingrows duplicaterows sqlstatus sqlstatus2 appendstatus
-    outref inref baseref defaultlib savedobs savedfirstobs;
+    outref inref baseref defaultlib savedobs savedfirstobs validrefs;
   /* Reject direct aliases; physical aliases remain a caller precondition. */
-  %let outref=%qupcase(%qscan(%superq(outds),1,%str( %( )));
-  %let inref=%qupcase(%qscan(%superq(inds),1,%str( %( )));
-  %let baseref=%qupcase(%qscan(%superq(base),1,%str( %( )));
-  %if %index(%superq(outref),%str(%')) or
-      %index(%superq(outref),%str(%")) or
-      %index(%superq(inref),%str(%')) or
-      %index(%superq(inref),%str(%")) or
-      %index(%superq(baseref),%str(%')) or
-      %index(%superq(baseref),%str(%")) %then %do;
-    %put %str(ERR)OR: MP_ASSERTMODEL dataset name literals are unsupported.;
-    %return;
-  %end;
+  %let outref=%qupcase(%superq(outds));
+  %let inref=%qupcase(%superq(inds));
+  %let baseref=%qupcase(%superq(base));
   %let defaultlib=WORK;
   %if %sysfunc(libref(USER))=0 %then %let defaultlib=USER;
   %if %index(%superq(outref),.)=0 %then
@@ -4167,6 +4159,26 @@ run;
     %let inref=&defaultlib..&inref;
   %if %index(%superq(baseref),.)=0 %then
     %let baseref=&defaultlib..&baseref;
+  %let validrefs=0;
+  %if %length(%superq(inref))>41 or %length(%superq(baseref))>41 or
+      %length(%superq(outref))>41 %then %do;
+    %put %str(ERR)OR: MP_ASSERTMODEL invalid dataset reference.;
+    %return;
+  %end;
+  data _null_;
+    length reference $256;
+    reference=symget('inref');
+    %mp_validatecol(reference,LIBDS,valid_input)
+    reference=symget('baseref');
+    %mp_validatecol(reference,LIBDS,valid_base)
+    reference=symget('outref');
+    %mp_validatecol(reference,LIBDS,valid_output)
+    call symputx('validrefs',valid_input and valid_base and valid_output,'L');
+  run;
+  %if &validrefs ne 1 %then %do;
+    %put %str(ERR)OR: MP_ASSERTMODEL invalid dataset reference.;
+    %return;
+  %end;
   %if %superq(outref)=%superq(inref) or
       %superq(outref)=%superq(baseref) %then %do;
     %put %str(ERR)OR: MP_ASSERTMODEL result destination overlaps an input.;

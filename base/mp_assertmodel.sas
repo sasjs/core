@@ -71,8 +71,22 @@
   %let savedobs=%sysfunc(getoption(obs,keyword));
   %let savedfirstobs=%sysfunc(getoption(firstobs,keyword));
   options obs=max firstobs=1;
+  /* Never return a PASS when administrator restrictions prevent a full scan. */
+  %if X%qsysfunc(getoption(obs)) ne X9223372036854775807 or
+      X%qsysfunc(getoption(firstobs)) ne X1 %then %do;
+    %put %str(ERR)OR: MP_ASSERTMODEL cannot remove observation restrictions.;
+    %if X%qsysfunc(getoption(obs)) ne X0 %then %do;
+      options &savedobs &savedfirstobs;
+    %end;
+    %else %do;
+      options &savedfirstobs;
+    %end;
+    %return;
+  %end;
   %let result=FAIL;
   %let comments=;
+  %let sqlstatus=0;
+  %let sqlstatus2=0;
   %let a=0;
   %let b=0;
   %let tmp=work.%mf_getuniquename(prefix=am);
@@ -185,5 +199,11 @@
   proc datasets lib=work nolist;
     delete %scan(&tmp,2,.);
   quit;
-  options &savedobs &savedfirstobs;
+  %if &sqlstatus ne 0 or &sqlstatus2 ne 0 or &appendstatus ne 0 %then %do;
+    /* Keep any SAS syntax-check state after a failed step. */
+    options &savedfirstobs;
+  %end;
+  %else %do;
+    options &savedobs &savedfirstobs;
+  %end;
 %mend mp_assertmodel;

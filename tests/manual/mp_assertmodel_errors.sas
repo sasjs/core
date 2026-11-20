@@ -50,3 +50,9 @@ options nosyntaxcheck obs=max firstobs=1 replace;
   desc=Syntax check NOREPLACE remains set)
 %mp_assert(iftrue=("&syntaxfirstobs"="FIRSTOBS=2"),
   desc=Syntax check restores first observation)
+
+/* Print the actual result rows for a standalone sasjs run log. */
+data _null_;
+  set work.test_results;
+  putlog 'PROBE_RESULT: ' test_result +1 test_description;
+run;

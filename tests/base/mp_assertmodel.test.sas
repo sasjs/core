@@ -87,6 +87,17 @@ data work.sqlkeys_missing;
   if case=1 then user=' ';
 run;
 
+options validvarname=any;
+data work.anynames;
+  length 'a&b'n $4 'pct%value'n 8 'a,b'n $3;
+  'a&b'n='x'; 'pct%value'n=1; 'a,b'n='z'; output;
+run;
+data work.anynames_bad;
+  length 'a&b'n $5 'pct%value'n 8 'a,b'n $3;
+  'a&b'n='x'; 'pct%value'n=1; 'a,b'n='z'; output;
+run;
+options validvarname=v7;
+
 data work.assertmodel_results;
   length test_description $256 test_result $5 test_comments $256;
   call missing(test_description,test_result,test_comments);
@@ -130,3 +141,7 @@ run;
   base=work.sqlkeys,key=user,expect=FAIL)
 %check_model(case=reserved_missing,inds=work.sqlkeys_missing,
   base=work.sqlkeys,key=user,expect=FAIL)
+%check_model(case=special_names,inds=work.anynames,
+  base=work.anynames,expect=PASS)
+%check_model(case=special_names_length,inds=work.anynames_bad,
+  base=work.anynames,expect=FAIL)

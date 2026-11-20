@@ -54,7 +54,7 @@
         %let result=PASS;
         %let comments=Column names types and lengths match;
         %do i=1 %to &nbase;
-          %let bn=%sysfunc(varname(&b,&i));
+          %let bn=%qsysfunc(varname(&b,&i));
           %let bt=%sysfunc(vartype(&b,&i));
           %let bl=%sysfunc(varlen(&b,&i));
           %let pos=%sysfunc(varnum(&a,%superq(bn)));

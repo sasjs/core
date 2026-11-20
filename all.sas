@@ -4148,56 +4148,40 @@ run;
     outds=work.test_results);
   %local result comments tmp keylist missvars
     missingrows duplicaterows sqlstatus sqlstatus2 appendstatus
-    outref baseds validrefs keylen;
+    baseds validrefs keylen;
   /* Resolve unqualified names to WORK and reject direct aliases. */
   %let validrefs=0;
+  %let keylen=%length(%superq(key));
   data _null_;
-    length reference inds baseds outref $32767;
-    hascontrol=(anycntrl(symget('inds'))>0 or
-      anycntrl(symget('base'))>0 or anycntrl(symget('outds'))>0);
+    length reference inds baseds outds $32767 bn $32 keyname $32767
+      comments $256 result $5 keys keylist missvars $32767;
     inds=cats(symget('inds'));
     baseds=cats(symget('base'));
-    outref=cats(symget('outds'));
+    outds=cats(symget('outds'));
     if index(inds,'.')=0 then inds=cats('WORK.',inds);
     if index(baseds,'.')=0 then baseds=cats('WORK.',baseds);
-    if index(outref,'.')=0 then outref=cats('WORK.',outref);
+    if index(outds,'.')=0 then outds=cats('WORK.',outds);
     reference=inds;
     %mp_validatecol(reference,LIBDS,valid_input)
     reference=baseds;
     %mp_validatecol(reference,LIBDS,valid_base)
-    reference=outref;
+    reference=outds;
     %mp_validatecol(reference,LIBDS,valid_output)
-    if valid_input and valid_base and valid_output and not hascontrol then do;
-      if upcase(outref)=upcase(inds) or upcase(outref)=upcase(baseds) then
+    if valid_input and valid_base and valid_output then do;
+      if upcase(outds)=upcase(inds) or upcase(outds)=upcase(baseds) then
         validrefs=2;
       else do;
         validrefs=1;
         call symputx('inds',inds,'L');
         call symputx('baseds',baseds,'L');
-        call symputx('outref',outref,'L');
+        call symputx('outds',outds,'L');
       end;
     end;
     else validrefs=0;
     call symputx('validrefs',validrefs,'L');
-  run;
-  %if &validrefs ne 1 %then %do;
-    %if &validrefs=2 %then
-      %put %str(ERR)OR: MP_ASSERTMODEL result destination overlaps an input.;
-    %else %put %str(ERR)OR: MP_ASSERTMODEL invalid dataset reference.;
-    %let syscc=%sysfunc(max(&syscc,1012));
-    %return;
-  %end;
-  %let result=FAIL;
-  %let comments=;
-  %let sqlstatus=0;
-  %let sqlstatus2=0;
-  %let keylen=%length(%superq(key));
-  %let tmp=work.%mf_getuniquename(prefix=am);
-  data _null_;
-    length bn $32 keyname $32767 comments $256 result $5
-      keys keylist missvars $32767;
-    a=open(symget('inds'),'i');
-    if a ne 0 then b=open(symget('baseds'),'i');
+    if validrefs ne 1 then stop;
+    a=open(inds,'i');
+    if a ne 0 then b=open(baseds,'i');
     else b=0;
     result='FAIL';
     if a=0 then comments='Input dataset cannot be opened';
@@ -4260,6 +4244,16 @@ run;
     call symputx('keylist',keylist,'L');
     call symputx('missvars',missvars,'L');
   run;
+  %if &validrefs ne 1 %then %do;
+    %if &validrefs=2 %then
+      %put %str(ERR)OR: MP_ASSERTMODEL result destination overlaps an input.;
+    %else %put %str(ERR)OR: MP_ASSERTMODEL invalid dataset reference.;
+    %let syscc=%sysfunc(max(&syscc,1012));
+    %return;
+  %end;
+  %let sqlstatus=0;
+  %let sqlstatus2=0;
+  %let tmp=work.%mf_getuniquename(prefix=am);
   %if &result=PASS and %length(%superq(keylist))>0 %then %do;
     %let missingrows=-1;
     %let duplicaterows=-1;
@@ -4290,7 +4284,7 @@ run;
     test_result=symget('result');
     test_comments=symget('comments');
   run;
-  proc append base=&outref data=&tmp;
+  proc append base=&outds data=&tmp;
   run;
   %let appendstatus=&syserr;
   %if &appendstatus ne 0 %then

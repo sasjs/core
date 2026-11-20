@@ -44,3 +44,51 @@
   desc=%str(Checking mf_islibds(w.t.f)=0),
   outds=work.test_results
 )
+
+%mp_assert(
+  iftrue=(
+    %mf_islibds(abcdefgh.ds)=1
+  ),
+  desc=Accept 8-character libref,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=(
+    %mf_islibds(1lib.ds)=0
+  ),
+  desc=Reject libref starting with a digit,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=(
+    %mf_islibds(work.1data)=0
+  ),
+  desc=Reject dataset name starting with a digit,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=(
+    %mf_islibds(WORK.DATA)=1
+  ),
+  desc=Accept uppercase libref and dataset name,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=(
+    %mf_islibds(w.abcdefghijklmnopqrstuvwxyz123456)=1
+  ),
+  desc=Accept 32-character dataset name,
+  outds=work.test_results
+)
+
+%mp_assert(
+  iftrue=(
+    %mf_islibds(w.abcdefghijklmnopqrstuvwxyz1234567)=0
+  ),
+  desc=Reject 33-character dataset name,
+  outds=work.test_results
+)

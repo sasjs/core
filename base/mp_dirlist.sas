@@ -244,6 +244,17 @@ run;
             if filename=ext then ext=' ';
             msg=dmsg;
           end;
+          else if fexist("&fref2") then do;
+            /* dopen refused it and the platform said nothing about why -
+              Viya returns an empty sysmsg() for a regular file, where other
+              platforms say it is not a directory.  Anything that exists and
+              cannot be opened as a folder is a file: reporting it as locked
+              both hides it from callers that keep folders only and shows the
+              user a row with no message */
+            file_or_folder='file';
+            ext=prxchange('s/.*\.{1,1}(.*)/$1/',1,filename);
+            if filename=ext then ext=' ';
+          end;
           else do;
             /* listed but not openable at all - a broken link, for instance */
             file_or_folder='locked';

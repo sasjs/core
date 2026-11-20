@@ -152,6 +152,27 @@ run;
 )
 
 /**
+  * a plain file is a file.  Some platforms answer dopen on a file with an
+  * empty sysmsg(), so the message checks alone cannot tell it from an entry
+  * that could not be opened at all
+  */
+data _null_;
+  file "&root/plain.txt";
+  put 'x';
+run;
+%mp_dirlist(path=&root, outds=work.myTable10)
+data _null_;
+  set work.mytable10(where=(filename='plain.txt'));
+  call symputx('type_txt',file_or_folder,'l');
+  call symputx('msg_txt',msg,'l');
+run;
+%mp_assert(
+  iftrue=("%upcase(&type_txt)"="FILE"),
+  desc=A text file is classified as a file,
+  outds=work.test_results
+)
+
+/**
   * dump results to the log for offline inspection
   */
 data _null_;

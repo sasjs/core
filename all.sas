@@ -4118,8 +4118,8 @@ run;
   view or other storage mapping. Dataset options are not
   accepted. Direct overlaps, malformed dataset names and name literals are
   rejected with a diagnostic in the SAS log and nonzero SYSCC, without
-  appending a result row. Physical aliases are not detected. OBS and FIRSTOBS
-  are restored to their original settings, including after an error.
+  appending a result row. Physical aliases are not detected. Key validation
+  follows the caller's observation options.
 
   Example:
 
@@ -4147,7 +4147,7 @@ run;
     outds=work.test_results);
   %local a b i result comments tmp rc keys keyname pos keylist missvars
     missingrows duplicaterows sqlstatus sqlstatus2 appendstatus
-    outref baseds savedobs savedfirstobs validrefs
+    outref baseds validrefs
     inlen baselen outlen;
   /* Resolve unqualified names to WORK and reject direct aliases. */
   %let validrefs=0;
@@ -4194,9 +4194,6 @@ run;
     %let syscc=%sysfunc(max(&syscc,1012));
     %return;
   %end;
-  %let savedobs=%sysfunc(getoption(obs,keyword));
-  %let savedfirstobs=%sysfunc(getoption(firstobs,keyword));
-  options obs=max firstobs=1;
   %let result=FAIL;
   %let comments=;
   %let sqlstatus=0;
@@ -4318,7 +4315,6 @@ run;
   proc datasets lib=work nolist;
     delete %scan(&tmp,2,.);
   quit;
-  options &savedobs &savedfirstobs;
 %mend mp_assertmodel;
 /**
   @file

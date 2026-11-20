@@ -90,8 +90,8 @@
             %end;
             %else %do;
               %if &i>1 %then %let keylist=&keylist,;
-              %let keylist=&keylist %superq(keyname);
-              %let missvars=&missvars missing(%superq(keyname)) or;
+              %let keylist=&keylist t.%superq(keyname);
+              %let missvars=&missvars missing(t.%superq(keyname)) or;
             %end;
           %end;
         %end;
@@ -106,9 +106,9 @@
           %let duplicaterows=-1;
           proc sql noprint;
             select count(*) into :missingrows trimmed
-            from &inds where &missvars;
+            from &inds as t where &missvars;
             select count(*) into :duplicaterows trimmed from (
-              select &keylist, count(*) as n from &inds
+              select &keylist, count(*) as n from &inds as t
               group by &keylist having count(*)>1
             );
           quit;

@@ -4148,13 +4148,9 @@ run;
     outds=work.test_results);
   %local result comments tmp keylist missvars
     missingrows duplicaterows sqlstatus sqlstatus2 appendstatus
-    outref baseds validrefs
-    inlen baselen outlen keylen;
+    outref baseds validrefs keylen;
   /* Resolve unqualified names to WORK and reject direct aliases. */
   %let validrefs=0;
-  %let inlen=%length(%superq(inds));
-  %let baselen=%length(%superq(base));
-  %let outlen=%length(%superq(outds));
   data _null_;
     length reference inds baseds outref $32767;
     hascontrol=(anycntrl(symget('inds'))>0 or
@@ -4171,11 +4167,7 @@ run;
     %mp_validatecol(reference,LIBDS,valid_base)
     reference=outref;
     %mp_validatecol(reference,LIBDS,valid_output)
-    if &inlen<=32767 and &baselen<=32767 and &outlen<=32767 and
-        valid_input and valid_base and valid_output and not hascontrol and
-        lengthn(inds)=&inlen+(index(symget('inds'),'.')=0)*5 and
-        lengthn(baseds)=&baselen+(index(symget('base'),'.')=0)*5 and
-        lengthn(outref)=&outlen+(index(symget('outds'),'.')=0)*5 then do;
+    if valid_input and valid_base and valid_output and not hascontrol then do;
       if upcase(outref)=upcase(inds) or upcase(outref)=upcase(baseds) then
         validrefs=2;
       else do;

@@ -4116,8 +4116,10 @@ run;
   identify a distinct dataset and must not alias either input through a libref,
   filesystem link, view or other storage mapping. Dataset options are not
   accepted. Direct overlaps, malformed dataset names and name literals are
-  rejected with a diagnostic in the SAS log, without appending a result row.
-  The caller must check the log because no assertion row can be safely written.
+  rejected with a diagnostic in the SAS log and nonzero SYSCC, without
+  appending a result row. Physical aliases are not detected. If SAS changes
+  OBS to zero during execution, that setting is preserved to avoid clearing a
+  possible syntax-check state.
 
   Example:
 
@@ -4163,6 +4165,7 @@ run;
   %if %length(%superq(inref))>41 or %length(%superq(baseref))>41 or
       %length(%superq(outref))>41 %then %do;
     %put %str(ERR)OR: MP_ASSERTMODEL invalid dataset reference.;
+    %let syscc=%sysfunc(max(&syscc,1012));
     %return;
   %end;
   data _null_;
@@ -4177,11 +4180,13 @@ run;
   run;
   %if &validrefs ne 1 %then %do;
     %put %str(ERR)OR: MP_ASSERTMODEL invalid dataset reference.;
+    %let syscc=%sysfunc(max(&syscc,1012));
     %return;
   %end;
   %if %superq(outref)=%superq(inref) or
       %superq(outref)=%superq(baseref) %then %do;
     %put %str(ERR)OR: MP_ASSERTMODEL result destination overlaps an input.;
+    %let syscc=%sysfunc(max(&syscc,1012));
     %return;
   %end;
   %let savedobs=%sysfunc(getoption(obs,keyword));
@@ -4191,6 +4196,7 @@ run;
   %if X%qsysfunc(getoption(obs)) ne X9223372036854775807 or
       X%qsysfunc(getoption(firstobs)) ne X1 %then %do;
     %put %str(ERR)OR: MP_ASSERTMODEL cannot remove observation restrictions.;
+    %let syscc=%sysfunc(max(&syscc,1012));
     %if X%qsysfunc(getoption(obs)) ne X0 %then %do;
       options &savedobs &savedfirstobs;
     %end;
@@ -4315,8 +4321,8 @@ run;
   proc datasets lib=work nolist;
     delete %scan(&tmp,2,.);
   quit;
-  %if &sqlstatus ne 0 or &sqlstatus2 ne 0 or &appendstatus ne 0 %then %do;
-    /* Keep any SAS syntax-check state after a failed step. */
+  %if X%qsysfunc(getoption(obs))=X0 %then %do;
+    /* Do not clear a possible SAS syntax-check state. */
     options &savedfirstobs;
   %end;
   %else %do;

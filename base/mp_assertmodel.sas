@@ -38,14 +38,19 @@
   %local a b i j nbase nactual typ len bn bt bl an
     result comments tmp rc keys keyname pos keylist missvars
     missingrows duplicaterows sqlstatus sqlstatus2 appendstatus
-    outref inref baseref;
+    outref inref baseref defaultlib;
   /* Reject direct aliases; physical aliases remain a caller precondition. */
   %let outref=%qupcase(%qscan(%superq(outds),1,%str( %( )));
   %let inref=%qupcase(%qscan(%superq(inds),1,%str( %( )));
   %let baseref=%qupcase(%qscan(%superq(base),1,%str( %( )));
-  %if %index(%superq(outref),.)=0 %then %let outref=WORK.&outref;
-  %if %index(%superq(inref),.)=0 %then %let inref=WORK.&inref;
-  %if %index(%superq(baseref),.)=0 %then %let baseref=WORK.&baseref;
+  %let defaultlib=WORK;
+  %if %sysfunc(libref(USER))=0 %then %let defaultlib=USER;
+  %if %index(%superq(outref),.)=0 %then
+    %let outref=&defaultlib..&outref;
+  %if %index(%superq(inref),.)=0 %then
+    %let inref=&defaultlib..&inref;
+  %if %index(%superq(baseref),.)=0 %then
+    %let baseref=&defaultlib..&baseref;
   %if %superq(outref)=%superq(inref) or
       %superq(outref)=%superq(baseref) %then %do;
     %put NOTE: MP_ASSERTMODEL result destination overlaps an input.;

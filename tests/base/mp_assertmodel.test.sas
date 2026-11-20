@@ -201,3 +201,17 @@ options validvarname=any;
   reason=Missing column)
 options validvarname=v7;
 
+%let originalobs=%sysfunc(getoption(obs,keyword));
+%let originalfirstobs=%sysfunc(getoption(firstobs,keyword));
+options obs=1;
+%mp_assertmodel(work.duplicate,base=work.model,key=id,
+  desc=limited_observations,outds=work.limited_results)
+options &originalobs &originalfirstobs;
+proc sql noprint;
+  select count(*) into :limited_failed trimmed
+  from work.limited_results
+  where test_result='FAIL' and test_comments contains 'duplicate';
+quit;
+%mp_assert(iftrue=(&limited_failed=1),
+  desc=Key check includes rows beyond observation limit)
+

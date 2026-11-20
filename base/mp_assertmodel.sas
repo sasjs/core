@@ -11,7 +11,9 @@
   Dataset names must use ordinary V7 member names, not name literals. OUTDS must
   identify a distinct dataset and must not alias either input through a libref,
   filesystem link, view or other storage mapping.
-  Direct references to the same member are rejected without appending a row.
+  Direct references to the same member and name literals are rejected with a
+  diagnostic in the SAS log, without appending a result row. The caller must
+  check the log because no assertion row can be safely written.
 
   Example:
 

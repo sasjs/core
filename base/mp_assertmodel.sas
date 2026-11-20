@@ -76,7 +76,7 @@
           %let pos=0;
           %do j=1 %to &nactual;
             %let an=%qsysfunc(varname(&a,&j));
-            %if %qupcase(%superq(bn))=%qupcase(%superq(an)) %then
+            %if X%qupcase(%superq(bn))=X%qupcase(%superq(an)) %then
               %let pos=&j;
           %end;
           %if &pos=0 %then %do;

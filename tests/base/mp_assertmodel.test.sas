@@ -4,6 +4,7 @@
 
   <h4> SAS Macros </h4>
   @li mp_assert.sas
+  @li mp_assertdsobs.sas
   @li mp_assertmodel.sas
   @li mp_assertscope.sas
 
@@ -147,3 +148,20 @@ options validvarname=any;
 %check_model(case=special_names_length,inds=work.anynames_bad,
   base=work.anynames,expect=FAIL)
 options validvarname=v7;
+
+/* The result destination must never overwrite either input. */
+data work.overlap_input;
+  length test_description $256 test_result $5 test_comments $256;
+  test_description='original'; test_result='PASS'; test_comments='original';
+run;
+data work.overlap_model;
+  set work.overlap_input;
+run;
+%mp_assertmodel(work.overlap_input,base=work.overlap_model,
+  desc=do_not_append_to_input,outds=work.overlap_input)
+%mp_assertmodel(work.overlap_input,base=work.overlap_model,
+  desc=do_not_append_to_model,outds=work.overlap_model)
+%mp_assertdsobs(work.overlap_input,desc=Input is not modified by overlap,
+  test=EQUALS 1)
+%mp_assertdsobs(work.overlap_model,desc=Model is not modified by overlap,
+  test=EQUALS 1)

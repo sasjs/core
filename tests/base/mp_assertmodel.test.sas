@@ -206,10 +206,12 @@ options validvarname=v7;
 options obs=1;
 %mp_assertmodel(work.duplicate,base=work.model,key=id,
   desc=limited_observations,outds=work.limited_results)
+%let afterobs=%sysfunc(getoption(obs,keyword));
 options &originalobs &originalfirstobs;
 options firstobs=2;
 %mp_assertmodel(work.duplicate,base=work.model,key=id,
   desc=limited_firstobs,outds=work.limited_results)
+%let afterfirstobs=%sysfunc(getoption(firstobs,keyword));
 options &originalobs &originalfirstobs;
 proc sql noprint;
   select count(*) into :limited_failed trimmed
@@ -218,4 +220,6 @@ proc sql noprint;
 quit;
 %mp_assert(iftrue=(&limited_failed=2),
   desc=Key check includes rows beyond observation limit)
+%mp_assert(iftrue=("&afterobs"="OBS=1" and "&afterfirstobs"="FIRSTOBS=2"),
+  desc=Observation options are restored)
 

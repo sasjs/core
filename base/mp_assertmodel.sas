@@ -43,7 +43,7 @@
     outds=work.test_results);
   %local a b i result comments tmp rc keys keyname pos keylist missvars
     missingrows duplicaterows sqlstatus sqlstatus2 appendstatus
-    outref inref baseref savedobs savedfirstobs validrefs
+    outref baseds savedobs savedfirstobs validrefs
     inlen baselen outlen;
   /* Resolve unqualified names to WORK and reject direct aliases. */
   %let validrefs=0;
@@ -51,35 +51,32 @@
   %let baselen=%length(%superq(base));
   %let outlen=%length(%superq(outds));
   data _null_;
-    length reference inref baseref outref $32767;
-    inref=symget('inds');
-    baseref=symget('base');
-    outref=symget('outds');
-    hascontrol=(anycntrl(inref)>0 or anycntrl(baseref)>0 or
-      anycntrl(outref)>0);
-    inref=strip(inref);
-    baseref=strip(baseref);
-    outref=strip(outref);
-    if index(inref,'.')=0 then inref=cats('WORK.',inref);
-    if index(baseref,'.')=0 then baseref=cats('WORK.',baseref);
+    length reference inds baseds outref $32767;
+    hascontrol=(anycntrl(symget('inds'))>0 or
+      anycntrl(symget('base'))>0 or anycntrl(symget('outds'))>0);
+    inds=cats(symget('inds'));
+    baseds=cats(symget('base'));
+    outref=cats(symget('outds'));
+    if index(inds,'.')=0 then inds=cats('WORK.',inds);
+    if index(baseds,'.')=0 then baseds=cats('WORK.',baseds);
     if index(outref,'.')=0 then outref=cats('WORK.',outref);
-    reference=inref;
+    reference=inds;
     %mp_validatecol(reference,LIBDS,valid_input)
-    reference=baseref;
+    reference=baseds;
     %mp_validatecol(reference,LIBDS,valid_base)
     reference=outref;
     %mp_validatecol(reference,LIBDS,valid_output)
     if &inlen<=32767 and &baselen<=32767 and &outlen<=32767 and
         valid_input and valid_base and valid_output and not hascontrol and
-        lengthn(inref)=&inlen+(index(symget('inds'),'.')=0)*5 and
-        lengthn(baseref)=&baselen+(index(symget('base'),'.')=0)*5 and
+        lengthn(inds)=&inlen+(index(symget('inds'),'.')=0)*5 and
+        lengthn(baseds)=&baselen+(index(symget('base'),'.')=0)*5 and
         lengthn(outref)=&outlen+(index(symget('outds'),'.')=0)*5 then do;
-      if upcase(outref)=upcase(inref) or upcase(outref)=upcase(baseref) then
+      if upcase(outref)=upcase(inds) or upcase(outref)=upcase(baseds) then
         validrefs=2;
       else do;
         validrefs=1;
-        call symputx('inref',inref,'L');
-        call symputx('baseref',baseref,'L');
+        call symputx('inds',inds,'L');
+        call symputx('baseds',baseds,'L');
         call symputx('outref',outref,'L');
       end;
     end;
@@ -103,16 +100,16 @@
   %let a=0;
   %let b=0;
   %let tmp=work.%mf_getuniquename(prefix=am);
-  %let a=%sysfunc(open(%superq(inref),i));
+  %let a=%sysfunc(open(%superq(inds),i));
   %if &a=0 %then %let comments=Input dataset cannot be opened;
   %else %do;
-    %let b=%sysfunc(open(%superq(baseref),i));
+    %let b=%sysfunc(open(%superq(baseds),i));
     %if &b=0 %then %let comments=Model dataset cannot be opened;
     %else %do;
       data _null_;
         length bn $32 comments $256 result $5;
-        a=open(symget('inref'),'i');
-        b=open(symget('baseref'),'i');
+        a=open(symget('inds'),'i');
+        b=open(symget('baseds'),'i');
         if a=0 or b=0 then do;
           result='FAIL';
           comments='Unable to open datasets for metadata comparison';
@@ -179,11 +176,11 @@
           %let duplicaterows=-1;
           proc sql noprint;
             select count(*) into :missingrows trimmed
-            from &inref as t where &missvars;
+            from &inds as t where &missvars;
             %let sqlstatus=&sqlrc;
             select count(*) into :duplicaterows trimmed from (
               select &keylist, count(*) as n
-              from &inref as t
+              from &inds as t
               group by &keylist having count(*)>1
             );
             %let sqlstatus2=&sqlrc;

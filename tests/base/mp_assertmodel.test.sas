@@ -133,12 +133,15 @@ data work.assertmodel_results;
   stop;
 run;
 
-%macro check_model(case=,inds=,base=work.model,key=,expect=);
+%macro check_model(case=,inds=,base=work.model,key=,expect=,
+  reason=);
   %local matched total;
   %mp_assertmodel(&inds,base=&base,key=&key,desc=&case,
     outds=work.assertmodel_results)
   proc sql noprint;
-    select count(*),sum(test_result="&expect")
+    select count(*),
+      sum(test_result="&expect" and
+        (lengthn("&reason")=0 or index(test_comments,"&reason")>0))
       into :total trimmed,:matched trimmed
     from work.assertmodel_results where test_description="&case";
   quit;
@@ -154,33 +157,49 @@ run;
 %check_model(case=formatted_key,inds=work.formattedkey,key=id,expect=PASS)
 %check_model(case=key_named_n,inds=work.keyn,base=work.keyn,key=n,expect=PASS)
 %check_model(case=composite_key,inds=work.composite,key=id region,expect=PASS)
-%check_model(case=extra_column,inds=work.extra,expect=FAIL)
-%check_model(case=missing_column,inds=work.missingcol,expect=FAIL)
-%check_model(case=renamed_column,inds=work.wrongname,expect=FAIL)
-%check_model(case=wrong_length,inds=work.wronglen,expect=FAIL)
-%check_model(case=wrong_type,inds=work.wrongtype,expect=FAIL)
-%check_model(case=duplicate_key,inds=work.duplicate,key=id region,expect=FAIL)
-%check_model(case=missing_numeric_key,inds=work.missingkey,key=id,expect=FAIL)
+%check_model(case=extra_column,inds=work.extra,expect=FAIL,
+  reason=Column count differs)
+%check_model(case=missing_column,inds=work.missingcol,expect=FAIL,
+  reason=Column count differs)
+%check_model(case=renamed_column,inds=work.wrongname,expect=FAIL,
+  reason=Missing column)
+%check_model(case=wrong_length,inds=work.wronglen,expect=FAIL,
+  reason=Type or length differs)
+%check_model(case=wrong_type,inds=work.wrongtype,expect=FAIL,
+  reason=Type or length differs)
+%check_model(case=duplicate_key,inds=work.duplicate,key=id region,expect=FAIL,
+  reason=Key contains missing or duplicate)
+%check_model(case=missing_numeric_key,inds=work.missingkey,key=id,expect=FAIL,
+  reason=Key contains missing or duplicate)
 %check_model(case=missing_character_key,inds=work.blankkey,
-  key=id region,expect=FAIL)
-%check_model(case=missing_key_column,inds=work.match,key=absent,expect=FAIL)
-%check_model(case=missing_input,inds=work.notfound,expect=FAIL)
-%check_model(case=missing_base,inds=work.match,base=work.notfound,expect=FAIL)
+  key=id region,expect=FAIL,
+  reason=Key contains missing or duplicate)
+%check_model(case=missing_key_column,inds=work.match,key=absent,expect=FAIL,
+  reason=Key column not found)
+%check_model(case=missing_input,inds=work.notfound,expect=FAIL,
+  reason=Input dataset cannot be opened)
+%check_model(case=missing_base,inds=work.match,base=work.notfound,expect=FAIL,
+  reason=Model dataset cannot be opened)
 %check_model(case=reserved_key,inds=work.sqlkeys,base=work.sqlkeys,
   key=case user,expect=PASS)
 %check_model(case=reserved_duplicate,inds=work.sqlkeys_duplicate,
-  base=work.sqlkeys,key=user,expect=FAIL)
+  base=work.sqlkeys,key=user,expect=FAIL,
+  reason=Key contains missing or duplicate)
 %check_model(case=reserved_missing,inds=work.sqlkeys_missing,
-  base=work.sqlkeys,key=user,expect=FAIL)
+  base=work.sqlkeys,key=user,expect=FAIL,
+  reason=Key contains missing or duplicate)
 options validvarname=any;
 %check_model(case=special_names,inds=work.anynames,
   base=work.anynames,expect=PASS)
 %check_model(case=special_names_length,inds=work.anynames_bad,
-  base=work.anynames,expect=FAIL)
+  base=work.anynames,expect=FAIL,
+  reason=Type or length differs)
 %check_model(case=numeric_column_names,inds=work.actual_numeric_name,
-  base=work.model_numeric_name,expect=FAIL)
+  base=work.model_numeric_name,expect=FAIL,
+  reason=Missing column)
 %check_model(case=large_numeric_names,inds=work.actual_large_name,
-  base=work.model_large_name,expect=FAIL)
+  base=work.model_large_name,expect=FAIL,
+  reason=Missing column)
 options validvarname=v7;
 
 /* The result destination must never overwrite either input. */

@@ -27,11 +27,19 @@ run;
 data _null_;
   call symput('badout','work.control'||'0A'x||'_result');
 run;
+proc sql noprint;
+  select count(*) into :before_count trimmed
+  from dictionary.tables where libname='WORK';
+quit;
 %mp_assertmodel(work.input,base=work.input,outds=%superq(badout))
 %let badoutcc=&syscc;
 %let syscc=0;
+proc sql noprint;
+  select count(*) into :after_count trimmed
+  from dictionary.tables where libname='WORK';
+quit;
 %mp_assert(iftrue=(&badoutcc>4),desc=Control character destination rejected)
-%mp_assert(iftrue=(%sysfunc(exist(work.control_result))=0),
+%mp_assert(iftrue=(&before_count=&after_count),
   desc=Control character destination did not create output)
 
 %let originalsyntax=%sysfunc(getoption(syntaxcheck,keyword));

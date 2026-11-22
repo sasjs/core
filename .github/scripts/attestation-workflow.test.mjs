@@ -16,7 +16,7 @@ test('the published registry tarball is attested and the same bundle is attached
   assert.match(pack, /npm pack "@sasjs\/core@\$\{version\}" --pack-destination dist/)
   const attest = step('Attest the build provenance of that tarball')
   assert.match(attest, /^        if: steps\.pack\.outputs\.version != ''$/m)
-  assert.match(attest, /^        uses: sasjs\/release\/\.github\/actions\/attest-assets@6bce05cbcd9364c7097f089ea6c9132978a500ca/m)
+  assert.match(attest, /^        uses: sasjs\/release\/\.github\/actions\/attest-assets@[0-9a-f]{40}(?:\s+#.*)?$/m)
   assert.match(attest, /^          subject-path: 'dist\/\*\.tgz'$/m)
   assert.match(attest, /^          version: \$\{\{ steps\.pack\.outputs\.version \}\}$/m)
   const attach = step('Attach the tarball and its provenance to the release')

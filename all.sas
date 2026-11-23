@@ -1940,6 +1940,8 @@ Usage:
     @li contains a period?
 
   It does NOT check whether the dataset exists, or if the library is assigned.
+  Unquoted trailing whitespace, including LF, may be stripped by SAS macro
+  argument handling before validation. Macro-quoted trailing LF is rejected.
 
   Usage:
 
@@ -16163,15 +16165,16 @@ alter table &libds modify &var char(&len);
   Tip - when contributing, use https://regex101.com to test the regex validity!
 
   @param [in] incol The column to be validated
-  @param [in] rule The rule to apply.  Current rules:
+  @param [in] rule The rule to apply.  ISLIB, ISNAME, LIBDS and FORMAT
+    match the entire value after trimming trailing SAS blanks; a trailing
+    newline is rejected. Current rules:
     @li ISINT - checks if the variable is an integer
     @li ISLIB - checks if the value is a valid libref (NOT whether it exists)
     @li ISNAME - checks if the value is a valid SAS NAME (V7 rules - up to 32
       chars, starting with a letter or underscore, followed by letters,
       numbers or underscores)
     @li ISNUM - checks if the variable is numeric
-    @li LIBDS - matches LIBREF.DATASET to the absolute end of the value after
-      trimming trailing SAS blanks; a trailing newline is rejected
+    @li LIBDS - checks LIBREF.DATASET syntax
     @li FORMAT - checks if the provided format is syntactically valid
     @li ISPATH - checks that the value is an absolute path this platform would
       accept.  Shape only - whether the path exists is a different question
@@ -16214,7 +16217,7 @@ alter table &libds modify &var char(&len);
 %else %if &rule=ISLIB %then %do;
   if _n_=1 then do;
     retain &tempcol;
-    &tempcol=prxparse('/^[_a-z]\w{0,7}$/i');
+    &tempcol=prxparse('/^[_a-z]\w{0,7}\z/i');
     if missing(&tempcol) then do;
       putlog 'ERR' +(-1) "OR: Invalid expression for ISLIB";
       stop;
@@ -16228,7 +16231,7 @@ alter table &libds modify &var char(&len);
   /* match a valid SAS name (V7 rules) */
   if _n_=1 then do;
     retain &tempcol;
-    &tempcol=prxparse('/^[_a-z]\w{0,31}$/i');
+    &tempcol=prxparse('/^[_a-z]\w{0,31}\z/i');
     if missing(&tempcol) then do;
       putlog 'ERR' +(-1) "OR: Invalid expression for ISNAME";
       stop;
@@ -16288,7 +16291,7 @@ alter table &libds modify &var char(&len);
   /* match valid SAS format*/
   if _n_=1 then do;
     retain &tempcol;
-    &tempcol=prxparse('/^(?:[_a-z\$]\w{0,31}|[0-9]+)\.[0-9]*$/i');
+    &tempcol=prxparse('/^(?:[_a-z\$]\w{0,31}|[0-9]+)\.[0-9]*\z/i');
     if missing(&tempcol) then do;
       putlog 'ERR' +(-1) "OR: Invalid expression for FORMAT";
       stop;

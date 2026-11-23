@@ -4104,12 +4104,13 @@ run;
 %mend mp_assertdsobs;
 /**
   @file
-  @brief Assert dataset columns match a model and an optional key is valid
+  @brief Assert model and optionally check key under OBS= and FIRSTOBS=
   @details Compares column names, types and lengths exactly, independent of
   column order, case, formats and labels. The model dataset can be empty.
-  When key= is supplied, every component must be nonmissing and each composite
-  key must be unique. A blank key= skips key validation. An empty dataset has
-  no duplicate or missing keys.
+  When key= is supplied and columns match, key components must be nonmissing
+  and composite keys unique within the caller's OBS= and FIRSTOBS= limits.
+  Limits can hide missing or duplicate keys. A blank key= skips key validation.
+  An empty dataset has no duplicate or missing keys.
 
   One PASS or FAIL row is appended to outds. Missing datasets and invalid key
   columns produce FAIL. The macro does not sort or intentionally modify inputs.
@@ -4119,8 +4120,7 @@ run;
   view or other storage mapping. Dataset options are not
   accepted. Direct overlaps, malformed dataset names and name literals are
   rejected with a diagnostic in the SAS log and nonzero SYSCC, without
-  appending a result row. Physical aliases are not detected. Key validation
-  follows the caller's observation options.
+  appending a result row. Physical aliases are not detected.
 
   Example:
 
@@ -4129,7 +4129,8 @@ run;
 
   @param [in] inds Input dataset to check
   @param [in] base= Reference dataset defining the expected columns
-  @param [in] key= Space-separated V7 column names comprising a primary key
+  @param [in] key= Space-separated V7 key columns checked within OBS= and
+    FIRSTOBS= limits; blank skips key validation
   @param [in] desc= (Testing dataset model) Description for the result row
   @param [out] outds= (work.test_results) Assertion results dataset
 

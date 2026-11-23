@@ -30,6 +30,7 @@
   |User Provided description|PASS|Dataset &inds has XX obs|
 
   <h4> SAS Macros </h4>
+  @li mddl_assert.sas
   @li mf_getuniquename.sas
   @li mf_nobs.sas
   @li mp_abort.sas
@@ -86,8 +87,10 @@
     )
   %end;
 
+  %mddl_assert(&ds)
   data &ds;
-    length test_result $5 test_description $256 test_comments $256;
+    retain test_result test_description test_comments;
+    if 0 then set &ds;
     test_description=symget('desc');
     test_result='FAIL';
     test_comments="&sysmacroname: Dataset &inds has &nobs observations.";

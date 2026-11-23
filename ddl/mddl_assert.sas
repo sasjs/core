@@ -3,9 +3,7 @@
   @brief DDL for assertion results
   @details Creates an empty table with the column names, types and lengths
   used for assertion results. The table must not already exist.
-  mp_assertmodel uses this DDL; other mp_assert macros still declare the
-  schema inline. Keep the column names, types and lengths in step until those
-  macros are migrated.
+  The mp_assert macros use this DDL for their result rows.
 
   Example:
 

@@ -51,6 +51,8 @@
   |User Provided description|PASS|No out of scope variables created or modified|
 
   <h4> SAS Macros </h4>
+  @li mddl_assert.sas
+  @li mf_getuniquename.sas
   @li mf_getquotedstr.sas
   @li mp_init.sas
 
@@ -130,14 +132,16 @@
     %let test_comments=%str(Mod:(&mod) Add:(&add) Del:(&del));
   %end;
 
-  data ;
-    length test_result $5 test_description $256 test_comments $256;
+  %let ds=work.%mf_getuniquename();
+  %mddl_assert(&ds)
+  data &ds;
+    retain test_result test_description test_comments;
+    if 0 then set &ds;
     test_description=symget('desc');
     test_comments=symget('test_comments');
     test_result=symget('test_result');
   run;
 
-  %let ds=&syslast;
   proc append base=&outds data=&ds;
   run;
   proc sql;

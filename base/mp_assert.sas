@@ -24,6 +24,10 @@
   |---|---|---|
   |User Provided description|PASS|Dataset &inds contained ALL columns|
 
+  <h4> SAS Macros </h4>
+  @li mf_getuniquename.sas
+  @li mddl_assert.sas
+
   @version 9.2
   @author Allan Bowe
 
@@ -34,8 +38,12 @@
   outds=work.test_results
 )/*/STORE SOURCE*/;
 
-  data ;
-    length test_result $5 test_description $256 test_comments $256;
+  %local ds;
+  %let ds=work.%mf_getuniquename();
+  %mddl_assert(&ds)
+  data &ds;
+    retain test_result test_description test_comments;
+    if 0 then set &ds;
     test_description=symget('desc');
     test_comments="&sysmacroname: Test result of "!!symget('iftrue');
   %if %eval(%unquote(&iftrue)) %then %do;
@@ -46,8 +54,6 @@
   %end;
   run;
 
-  %local ds ;
-  %let ds=&syslast;
   proc append base=&outds data=&ds;
   run;
   proc sql;

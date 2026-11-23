@@ -4,6 +4,7 @@
 
   <h4> SAS Macros </h4>
   @li mp_assertdsobs.sas
+  @li mp_assertmodel.sas
   @li mp_assertcolvals.sas
 
 **/
@@ -58,3 +59,11 @@ run;
 )
 
 
+
+data work.assert_schema;
+  length test_result $5 test_description $256 test_comments $256;
+  call missing(test_result,test_description,test_comments);
+  stop;
+run;
+%mp_assertmodel(work.test_the_test,base=work.assert_schema,
+  desc=Checking mp_assertdsobs output schema)

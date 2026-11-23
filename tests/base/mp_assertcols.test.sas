@@ -10,6 +10,7 @@
   <h4> SAS Macros </h4>
   @li mp_assert.sas
   @li mp_assertcols.sas
+  @li mp_assertmodel.sas
 
 **/
 
@@ -72,3 +73,11 @@ quit;
 
 %mp_assert(iftrue=(&neg_pass=0),
   desc=Checking the unsatisfied conditions all recorded FAIL)
+
+data work.assert_schema;
+  length test_result $5 test_description $256 test_comments $256;
+  call missing(test_result,test_description,test_comments);
+  stop;
+run;
+%mp_assertmodel(work.neg_results,base=work.assert_schema,
+  desc=Checking mp_assertcols output schema)

@@ -4,6 +4,7 @@
 
   <h4> SAS Macros </h4>
   @li mp_assertcolvals.sas
+  @li mp_assertmodel.sas
 
 **/
 
@@ -30,3 +31,13 @@ run;
   test=ALLVALS
 )
 
+
+data work.assert_schema;
+  length test_result $5 test_description $256 test_comments $256;
+  call missing(test_result,test_description,test_comments);
+  stop;
+run;
+%mp_assertmodel(work.test_results,base=work.assert_schema,
+  desc=Checking mp_assertcolvals output schema,outds=work.schema_results)
+proc append base=work.test_results data=work.schema_results;
+run;

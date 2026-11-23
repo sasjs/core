@@ -20,6 +20,10 @@
       ;;;;
       run;
 
+  LIBDS enforces an absolute end for dataset references used by
+  mp_assertmodel. ISLIB, ISNAME and FORMAT retain their existing end-anchor
+  behavior; changing those public rules requires separate compatibility review.
+
   For more examples, see mp_validatecol.test.sas
 
   Tip - when contributing, use https://regex101.com to test the regex validity!

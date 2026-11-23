@@ -3651,7 +3651,6 @@ run;
   %let ds=work.%mf_getuniquename();
   %mddl_assert(&ds)
   data &ds;
-    retain test_result test_description test_comments;
     if 0 then set &ds;
     test_description=symget('desc');
     test_comments="&sysmacroname: Test result of "!!symget('iftrue');
@@ -3786,7 +3785,6 @@ run;
   %let rsds=work.%mf_getuniquename();
   %mddl_assert(&rsds)
   data &rsds;
-    retain test_result test_description test_comments;
     if 0 then set &rsds;
     test_description=symget('desc');
     if test_description='0'
@@ -3970,7 +3968,6 @@ run;
   %let rsds=work.%mf_getuniquename();
   %mddl_assert(&rsds)
   data &rsds;
-    retain test_result test_description test_comments;
     if 0 then set &rsds;
     test_description=symget('desc');
     test_result='FAIL';
@@ -4087,7 +4084,6 @@ run;
 
   %mddl_assert(&ds)
   data &ds;
-    retain test_result test_description test_comments;
     if 0 then set &ds;
     test_description=symget('desc');
     test_result='FAIL';
@@ -4451,7 +4447,6 @@ run;
   %let ds=work.%mf_getuniquename();
   %mddl_assert(&ds)
   data &ds;
-    retain test_result test_description test_comments;
     if 0 then set &ds;
     test_description=symget('desc');
     test_comments=symget('test_comments');

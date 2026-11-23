@@ -32,6 +32,7 @@
 
   <h4> SAS Macros </h4>
   @li mf_getuniquename.sas
+  @li mddl_assert.sas
   @li mp_validatecol.sas
 
   <h4> Related Macros </h4>
@@ -172,11 +173,14 @@
     %end;
     %else %let comments=Column model and key match;
   %end;
+  %mddl_assert(libds=&tmp)
   data &tmp;
-    length test_description $256 test_result $5 test_comments $256;
+    if 0 then set &tmp;
     test_description=symget('desc');
     test_result=symget('result');
     test_comments=symget('comments');
+    output;
+    stop;
   run;
   proc append base=&outds data=&tmp;
   run;

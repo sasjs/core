@@ -118,6 +118,8 @@ options insert=(sasautos="&repoloc/xplatform");
 
 The above can be done directly in your sas program, via an autoexec, or an initialisation program.
 
+For `%mp_assertmodel`, include both `base` and `ddl` in SASAUTOS: it calls `%mddl_assert` from `ddl`.
+
 Alternatively - for quick access - simply run the following! This file contains all the macros.
 
 ```sas

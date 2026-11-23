@@ -8,6 +8,8 @@
 
   A root with nothing to list - an empty folder, or an answer that carries no
   members link - still yields &outds, with the documented columns and zero rows.
+  A non-200 HTTP response aborts with the HTTP status rather than being
+  interpreted as an empty listing.
 
 
   @param [in] root= (/) The path for which to return the list of folders
@@ -85,6 +87,10 @@ options noquotelenmax;
       headers "Authorization"="Bearer &&&access_token_var";
   %end;
   run;
+  %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200)
+    ,mac=&sysmacroname
+    ,msg=%str(Root folders: &SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
+  )
   libname &libref1 JSON fileref=&fname1;
   /* an empty collection produces no items dataset at all, so a straight SET
     would fail with "File ...ITEMS.DATA does not exist" and leave syscc dirty */
@@ -130,6 +136,10 @@ options noquotelenmax;
       headers "Authorization"="Bearer &&&access_token_var";
   %end;
   run;
+  %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200)
+    ,mac=&sysmacroname
+    ,msg=%str(Folder lookup: &SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
+  )
   /*data _null_;infile &fname1;input;putlog _infile_;run;*/
   libname &libref1 JSON fileref=&fname1;
   /* now get the followon link to list members */
@@ -175,6 +185,10 @@ options noquotelenmax;
       headers "Authorization"="Bearer &&&access_token_var";
   %end;
   run;
+  %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200)
+    ,mac=&sysmacroname
+    ,msg=%str(Folder members: &SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
+  )
   libname &libref2 JSON fileref=&fname2;
   /* an emptied folder produces no items dataset at all, so a straight SET would
     fail with "File ...ITEMS.DATA does not exist" and leave syscc dirty */

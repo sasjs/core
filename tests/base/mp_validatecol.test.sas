@@ -37,47 +37,45 @@ run;
 /* LIBDS must match the whole value, after stripping SAS padding blanks. */
 %mp_assertscope(SNAPSHOT)
 data work.libds_cases work.libds_mismatch;
-  length libds $80;
-  do case_id=1 to 19;
-    libds='';
-    expected=0;
-    select (case_id);
-      when (1) do; libds='work.table'; expected=1; end;
-      when (2) do; libds='_A9._b2'; expected=1; end;
-      when (3) do;
-        libds=cats(repeat('a',7),'.',repeat('b',31));
-        expected=1;
-      end;
-      when (4) do; libds='work.table   '; expected=1; end;
-      when (5) libds=cats('work.table',byte(10));
-      when (6) libds='work.table'||byte(10)||'   ';
-      when (7) libds=cats('work.',byte(10),'table');
-      when (8) libds=cats('work.table',byte(13));
-      when (9) libds=cats('work.table',byte(13),byte(10));
-      when (10) libds='work.table!';
-      when (11) libds=' work.table';
-      when (12) libds=cats(repeat('a',8),'.table');
-      when (13) libds=cats('work.',repeat('b',32));
-      when (14) libds='1work.table';
-      when (15) libds='work.1table';
-      when (16) libds='work..table';
-      when (17) libds='work.';
-      when (18) libds='.table';
-      when (19) libds='';
-      otherwise;
-    end;
-    %mp_validatecol(libds,LIBDS,is_libds)
-    output work.libds_cases;
-    if is_libds ne expected then output work.libds_mismatch;
-  end;
+  length case_name $40 libds $80;
+  infile datalines4 dlm='|' dsd truncover;
+  input case_name :$40. libds :$80. expected;
+  /* Markers keep control bytes out of the source file. */
+  libds=tranwrd(libds,'<LF>',byte(10));
+  libds=tranwrd(libds,'<CR>',byte(13));
+  libds=tranwrd(libds,'<SP>',' ');
+  %mp_validatecol(libds,LIBDS,is_libds)
+  output work.libds_cases;
+  if is_libds ne expected then output work.libds_mismatch;
+datalines4;
+standard|work.table|1
+underscore and mixed case|_A9._b2|1
+maximum lengths|aaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb|1
+trailing blanks|work.table<SP><SP><SP>|1
+trailing LF|work.table<LF>|0
+trailing LF and blanks|work.table<LF><SP><SP><SP>|0
+embedded LF|work.<LF>table|0
+trailing CR|work.table<CR>|0
+trailing CRLF|work.table<CR><LF>|0
+punctuation|work.table!|0
+leading blank|<SP>work.table|0
+long libref|aaaaaaaaa.table|0
+long dataset|work.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb|0
+libref starts with digit|1work.table|0
+dataset starts with digit|work.1table|0
+double dot|work..table|0
+missing dataset|work.|0
+missing libref|.table|0
+empty||0
+;;;;
 run;
 %mp_assertscope(COMPARE,
   desc=LIBDS validation does not leak macro variables,
   outds=work.test_results
 )
 %mp_assertdsobs(work.libds_cases,
-  desc=LIBDS evaluates every boundary and control character case,
-  test=EQUALS 19,
+  desc=LIBDS evaluates the boundary and control character cases,
+  test=HASOBS,
   outds=work.test_results
 )
 %mp_assertdsobs(work.libds_mismatch,

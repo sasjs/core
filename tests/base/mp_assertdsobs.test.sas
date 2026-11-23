@@ -3,6 +3,7 @@
   @brief Testing mp_assertdsobs.sas macro
 
   <h4> SAS Macros </h4>
+  @li mddl_assert.sas
   @li mp_assertdsobs.sas
   @li mp_assertmodel.sas
   @li mp_assertcolvals.sas
@@ -60,10 +61,6 @@ run;
 
 
 
-data work.assert_schema;
-  length test_result $5 test_description $256 test_comments $256;
-  call missing(test_result,test_description,test_comments);
-  stop;
-run;
+%mddl_assert(work.assert_schema)
 %mp_assertmodel(work.test_the_test,base=work.assert_schema,
   desc=Checking mp_assertdsobs output schema)

@@ -4,6 +4,7 @@
 
   <h4> SAS Macros </h4>
   @li mf_getvalue.sas
+  @li mddl_assert.sas
   @li mp_assert.sas
   @li mp_assertscope.sas
   @li mp_assertmodel.sas
@@ -80,10 +81,6 @@
   outds=work.test_results
 )
 
-data work.assert_schema;
-  length test_result $5 test_description $256 test_comments $256;
-  call missing(test_result,test_description,test_comments);
-  stop;
-run;
+%mddl_assert(work.assert_schema)
 %mp_assertmodel(work.testing_the_tester4,base=work.assert_schema,
   desc=Checking mp_assertscope output schema)

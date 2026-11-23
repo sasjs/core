@@ -4,6 +4,7 @@
   @details This is quite "meta".. it's just testing itself
 
   <h4> SAS Macros </h4>
+  @li mddl_assert.sas
   @li mp_assert.sas
   @li mp_assertmodel.sas
 
@@ -15,11 +16,7 @@
   outds=work.test_results
 )
 
-data work.assert_schema;
-  length test_result $5 test_description $256 test_comments $256;
-  call missing(test_result,test_description,test_comments);
-  stop;
-run;
+%mddl_assert(work.assert_schema)
 %mp_assertmodel(work.test_results,base=work.assert_schema,
   desc=Checking mp_assert output schema,outds=work.schema_results)
 proc append base=work.test_results data=work.schema_results;

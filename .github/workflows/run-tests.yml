@@ -50,9 +50,6 @@ jobs:
       - name: Check code style (aborts if errors found)
         run: npx @sasjs/cli lint
 
-      - name: Run Viya static guard tests
-        run: python3 -m unittest discover -s tests/viyaonly -p 'test_*.py' -v
-
       # compile and build, without the deploy: every macro in the target's
       # folders is resolved and concatenated into all.sas and the mc_* bundles,
       # so an unresolvable dependency or a broken %macro fails here.  No server

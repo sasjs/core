@@ -3631,6 +3631,10 @@ run;
   |---|---|---|
   |User Provided description|PASS|Dataset &inds contained ALL columns|
 
+  <h4> SAS Macros </h4>
+  @li mf_getuniquename.sas
+  @li mddl_assert.sas
+
   @version 9.2
   @author Allan Bowe
 
@@ -3641,8 +3645,12 @@ run;
   outds=work.test_results
 )/*/STORE SOURCE*/;
 
-  data ;
-    length test_result $5 test_description $256 test_comments $256;
+  %local ds;
+  %let ds=work.%mf_getuniquename();
+  %mddl_assert(&ds)
+  data &ds;
+    retain test_result test_description test_comments;
+    if 0 then set &ds;
     test_description=symget('desc');
     test_comments="&sysmacroname: Test result of "!!symget('iftrue');
   %if %eval(%unquote(&iftrue)) %then %do;
@@ -3653,8 +3661,6 @@ run;
   %end;
   run;
 
-  %local ds ;
-  %let ds=&syslast;
   proc append base=&outds data=&ds;
   run;
   proc sql;
@@ -3687,6 +3693,8 @@ run;
       )
 
   <h4> SAS Macros </h4>
+  @li mddl_assert.sas
+  @li mf_getuniquename.sas
   @li mf_existds.sas
   @li mf_existvarlist.sas
   @li mf_getvarlist.sas
@@ -3772,8 +3780,12 @@ run;
     %else %let result=SOME;
   %end;
 
-  data;
-    length test_result $5 test_description $256 test_comments $256;
+  %local rsds;
+  %let rsds=work.%mf_getuniquename();
+  %mddl_assert(&rsds)
+  data &rsds;
+    retain test_result test_description test_comments;
+    if 0 then set &rsds;
     test_description=symget('desc');
     if test_description='0'
     then test_description="Testing &inds for existence of &test of: &cols";
@@ -3801,12 +3813,10 @@ run;
   %end;
   run;
 
-  %local ds;
-  %let ds=&syslast;
-  proc append base=&outds data=&ds;
+  proc append base=&outds data=&rsds;
   run;
   proc sql;
-  drop table &ds;
+  drop table &rsds;
 
 %mend mp_assertcols;
 /**
@@ -3840,6 +3850,7 @@ run;
       )
 
   <h4> SAS Macros </h4>
+  @li mddl_assert.sas
   @li mf_existds.sas
   @li mf_getuniquename.sas
   @li mf_nobs.sas
@@ -3953,8 +3964,12 @@ run;
     ,msg=%str(syscc=&syscc after macro query)
   )
 
-  data;
-    length test_result $5 test_description $256 test_comments $256;
+  %local rsds;
+  %let rsds=work.%mf_getuniquename();
+  %mddl_assert(&rsds)
+  data &rsds;
+    retain test_result test_description test_comments;
+    if 0 then set &rsds;
     test_description=symget('desc');
     test_result='FAIL';
     test_comments="&sysmacroname: &lib..&ds..&col has &result/&orig values "
@@ -3973,12 +3988,10 @@ run;
   %end;
   run;
 
-  %local ds;
-  %let ds=&syslast;
-  proc append base=&outds data=&ds;
+  proc append base=&outds data=&rsds;
   run;
   proc sql;
-  drop table &ds;
+  drop table &rsds;
 
 %mend mp_assertcolvals;
 /**
@@ -4013,6 +4026,7 @@ run;
   |User Provided description|PASS|Dataset &inds has XX obs|
 
   <h4> SAS Macros </h4>
+  @li mddl_assert.sas
   @li mf_getuniquename.sas
   @li mf_nobs.sas
   @li mp_abort.sas
@@ -4036,7 +4050,7 @@ run;
   %local nobs ds;
   %let nobs=%mf_nobs(&inds);
   %let test=%upcase(&test);
-  %let ds=%mf_getuniquename(prefix=mp_assertdsobs);
+  %let ds=work.%mf_getuniquename(prefix=mp_assertdsobs);
 
   %if %substr(&test.xxxxx,1,6)=EQUALS %then %do;
     %let val=%scan(&test,2,%str( ));
@@ -4069,8 +4083,10 @@ run;
     )
   %end;
 
+  %mddl_assert(&ds)
   data &ds;
-    length test_result $5 test_description $256 test_comments $256;
+    retain test_result test_description test_comments;
+    if 0 then set &ds;
     test_description=symget('desc');
     test_result='FAIL';
     test_comments="&sysmacroname: Dataset &inds has &nobs observations.";
@@ -4349,6 +4365,8 @@ run;
   |User Provided description|PASS|No out of scope variables created or modified|
 
   <h4> SAS Macros </h4>
+  @li mddl_assert.sas
+  @li mf_getuniquename.sas
   @li mf_getquotedstr.sas
   @li mp_init.sas
 
@@ -4428,14 +4446,16 @@ run;
     %let test_comments=%str(Mod:(&mod) Add:(&add) Del:(&del));
   %end;
 
-  data ;
-    length test_result $5 test_description $256 test_comments $256;
+  %let ds=work.%mf_getuniquename();
+  %mddl_assert(&ds)
+  data &ds;
+    retain test_result test_description test_comments;
+    if 0 then set &ds;
     test_description=symget('desc');
     test_comments=symget('test_comments');
     test_result=symget('test_result');
   run;
 
-  %let ds=&syslast;
   proc append base=&outds data=&ds;
   run;
   proc sql;
@@ -16469,9 +16489,7 @@ ods package close;
   @brief DDL for assertion results
   @details Creates an empty table with the column names, types and lengths
   used for assertion results. The table must not already exist.
-  mp_assertmodel uses this DDL; other mp_assert macros still declare the
-  schema inline. Keep the column names, types and lengths in step until those
-  macros are migrated.
+  The mp_assert macros use this DDL for their result rows.
 
   Example:
 

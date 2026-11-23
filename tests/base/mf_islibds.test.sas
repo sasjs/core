@@ -10,8 +10,31 @@
   <h4> SAS Macros </h4>
   @li mf_islibds.sas
   @li mp_assert.sas
+  @li mp_assertscope.sas
 
 **/
+
+data _null_;
+  call symput('lf_libds','work.table'||byte(10));
+run;
+%mp_assertscope(SNAPSHOT)
+%put mf_islibds LF result: %mf_islibds(%superq(lf_libds));
+%mp_assertscope(COMPARE,
+  desc=mf_islibds does not leak macro variables,
+  outds=work.test_results
+)
+/* An unquoted trailing LF is stripped during macro argument handling. */
+%mp_assert(
+  iftrue=(%mf_islibds(&lf_libds)=1),
+  desc=Unquoted trailing LF is stripped from the macro argument,
+  outds=work.test_results
+)
+/* Macro quoting masks the LF and this call is rejected. */
+%mp_assert(
+  iftrue=(%mf_islibds(%superq(lf_libds))=0),
+  desc=Reject a macro-quoted libds ending in LF,
+  outds=work.test_results
+)
 
 %mp_assert(
   iftrue=(

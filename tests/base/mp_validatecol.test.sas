@@ -84,6 +84,40 @@ run;
   outds=work.test_results
 )
 
+/* Reject a final LF after an otherwise valid value. */
+%mp_assertscope(SNAPSHOT)
+data work.islib_lf work.isname_lf work.format_lf;
+  length value $40;
+  value='work'||byte(10);
+  %mp_validatecol(value,ISLIB,valid)
+  if valid ne 0 then output work.islib_lf;
+  value='Name_9'||byte(10);
+  %mp_validatecol(value,ISNAME,valid)
+  if valid ne 0 then output work.isname_lf;
+  value='$char12.2'||byte(10);
+  %mp_validatecol(value,FORMAT,valid)
+  if valid ne 0 then output work.format_lf;
+run;
+%mp_assertscope(COMPARE,
+  desc=LF validation does not leak macro variables,
+  outds=work.test_results
+)
+%mp_assertdsobs(work.islib_lf,
+  desc=ISLIB rejects a trailing LF,
+  test=EQUALS 0,
+  outds=work.test_results
+)
+%mp_assertdsobs(work.isname_lf,
+  desc=ISNAME rejects a trailing LF,
+  test=EQUALS 0,
+  outds=work.test_results
+)
+%mp_assertdsobs(work.format_lf,
+  desc=FORMAT rejects a trailing LF,
+  test=EQUALS 0,
+  outds=work.test_results
+)
+
 /**
   * Test 2 - ISNUM
   */

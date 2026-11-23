@@ -10,6 +10,8 @@
     @li contains a period?
 
   It does NOT check whether the dataset exists, or if the library is assigned.
+  Unquoted trailing whitespace, including LF, may be stripped by SAS macro
+  argument handling before validation. Macro-quoted trailing LF is rejected.
 
   Usage:
 

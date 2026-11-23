@@ -10,6 +10,7 @@
 
   One PASS or FAIL row is appended to outds. Missing datasets and invalid key
   columns produce FAIL. The macro does not sort or intentionally modify inputs.
+  SASAUTOS installations must include the ddl folder for mddl_assert.
   Dataset names must use ordinary V7 member names, not name literals.
   Unqualified dataset names refer to WORK. OUTDS must identify a distinct
   dataset and must not alias either input through a libref, filesystem link,

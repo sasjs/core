@@ -23,13 +23,15 @@ run;
   desc=mf_islibds does not leak macro variables,
   outds=work.test_results
 )
-/* An unquoted trailing LF is stripped during macro argument handling. */
+/* An unquoted trailing LF is stripped during macro argument handling, so
+   the value that reaches validation is work.table and the call is accepted. */
 %mp_assert(
   iftrue=(%mf_islibds(&lf_libds)=1),
   desc=Unquoted trailing LF is stripped from the macro argument,
   outds=work.test_results
 )
-/* Macro quoting masks the LF and this call is rejected. */
+/* Macro quoting preserves the LF as a masked byte, which no longer matches
+   the libds expression, so the call is rejected. */
 %mp_assert(
   iftrue=(%mf_islibds(%superq(lf_libds))=0),
   desc=Reject a macro-quoted libds ending in LF,

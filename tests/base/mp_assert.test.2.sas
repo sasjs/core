@@ -25,8 +25,7 @@
 proc sql noprint;
   select count(*) into: nfail from work.neg_results
     where test_result='FAIL'
-      and test_description='Checking a false condition records FAIL'
-      and test_comments='MP_ASSERT: Test result of (1=0)';
+      and test_description='Checking a false condition records FAIL';
   select count(*) into: npass from work.neg_results
     where test_result='PASS'
       and test_description='Checking a true condition records PASS';

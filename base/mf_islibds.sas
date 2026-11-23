@@ -10,8 +10,11 @@
     @li contains a period?
 
   It does NOT check whether the dataset exists, or if the library is assigned.
-  Unquoted trailing whitespace, including LF, may be stripped by SAS macro
-  argument handling before validation. Macro-quoted trailing LF is rejected.
+  The expression matches through the absolute end of the value: a trailing
+  newline is rejected.  When the macro argument is supplied unquoted, SAS
+  macro processing strips a trailing LF before the value is validated, so
+  such a call is accepted; a macro-quoted trailing LF survives as a masked
+  byte and is rejected.
 
   Usage:
 
@@ -35,7 +38,7 @@
 )/*/STORE SOURCE*/;
 
 %local regex;
-%let regex=%sysfunc(prxparse(%str(/^[_a-z]\w{0,7}\.[_a-z]\w{0,31}$/i)));
+%let regex=%sysfunc(prxparse(%str(/^[_a-z]\w{0,7}\.[_a-z]\w{0,31}\z/i)));
 
 %sysfunc(prxmatch(&regex,&libds))
 

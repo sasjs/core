@@ -89,7 +89,6 @@
 
   %mddl_assert(&ds)
   data &ds;
-    retain test_result test_description test_comments;
     if 0 then set &ds;
     test_description=symget('desc');
     test_result='FAIL';

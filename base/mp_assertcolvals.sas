@@ -147,7 +147,6 @@
   %let rsds=work.%mf_getuniquename();
   %mddl_assert(&rsds)
   data &rsds;
-    retain test_result test_description test_comments;
     if 0 then set &rsds;
     test_description=symget('desc');
     test_result='FAIL';

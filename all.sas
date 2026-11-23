@@ -3648,7 +3648,7 @@ run;
 )/*/STORE SOURCE*/;
 
   %local ds;
-  %let ds=work.%mf_getuniquename();
+  %let ds=work.%mf_getuniquename(prefix=mp_assert);
   %mddl_assert(&ds)
   data &ds;
     if 0 then set &ds;
@@ -3782,7 +3782,7 @@ run;
   %end;
 
   %local rsds;
-  %let rsds=work.%mf_getuniquename();
+  %let rsds=work.%mf_getuniquename(prefix=mp_assertcols);
   %mddl_assert(&rsds)
   data &rsds;
     if 0 then set &rsds;
@@ -3965,7 +3965,7 @@ run;
   )
 
   %local rsds;
-  %let rsds=work.%mf_getuniquename();
+  %let rsds=work.%mf_getuniquename(prefix=mp_assertcolvals);
   %mddl_assert(&rsds)
   data &rsds;
     if 0 then set &rsds;
@@ -4267,7 +4267,7 @@ run;
   %if &validrefs ne 1 %then %return;
   %let sqlstatus=0;
   %let sqlstatus2=0;
-  %let tmp=work.%mf_getuniquename(prefix=am);
+  %let tmp=work.%mf_getuniquename(prefix=mp_assertmodel);
   %if &result=PASS and %length(%superq(keylist))>0 %then %do;
     %let missingrows=-1;
     %let duplicaterows=-1;
@@ -4444,7 +4444,7 @@ run;
     %let test_comments=%str(Mod:(&mod) Add:(&add) Del:(&del));
   %end;
 
-  %let ds=work.%mf_getuniquename();
+  %let ds=work.%mf_getuniquename(prefix=mp_assertscope);
   %mddl_assert(&ds)
   data &ds;
     if 0 then set &ds;

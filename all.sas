@@ -16138,6 +16138,10 @@ alter table &libds modify &var char(&len);
       ;;;;
       run;
 
+  LIBDS enforces an absolute end for dataset references used by
+  mp_assertmodel. ISLIB, ISNAME and FORMAT retain their existing end-anchor
+  behavior; changing those public rules requires separate compatibility review.
+
   For more examples, see mp_validatecol.test.sas
 
   Tip - when contributing, use https://regex101.com to test the regex validity!
@@ -16469,6 +16473,9 @@ ods package close;
   @brief DDL for assertion results
   @details Creates an empty table with the column names, types and lengths
   used for assertion results. The table must not already exist.
+  mp_assertmodel uses this DDL; other mp_assert macros still declare the
+  schema inline. Keep the column names, types and lengths in step until those
+  macros are migrated.
 
   Example:
 

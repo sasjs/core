@@ -54,7 +54,7 @@
   %local nobs ds;
   %let nobs=%mf_nobs(&inds);
   %let test=%upcase(&test);
-  %let ds=%mf_getuniquename(prefix=mp_assertdsobs);
+  %let ds=work.%mf_getuniquename(prefix=mp_assertdsobs);
 
   %if %substr(&test.xxxxx,1,6)=EQUALS %then %do;
     %let val=%scan(&test,2,%str( ));

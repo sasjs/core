@@ -32,7 +32,8 @@
       chars, starting with a letter or underscore, followed by letters,
       numbers or underscores)
     @li ISNUM - checks if the variable is numeric
-    @li LIBDS - matches LIBREF.DATASET format
+    @li LIBDS - matches LIBREF.DATASET format through the end of the value,
+      ignoring trailing SAS padding blanks
     @li FORMAT - checks if the provided format is syntactically valid
     @li ISPATH - checks that the value is an absolute path this platform would
       accept.  Shape only - whether the path exists is a different question
@@ -103,7 +104,7 @@
   /* match libref.dataset */
   if _n_=1 then do;
     retain &tempcol;
-    &tempcol=prxparse('/^[_a-z]\w{0,7}\.[_a-z]\w{0,31}$/i');
+    &tempcol=prxparse('/^[_a-z]\w{0,7}\.[_a-z]\w{0,31}\z/i');
     if missing(&tempcol) then do;
       putlog 'ERR' +(-1) "OR: Invalid expression for LIBDS";
       stop;

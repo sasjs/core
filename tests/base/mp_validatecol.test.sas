@@ -4,6 +4,7 @@
 
   <h4> SAS Macros </h4>
   @li mp_assertdsobs.sas
+  @li mp_assertscope.sas
   @li mp_validatecol.sas
 
 **/
@@ -30,6 +31,58 @@ run;
 %mp_assertdsobs(work.test1,
   desc=Testing LIBDS,
   test=EQUALS 2,
+  outds=work.test_results
+)
+
+/* LIBDS must match the whole value, after stripping SAS padding blanks. */
+%mp_assertscope(SNAPSHOT)
+data work.libds_cases work.libds_mismatch;
+  length libds $80;
+  do case_id=1 to 19;
+    libds='';
+    expected=0;
+    select (case_id);
+      when (1) do; libds='work.table'; expected=1; end;
+      when (2) do; libds='_A9._b2'; expected=1; end;
+      when (3) do;
+        libds=cats(repeat('a',7),'.',repeat('b',31));
+        expected=1;
+      end;
+      when (4) do; libds='work.table   '; expected=1; end;
+      when (5) libds=cats('work.table',byte(10));
+      when (6) libds='work.table'||byte(10)||'   ';
+      when (7) libds=cats('work.',byte(10),'table');
+      when (8) libds=cats('work.table',byte(13));
+      when (9) libds=cats('work.table',byte(13),byte(10));
+      when (10) libds='work.table!';
+      when (11) libds=' work.table';
+      when (12) libds=cats(repeat('a',8),'.table');
+      when (13) libds=cats('work.',repeat('b',32));
+      when (14) libds='1work.table';
+      when (15) libds='work.1table';
+      when (16) libds='work..table';
+      when (17) libds='work.';
+      when (18) libds='.table';
+      when (19) libds='';
+      otherwise;
+    end;
+    %mp_validatecol(libds,LIBDS,is_libds)
+    output work.libds_cases;
+    if is_libds ne expected then output work.libds_mismatch;
+  end;
+run;
+%mp_assertscope(COMPARE,
+  desc=LIBDS validation does not leak macro variables,
+  outds=work.test_results
+)
+%mp_assertdsobs(work.libds_cases,
+  desc=LIBDS evaluates every boundary and control character case,
+  test=EQUALS 19,
+  outds=work.test_results
+)
+%mp_assertdsobs(work.libds_mismatch,
+  desc=LIBDS matches expected results for each case,
+  test=EQUALS 0,
   outds=work.test_results
 )
 

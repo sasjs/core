@@ -6,9 +6,9 @@
 
   Example:
 
-      %mddl_assert(libds=work.assertions)
+      %mddl_assert(work.assertions)
 
-  @param [in] libds= (work.test_results) Table to create
+  @param [in] libds Required table to create
 
   <h4> Related Macros </h4>
   @li mp_assert.sas
@@ -18,12 +18,15 @@
   @author sasjs@4gl.io
 **/
 
-%macro mddl_assert(libds=work.test_results);
+%macro mddl_assert(libds);
+  %if %sysevalf(%superq(libds)=,boolean) %then %do;
+    %put %str(ERR)OR: MDDL_ASSERT requires a table name.;
+    %let syscc=%sysfunc(max(&syscc,1012));
+    %return;
+  %end;
+
   proc sql;
-    create table &libds(
-      test_description char(256),
-      test_result char(5),
-      test_comments char(256)
-    );
+    create table &libds( test_description char(256), test_result char(5),
+      test_comments char(256) );
   quit;
 %mend mddl_assert;

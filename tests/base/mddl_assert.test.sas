@@ -10,12 +10,12 @@
 
 **/
 
-%mddl_assert()
-%mp_assert(iftrue=(%sysfunc(exist(work.test_results))=1),
-  desc=Assertion DDL creates the default result table)
+%mddl_assert(work.assert_schema)
+%mp_assert(iftrue=(%sysfunc(exist(work.assert_schema))=1),
+  desc=Assertion DDL creates the requested table)
 
 %mp_assertscope(SNAPSHOT)
-%mddl_assert(libds=work.assert_schema)
+%mddl_assert(work.custom_schema)
 %mp_assertscope(COMPARE,desc=Assertion DDL does not leak macro variables)
 
 /* Keep the output under test separate from the schema comparison result. */
@@ -23,3 +23,11 @@
   desc=Create model output,outds=work.model_output)
 %mp_assertmodel(work.model_output,base=work.assert_schema,
   desc=Model assertion output matches the assertion DDL)
+
+%let ddl_syntax=%sysfunc(getoption(syntaxcheck,keyword));
+options nosyntaxcheck;
+%mddl_assert()
+%let ddl_errorcc=&syscc;
+%let syscc=0;
+options &ddl_syntax;
+%mp_assert(iftrue=(&ddl_errorcc>4),desc=Missing table name is rejected)

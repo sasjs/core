@@ -174,7 +174,7 @@
     %end;
     %else %let comments=Column model and key match;
   %end;
-  %mddl_assert(libds=&tmp)
+  %mddl_assert(&tmp)
   data &tmp;
     if 0 then set &tmp;
     test_description=symget('desc');

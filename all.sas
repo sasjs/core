@@ -16138,10 +16138,6 @@ alter table &libds modify &var char(&len);
       ;;;;
       run;
 
-  LIBDS enforces an absolute end for dataset references used by
-  mp_assertmodel. ISLIB, ISNAME and FORMAT retain their existing end-anchor
-  behavior; changing those public rules requires separate compatibility review.
-
   For more examples, see mp_validatecol.test.sas
 
   Tip - when contributing, use https://regex101.com to test the regex validity!
@@ -16154,8 +16150,8 @@ alter table &libds modify &var char(&len);
       chars, starting with a letter or underscore, followed by letters,
       numbers or underscores)
     @li ISNUM - checks if the variable is numeric
-    @li LIBDS - matches LIBREF.DATASET format through the end of the value,
-      ignoring trailing SAS padding blanks
+    @li LIBDS - matches LIBREF.DATASET to the absolute end of the value after
+      trimming trailing SAS blanks; a trailing newline is rejected
     @li FORMAT - checks if the provided format is syntactically valid
     @li ISPATH - checks that the value is an absolute path this platform would
       accept.  Shape only - whether the path exists is a different question

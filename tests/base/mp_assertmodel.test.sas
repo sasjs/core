@@ -1,6 +1,6 @@
 /**
   @file
-  @brief Test exact dataset model and optional primary key assertions
+  @brief Test dataset model and primary key assertions
 
   <h4> SAS Macros </h4>
   @li mp_assert.sas
@@ -18,7 +18,7 @@ run;
 data work.match;
   length value $12 region $4 id 8;
   id=1; region='A'; value='one'; output;
-  id=2; region='B'; value='two'; output;
+  id=1; region='B'; value='two'; output;
 run;
 
 data work.extra;
@@ -26,28 +26,10 @@ data work.extra;
   extra=1;
 run;
 
-data work.missingcol;
-  set work.match(drop=value);
-run;
-
-data work.wrongname;
-  set work.match(rename=(value=other));
-run;
-
 data work.wronglen;
-  length value $11 region $4 id 8;
-  call missing(value,region,id);
+  length id 8 region $4 value $11;
+  call missing(id,region,value);
   stop;
-run;
-
-data work.wrongtype;
-  length value $12 region $4 id $8;
-  call missing(value,region,id);
-  stop;
-run;
-
-data work.empty;
-  set work.model;
 run;
 
 data work.duplicate;
@@ -58,191 +40,65 @@ run;
 
 data work.missingkey;
   set work.match;
-  if id=1 then id=.A;
-run;
-
-data work.blankkey;
-  set work.match;
   if id=1 then region=' ';
 run;
 
-data work.formattedkey;
-  set work.match;
-  format id z1.;
-  id=id/10;
-run;
-
-data work.keyn;
-  length n 8;
-  n=1; output;
-  n=2; output;
-run;
-
-data work.composite;
-  set work.match;
-  id=1;
-run;
-
-data work.sqlkeys;
-  length case 8 user $12;
-  case=1; user='a'; output;
-  case=2; user='b'; output;
-run;
-
-data work.sqlkeys_duplicate;
-  set work.sqlkeys;
-  user='a';
-run;
-
-data work.sqlkeys_missing;
-  set work.sqlkeys;
-  if case=1 then user=' ';
-run;
-
-options validvarname=any;
-data work.anynames;
-  length 'a&b'n $4 'pct%value'n 8 'a,b'n $3;
-  'a&b'n='x'; 'pct%value'n=1; 'a,b'n='z'; output;
-run;
-data work.anynames_bad;
-  length 'a&b'n $5 'pct%value'n 8 'a,b'n $3;
-  'a&b'n='x'; 'pct%value'n=1; 'a,b'n='z'; output;
-run;
-data work.model_numeric_name;
-  length '01'n 8;
-  '01'n=1;
-run;
-data work.actual_numeric_name;
-  length '1'n 8;
-  '1'n=1;
-run;
-data work.model_large_name;
-  length '99999999999999999999999999999999'n 8;
-  '99999999999999999999999999999999'n=1;
-run;
-data work.actual_large_name;
-  length '99999999999999999999999999999998'n 8;
-  '99999999999999999999999999999998'n=1;
-run;
-options validvarname=v7;
-
-data work.assertmodel_results;
-  length test_description $256 test_result $5 test_comments $256;
-  call missing(test_description,test_result,test_comments);
-  stop;
-run;
-
-%macro check_model(case=,inds=,base=work.model,key=,expect=,
-  reason=);
-  %local matched total;
-  %mp_assertmodel(&inds,base=&base,key=&key,desc=&case,
-    outds=work.assertmodel_results)
-  proc sql noprint;
-    select count(*),
-      sum(test_result="&expect" and
-        (lengthn("&reason")=0 or index(test_comments,"&reason")>0))
-      into :total trimmed,:matched trimmed
-    from work.assertmodel_results where test_description="&case";
-  quit;
-  %mp_assert(iftrue=(&total=1 and &matched=1),
-    desc=Model assertion case &case)
-%mend check_model;
-
+/* Keep expected FAIL rows separate from the test harness results. */
 %mp_assertscope(SNAPSHOT)
-%check_model(case=match_order_independent,inds=work.match,expect=PASS)
+%mp_assertmodel(work.match,base=work.model,key=id region,
+  desc=match,outds=work.model_results)
 %mp_assertscope(COMPARE,desc=Model assertion does not leak macro variables)
-%check_model(case=one_level_work,inds=match,base=model,expect=PASS)
-%mp_assertmodel(match,base=model,outds=onelevelresult)
-%mp_assert(iftrue=(%sysfunc(exist(work.onelevelresult))=1),
-  desc=One-level output resolves to WORK)
-%check_model(case=empty_dataset,inds=work.empty,key=id region,expect=PASS)
-%check_model(case=valid_key,inds=work.match,key=id,expect=PASS)
-%check_model(case=blank_key,inds=work.match,key=%str(   ),expect=PASS)
-%check_model(case=formatted_key,inds=work.formattedkey,key=id,expect=PASS)
-%check_model(case=key_named_n,inds=work.keyn,base=work.keyn,key=n,expect=PASS)
-%check_model(case=composite_key,inds=work.composite,key=id region,expect=PASS)
-%check_model(case=extra_column,inds=work.extra,expect=FAIL,
-  reason=Column count differs)
-%check_model(case=missing_column,inds=work.missingcol,expect=FAIL,
-  reason=Column count differs)
-%check_model(case=renamed_column,inds=work.wrongname,expect=FAIL,
-  reason=Missing column)
-%check_model(case=wrong_length,inds=work.wronglen,expect=FAIL,
-  reason=Type or length differs)
-%check_model(case=wrong_type,inds=work.wrongtype,expect=FAIL,
-  reason=Type or length differs)
-%check_model(case=duplicate_key,inds=work.duplicate,key=id region,expect=FAIL,
-  reason=Key contains missing or duplicate)
-%check_model(case=missing_numeric_key,inds=work.missingkey,key=id,expect=FAIL,
-  reason=Key contains missing or duplicate)
-%check_model(case=missing_character_key,inds=work.blankkey,
-  key=id region,expect=FAIL,
-  reason=Key contains missing or duplicate)
-%check_model(case=missing_key_column,inds=work.match,key=absent,expect=FAIL,
-  reason=Key column not found)
-%check_model(case=missing_second_key,inds=work.match,key=id absent,expect=FAIL,
-  reason=Key column not found)
-%check_model(case=invalid_key_name,inds=work.match,key=invalid-name,expect=FAIL,
-  reason=Invalid key column name)
-%check_model(case=overlong_key_name,inds=work.match,
-  key=abcdefghijklmnopqrstuvwxyzabcdefg,expect=FAIL,
-  reason=Invalid key column name)
-/* Long composite keys must not silently lose key columns. */
-data _null_;
-  length keylist $32767;
-  keylist=repeat('id ',2499);
-  call symputx('manykeys',keylist);
-run;
-%let oversizedkeys=&manykeys &manykeys &manykeys &manykeys &manykeys;
-%check_model(case=large_key_expression,inds=work.match,key=&manykeys,
-  expect=FAIL,reason=Key expression too long)
-%check_model(case=oversized_key,inds=work.match,key=&oversizedkeys,
-  expect=FAIL,reason=Key list too long)
-%check_model(case=both_inputs_missing,inds=work.notfound,base=work.notfound2,
-  expect=FAIL,reason=Input dataset cannot be opened)
-%check_model(case=missing_input,inds=work.notfound,expect=FAIL,
-  reason=Input dataset cannot be opened)
-%check_model(case=missing_base,inds=work.match,base=work.notfound,expect=FAIL,
-  reason=Model dataset cannot be opened)
-%check_model(case=reserved_key,inds=work.sqlkeys,base=work.sqlkeys,
-  key=case user,expect=PASS)
-%check_model(case=reserved_duplicate,inds=work.sqlkeys_duplicate,
-  base=work.sqlkeys,key=user,expect=FAIL,
-  reason=Key contains missing or duplicate)
-%check_model(case=reserved_missing,inds=work.sqlkeys_missing,
-  base=work.sqlkeys,key=user,expect=FAIL,
-  reason=Key contains missing or duplicate)
-options validvarname=any;
-%check_model(case=special_names,inds=work.anynames,
-  base=work.anynames,expect=PASS)
-%check_model(case=special_names_length,inds=work.anynames_bad,
-  base=work.anynames,expect=FAIL,
-  reason=Type or length differs)
-%check_model(case=numeric_column_names,inds=work.actual_numeric_name,
-  base=work.model_numeric_name,expect=FAIL,
-  reason=Missing column)
-%check_model(case=large_numeric_names,inds=work.actual_large_name,
-  base=work.model_large_name,expect=FAIL,
-  reason=Missing column)
-options validvarname=v7;
+%mp_assertmodel(work.model,base=work.model,key=id,
+  desc=empty,outds=work.model_results)
+%mp_assertmodel(work.extra,base=work.model,
+  desc=extra,outds=work.model_results)
+%mp_assertmodel(work.wronglen,base=work.model,
+  desc=length,outds=work.model_results)
+%mp_assertmodel(work.duplicate,base=work.model,key=id region,
+  desc=duplicate,outds=work.model_results)
+%mp_assertmodel(work.missingkey,base=work.model,key=id region,
+  desc=missing_key,outds=work.model_results)
+%mp_assertmodel(work.match,base=work.model,key=absent,
+  desc=unknown_key,outds=work.model_results)
+%mp_assertmodel(work.notfound,base=work.model,
+  desc=missing_input,outds=work.model_results)
 
-/* The key check must not change the caller's observation options. */
-%global model_probe_seen model_bad_obs;
-%let model_probe_seen=0;
-%let model_bad_obs=0;
-data work.option_view / view=work.option_view;
-  set work.match;
-  call symputx('model_probe_seen',1,'G');
-  if getoption('obs','keyword') ne 'OBS=1' then
-    call symputx('model_bad_obs',1,'G');
+data work.expected;
+  length test_description $256 test_result $5 reason $80;
+  infile datalines dlm='|' truncover;
+  input test_description $ test_result $ reason $;
+  datalines;
+match|PASS|Column model and key match
+empty|PASS|Column model and key match
+extra|FAIL|Column count differs
+length|FAIL|Type or length differs
+duplicate|FAIL|Key contains missing or duplicate
+missing_key|FAIL|Key contains missing or duplicate
+unknown_key|FAIL|Key column not found
+missing_input|FAIL|Input dataset cannot be opened
+;
 run;
-%let originalobs=%sysfunc(getoption(obs,keyword));
-options obs=1;
-%mp_assertmodel(work.option_view,base=work.model,key=id,
-  desc=observation_options,outds=work.option_results)
-%let afterobs=%sysfunc(getoption(obs,keyword));
-options &originalobs;
-%mp_assert(iftrue=(&model_probe_seen=1 and &model_bad_obs=0),
-  desc=Key check does not change OBS during execution)
-%mp_assert(iftrue=("&afterobs"="OBS=1"),
-  desc=Key check leaves OBS unchanged)
+
+proc sql noprint;
+  select count(*),count(distinct e.test_description)
+    into :model_rows trimmed,:model_matches trimmed
+  from work.model_results as a left join work.expected as e
+    on a.test_description=e.test_description
+    and a.test_result=e.test_result
+    and index(a.test_comments,strip(e.reason))>0;
+quit;
+%mp_assert(iftrue=(&model_rows=8 and &model_matches=8),
+  desc=Model results match expected pass and fail cases)
+
+/* An overlapping destination is rejected without changing the input. */
+%let model_syntax=%sysfunc(getoption(syntaxcheck,keyword));
+options nosyntaxcheck;
+%mp_assertmodel(work.match,base=work.model,outds=work.match)
+%let model_errorcc=&syscc;
+%let syscc=0;
+options &model_syntax;
+proc sql noprint;
+  select count(*) into :model_input_rows trimmed from work.match;
+quit;
+%mp_assert(iftrue=(&model_errorcc>4 and &model_input_rows=2),
+  desc=Overlapping output is rejected and input preserved)

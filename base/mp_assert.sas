@@ -39,7 +39,7 @@
 )/*/STORE SOURCE*/;
 
   %local ds;
-  %let ds=work.%mf_getuniquename();
+  %let ds=work.%mf_getuniquename(prefix=mp_assert);
   %mddl_assert(&ds)
   data &ds;
     if 0 then set &ds;

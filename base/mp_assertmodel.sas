@@ -149,7 +149,7 @@
   %if &validrefs ne 1 %then %return;
   %let sqlstatus=0;
   %let sqlstatus2=0;
-  %let tmp=work.%mf_getuniquename(prefix=am);
+  %let tmp=work.%mf_getuniquename(prefix=mp_assertmodel);
   %if &result=PASS and %length(%superq(keylist))>0 %then %do;
     %let missingrows=-1;
     %let duplicaterows=-1;

@@ -132,7 +132,7 @@
     %let test_comments=%str(Mod:(&mod) Add:(&add) Del:(&del));
   %end;
 
-  %let ds=work.%mf_getuniquename();
+  %let ds=work.%mf_getuniquename(prefix=mp_assertscope);
   %mddl_assert(&ds)
   data &ds;
     if 0 then set &ds;

@@ -111,7 +111,7 @@
   %end;
 
   %local rsds;
-  %let rsds=work.%mf_getuniquename();
+  %let rsds=work.%mf_getuniquename(prefix=mp_assertcols);
   %mddl_assert(&rsds)
   data &rsds;
     if 0 then set &rsds;

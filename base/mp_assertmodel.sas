@@ -50,7 +50,7 @@
   %let validrefs=0;
   %let keylen=%length(%superq(key));
   data _null_;
-    length reference inds baseds outds $32767 bn $32 keyname $32767
+    length inds baseds outds $32767 bn $32 keyname $32767
       comments $256 result $5 keys keylist missvars $32767;
     inds=cats(symget('inds'));
     baseds=cats(symget('base'));
@@ -58,12 +58,9 @@
     if index(inds,'.')=0 then inds=cats('WORK.',inds);
     if index(baseds,'.')=0 then baseds=cats('WORK.',baseds);
     if index(outds,'.')=0 then outds=cats('WORK.',outds);
-    reference=inds;
-    %mp_validatecol(reference,LIBDS,valid_input)
-    reference=baseds;
-    %mp_validatecol(reference,LIBDS,valid_base)
-    reference=outds;
-    %mp_validatecol(reference,LIBDS,valid_output)
+    %mp_validatecol(inds,LIBDS,valid_input)
+    %mp_validatecol(baseds,LIBDS,valid_base)
+    %mp_validatecol(outds,LIBDS,valid_output)
     if valid_input and valid_base and valid_output then do;
       if upcase(outds)=upcase(inds) or upcase(outds)=upcase(baseds) then
         validrefs=2;

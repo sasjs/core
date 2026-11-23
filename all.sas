@@ -4114,6 +4114,7 @@ run;
 
   One PASS or FAIL row is appended to outds. Missing datasets and invalid key
   columns produce FAIL. The macro does not sort or intentionally modify inputs.
+  SASAUTOS installations must include the ddl folder for mddl_assert.
   Dataset names must use ordinary V7 member names, not name literals.
   Unqualified dataset names refer to WORK. OUTDS must identify a distinct
   dataset and must not alias either input through a libref, filesystem link,
@@ -4136,6 +4137,7 @@ run;
 
   <h4> SAS Macros </h4>
   @li mf_getuniquename.sas
+  @li mddl_assert.sas
   @li mp_validatecol.sas
 
   <h4> Related Macros </h4>
@@ -4276,11 +4278,14 @@ run;
     %end;
     %else %let comments=Column model and key match;
   %end;
+  %mddl_assert(libds=&tmp)
   data &tmp;
-    length test_description $256 test_result $5 test_comments $256;
+    if 0 then set &tmp;
     test_description=symget('desc');
     test_result=symget('result');
     test_comments=symget('comments');
+    output;
+    stop;
   run;
   proc append base=&outds data=&tmp;
   run;
@@ -16145,7 +16150,8 @@ alter table &libds modify &var char(&len);
       chars, starting with a letter or underscore, followed by letters,
       numbers or underscores)
     @li ISNUM - checks if the variable is numeric
-    @li LIBDS - matches LIBREF.DATASET format
+    @li LIBDS - matches LIBREF.DATASET format through the end of the value,
+      ignoring trailing SAS padding blanks
     @li FORMAT - checks if the provided format is syntactically valid
     @li ISPATH - checks that the value is an absolute path this platform would
       accept.  Shape only - whether the path exists is a different question
@@ -16216,7 +16222,7 @@ alter table &libds modify &var char(&len);
   /* match libref.dataset */
   if _n_=1 then do;
     retain &tempcol;
-    &tempcol=prxparse('/^[_a-z]\w{0,7}\.[_a-z]\w{0,31}$/i');
+    &tempcol=prxparse('/^[_a-z]\w{0,7}\.[_a-z]\w{0,31}\z/i');
     if missing(&tempcol) then do;
       putlog 'ERR' +(-1) "OR: Invalid expression for LIBDS";
       stop;
@@ -16458,6 +16464,35 @@ ods package publish archive properties
 ods package close;
 
 %mend mp_zip;
+/**
+  @file
+  @brief DDL for assertion results
+  @details Creates an empty table with the column names, types and lengths
+  used for assertion results. The table must not already exist.
+
+  Example:
+
+      %mddl_assert(libds=work.assertions)
+
+  @param [in] libds= (work.test_results) Table to create
+
+  <h4> Related Macros </h4>
+  @li mp_assert.sas
+  @li mp_assertmodel.sas
+
+  @version 9.4
+  @author sasjs@4gl.io
+**/
+
+%macro mddl_assert(libds=work.test_results);
+  proc sql;
+    create table &libds(
+      test_description char(256),
+      test_result char(5),
+      test_comments char(256)
+    );
+  quit;
+%mend mddl_assert;
 /**
   @file
   @brief Difftable DDL

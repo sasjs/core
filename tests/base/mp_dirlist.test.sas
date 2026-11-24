@@ -35,31 +35,33 @@ run;
 %let dirlist_userref=%mf_getuniquefileref();
 %let dirlist_userpath=%sysfunc(pathname(&dirlist_userref));
 /* The helper uses underscore plus seven digits; ignore SAS internal # refs. */
-proc sql;
-  create table work.dirlist_refs_before as
-    select distinct fileref from dictionary.extfiles
-    where substr(fileref,1,1)='_' and lengthn(fileref)=8
-      and verify(substr(fileref,2),'0123456789')=0;
-quit;
+%macro dirlist_snapshot();
+  proc sql;
+    create table work.dirlist_refs_before as
+      select distinct fileref from dictionary.extfiles
+      where substr(fileref,1,1)='_' and lengthn(fileref)=8
+        and verify(substr(fileref,2),'0123456789')=0;
+  quit;
+%mend dirlist_snapshot;
+%macro dirlist_checkrefs(desc);
+  proc sql noprint;
+    select count(distinct fileref) into :dirlist_newrefs trimmed
+      from dictionary.extfiles
+      where substr(fileref,1,1)='_' and lengthn(fileref)=8
+        and verify(substr(fileref,2),'0123456789')=0
+        and fileref not in (select fileref from work.dirlist_refs_before);
+  quit;
+  %mp_assert(iftrue=(&dirlist_newrefs=0),desc=&desc)
+%mend dirlist_checkrefs;
+
+%dirlist_snapshot()
 %mp_assertscope(SNAPSHOT)
 %mp_dirlist(path=&root, outds=myTable, maxdepth=MAX)
-proc sql;
-  create table work.dirlist_refs_after as
-    select distinct fileref from dictionary.extfiles
-    where substr(fileref,1,1)='_' and lengthn(fileref)=8
-      and verify(substr(fileref,2),'0123456789')=0;
-quit;
 %mp_assertscope(COMPARE,
   desc=Test 1: mp_dirlist does not leak scope,
   outds=work.test_results
 )
-proc sql noprint;
-  select count(*) into :dirlist_newrefs trimmed
-    from work.dirlist_refs_after
-    where fileref not in (select fileref from work.dirlist_refs_before);
-quit;
-%mp_assert(iftrue=(&dirlist_newrefs=0),
-  desc=Directory listing releases its temporary filerefs)
+%dirlist_checkrefs(Directory listing releases its temporary filerefs)
 
 %mp_assertmodel(work.mytable,base=work.dirlist_schema,
   desc=Populated output matches directory model)
@@ -85,25 +87,6 @@ quit;
   desc=Top level returned,
   outds=work.test_results
 )
-
-%macro dirlist_snapshot();
-  proc sql;
-    create table work.dirlist_refs_before as
-      select distinct fileref from dictionary.extfiles
-      where substr(fileref,1,1)='_' and lengthn(fileref)=8
-        and verify(substr(fileref,2),'0123456789')=0;
-  quit;
-%mend dirlist_snapshot;
-%macro dirlist_checkrefs(desc);
-  proc sql noprint;
-    select count(distinct fileref) into :dirlist_newrefs trimmed
-      from dictionary.extfiles
-      where substr(fileref,1,1)='_' and lengthn(fileref)=8
-        and verify(substr(fileref,2),'0123456789')=0
-        and fileref not in (select fileref from work.dirlist_refs_before);
-  quit;
-  %mp_assert(iftrue=(&dirlist_newrefs=0),desc=&desc)
-%mend dirlist_checkrefs;
 
 %dirlist_snapshot()
 %mp_dirlist(path=&root/b, outds=work.myTable4)

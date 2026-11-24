@@ -24,12 +24,15 @@
 
 proc sql noprint;
   select count(*) into: nfail from work.neg_results
-    where test_result='FAIL';
+    where test_result='FAIL'
+      and test_description='Checking a false condition records FAIL';
   select count(*) into: npass from work.neg_results
-    where test_result='PASS';
+    where test_result='PASS'
+      and test_description='Checking a true condition records PASS';
+  select count(*) into: ntotal from work.neg_results;
 quit;
 
-%mp_assert(iftrue=(&nfail=1),
+%mp_assert(iftrue=(&nfail=1 and &ntotal=2),
   desc=Checking the false condition recorded exactly one FAIL)
 
 %mp_assert(iftrue=(&npass=1),

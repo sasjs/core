@@ -4,6 +4,7 @@
 
   <h4> SAS Macros </h4>
   @li mp_assertdsobs.sas
+  @li mp_assertscope.sas
   @li mp_validatecol.sas
 
 **/
@@ -30,6 +31,90 @@ run;
 %mp_assertdsobs(work.test1,
   desc=Testing LIBDS,
   test=EQUALS 2,
+  outds=work.test_results
+)
+
+/* LIBDS must match the whole value, after stripping SAS padding blanks. */
+%mp_assertscope(SNAPSHOT)
+data work.libds_cases work.libds_mismatch;
+  length case_name $40 libds $80;
+  infile datalines4 dlm='|' dsd truncover;
+  input case_name :$40. libds :$80. expected;
+  /* Markers keep control bytes out of the source file. */
+  libds=tranwrd(libds,'<LF>',byte(10));
+  libds=tranwrd(libds,'<CR>',byte(13));
+  libds=tranwrd(libds,'<SP>',' ');
+  %mp_validatecol(libds,LIBDS,is_libds)
+  output work.libds_cases;
+  if is_libds ne expected then output work.libds_mismatch;
+datalines4;
+standard|work.table|1
+underscore and mixed case|_A9._b2|1
+maximum lengths|aaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb|1
+trailing blanks|work.table<SP><SP><SP>|1
+trailing LF|work.table<LF>|0
+trailing LF and blanks|work.table<LF><SP><SP><SP>|0
+embedded LF|work.<LF>table|0
+trailing CR|work.table<CR>|0
+trailing CRLF|work.table<CR><LF>|0
+punctuation|work.table!|0
+leading blank|<SP>work.table|0
+long libref|aaaaaaaaa.table|0
+long dataset|work.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb|0
+libref starts with digit|1work.table|0
+dataset starts with digit|work.1table|0
+double dot|work..table|0
+missing dataset|work.|0
+missing libref|.table|0
+empty||0
+;;;;
+run;
+%mp_assertscope(COMPARE,
+  desc=LIBDS validation does not leak macro variables,
+  outds=work.test_results
+)
+%mp_assertdsobs(work.libds_cases,
+  desc=LIBDS evaluates the boundary and control character cases,
+  test=HASOBS,
+  outds=work.test_results
+)
+%mp_assertdsobs(work.libds_mismatch,
+  desc=LIBDS matches expected results for each case,
+  test=EQUALS 0,
+  outds=work.test_results
+)
+
+/* Reject a final LF after an otherwise valid value. */
+%mp_assertscope(SNAPSHOT)
+data work.islib_lf work.isname_lf work.format_lf;
+  length value $40;
+  value='work'||byte(10);
+  %mp_validatecol(value,ISLIB,valid)
+  if valid ne 0 then output work.islib_lf;
+  value='Name_9'||byte(10);
+  %mp_validatecol(value,ISNAME,valid)
+  if valid ne 0 then output work.isname_lf;
+  value='$char12.2'||byte(10);
+  %mp_validatecol(value,FORMAT,valid)
+  if valid ne 0 then output work.format_lf;
+run;
+%mp_assertscope(COMPARE,
+  desc=LF validation does not leak macro variables,
+  outds=work.test_results
+)
+%mp_assertdsobs(work.islib_lf,
+  desc=ISLIB rejects a trailing LF,
+  test=EQUALS 0,
+  outds=work.test_results
+)
+%mp_assertdsobs(work.isname_lf,
+  desc=ISNAME rejects a trailing LF,
+  test=EQUALS 0,
+  outds=work.test_results
+)
+%mp_assertdsobs(work.format_lf,
+  desc=FORMAT rejects a trailing LF,
+  test=EQUALS 0,
   outds=work.test_results
 )
 

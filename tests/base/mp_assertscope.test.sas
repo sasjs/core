@@ -4,8 +4,10 @@
 
   <h4> SAS Macros </h4>
   @li mf_getvalue.sas
+  @li mddl_assert.sas
   @li mp_assert.sas
   @li mp_assertscope.sas
+  @li mp_assertmodel.sas
 
 
 **/
@@ -78,3 +80,7 @@
   desc=Checking results when nothing created,
   outds=work.test_results
 )
+
+%mddl_assert(work.assert_schema)
+%mp_assertmodel(work.testing_the_tester4,base=work.assert_schema,
+  desc=Checking mp_assertscope output schema)

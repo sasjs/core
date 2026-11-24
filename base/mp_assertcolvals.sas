@@ -29,6 +29,7 @@
       )
 
   <h4> SAS Macros </h4>
+  @li mddl_assert.sas
   @li mf_existds.sas
   @li mf_getuniquename.sas
   @li mf_nobs.sas
@@ -142,8 +143,11 @@
     ,msg=%str(syscc=&syscc after macro query)
   )
 
-  data;
-    length test_result $5 test_description $256 test_comments $256;
+  %local rsds;
+  %let rsds=work.%mf_getuniquename(prefix=mp_assertcolvals);
+  %mddl_assert(&rsds)
+  data &rsds;
+    if 0 then set &rsds;
     test_description=symget('desc');
     test_result='FAIL';
     test_comments="&sysmacroname: &lib..&ds..&col has &result/&orig values "
@@ -162,11 +166,9 @@
   %end;
   run;
 
-  %local ds;
-  %let ds=&syslast;
-  proc append base=&outds data=&ds;
+  proc append base=&outds data=&rsds;
   run;
   proc sql;
-  drop table &ds;
+  drop table &rsds;
 
 %mend mp_assertcolvals;

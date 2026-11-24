@@ -1940,6 +1940,11 @@ Usage:
     @li contains a period?
 
   It does NOT check whether the dataset exists, or if the library is assigned.
+  The expression matches through the absolute end of the value: a trailing
+  newline is rejected.  When the macro argument is supplied unquoted, SAS
+  macro processing strips a trailing LF before the value is validated, so
+  such a call is accepted; a macro-quoted trailing LF survives as a masked
+  byte and is rejected.
 
   Usage:
 
@@ -1963,7 +1968,7 @@ Usage:
 )/*/STORE SOURCE*/;
 
 %local regex;
-%let regex=%sysfunc(prxparse(%str(/^[_a-z]\w{0,7}\.[_a-z]\w{0,31}$/i)));
+%let regex=%sysfunc(prxparse(%str(/^[_a-z]\w{0,7}\.[_a-z]\w{0,31}\z/i)));
 
 %sysfunc(prxmatch(&regex,&libds))
 
@@ -3631,6 +3636,10 @@ run;
   |---|---|---|
   |User Provided description|PASS|Dataset &inds contained ALL columns|
 
+  <h4> SAS Macros </h4>
+  @li mf_getuniquename.sas
+  @li mddl_assert.sas
+
   @version 9.2
   @author Allan Bowe
 
@@ -3641,8 +3650,11 @@ run;
   outds=work.test_results
 )/*/STORE SOURCE*/;
 
-  data ;
-    length test_result $5 test_description $256 test_comments $256;
+  %local ds;
+  %let ds=work.%mf_getuniquename(prefix=mp_assert);
+  %mddl_assert(&ds)
+  data &ds;
+    if 0 then set &ds;
     test_description=symget('desc');
     test_comments="&sysmacroname: Test result of "!!symget('iftrue');
   %if %eval(%unquote(&iftrue)) %then %do;
@@ -3653,8 +3665,6 @@ run;
   %end;
   run;
 
-  %local ds ;
-  %let ds=&syslast;
   proc append base=&outds data=&ds;
   run;
   proc sql;
@@ -3687,6 +3697,8 @@ run;
       )
 
   <h4> SAS Macros </h4>
+  @li mddl_assert.sas
+  @li mf_getuniquename.sas
   @li mf_existds.sas
   @li mf_existvarlist.sas
   @li mf_getvarlist.sas
@@ -3772,8 +3784,11 @@ run;
     %else %let result=SOME;
   %end;
 
-  data;
-    length test_result $5 test_description $256 test_comments $256;
+  %local rsds;
+  %let rsds=work.%mf_getuniquename(prefix=mp_assertcols);
+  %mddl_assert(&rsds)
+  data &rsds;
+    if 0 then set &rsds;
     test_description=symget('desc');
     if test_description='0'
     then test_description="Testing &inds for existence of &test of: &cols";
@@ -3801,12 +3816,10 @@ run;
   %end;
   run;
 
-  %local ds;
-  %let ds=&syslast;
-  proc append base=&outds data=&ds;
+  proc append base=&outds data=&rsds;
   run;
   proc sql;
-  drop table &ds;
+  drop table &rsds;
 
 %mend mp_assertcols;
 /**
@@ -3840,6 +3853,7 @@ run;
       )
 
   <h4> SAS Macros </h4>
+  @li mddl_assert.sas
   @li mf_existds.sas
   @li mf_getuniquename.sas
   @li mf_nobs.sas
@@ -3953,8 +3967,11 @@ run;
     ,msg=%str(syscc=&syscc after macro query)
   )
 
-  data;
-    length test_result $5 test_description $256 test_comments $256;
+  %local rsds;
+  %let rsds=work.%mf_getuniquename(prefix=mp_assertcolvals);
+  %mddl_assert(&rsds)
+  data &rsds;
+    if 0 then set &rsds;
     test_description=symget('desc');
     test_result='FAIL';
     test_comments="&sysmacroname: &lib..&ds..&col has &result/&orig values "
@@ -3973,12 +3990,10 @@ run;
   %end;
   run;
 
-  %local ds;
-  %let ds=&syslast;
-  proc append base=&outds data=&ds;
+  proc append base=&outds data=&rsds;
   run;
   proc sql;
-  drop table &ds;
+  drop table &rsds;
 
 %mend mp_assertcolvals;
 /**
@@ -4013,6 +4028,7 @@ run;
   |User Provided description|PASS|Dataset &inds has XX obs|
 
   <h4> SAS Macros </h4>
+  @li mddl_assert.sas
   @li mf_getuniquename.sas
   @li mf_nobs.sas
   @li mp_abort.sas
@@ -4036,7 +4052,7 @@ run;
   %local nobs ds;
   %let nobs=%mf_nobs(&inds);
   %let test=%upcase(&test);
-  %let ds=%mf_getuniquename(prefix=mp_assertdsobs);
+  %let ds=work.%mf_getuniquename(prefix=mp_assertdsobs);
 
   %if %substr(&test.xxxxx,1,6)=EQUALS %then %do;
     %let val=%scan(&test,2,%str( ));
@@ -4069,8 +4085,9 @@ run;
     )
   %end;
 
+  %mddl_assert(&ds)
   data &ds;
-    length test_result $5 test_description $256 test_comments $256;
+    if 0 then set &ds;
     test_description=symget('desc');
     test_result='FAIL';
     test_comments="&sysmacroname: Dataset &inds has &nobs observations.";
@@ -4102,6 +4119,200 @@ run;
   drop table &ds;
 
 %mend mp_assertdsobs;
+/**
+  @file
+  @brief Assert model and optionally check key under OBS= and FIRSTOBS=
+  @details Compares column names, types and lengths exactly, independent of
+  column order, case, formats and labels. The model dataset can be empty.
+  When key= is supplied and columns match, key components must be nonmissing
+  and composite keys unique within the caller's OBS= and FIRSTOBS= limits.
+  Limits can hide missing or duplicate keys. A blank key= skips key validation.
+  An empty dataset has no duplicate or missing keys.
+
+  One PASS or FAIL row is appended to outds. Missing datasets and invalid key
+  columns produce FAIL. The macro does not sort or intentionally modify inputs.
+  SASAUTOS installations must include the ddl folder for mddl_assert.
+  Dataset names must use ordinary V7 member names, not name literals.
+  Unqualified dataset names refer to WORK. OUTDS must identify a distinct
+  dataset and must not alias either input through a libref, filesystem link,
+  view or other storage mapping. Dataset options are not
+  accepted. Direct overlaps, malformed dataset names and name literals are
+  rejected with a diagnostic in the SAS log and nonzero SYSCC, without
+  appending a result row. Physical aliases are not detected.
+
+  Example:
+
+      %mp_assertmodel(work.actual,base=work.expected,key=id region,
+        desc=Checking the output model)
+
+  @param [in] inds Input dataset to check
+  @param [in] base= Reference dataset defining the expected columns
+  @param [in] key= Space-separated V7 key columns checked within OBS= and
+    FIRSTOBS= limits; blank skips key validation
+  @param [in] desc= (Testing dataset model) Description for the result row
+  @param [out] outds= (work.test_results) Assertion results dataset
+
+  <h4> SAS Macros </h4>
+  @li mf_getuniquename.sas
+  @li mddl_assert.sas
+  @li mp_validatecol.sas
+
+  <h4> Related Macros </h4>
+  @li mp_assert.sas
+  @li mp_assertcols.sas
+
+  @version 9.4
+  @author SASjs
+**/
+%macro mp_assertmodel(inds,base=,key=,desc=Testing dataset model,
+    outds=work.test_results);
+  %local result comments tmp keylist missvars
+    missingrows duplicaterows sqlstatus sqlstatus2 appendstatus
+    baseds validrefs keylen;
+  /* Resolve unqualified names to WORK and reject direct aliases. */
+  %let validrefs=0;
+  %let keylen=%length(%superq(key));
+  data _null_;
+    length inds baseds outds $32767 bn $32 keyname $32767
+      comments $256 result $5 keys keylist missvars $32767;
+    inds=cats(symget('inds'));
+    baseds=cats(symget('base'));
+    outds=cats(symget('outds'));
+    if index(inds,'.')=0 then inds=cats('WORK.',inds);
+    if index(baseds,'.')=0 then baseds=cats('WORK.',baseds);
+    if index(outds,'.')=0 then outds=cats('WORK.',outds);
+    %mp_validatecol(inds,LIBDS,valid_input)
+    %mp_validatecol(baseds,LIBDS,valid_base)
+    %mp_validatecol(outds,LIBDS,valid_output)
+    if valid_input and valid_base and valid_output then do;
+      if upcase(outds)=upcase(inds) or upcase(outds)=upcase(baseds) then
+        validrefs=2;
+      else do;
+        validrefs=1;
+        call symputx('inds',inds,'L');
+        call symputx('baseds',baseds,'L');
+        call symputx('outds',outds,'L');
+      end;
+    end;
+    else validrefs=0;
+    call symputx('validrefs',validrefs,'L');
+    if validrefs ne 1 then do;
+      if validrefs=2 then
+        putlog 'ERR' 'OR: MP_ASSERTMODEL result destination overlaps an input.';
+      else putlog 'ERR' 'OR: MP_ASSERTMODEL invalid dataset reference.';
+      call symputx('syscc',max(input(symget('syscc'),best32.),1012),'G');
+      stop;
+    end;
+    a=open(inds,'i');
+    if a ne 0 then b=open(baseds,'i');
+    else b=0;
+    result='FAIL';
+    if a=0 then comments='Input dataset cannot be opened';
+    else if b=0 then comments='Model dataset cannot be opened';
+    else do;
+      result='PASS';
+      comments='Column names types and lengths match';
+      if attrn(a,'NVARS') ne attrn(b,'NVARS') then do;
+        result='FAIL';
+        comments='Column count differs from model';
+      end;
+      else do i=1 to attrn(b,'NVARS');
+        bn=varname(b,i);
+        pos=varnum(a,bn);
+        if pos=0 then do;
+          result='FAIL';
+          comments=catx(' ','Missing column',bn);
+        end;
+        else if vartype(a,pos) ne vartype(b,i) or
+            varlen(a,pos) ne varlen(b,i) then do;
+          result='FAIL';
+          comments=catx(' ','Type or length differs for',bn);
+        end;
+      end;
+      if result='PASS' and &keylen>32767 then do;
+        result='FAIL';
+        comments='Key list too long';
+      end;
+      else if result='PASS' then do;
+        keys=symget('key');
+        do i=1 to countw(keys,' ');
+          keyname=scan(keys,i,' ');
+          if not nvalid(keyname,'V7') then do;
+            result='FAIL';
+            comments='Invalid key column name';
+          end;
+          else if varnum(a,keyname)=0 then do;
+            result='FAIL';
+            comments=catx(' ','Key column not found',keyname);
+          end;
+          else do;
+            if lengthn(missvars)+lengthn(keyname)+11+
+                4*(not missing(missvars))>32767 then do;
+              result='FAIL';
+              comments='Key expression too long';
+              leave;
+            end;
+            else do;
+              keylist=catx(',',keylist,cats('t.',keyname));
+              missvars=catx(' or ',missvars,cats('missing(t.',keyname,')'));
+            end;
+          end;
+        end;
+      end;
+    end;
+    if a ne 0 then rc=close(a);
+    if b ne 0 then rc=close(b);
+    call symputx('result',result,'L');
+    call symputx('comments',comments,'L');
+    call symputx('keylist',keylist,'L');
+    call symputx('missvars',missvars,'L');
+  run;
+  %if &validrefs ne 1 %then %return;
+  %let sqlstatus=0;
+  %let sqlstatus2=0;
+  %let tmp=work.%mf_getuniquename(prefix=mp_assertmodel);
+  %if &result=PASS and %length(%superq(keylist))>0 %then %do;
+    %let missingrows=-1;
+    %let duplicaterows=-1;
+    proc sql noprint;
+      select count(*) into :missingrows trimmed
+      from &inds as t where &missvars;
+      %let sqlstatus=&sqlrc;
+      select count(*) into :duplicaterows trimmed from (
+        select &keylist, count(*) as n
+        from &inds as t
+        group by &keylist having count(*)>1
+      );
+      %let sqlstatus2=&sqlrc;
+    quit;
+    %if &sqlstatus ne 0 or &sqlstatus2 ne 0 %then %do;
+      %let result=FAIL;
+      %let comments=Unable to check key values;
+    %end;
+    %else %if &missingrows ne 0 or &duplicaterows ne 0 %then %do;
+      %let result=FAIL;
+      %let comments=Key contains missing or duplicate values;
+    %end;
+    %else %let comments=Column model and key match;
+  %end;
+  %mddl_assert(&tmp)
+  data &tmp;
+    if 0 then set &tmp;
+    test_description=symget('desc');
+    test_result=symget('result');
+    test_comments=symget('comments');
+    output;
+    stop;
+  run;
+  proc append base=&outds data=&tmp;
+  run;
+  %let appendstatus=&syserr;
+  %if &appendstatus ne 0 %then
+    %put %str(ERR)OR: MP_ASSERTMODEL could not append a result to &outds.;
+  proc datasets lib=work nolist;
+    delete %scan(&tmp,2,.);
+  quit;
+%mend mp_assertmodel;
 /**
   @file
   @brief Used to capture scope leakage of macro variables
@@ -4155,6 +4366,8 @@ run;
   |User Provided description|PASS|No out of scope variables created or modified|
 
   <h4> SAS Macros </h4>
+  @li mddl_assert.sas
+  @li mf_getuniquename.sas
   @li mf_getquotedstr.sas
   @li mp_init.sas
 
@@ -4234,14 +4447,15 @@ run;
     %let test_comments=%str(Mod:(&mod) Add:(&add) Del:(&del));
   %end;
 
-  data ;
-    length test_result $5 test_description $256 test_comments $256;
+  %let ds=work.%mf_getuniquename(prefix=mp_assertscope);
+  %mddl_assert(&ds)
+  data &ds;
+    if 0 then set &ds;
     test_description=symget('desc');
     test_comments=symget('test_comments');
     test_result=symget('test_result');
   run;
 
-  %let ds=&syslast;
   proc append base=&outds data=&ds;
   run;
   proc sql;
@@ -15949,14 +16163,16 @@ alter table &libds modify &var char(&len);
   Tip - when contributing, use https://regex101.com to test the regex validity!
 
   @param [in] incol The column to be validated
-  @param [in] rule The rule to apply.  Current rules:
+  @param [in] rule The rule to apply.  ISLIB, ISNAME, LIBDS and FORMAT
+    match the entire value after trimming trailing SAS blanks; a trailing
+    newline is rejected. Current rules:
     @li ISINT - checks if the variable is an integer
     @li ISLIB - checks if the value is a valid libref (NOT whether it exists)
     @li ISNAME - checks if the value is a valid SAS NAME (V7 rules - up to 32
       chars, starting with a letter or underscore, followed by letters,
       numbers or underscores)
     @li ISNUM - checks if the variable is numeric
-    @li LIBDS - matches LIBREF.DATASET format
+    @li LIBDS - checks LIBREF.DATASET syntax
     @li FORMAT - checks if the provided format is syntactically valid
     @li ISPATH - checks that the value is an absolute path this platform would
       accept.  Shape only - whether the path exists is a different question
@@ -15999,7 +16215,7 @@ alter table &libds modify &var char(&len);
 %else %if &rule=ISLIB %then %do;
   if _n_=1 then do;
     retain &tempcol;
-    &tempcol=prxparse('/^[_a-z]\w{0,7}$/i');
+    &tempcol=prxparse('/^[_a-z]\w{0,7}\z/i');
     if missing(&tempcol) then do;
       putlog 'ERR' +(-1) "OR: Invalid expression for ISLIB";
       stop;
@@ -16013,7 +16229,7 @@ alter table &libds modify &var char(&len);
   /* match a valid SAS name (V7 rules) */
   if _n_=1 then do;
     retain &tempcol;
-    &tempcol=prxparse('/^[_a-z]\w{0,31}$/i');
+    &tempcol=prxparse('/^[_a-z]\w{0,31}\z/i');
     if missing(&tempcol) then do;
       putlog 'ERR' +(-1) "OR: Invalid expression for ISNAME";
       stop;
@@ -16027,7 +16243,7 @@ alter table &libds modify &var char(&len);
   /* match libref.dataset */
   if _n_=1 then do;
     retain &tempcol;
-    &tempcol=prxparse('/^[_a-z]\w{0,7}\.[_a-z]\w{0,31}$/i');
+    &tempcol=prxparse('/^[_a-z]\w{0,7}\.[_a-z]\w{0,31}\z/i');
     if missing(&tempcol) then do;
       putlog 'ERR' +(-1) "OR: Invalid expression for LIBDS";
       stop;
@@ -16073,7 +16289,7 @@ alter table &libds modify &var char(&len);
   /* match valid SAS format*/
   if _n_=1 then do;
     retain &tempcol;
-    &tempcol=prxparse('/^(?:[_a-z\$]\w{0,31}|[0-9]+)\.[0-9]*$/i');
+    &tempcol=prxparse('/^(?:[_a-z\$]\w{0,31}|[0-9]+)\.[0-9]*\z/i');
     if missing(&tempcol) then do;
       putlog 'ERR' +(-1) "OR: Invalid expression for FORMAT";
       stop;
@@ -16269,6 +16485,39 @@ ods package publish archive properties
 ods package close;
 
 %mend mp_zip;
+/**
+  @file
+  @brief DDL for assertion results
+  @details Creates an empty table with the column names, types and lengths
+  used for assertion results. The table must not already exist.
+  The mp_assert macros use this DDL for their result rows.
+
+  Example:
+
+      %mddl_assert(work.assertions)
+
+  @param [in] libds Required table to create
+
+  <h4> Related Macros </h4>
+  @li mp_assert.sas
+  @li mp_assertmodel.sas
+
+  @version 9.4
+  @author sasjs@4gl.io
+**/
+
+%macro mddl_assert(libds);
+  %if %sysevalf(%superq(libds)=,boolean) %then %do;
+    %put %str(ERR)OR: MDDL_ASSERT requires a table name.;
+    %let syscc=%sysfunc(max(&syscc,1012));
+    %return;
+  %end;
+
+  proc sql;
+    create table &libds( test_description char(256), test_result char(5),
+      test_comments char(256) );
+  quit;
+%mend mddl_assert;
 /**
   @file
   @brief Difftable DDL

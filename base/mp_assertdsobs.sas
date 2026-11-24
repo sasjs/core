@@ -30,6 +30,7 @@
   |User Provided description|PASS|Dataset &inds has XX obs|
 
   <h4> SAS Macros </h4>
+  @li mddl_assert.sas
   @li mf_getuniquename.sas
   @li mf_nobs.sas
   @li mp_abort.sas
@@ -53,7 +54,7 @@
   %local nobs ds;
   %let nobs=%mf_nobs(&inds);
   %let test=%upcase(&test);
-  %let ds=%mf_getuniquename(prefix=mp_assertdsobs);
+  %let ds=work.%mf_getuniquename(prefix=mp_assertdsobs);
 
   %if %substr(&test.xxxxx,1,6)=EQUALS %then %do;
     %let val=%scan(&test,2,%str( ));
@@ -86,8 +87,9 @@
     )
   %end;
 
+  %mddl_assert(&ds)
   data &ds;
-    length test_result $5 test_description $256 test_comments $256;
+    if 0 then set &ds;
     test_description=symget('desc');
     test_result='FAIL';
     test_comments="&sysmacroname: Dataset &inds has &nobs observations.";

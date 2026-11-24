@@ -23,6 +23,8 @@
       )
 
   <h4> SAS Macros </h4>
+  @li mddl_assert.sas
+  @li mf_getuniquename.sas
   @li mf_existds.sas
   @li mf_existvarlist.sas
   @li mf_getvarlist.sas
@@ -108,8 +110,11 @@
     %else %let result=SOME;
   %end;
 
-  data;
-    length test_result $5 test_description $256 test_comments $256;
+  %local rsds;
+  %let rsds=work.%mf_getuniquename(prefix=mp_assertcols);
+  %mddl_assert(&rsds)
+  data &rsds;
+    if 0 then set &rsds;
     test_description=symget('desc');
     if test_description='0'
     then test_description="Testing &inds for existence of &test of: &cols";
@@ -137,11 +142,9 @@
   %end;
   run;
 
-  %local ds;
-  %let ds=&syslast;
-  proc append base=&outds data=&ds;
+  proc append base=&outds data=&rsds;
   run;
   proc sql;
-  drop table &ds;
+  drop table &rsds;
 
 %mend mp_assertcols;

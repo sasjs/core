@@ -6400,6 +6400,7 @@ run;
 
   <h4> SAS Macros </h4>
   @li mf_getuniquefileref.sas
+  @li mf_getuniquename.sas
   @li mf_nobs.sas
   @li mddl_dirlist.sas
   @li mp_dropmembers.sas
@@ -6428,7 +6429,7 @@ run;
 %if "%upcase(&sysscp)"="WIN" or "%upcase(&sysscp)"="DNTHOST" %then %let mpsep=\;
 %else %let mpsep=/;
 
-%local lvl nfront total room done mp_roots mpsep schema schema_ref schema_free rc;
+%local lvl nfront total room done mp_roots mpsep schema rc;
 %local fref1 fref2;
 
 /* the parent can be supplied as a fileref rather than a path */
@@ -6445,16 +6446,7 @@ run;
 %mp_dropmembers(%scan(&outds,-1,.), libref=WORK)
 
 /* an empty table with the target structure - each level is appended to it */
-/* Reserve an unused WORK member name without requiring UUIDGEN (SAS 9.3). */
-%let schema_free=0;
-%do %until(&schema_free);
-  %let schema_ref=%mf_getuniquefileref();
-  %let schema=work.&schema_ref;
-  %let schema_free=%eval(not %sysfunc(exist(&schema)) and
-    not %sysfunc(exist(&schema,VIEW)) and
-    %upcase(&schema) ne %upcase(WORK.%scan(&outds,-1,.)));
-  %let rc=%sysfunc(filename(schema_ref));
-%end;
+%let schema=work.%mf_getuniquename(prefix=mp_dirlist);
 %mddl_dirlist(&schema)
 data &outds;
   if 0 then set &schema;

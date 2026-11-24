@@ -7,6 +7,8 @@
   @li mp_assert.sas
   @li mp_assertcolvals.sas
   @li mp_assertdsobs.sas
+  @li mp_assertmodel.sas
+  @li mddl_dc_difftable.sas
 
 **/
 
@@ -45,6 +47,11 @@ run;
   outds=work.test_results
 )
 
+%mddl_dc_difftable(libds=work.diffmodel)
+%mp_assertmodel(work.final,base=work.diffmodel,
+  desc=Populated diffs model and key,
+  key=load_ref libref dsn key_hash tgtvar_nm)
+
 %mp_assertdsobs(work.final,
   desc=Has 15 records,
   test=EQUALS 15,
@@ -75,6 +82,8 @@ run;
   ,outds=work.final2
   ,mdebug=1
 )
+%mp_assertmodel(work.final2,base=work.diffmodel,
+  desc=Empty diffs model)
 %mp_assertdsobs(work.final2,
   desc=No changes produces 0 records,
   test=EQUALS 0,

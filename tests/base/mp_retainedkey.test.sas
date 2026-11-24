@@ -6,6 +6,7 @@
   @li mf_nobs.sas
   @li mp_assert.sas
   @li mp_assertcolvals.sas
+  @li mp_assertmodel.sas
   @li mp_assertscope.sas
   @li mp_retainedkey.sas
 
@@ -67,6 +68,16 @@ libname x (work);
 %mp_assert(
   iftrue=(&syscc=0),
   desc=Checking errors in test 1,
+  outds=work.test_results
+)
+
+%mp_assertmodel(work.append,base=work.targetds,key=rk_col,
+  desc=Test 1 output model and retained key,
+  outds=work.test_results
+)
+%mp_assert(
+  iftrue=(%mf_nobs(work.append)=6),
+  desc=Test 1 output has six rows,
   outds=work.test_results
 )
 

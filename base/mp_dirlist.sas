@@ -115,7 +115,7 @@
   %let schema_free=%eval(not %sysfunc(exist(&schema)) and
     not %sysfunc(exist(&schema,VIEW)) and
     %upcase(&schema) ne %upcase(WORK.%scan(&outds,-1,.)));
-  %let rc=%sysfunc(filename(&schema_ref));
+  %let rc=%sysfunc(filename(schema_ref));
 %end;
 %mddl_dirlist(&schema)
 data &outds;

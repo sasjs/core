@@ -5,6 +5,7 @@
   <h4> SAS Macros </h4>
   @li mp_assertcolvals.sas
   @li mp_assertdsobs.sas
+  @li mp_assertmodel.sas
   @li mp_assertscope.sas
   @li mp_stackdiffs.sas
   @li mp_storediffs.sas
@@ -72,6 +73,8 @@ run;
   desc=Delete1 - records populated,
   test=EQUALS 10
 )
+%mp_assertmodel(work.del1,base=work.orig1,key=CUSTOMER YEAR,
+  desc=Delete1 - model and key)
 /**
   * Deletions test - where record does NOT exist
   */
@@ -129,6 +132,8 @@ run;
   desc=Add3 - records populated,
   test=EQUALS 10
 )
+%mp_assertmodel(work.add3,base=work.orig3,key=CUSTOMER YEAR,
+  desc=Add3 - model and key)
 
 /**
   * Additions test - where record does exist
@@ -277,6 +282,8 @@ run;
   desc=Mod8 - 6 records populated (missing rows relevant),
   test=EQUALS 6
 )
+%mp_assertmodel(work.mod8,base=work.orig8,key=CUSTOMER YEAR,
+  desc=Mod8 - model and key)
 
 /**
   * Modifications test - were diffs actually applied?

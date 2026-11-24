@@ -53,7 +53,5 @@ quit;
   desc=Checking colvals FAIL details and appended PASS)
 
 %mddl_assert(work.assert_schema)
-%mp_assertmodel(work.test_results,base=work.assert_schema,
-  desc=Checking mp_assertcolvals output schema,outds=work.schema_results)
-proc append base=work.test_results data=work.schema_results;
-run;
+%mp_assertmodel(work.colval_results,base=work.assert_schema,
+  desc=Checking mp_assertcolvals output schema)

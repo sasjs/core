@@ -16,8 +16,8 @@
   outds=work.test_results
 )
 
+%mp_assert(iftrue=(1=1),desc=Checking result was created,
+  outds=work.assert_output)
 %mddl_assert(work.assert_schema)
-%mp_assertmodel(work.test_results,base=work.assert_schema,
-  desc=Checking mp_assert output schema,outds=work.schema_results)
-proc append base=work.test_results data=work.schema_results;
-run;
+%mp_assertmodel(work.assert_output,base=work.assert_schema,
+  desc=Checking mp_assert output schema)

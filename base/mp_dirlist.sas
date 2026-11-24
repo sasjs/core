@@ -397,7 +397,9 @@ data &outds;
   set &outds(where=(filepath ne ''));
 run;
 
-/* tidy up */
+/* tidy up reserved filerefs, including those not used for an empty listing */
+%let rc=%sysfunc(filename(fref1));
+%let rc=%sysfunc(filename(fref2));
 proc sql noprint;
 drop table work.__mp_dirlist_frontier, work.__mp_dirlist_level, &schema;
 quit;

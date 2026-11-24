@@ -4,6 +4,7 @@
 
   <h4> SAS Macros </h4>
   @li mf_nobs.sas
+  @li mf_getuniquefileref.sas
   @li mf_mkdir.sas
   @li mp_assert.sas
   @li mp_assertscope.sas
@@ -30,6 +31,9 @@ data test.ds1;
 run;
 
 %mddl_dirlist(work.dirlist_schema)
+/* Keep a caller-owned fileref assigned while checking the listing's cleanup. */
+%let dirlist_userref=%mf_getuniquefileref();
+%let dirlist_userpath=%sysfunc(pathname(&dirlist_userref));
 /* The helper uses underscore plus seven digits; ignore SAS internal # refs. */
 proc sql;
   create table work.dirlist_refs_before as
@@ -82,7 +86,28 @@ quit;
   outds=work.test_results
 )
 
+%macro dirlist_snapshot();
+  proc sql;
+    create table work.dirlist_refs_before as
+      select distinct fileref from dictionary.extfiles
+      where substr(fileref,1,1)='_' and lengthn(fileref)=8
+        and verify(substr(fileref,2),'0123456789')=0;
+  quit;
+%mend dirlist_snapshot;
+%macro dirlist_checkrefs(desc);
+  proc sql noprint;
+    select count(distinct fileref) into :dirlist_newrefs trimmed
+      from dictionary.extfiles
+      where substr(fileref,1,1)='_' and lengthn(fileref)=8
+        and verify(substr(fileref,2),'0123456789')=0
+        and fileref not in (select fileref from work.dirlist_refs_before);
+  quit;
+  %mp_assert(iftrue=(&dirlist_newrefs=0),desc=&desc)
+%mend dirlist_checkrefs;
+
+%dirlist_snapshot()
 %mp_dirlist(path=&root/b, outds=work.myTable4)
+%dirlist_checkrefs(Empty directory releases its temporary filerefs)
 %mp_assertmodel(work.mytable4,base=work.dirlist_schema,
   desc=Empty output matches directory model)
 %mp_assert(
@@ -91,7 +116,9 @@ quit;
   outds=work.test_results
 )
 
+%dirlist_snapshot()
 %mp_dirlist(path=&root/notexisting, outds=work.myTable5)
+%dirlist_checkrefs(Missing directory releases its temporary filerefs)
 %mp_assert(
   iftrue=(%mf_nobs(work.mytable5)=0),
   desc=Empty table for non-existing directory,
@@ -163,7 +190,17 @@ run;
 /**
   * a blank path is the platform roots - drives on Windows, / on Unix
   */
+%dirlist_snapshot()
 %mp_dirlist(path=, outds=work.myTable9)
+%dirlist_checkrefs(Root listing releases its temporary filerefs)
+data _null_;
+  ref=symget('dirlist_userref');
+  preserved=(fileref(ref)<=0 and pathname(ref)=symget('dirlist_userpath'));
+  call symputx('dirlist_preserved',preserved);
+run;
+%mp_assert(iftrue=(&dirlist_preserved=1),
+  desc=Listing preserves caller-owned fileref)
+%let dirlist_rc=%sysfunc(filename(dirlist_userref));
 %mp_assert(
   iftrue=(%mf_nobs(work.mytable9)>=1),
   desc=A blank path returns the platform roots,

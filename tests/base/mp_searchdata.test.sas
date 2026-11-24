@@ -5,6 +5,9 @@
   <h4> SAS Macros </h4>
   @li mp_searchdata.sas
   @li mp_assert.sas
+  @li mp_assertdsobs.sas
+  @li mp_assertmodel.sas
+  @li mp_assertscope.sas
 
 
 **/
@@ -16,10 +19,36 @@
 
 /** Test 1 - generic useage */
 
+%mp_assertscope(SNAPSHOT)
 %mp_searchdata(lib=sashelp, ds=class, string=a)
 %mp_assert(
   iftrue=(&syscc=0),
   desc=No errors in regular usage,
+  outds=work.test_results
+)
+%mp_assertscope(COMPARE,
+  desc=Search does not leak scope,
+  outds=work.test_results
+)
+%mp_assertmodel(mpsearch.class,
+  base=sashelp.class,
+  key=name,
+  desc=Search output model and key,
+  outds=work.test_results
+)
+%mp_assertdsobs(mpsearch.class,
+  test=EQUALS 9,
+  desc=Search returns nine matches,
+  outds=work.test_results
+)
+
+data work.search_nonmatches;
+  set mpsearch.class;
+  if index(name,'a')=0 and index(sex,'a')=0;
+run;
+%mp_assertdsobs(work.search_nonmatches,
+  test=EMPTY,
+  desc=All returned rows contain the search string,
   outds=work.test_results
 )
 

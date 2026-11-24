@@ -16,7 +16,6 @@
   (fifo), so a single fifo in a folder was enough to hang the whole session.
   With getattrs=NO that hazard is gone; with getattrs=YES entries are opened to
   read their attributes, so a fifo can still block that mode.
-  SASAUTOS installations must include the ddl folder for mddl_dirlist.
 
   @note Symlinks are followed.  A symlink that points at one of its own parents
   produces an endless path (a/b/link/b/link/...), so a browse service must

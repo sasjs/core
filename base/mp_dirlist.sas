@@ -61,7 +61,9 @@
 
   <h4> SAS Macros </h4>
   @li mf_getuniquefileref.sas
+  @li mf_getuniquename.sas
   @li mf_nobs.sas
+  @li mddl_dirlist.sas
   @li mp_dropmembers.sas
 
   <h4> Related Macros </h4>
@@ -88,7 +90,7 @@
 %if "%upcase(&sysscp)"="WIN" or "%upcase(&sysscp)"="DNTHOST" %then %let mpsep=\;
 %else %let mpsep=/;
 
-%local lvl nfront total room done mp_roots mpsep;
+%local lvl nfront total room done mp_roots mpsep schema rc;
 %local fref1 fref2;
 
 /* the parent can be supplied as a fileref rather than a path */
@@ -105,9 +107,10 @@
 %mp_dropmembers(%scan(&outds,-1,.), libref=WORK)
 
 /* an empty table with the target structure - each level is appended to it */
+%let schema=work.%mf_getuniquename(prefix=mp_dirlist);
+%mddl_dirlist(&schema)
 data &outds;
-  length directory filepath $2000 file_or_folder $6 filename $255 ext $20
-    msg $200 level 8;
+  if 0 then set &schema;
   call missing(of _all_);
   stop;
 run;
@@ -125,8 +128,7 @@ run;
     so the drives that exist are the top level, and / is that level on Unix.
   */
   data work.__mp_dirlist_level;
-    length directory filepath $2000 file_or_folder $6 filename $255
-      ext $20 msg $200 level 8;
+    if 0 then set &schema;
     length drive $3 letters $26;
     call missing(of _all_);
     %if "%upcase(&sysscp)"="WIN" or "%upcase(&sysscp)"="DNTHOST" %then %do;
@@ -156,6 +158,7 @@ run;
       output;
     %end;
     keep directory filepath file_or_folder filename ext msg level;
+    stop;
   run;
   proc append base=&outds data=work.__mp_dirlist_level nowarn force;
   run;
@@ -184,9 +187,9 @@ run;
 %do %until(&nfront=0 or &lvl>&maxdepth or &done=1);
 
   data work.__mp_dirlist_level;
+    if 0 then set &schema;
     set work.__mp_dirlist_frontier;
-    length directory filepath $2000 file_or_folder $6 filename $255 ext $20
-      msg $200 sep $1 prefix $2000 fname $255 dmsg $200;
+    length sep $1 prefix $2000 fname $255 dmsg $200;
     drop sep prefix fname dmsg rc did mid i;
     directory=filepath;
     msg='';
@@ -302,8 +305,7 @@ run;
 /* include the starting folder itself, when asked */
 %if %substr(&showparent,1,1)=Y %then %do;
   data work.__mp_dirlist_level;
-    length directory filepath $2000 file_or_folder $6 filename $255 ext $20
-      msg $200 level 8;
+    if 0 then set &schema;
     /* the parent is only listed when it can be opened, so a path that does
       not exist stays an empty result even with showparent=YES */
     filepath=symget('path');
@@ -325,6 +327,7 @@ run;
     msg='';
     level=0;
     output;
+    stop;
   run;
   proc append base=&outds data=work.__mp_dirlist_level force nowarn;
   run;
@@ -385,9 +388,11 @@ data &outds;
   set &outds(where=(filepath ne ''));
 run;
 
-/* tidy up */
+/* tidy up reserved filerefs, including those not used for an empty listing */
+%let rc=%sysfunc(filename(fref1));
+%let rc=%sysfunc(filename(fref2));
 proc sql noprint;
-drop table work.__mp_dirlist_frontier, work.__mp_dirlist_level;
+drop table work.__mp_dirlist_frontier, work.__mp_dirlist_level, &schema;
 quit;
 
 %mend mp_dirlist;

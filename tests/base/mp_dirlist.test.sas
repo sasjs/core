@@ -221,6 +221,29 @@ run;
 )
 
 /**
+  * the internal schema table is named after the macro, so log entries are
+  * attributable to mp_dirlist when diagnosing a session
+  */
+%let dirlist_log=%sysfunc(pathname(work))/dirlist_schema_log.txt;
+proc printto log="&dirlist_log";
+run;
+%mp_dirlist(path=&root, outds=work.myTable11)
+proc printto;
+run;
+data _null_;
+  infile "&dirlist_log" end=eof;
+  input;
+  retain schemanotes 0;
+  if index(_infile_,'NOTE: Table WORK.MP_DIRLIST')=1 then schemanotes+1;
+  if eof then call symputx('dirlist_schemanotes',schemanotes,'l');
+run;
+%mp_assert(
+  iftrue=(&dirlist_schemanotes>=1),
+  desc=Schema table notes carry the mp_dirlist prefix,
+  outds=work.test_results
+)
+
+/**
   * dump results to the log for offline inspection
   */
 data _null_;

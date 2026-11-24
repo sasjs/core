@@ -4,8 +4,10 @@
 
   <h4> SAS Macros </h4>
   @li mf_nobs.sas
+  @li mddl_sas_cntlout.sas
   @li mp_cntlout.sas
   @li mp_assert.sas
+  @li mp_assertmodel.sas
   @li mp_assertscope.sas
 
 **/
@@ -31,6 +33,10 @@ run;
 %mp_assertscope(SNAPSHOT)
 %mp_cntlout(libcat=perm.testcat,cntlout=work.cntlout)
 %mp_assertscope(COMPARE)
+
+%mddl_sas_cntlout(libds=work.cntlout_model)
+%mp_assertmodel(work.cntlout,base=work.cntlout_model,key=type fmtname fmtrow,
+  desc=Checking CNTLOUT model and key)
 
 %mp_assert(
   iftrue=(%mf_nobs(work.cntlout)=10000),

@@ -16,6 +16,7 @@
   (fifo), so a single fifo in a folder was enough to hang the whole session.
   With getattrs=NO that hazard is gone; with getattrs=YES entries are opened to
   read their attributes, so a fifo can still block that mode.
+  SASAUTOS installations must include the ddl folder for mddl_dirlist.
 
   @note Symlinks are followed.  A symlink that points at one of its own parents
   produces an endless path (a/b/link/b/link/...), so a browse service must
@@ -62,6 +63,7 @@
   <h4> SAS Macros </h4>
   @li mf_getuniquefileref.sas
   @li mf_nobs.sas
+  @li mddl_dirlist.sas
   @li mp_dropmembers.sas
 
   <h4> Related Macros </h4>
@@ -88,7 +90,7 @@
 %if "%upcase(&sysscp)"="WIN" or "%upcase(&sysscp)"="DNTHOST" %then %let mpsep=\;
 %else %let mpsep=/;
 
-%local lvl nfront total room done mp_roots mpsep;
+%local lvl nfront total room done mp_roots mpsep schema schema_ref schema_free rc;
 %local fref1 fref2;
 
 /* the parent can be supplied as a fileref rather than a path */
@@ -105,9 +107,19 @@
 %mp_dropmembers(%scan(&outds,-1,.), libref=WORK)
 
 /* an empty table with the target structure - each level is appended to it */
+/* Reserve an unused WORK member name without requiring UUIDGEN (SAS 9.3). */
+%let schema_free=0;
+%do %until(&schema_free);
+  %let schema_ref=%mf_getuniquefileref();
+  %let schema=work.&schema_ref;
+  %let schema_free=%eval(not %sysfunc(exist(&schema)) and
+    not %sysfunc(exist(&schema,VIEW)) and
+    %upcase(&schema) ne %upcase(WORK.%scan(&outds,-1,.)));
+  %let rc=%sysfunc(filename(&schema_ref));
+%end;
+%mddl_dirlist(&schema)
 data &outds;
-  length directory filepath $2000 file_or_folder $6 filename $255 ext $20
-    msg $200 level 8;
+  if 0 then set &schema;
   call missing(of _all_);
   stop;
 run;
@@ -125,8 +137,7 @@ run;
     so the drives that exist are the top level, and / is that level on Unix.
   */
   data work.__mp_dirlist_level;
-    length directory filepath $2000 file_or_folder $6 filename $255
-      ext $20 msg $200 level 8;
+    if 0 then set &schema;
     length drive $3 letters $26;
     call missing(of _all_);
     %if "%upcase(&sysscp)"="WIN" or "%upcase(&sysscp)"="DNTHOST" %then %do;
@@ -156,6 +167,7 @@ run;
       output;
     %end;
     keep directory filepath file_or_folder filename ext msg level;
+    stop;
   run;
   proc append base=&outds data=work.__mp_dirlist_level nowarn force;
   run;
@@ -184,9 +196,9 @@ run;
 %do %until(&nfront=0 or &lvl>&maxdepth or &done=1);
 
   data work.__mp_dirlist_level;
+    if 0 then set &schema;
     set work.__mp_dirlist_frontier;
-    length directory filepath $2000 file_or_folder $6 filename $255 ext $20
-      msg $200 sep $1 prefix $2000 fname $255 dmsg $200;
+    length sep $1 prefix $2000 fname $255 dmsg $200;
     drop sep prefix fname dmsg rc did mid i;
     directory=filepath;
     msg='';
@@ -302,8 +314,7 @@ run;
 /* include the starting folder itself, when asked */
 %if %substr(&showparent,1,1)=Y %then %do;
   data work.__mp_dirlist_level;
-    length directory filepath $2000 file_or_folder $6 filename $255 ext $20
-      msg $200 level 8;
+    if 0 then set &schema;
     /* the parent is only listed when it can be opened, so a path that does
       not exist stays an empty result even with showparent=YES */
     filepath=symget('path');
@@ -325,6 +336,7 @@ run;
     msg='';
     level=0;
     output;
+    stop;
   run;
   proc append base=&outds data=work.__mp_dirlist_level force nowarn;
   run;
@@ -387,7 +399,7 @@ run;
 
 /* tidy up */
 proc sql noprint;
-drop table work.__mp_dirlist_frontier, work.__mp_dirlist_level;
+drop table work.__mp_dirlist_frontier, work.__mp_dirlist_level, &schema;
 quit;
 
 %mend mp_dirlist;

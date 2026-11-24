@@ -7,6 +7,8 @@
   @li mf_mkdir.sas
   @li mp_assert.sas
   @li mp_assertscope.sas
+  @li mp_assertmodel.sas
+  @li mddl_dirlist.sas
   @li mp_dirlist.sas
 
 **/
@@ -27,12 +29,16 @@ data test.ds1;
   x=1;
 run;
 
+%mddl_dirlist(work.dirlist_schema)
 %mp_assertscope(SNAPSHOT)
 %mp_dirlist(path=&root, outds=myTable, maxdepth=MAX)
 %mp_assertscope(COMPARE,
   desc=Test 1: mp_dirlist does not leak scope,
   outds=work.test_results
 )
+
+%mp_assertmodel(work.mytable,base=work.dirlist_schema,
+  desc=Populated output matches directory model)
 
 %mp_assert(
   iftrue=(%mf_nobs(work.mytable)=6),
@@ -57,6 +63,8 @@ run;
 )
 
 %mp_dirlist(path=&root/b, outds=work.myTable4)
+%mp_assertmodel(work.mytable4,base=work.dirlist_schema,
+  desc=Empty output matches directory model)
 %mp_assert(
   iftrue=(%mf_nobs(work.mytable4)=0),
   desc=Empty table for empty directory,

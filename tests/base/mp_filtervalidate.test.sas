@@ -156,3 +156,81 @@ run;
   desc=Checking num var could not receive char val,
   outds=work.test_results
 )
+
+/* a truncated comparison cannot be written in SQL - it is validated as the
+  equivalent truncated operator (EQT / NET); the clause is not altered */
+data work.inds;
+  infile datalines4 dsd;
+  input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
+datalines4;
+AND,AND,1,Name,=:,"'Ja'"
+AND,AND,1,SEX,^=:,"'M'"
+;;;;;
+run;
+
+%mp_filtergenerate(work.inds,outref=myfilter)
+%mp_filtervalidate(myfilter,work.class,outds=work.results,abort=NO)
+%let syscc=0;
+%mp_assertdsobs(work.results,
+  desc=Truncated comparison clause validates,
+  test=EMPTY,
+  outds=work.test_results
+)
+
+/* the clause handed to the data step keeps the colon modifier */
+%let colon_kept=0;
+data _null_;
+  infile myfilter end=eof;
+  input;
+  if index(_infile_,'=:')>0 then call symputx('colon_kept',1);
+run;
+%mp_assert(iftrue=(&colon_kept=1),
+  desc=Truncated comparison clause keeps the colon modifier,
+  outds=work.test_results
+)
+
+/* the translation must not lose the type check - a numeric value against a
+  character column is still a validation failure */
+data work.inds;
+  infile datalines4 dsd;
+  input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
+datalines4;
+AND,AND,1,Name,=:,12
+;;;;;
+run;
+
+%mp_filtergenerate(work.inds,outref=myfilter)
+%mp_filtervalidate(myfilter,work.class,outds=work.results,abort=NO)
+%let syscc=0;
+%let trunc_type_check=0;
+data _null_;
+  set work.results;
+  if REASON_CD=:'VALIDATION_ERROR' then call symputx('trunc_type_check',1);
+run;
+%mp_assert(iftrue=(&trunc_type_check=1),
+  desc=Truncated comparison still rejects a numeric operand,
+  outds=work.test_results
+)
+
+/* a raw value that contains the operator characters is left as written -
+  only the operator token is translated for the validate query */
+data work.inds;
+  infile datalines4 dsd;
+  input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
+datalines4;
+AND,AND,1,Name,=:,"'=:'"
+AND,AND,1,Name,CONTAINS,"'=:'"
+;;;;;
+run;
+
+%mp_filtergenerate(work.inds,outref=myfilter)
+%mp_filtervalidate(myfilter,work.class,outds=work.results,abort=NO)
+%let syscc=0;
+%mp_assertdsobs(work.results,
+  desc=Truncated comparison leaves a literal operand as written,
+  test=EMPTY,
+  outds=work.test_results
+)

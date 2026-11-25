@@ -20,27 +20,27 @@
     MC0_JADPNUM MC0_JADVLEN
 )
 
-%let id=0;
+%let id=;
 data _null_;
   set work.test1;
-  call symputx('id',groupid);
+  call symputx('id',uid);
 run;
 %mp_assert(
-  iftrue=(&id>0),
+  iftrue=(%length(%superq(id))>0),
   desc=Checking that group was created with an ID,
   outds=work.test_results
 )
 
 /* double check by querying the list of users */
 %ms_getgroups(outds=work.test2)
-%let checkid=0;
+%let checkid=;
 data _null_;
   set work.test2;
-  where upcase(name)="%upcase(&group)";
-  call symputx('checkid',groupid);
+  where upcase(groupname)="%upcase(&group)";
+  call symputx('checkid',groupuri);
 run;
 %mp_assert(
-  iftrue=(&checkid=&id),
+  iftrue=(%length(%superq(checkid))>0 and %superq(checkid)=%superq(id)),
   desc=Checking that fetched group exists and has the same ID,
   outds=work.test_results
 )

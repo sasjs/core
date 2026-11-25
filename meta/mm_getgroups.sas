@@ -17,10 +17,9 @@
   @param [out] outds= (work.mm_getgroups) The dataset to create that contains
     the list of groups
 
-  @returns outds  dataset containing all groups in a column named "metagroup"
-    - groupuri
-    - groupname
-    - groupdesc
+  @returns outds contains GROUPURI, GROUPNAME and GROUPDESC as character
+    columns of length 256 bytes. An unknown user or a user with no groups
+    returns zero rows.
 
   @version 9.2
   @author Allan Bowe
@@ -76,7 +75,6 @@
     grpassn=metadata_getnasn(uri,"IdentityGroups",a,groupuri);
     if grpassn in (-3,-4) then do;
       putlog "%str(WARN)ING: No metadata groups found for &user";
-      output;
     end;
     else do while (grpassn > 0);
       rc=metadata_getattr(groupuri, "Name", groupname);

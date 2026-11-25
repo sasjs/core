@@ -10,6 +10,7 @@
   @li mp_assert.sas
   @li mp_assertcols.sas
   @li mp_assertdsobs.sas
+  @li mp_assertmodel.sas
   @li mp_assertscope.sas
   @li mp_derivedvars.sas
 
@@ -64,9 +65,30 @@ quit;
 )
 
 /* one row per variable, names upcased, inactive row excluded */
+data work.dvmodel;
+  if 0 then set work.dvcfg(keep=var_nm rename=(var_nm=name));
+  stop;
+run;
+
+%mp_assertmodel(work.dvnames,base=work.dvmodel,key=name,
+  desc=Derived variable names model and key,
+  outds=work.test_results
+)
+
 %mp_assertdsobs(work.dvnames,
   desc=Only the active variables are returned,
   test=EQUALS 4,
+  outds=work.test_results
+)
+
+data work.dv_unexpected;
+  set work.dvnames;
+  if name not in ('BAND','BAND_AGE','DOUBLE_AGE','BAND_LABEL');
+run;
+
+%mp_assertdsobs(work.dv_unexpected,
+  desc=Derived variable names are expected,
+  test=EQUALS 0,
   outds=work.test_results
 )
 

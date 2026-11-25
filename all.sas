@@ -20565,10 +20565,9 @@ run;
   @param [out] outds= (work.mm_getgroups) The dataset to create that contains
     the list of groups
 
-  @returns outds  dataset containing all groups in a column named "metagroup"
-    - groupuri
-    - groupname
-    - groupdesc
+  @returns outds contains GROUPURI, GROUPNAME and GROUPDESC as character
+    columns of length 256 bytes. An unknown user or a user with no groups
+    returns zero rows.
 
   @version 9.2
   @author Allan Bowe
@@ -20624,7 +20623,6 @@ run;
     grpassn=metadata_getnasn(uri,"IdentityGroups",a,groupuri);
     if grpassn in (-3,-4) then do;
       putlog "%str(WARN)ING: No metadata groups found for &user";
-      output;
     end;
     else do while (grpassn > 0);
       rc=metadata_getattr(groupuri, "Name", groupname);
@@ -24819,33 +24817,26 @@ filename &headref clear;
 /**
   @file
   @brief Fetches the list of groups from SASjs Server
-  @details Fetches the list of groups from SASjs Server and writes them to an
-  output dataset.  Provide a username to filter for the groups for a particular
-  user.
+  @details Fetches all groups, or the groups for a particular user.  When both
+  user and uid are provided, user takes precedence.  GROUPURI is the API group
+  uid, not the legacy numeric groupid.  Desktop mode returns a synthetic group
+  with GROUPURI=1, GROUPNAME=SYSUSERID and a desktop description.
+
+  A failed HTTP request, invalid response, or value exceeding 256 bytes raises
+  a failure and leaves an empty output dataset.  Values are never truncated to
+  fit the output.  Empty group arrays produce an empty dataset with the model.
 
   Example:
 
-      %ms_getgroups(outds=userlist)
+      %ms_getgroups(outds=work.groups)
+      %ms_getgroups(user=James,outds=work.groups)
+      %ms_getgroups(uid=1,outds=work.groups)
 
-  With filter on username:
-
-      %ms_getgroups(outds=userlist, user=James)
-
-  With filter on userid:
-
-      %ms_getgroups(outds=userlist, uid=1)
-
-  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
-  @param [in] user= (0) Provide the username on which to filter
-  @param [in] uid= (0) Provide the userid on which to filter
-  @param [out] outds= (work.ms_getgroups) This output dataset will contain the
-    list of groups. Format:
-|NAME:$32.|DESCRIPTION:$256.|GROUPID:best.|
-|---|---|---|
-|`SomeGroup `|`A group `|`1`|
-|`Another Group`|`this is a different group`|`2`|
-|`admin`|`Administrators `|`3`|
-
+  @param [in] mdebug= (0) Set to 1 to enable HTTP debug messages
+  @param [in] user= (0) Username used to filter groups
+  @param [in] uid= (0) User uid used to filter groups
+  @param [out] outds= (work.ms_getgroups) Dataset with exactly GROUPURI,
+    GROUPNAME and GROUPDESC, all character length 256.
 
   <h4> SAS Macros </h4>
   @li mf_getuniquefileref.sas
@@ -24857,29 +24848,24 @@ filename &headref clear;
   @li ms_getgroups.test.sas
 
 **/
+%macro ms_getgroups(user=0,uid=0,outds=work.ms_getgroups,mdebug=0);
+%local fref0 fref1 libref optval url table dsid rc bad i pos field empty;
 
-%macro ms_getgroups(
-  user=0,
-  uid=0,
-  outds=work.ms_getgroups,
-  mdebug=0
-);
+%mp_abort(iftrue=(&syscc ne 0),mac=ms_getgroups.sas
+  ,msg=%str(syscc=&syscc on macro entry))
 
-%mp_abort(
-  iftrue=(&syscc ne 0)
-  ,mac=ms_getgroups.sas
-  ,msg=%str(syscc=&syscc on macro entry)
-)
-
-%local fref0 fref1 libref optval rc msg url;
+data &outds;
+  length groupuri groupname groupdesc $256;
+  call missing(groupuri,groupname,groupdesc);
+  stop;
+run;
 
 %if %sysget(MODE)=desktop %then %do;
-  /* groups api does not exist in desktop mode */
   data &outds;
-    length NAME $32 DESCRIPTION $256. GROUPID 8;
-    name="&sysuserid";
-    description="&sysuserid (group - desktop mode)";
-    groupid=1;
+    length groupuri groupname groupdesc $256;
+    groupuri='1';
+    groupname=symget('sysuserid');
+    groupdesc=cats(symget('sysuserid'),' (group - desktop mode)');
     output;
     stop;
   run;
@@ -24889,8 +24875,6 @@ filename &headref clear;
 %let fref0=%mf_getuniquefileref();
 %let fref1=%mf_getuniquefileref();
 %let libref=%mf_getuniquelibref();
-
-/* avoid sending bom marker to API */
 %let optval=%sysfunc(getoption(bomfile));
 options nobomfile;
 
@@ -24898,22 +24882,13 @@ data _null_;
   file &fref0 lrecl=1000;
   infile "&_sasjs_tokenfile" lrecl=1000;
   input;
-  if _n_=1 then put "accept: application/json";
+  if _n_=1 then put 'accept: application/json';
   put _infile_;
 run;
 
-%if &mdebug=1 %then %do;
-  data _null_;
-    infile &fref0;
-    input;
-    put _infile_;
-  run;
-%end;
-
-%if "&user" ne "0" %then %let url=/SASjsApi/user/by/username/&user;
-%else %if "&uid" ne "0" %then %let url=/SASjsApi/user/&uid;
+%if %superq(user) ne 0 %then %let url=/SASjsApi/user/by/username/&user;
+%else %if %superq(uid) ne 0 %then %let url=/SASjsApi/user/&uid;
 %else %let url=/SASjsApi/group;
-
 
 proc http method='GET' headerin=&fref0 out=&fref1
   url="&_sasjs_apiserverurl.&url";
@@ -24921,47 +24896,75 @@ proc http method='GET' headerin=&fref0 out=&fref1
   debug level=1;
 %end;
 run;
-
-%mp_abort(
-  iftrue=(&syscc ne 0)
-  ,mac=ms_getgroups.sas
-  ,msg=%str(Issue submitting GET query to SASjsApi)
-)
-
-libname &libref JSON fileref=&fref1;
-
-%if "&user"="0" and "&uid"="0" %then %do;
-  data &outds;
-    length NAME $32 DESCRIPTION $256. GROUPID 8;
-    if _n_=1 then call missing(of _all_);
-    set &libref..root;
-    drop ordinal_root;
-  run;
-%end;
-%else %do;
-  data &outds;
-    length NAME $32 DESCRIPTION $256. GROUPID 8;
-    if _n_=1 then call missing(of _all_);
-    set &libref..groups;
-    drop ordinal_:;
-  run;
-%end;
-
-%mp_abort(
-  iftrue=(&syscc ne 0)
-  ,mac=ms_getgroups.sas
-  ,msg=%str(Issue reading response JSON)
-)
-
-/* reset options */
 options &optval;
 
-%if &mdebug=1 %then %do;
+%if &syscc ne 0 or %superq(SYS_PROCHTTP_STATUS_CODE) ne 200 %then %do;
+  /* a filtered query for an unknown user or uid is not a failure - the output
+    keeps the model with zero rows, matching Viya's unknown-user behaviour */
+  %if (%superq(user) ne 0 or %superq(uid) ne 0)
+    and %superq(SYS_PROCHTTP_STATUS_CODE)=404 %then %do;
+    %put NOTE: MS_GETGROUPS user or uid not found, no groups returned.;
+  %end;
+  %else %do;
+    %put %str(ERR)OR: MS_GETGROUPS HTTP status &SYS_PROCHTTP_STATUS_CODE.;
+    %let syscc=8;
+  %end;
   filename &fref0 clear;
   filename &fref1 clear;
-  libname &libref clear;
+  %return;
 %end;
 
+libname &libref JSON fileref=&fref1;
+%if %superq(user)=0 and %superq(uid)=0 %then %let table=root;
+%else %let table=groups;
+
+%let bad=0;
+%let empty=0;
+%if &syscc ne 0 %then %let bad=1;
+%else %if %sysfunc(exist(&libref..&table)) %then %do;
+  %let dsid=%sysfunc(open(&libref..&table,i));
+  %if &dsid=0 %then %let bad=1;
+  %else %do;
+    %let rc=%sysfunc(fetch(&dsid));
+    %if &rc=-1 %then %let empty=1;
+    %else %if &rc ne 0 %then %let bad=1;
+    %else %do;
+      %do i=1 %to 3;
+        %let field=%scan(uid name description,&i);
+        %let pos=%sysfunc(varnum(&dsid,&field));
+        %if &pos=0 %then %do;
+          /* an empty array yields an ordinal-only table with no columns */
+          %if &table=groups and %sysfunc(varnum(&dsid,name))=0 and
+              %sysfunc(varnum(&dsid,description))=0 %then %let empty=1;
+          %else %let bad=1;
+        %end;
+        %else %if %sysfunc(vartype(&dsid,&pos)) ne C or
+            %sysfunc(varlen(&dsid,&pos))>256 %then %let bad=1;
+      %end;
+    %end;
+    %let rc=%sysfunc(close(&dsid));
+  %end;
+  %if &bad=0 and &empty=1 %then %do;
+    %put NOTE: MS_GETGROUPS response contained no groups.;
+  %end;
+  %if &bad=0 and &empty=0 %then %do;
+    data &outds;
+      length groupuri groupname groupdesc $256;
+      set &libref..&table(keep=uid name description);
+      groupuri=uid;
+      groupname=name;
+      groupdesc=description;
+      keep groupuri groupname groupdesc;
+    run;
+  %end;
+%end;
+%if &bad=1 %then %do;
+  %put %str(ERR)OR: MS_GETGROUPS invalid response or value exceeds 256 bytes.;
+  %let syscc=8;
+%end;
+libname &libref clear;
+filename &fref0 clear;
+filename &fref1 clear;
 %mend ms_getgroups;
 /**
   @file
@@ -29493,7 +29496,13 @@ filename &fname1 clear;
 /**
   @file mv_getgroups.sas
   @brief Creates a dataset with a list of viya groups
-  @details First, load the macros:
+  @details Returns exactly GROUPURI, GROUPNAME and GROUPDESC, all character
+  variables of length 256. They contain the Viya group ID, name and description
+  respectively. An empty response returns the same columns with zero rows.
+  Values exceeding 256 bytes cause failure rather than being truncated.
+  The request returns at most 10000 groups.
+
+  First, load the macros:
 
       filename mc url
         "https://raw.githubusercontent.com/sasjs/core/main/all.sas";
@@ -29526,7 +29535,8 @@ filename &fname1 clear;
     ,grant_type=sas_services
     ,outds=work.viyagroups
   );
-%local oauth_bearer base_uri fname1 libref1;
+%local oauth_bearer base_uri fname1 libref1 dsid rc idpos namepos descpos
+  invalid overflow;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
   %else %let grant_type=sas_services;
@@ -29566,9 +29576,58 @@ run;
 )
 libname &libref1 JSON fileref=&fname1;
 
-data &outds;
-  set &libref1..items;
-run;
+/* A JSON response without items has no ITEMS table. */
+%if not %sysfunc(exist(&libref1..items)) %then %do;
+  data &outds;
+    length groupuri groupname groupdesc $256;
+    stop;
+  run;
+%end;
+%else %do;
+  /* Check actual values, not the JSON engine's inferred variable length,
+    to avoid rejecting padded short values. */
+  %let dsid=%sysfunc(open(&libref1..items,i));
+  %let invalid=0;
+  %let idpos=0;
+  %let namepos=0;
+  %let descpos=0;
+  %if &dsid=0 %then %let invalid=1;
+  %else %do;
+    %let idpos=%sysfunc(varnum(&dsid,id));
+    %let namepos=%sysfunc(varnum(&dsid,name));
+    %let descpos=%sysfunc(varnum(&dsid,description));
+    %if &idpos=0 or &namepos=0 %then %let invalid=1;
+    %else %if %sysfunc(vartype(&dsid,&idpos)) ne C or
+      %sysfunc(vartype(&dsid,&namepos)) ne C %then %let invalid=1;
+    %if &descpos>0 %then %do;
+      %if %sysfunc(vartype(&dsid,&descpos)) ne C %then %let invalid=1;
+    %end;
+    %let rc=%sysfunc(close(&dsid));
+  %end;
+  %mp_abort(iftrue=(&invalid ne 0),mac=mv_getgroups,
+    msg=%str(Invalid groups response: expected character ID and NAME))
+  %let overflow=0;
+  data _null_;
+    set &libref1..items;
+    if lengthn(id)>256 or lengthn(name)>256
+      %if &descpos>0 %then %do;
+        or lengthn(description)>256
+      %end;
+      then call symputx('overflow',1,'L');
+  run;
+  %mp_abort(iftrue=(&overflow ne 0),mac=mv_getgroups,
+    msg=%str(Group ID name or description exceeds 256 bytes))
+  data &outds;
+    length groupuri groupname groupdesc $256;
+    set &libref1..items;
+    groupuri=id;
+    groupname=name;
+    %if &descpos>0 %then %do;
+      groupdesc=description;
+    %end;
+    keep groupuri groupname groupdesc;
+  run;
+%end;
 
 
 /* clear refs */
@@ -34695,35 +34754,25 @@ filename &webref "&webrefpath";
 %mend mx_getcode;
 /**
   @file
-  @brief Fetches all groups or the groups for a particular member
-  @details  When building applications that run on multiple flavours of SAS, it
-  is convenient to use a single macro (like this one) to fetch the groups
-  regardless of the flavour of SAS being used
+  @brief Fetches groups on SAS 9, Viya or SASjs Server
+  @details Returns the same three-column model on each platform. GROUPURI is
+  the native group identifier, GROUPNAME the group name and GROUPDESC the
+  description. Viya user memberships do not supply a description, so GROUPDESC
+  is blank for those rows. Character lengths are 256 bytes.
 
-  The alternative would be to compile a generic macro in target-specific
-  folders (SASVIYA, SAS9 and SASJS).  This avoids compiling unnecessary macros
-  at the expense of a more complex sasjsconfig.json setup.
-
-
-  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
-  @param [in] user= (0) Provide the username on which to filter
-  @param [in] uid= (0) Provide the userid on which to filter
-  @param [in] repo= (foundation) SAS9 only, choose the metadata repo to query
-  @param [in] access_token_var= (ACCESS_TOKEN) VIYA only.
-    The global macro variable to contain the access token
-  @param [in] grant_type= (sas_services) VIYA only.
-    Valid values are "password" or "authorization_code" (unquoted).
-  @param [out] outds= (work.mx_getgroups) This output dataset will contain the
-    list of groups. Format:
-|GROUPNAME:$32.|GROUPDESC:$256.|GROUPURI:best.|
-|---|---|---|
-|`SomeGroup `|`A group `|`1`|
-|`Another Group`|`this is a different group`|`2`|
-|`admin`|`Administrators `|`3`|
+  @param [in] mdebug= (0) Enable debug messages where supported
+  @param [in] user= (0) Username to filter on, or 0 for all groups
+  @param [in] uid= (0) SASjs Server user identifier to filter on
+  @param [in] repo= (foundation) SAS 9 metadata repository
+  @param [in] access_token_var= (ACCESS_TOKEN) Viya access token variable
+  @param [in] grant_type= (sas_services) Viya authentication grant
+  @param [out] outds= (work.mx_getgroups) Output groups dataset with character
+    GROUPURI, GROUPNAME and GROUPDESC, each length 256 bytes
 
   <h4> SAS Macros </h4>
   @li mf_getplatform.sas
   @li mm_getgroups.sas
+  @li mp_abort.sas
   @li ms_getgroups.sas
   @li mv_getgroups.sas
   @li mv_getusergroups.sas
@@ -34738,56 +34787,48 @@ filename &webref "&webrefpath";
   access_token_var=ACCESS_TOKEN,
   grant_type=sas_services,
   outds=work.mx_getgroups
-)/*/STORE SOURCE*/;
-%local platform name shortloc;
+);
+%local platform libref1 mx_overlong;
 %let platform=%mf_getplatform();
 
 %if &platform=SASJS %then %do;
-  %ms_getgroups(
-    user=&user,
-    uid=&uid,
-    outds=&outds,
-    mdebug=&mdebug
-  )
-  data &outds;
-    length groupuri groupname $32 groupdesc $128 ;
-    set &outds;
-    keep groupuri groupname groupdesc;
-    groupuri=cats(groupid);
-    groupname=name;
-    groupdesc=description;
-  run;
-  proc sort; by groupname; run;
+  %ms_getgroups(user=&user,uid=&uid,outds=&outds,mdebug=&mdebug)
 %end;
 %else %if &platform=SAS9 or &platform=SASMETA %then %do;
   %if &user=0 %then %let user=;
-  %mm_getGroups(
-    user=&user
-    ,outds=&outds
-    ,repo=&repo
-    ,mDebug=&mdebug
-  )
-  proc sort data=&outds; by groupname; run;
+  %mm_getgroups(user=&user,outds=&outds,repo=&repo,mDebug=&mdebug)
 %end;
 %else %if &platform=SASVIYA %then %do;
   %if &user=0 %then %do;
-    %mv_getgroups(access_token_var=&access_token_var
-      ,grant_type=&grant_type
-      ,outds=&outds
-    )
+    %mv_getgroups(access_token_var=&access_token_var,
+      grant_type=&grant_type,outds=&outds)
   %end;
   %else %do;
-    %mv_getusergroups(&user
-      ,outds=&outds
-      ,access_token_var=&access_token_var
-      ,grant_type=&grant_type
-    )
+    %mv_getusergroups(&user,outds=&outds,
+      access_token_var=&access_token_var,grant_type=&grant_type)
+    %let mx_overlong=0;
+    data _null_;
+      set &outds;
+      if lengthn(id)>256 or lengthn(name)>256 then
+        call symputx('mx_overlong',1,'L');
+    run;
+    %mp_abort(iftrue=(&mx_overlong=1),mac=mx_getgroups.sas,
+      msg=%str(Viya group identifier or name exceeds 256 bytes))
+    data &outds;
+      length groupuri groupname groupdesc $256;
+      set &outds;
+      groupuri=id;
+      groupname=name;
+      call missing(groupdesc);
+      keep groupuri groupname groupdesc;
+    run;
   %end;
-  proc sort
-      data=&outds(rename=(id=groupuri name=groupname description=groupdesc))
-      out=&outds (keep=groupuri groupname groupdesc);
-    by groupname;
-  run;
 %end;
-
+%else %do;
+  %mp_abort(iftrue=(1=1),mac=mx_getgroups.sas,
+    msg=%str(Unsupported SAS platform &platform))
+%end;
+proc sort data=&outds;
+  by groupname;
+run;
 %mend mx_getgroups;

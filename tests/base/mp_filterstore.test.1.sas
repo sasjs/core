@@ -9,6 +9,7 @@
   @li mddl_dc_maxkeytable.sas
   @li mp_filterstore.sas
   @li mp_assertdsobs.sas
+  @li mp_assertmodel.sas
   @li mp_assert.sas
 
 **/
@@ -79,6 +80,22 @@ run;
   desc=Ensure macro runs without errors,
   outds=work.test_results
 )
+%mp_assertmodel(work.result,base=permlib.filtsum,key=filter_rk,
+  desc=First result model and key,
+  outds=work.test_results
+)
+%mp_assertdsobs(work.result,test=EQUALS 1,
+  desc=First result count,
+  outds=work.test_results
+)
+%mp_assertmodel(work.query,base=permlib.filtdet,key=filter_hash filter_line,
+  desc=First query model and key,
+  outds=work.test_results
+)
+%mp_assertdsobs(work.query,test=EQUALS 8,
+  desc=First query count,
+  outds=work.test_results
+)
 /* ensure only one record created */
 %mp_assertdsobs(permlib.filtsum,
   desc=Initial query,
@@ -103,6 +120,22 @@ select max(filter_rk) into: test1 from work.result;
   outresult=work.result,
   outquery=work.query,
   mdebug=1
+)
+%mp_assertmodel(work.result,base=permlib.filtsum,key=filter_rk,
+  desc=Repeat result model and key,
+  outds=work.test_results
+)
+%mp_assertdsobs(work.result,test=EQUALS 1,
+  desc=Repeat result count,
+  outds=work.test_results
+)
+%mp_assertmodel(work.query,base=permlib.filtdet,key=filter_hash filter_line,
+  desc=Repeat query model and key,
+  outds=work.test_results
+)
+%mp_assertdsobs(work.query,test=EQUALS 8,
+  desc=Repeat query count,
+  outds=work.test_results
 )
 /* ensure only one record created */
 %mp_assertdsobs(permlib.filtsum,

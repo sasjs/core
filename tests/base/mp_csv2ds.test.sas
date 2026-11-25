@@ -5,6 +5,7 @@
   <h4> SAS Macros </h4>
   @li mp_csv2ds.sas
   @li mp_assert.sas
+  @li mp_assertmodel.sas
 
 **/
 
@@ -26,6 +27,11 @@ data work.csv_base;
 run;
 
 %mp_csv2ds(inref=csvref,outds=work.csv_out,baseds=work.csv_base)
+
+%mp_assertmodel(work.csv_out,base=work.csv_base,key=id,
+  desc=Checking the CSV output model and id key,
+  outds=work.test_results
+)
 
 proc sql noprint;
   select count(*) into: n_rows from work.csv_out;

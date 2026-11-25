@@ -8568,7 +8568,7 @@ drop table &ds1, &ds2;
   @li SUBGROUP_LOGIC - only AND/OR
   @li SUBGROUP_ID - only integers
   @li VARIABLE_NM - must be in the target table
-  @li OPERATOR_NM - only =/>/</<=/>=/BETWEEN/IN/NOT IN/NE/CONTAINS
+  @li OPERATOR_NM - only =/>/</<=/>=/BETWEEN/IN/NOT IN/NE/CONTAINS/=:/^=:
   @li RAW_VALUE - no unquoted values except integers, commas and spaces.  For
     numeric columns, SAS date, datetime and time literals are also accepted, eg
     '20APR2042'd, '01JAN1960:00:00:42'dt, '00:00:42't.
@@ -8704,7 +8704,8 @@ data &outds;
     output;
   end;
   if OPERATOR_NM not in
-  ('=','>','<','<=','>=','NE','GE','LE','BETWEEN','IN','NOT IN','CONTAINS')
+  ('=','>','<','<=','>=','NE','GE','LE','BETWEEN','IN','NOT IN','CONTAINS'
+    ,'=:','^=:')
   then do;
     REASON_CD='Invalid OPERATOR_NM: '!!cats(OPERATOR_NM);
     putlog REASON_CD= OPERATOR_NM=;
@@ -8713,13 +8714,14 @@ data &outds;
     output;
   end;
 
-  /* CONTAINS is a character-only operator - the engine rejects a numeric
-    operand, so catch the pairing here rather than letting the generated
-    clause fail validation with no reference to the offending variable */
-  if vtype='N' & OPERATOR_NM='CONTAINS' then do;
+  /* the string operators are character-only - the engine rejects a numeric
+    operand for a truncated comparison, and CONTAINS has no numeric form, so
+    catch the pairing here rather than letting the generated clause fail
+    validation with no reference to the offending variable */
+  if vtype='N' & OPERATOR_NM in ('CONTAINS','=:','^=:') then do;
     vref=cats("&targetds",'.',VARIABLE_NM);
-    REASON_CD=catx(' ','CONTAINS is only valid for character variables -'
-      ,vref,'is numeric');
+    REASON_CD=catx(' ',OPERATOR_NM,'is only valid for character'
+      ,'variables -',vref,'is numeric');
     putlog REASON_CD= OPERATOR_NM=;
     call symputx('reason_cd',reason_cd,'l');
     call symputx('nobs',_n_,'l');
@@ -9322,6 +9324,10 @@ run;
   @details Runs a generated filter in proc sql with the validate option.
   Used in mp_filtercheck.sas in an fcmp container.
 
+  A truncated comparison cannot be written in SQL, so a `=:` / `^=:` clause is
+  validated as the equivalent truncated comparison operator (EQT / NET).  The
+  clause itself is not altered - only the generated validate query is.
+
   Built to support dynamic filtering in
   [Data Controller for SAS&reg;](https://datacontroller.io).
 
@@ -9382,7 +9388,7 @@ run;
 data _null_;
   file &fref1;
   infile &inref end=eof;
-  length flt_clause $4000;
+  length flt_clause flt_sql $4000;
   retain flt_clause;
   if _n_=1 then do;
     put "proc sql;";
@@ -9390,11 +9396,25 @@ data _null_;
     put "where " ;
   end;
   input;
-  put _infile_;
-  putlog _infile_;
-  /* the generated clause, kept so a failure can name the inputs it was given -
-    the SQL message reports only the clashing data types */
-  flt_clause=cats(flt_clause,ifc(_n_>1,' ',''),strip(_infile_));
+  /**
+    * SQL has no colon modifier, so the validation copy of the clause uses the
+    * truncated comparison operators it is equivalent to - EQT for =: and NET
+    * for ^=: (see the truncated string comparison operators in the SQL
+    * procedure documentation).  The clause applied to the data step keeps the
+    * colon form; only this generated validate query is translated.
+    *
+    * Only the operator token is rewritten.  The line is written by
+    * mp_filtergenerate as VARIABLE_NM OPERATOR_NM RAW_VALUE, so the operator
+    * is always the second token, and anchoring the pattern at the start of the
+    * line leaves a raw value that contains the same characters as written.
+    */
+  flt_sql=prxchange('s/^( *\S+ +)\^=:( |$)/$1net$2/',1,_infile_);
+  flt_sql=prxchange('s/^( *\S+ +)=:( |$)/$1eqt$2/',1,flt_sql);
+  put flt_sql;
+  putlog flt_sql;
+  /* the clause as SQL receives it, kept so a failure can name the part that
+    failed - the SQL message reports only the clashing data types */
+  flt_clause=cats(flt_clause,ifc(_n_>1,' ',''),strip(flt_sql));
   if eof then do;
     put ";quit;";
     call symputx('flt_clause',flt_clause,'l');

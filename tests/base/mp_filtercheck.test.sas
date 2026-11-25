@@ -578,3 +578,62 @@ run;
   outds=work.test_results
 )
 
+
+/* truncated comparison ("starts with") is valid on a character column */
+data work.inds;
+  infile datalines4 dsd;
+  input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
+datalines4;
+AND,AND,1,Name,=:,"'Ja'"
+AND,AND,1,SEX,^=:,"'M'"
+;;;;;
+run;
+
+%mp_filtercheck(work.inds,
+  targetds=work.class,
+  outds=work.badrecords,
+  abort=NO
+)
+%let syscc=0;
+%mp_assertdsobs(work.badrecords,
+  desc=Truncated comparison on a character column,
+  test=EMPTY,
+  outds=work.test_results
+)
+
+/* truncated comparison on a numeric column is rejected before any SQL */
+data work.inds;
+  infile datalines4 dsd;
+  input GROUP_LOGIC:$3. SUBGROUP_LOGIC:$3. SUBGROUP_ID:8. VARIABLE_NM:$32.
+    OPERATOR_NM:$10. RAW_VALUE:$4000.;
+datalines4;
+AND,AND,1,Age,=:,"'12'"
+AND,AND,1,Weight,^=:,"'77'"
+;;;;;
+run;
+
+%mp_filtercheck(work.inds,
+  targetds=work.class,
+  outds=work.badrecords,
+  abort=NO
+)
+%let syscc=0;
+%mp_assertdsobs(work.badrecords,
+  desc=Truncated comparison on a numeric column,
+  test=EQUALS 2,
+  outds=work.test_results
+)
+
+/* the rejection names the operator and the offending variable */
+%let trunc_reason=0;
+data _null_;
+  set work.badrecords;
+  if index(REASON_CD,
+    '^=: is only valid for character variables - work.class.Weight is numeric')
+    >0 then call symputx('trunc_reason',1);
+run;
+%mp_assert(iftrue=(&trunc_reason=1),
+  desc=Truncated comparison rejection names the variable,
+  outds=work.test_results
+)

@@ -4,6 +4,10 @@
   @details Runs a generated filter in proc sql with the validate option.
   Used in mp_filtercheck.sas in an fcmp container.
 
+  A truncated comparison cannot be written in SQL, so a `=:` / `^=:` clause is
+  validated as the equivalent truncated comparison operator (EQT / NET).  The
+  clause itself is not altered - only the generated validate query is.
+
   Built to support dynamic filtering in
   [Data Controller for SAS&reg;](https://datacontroller.io).
 
@@ -64,7 +68,7 @@
 data _null_;
   file &fref1;
   infile &inref end=eof;
-  length flt_clause $4000;
+  length flt_clause flt_sql $4000;
   retain flt_clause;
   if _n_=1 then do;
     put "proc sql;";
@@ -72,11 +76,25 @@ data _null_;
     put "where " ;
   end;
   input;
-  put _infile_;
-  putlog _infile_;
-  /* the generated clause, kept so a failure can name the inputs it was given -
-    the SQL message reports only the clashing data types */
-  flt_clause=cats(flt_clause,ifc(_n_>1,' ',''),strip(_infile_));
+  /**
+    * SQL has no colon modifier, so the validation copy of the clause uses the
+    * truncated comparison operators it is equivalent to - EQT for =: and NET
+    * for ^=: (see the truncated string comparison operators in the SQL
+    * procedure documentation).  The clause applied to the data step keeps the
+    * colon form; only this generated validate query is translated.
+    *
+    * Only the operator token is rewritten.  The line is written by
+    * mp_filtergenerate as VARIABLE_NM OPERATOR_NM RAW_VALUE, so the operator
+    * is always the second token, and anchoring the pattern at the start of the
+    * line leaves a raw value that contains the same characters as written.
+    */
+  flt_sql=prxchange('s/^( *\S+ +)\^=:( |$)/$1net$2/',1,_infile_);
+  flt_sql=prxchange('s/^( *\S+ +)=:( |$)/$1eqt$2/',1,flt_sql);
+  put flt_sql;
+  putlog flt_sql;
+  /* the clause as SQL receives it, kept so a failure can name the part that
+    failed - the SQL message reports only the clashing data types */
+  flt_clause=cats(flt_clause,ifc(_n_>1,' ',''),strip(flt_sql));
   if eof then do;
     put ";quit;";
     call symputx('flt_clause',flt_clause,'l');

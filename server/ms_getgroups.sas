@@ -1,37 +1,33 @@
 /**
   @file
   @brief Fetches the list of groups from SASjs Server
-  @details Fetches the list of groups from SASjs Server and writes them to an
-  output dataset.  Provide a username to filter for the groups for a particular
-  user.
+  @details Fetches all groups, or the groups for a particular user.  When both
+  user and uid are provided, user takes precedence.  GROUPURI is the API group
+  uid, not the legacy numeric groupid.  Desktop mode returns a synthetic group
+  with GROUPURI=1, GROUPNAME=SYSUSERID and a desktop description.
+
+  A failed HTTP request raises a failure and leaves an empty output dataset,
+  except that a missing user returns no groups. Empty group arrays produce an
+  empty dataset with the model. Descriptions longer than 256 bytes are
+  truncated to fit GROUPDESC.
 
   Example:
 
-      %ms_getgroups(outds=userlist)
+      %ms_getgroups(outds=work.groups)
+      %ms_getgroups(user=James,outds=work.groups)
+      %ms_getgroups(uid=1,outds=work.groups)
 
-  With filter on username:
-
-      %ms_getgroups(outds=userlist, user=James)
-
-  With filter on userid:
-
-      %ms_getgroups(outds=userlist, uid=1)
-
-  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
-  @param [in] user= (0) Provide the username on which to filter
-  @param [in] uid= (0) Provide the userid on which to filter
-  @param [out] outds= (work.ms_getgroups) This output dataset will contain the
-    list of groups. Format:
-|NAME:$32.|DESCRIPTION:$256.|GROUPID:best.|
-|---|---|---|
-|`SomeGroup `|`A group `|`1`|
-|`Another Group`|`this is a different group`|`2`|
-|`admin`|`Administrators `|`3`|
-
+  @param [in] mdebug= (0) Set to 1 to enable HTTP debug messages
+  @param [in] user= (0) Username used to filter groups
+  @param [in] uid= (0) User uid used to filter groups
+  @param [out] outds= (work.ms_getgroups) Dataset with exactly GROUPURI,
+    GROUPNAME and GROUPDESC, all character length 256.
 
   <h4> SAS Macros </h4>
+  @li mddl_getgroups.sas
   @li mf_getuniquefileref.sas
   @li mf_getuniquelibref.sas
+  @li mf_getuniquename.sas
   @li mp_abort.sas
 
   <h4> Related Files </h4>
@@ -39,29 +35,27 @@
   @li ms_getgroups.test.sas
 
 **/
+%macro ms_getgroups(user=0,uid=0,outds=work.ms_getgroups,mdebug=0);
+%local fref0 fref1 libref optval url table dsid rc schema;
 
-%macro ms_getgroups(
-  user=0,
-  uid=0,
-  outds=work.ms_getgroups,
-  mdebug=0
-);
+%mp_abort(iftrue=(&syscc ne 0),mac=ms_getgroups.sas
+  ,msg=%str(syscc=&syscc on macro entry))
 
-%mp_abort(
-  iftrue=(&syscc ne 0)
-  ,mac=ms_getgroups.sas
-  ,msg=%str(syscc=&syscc on macro entry)
-)
+%let schema=work.%mf_getuniquename(prefix=ms_getgroups);
+%mddl_getgroups(&schema)
 
-%local fref0 fref1 libref optval rc msg url;
+data &outds;
+  if 0 then set &schema;
+  call missing(groupuri,groupname,groupdesc);
+  stop;
+run;
 
 %if %sysget(MODE)=desktop %then %do;
-  /* groups api does not exist in desktop mode */
   data &outds;
-    length NAME $32 DESCRIPTION $256. GROUPID 8;
-    name="&sysuserid";
-    description="&sysuserid (group - desktop mode)";
-    groupid=1;
+    if 0 then set &schema;
+    groupuri='1';
+    groupname=symget('sysuserid');
+    groupdesc=cats(symget('sysuserid'),' (group - desktop mode)');
     output;
     stop;
   run;
@@ -71,8 +65,6 @@
 %let fref0=%mf_getuniquefileref();
 %let fref1=%mf_getuniquefileref();
 %let libref=%mf_getuniquelibref();
-
-/* avoid sending bom marker to API */
 %let optval=%sysfunc(getoption(bomfile));
 options nobomfile;
 
@@ -80,22 +72,13 @@ data _null_;
   file &fref0 lrecl=1000;
   infile "&_sasjs_tokenfile" lrecl=1000;
   input;
-  if _n_=1 then put "accept: application/json";
+  if _n_=1 then put 'accept: application/json';
   put _infile_;
 run;
 
-%if &mdebug=1 %then %do;
-  data _null_;
-    infile &fref0;
-    input;
-    put _infile_;
-  run;
-%end;
-
-%if "&user" ne "0" %then %let url=/SASjsApi/user/by/username/&user;
-%else %if "&uid" ne "0" %then %let url=/SASjsApi/user/&uid;
+%if %superq(user) ne 0 %then %let url=/SASjsApi/user/by/username/&user;
+%else %if %superq(uid) ne 0 %then %let url=/SASjsApi/user/&uid;
 %else %let url=/SASjsApi/group;
-
 
 proc http method='GET' headerin=&fref0 out=&fref1
   url="&_sasjs_apiserverurl.&url";
@@ -103,45 +86,49 @@ proc http method='GET' headerin=&fref0 out=&fref1
   debug level=1;
 %end;
 run;
-
-%mp_abort(
-  iftrue=(&syscc ne 0)
-  ,mac=ms_getgroups.sas
-  ,msg=%str(Issue submitting GET query to SASjsApi)
-)
-
-libname &libref JSON fileref=&fref1;
-
-%if "&user"="0" and "&uid"="0" %then %do;
-  data &outds;
-    length NAME $32 DESCRIPTION $256. GROUPID 8;
-    if _n_=1 then call missing(of _all_);
-    set &libref..root;
-    drop ordinal_root;
-  run;
-%end;
-%else %do;
-  data &outds;
-    length NAME $32 DESCRIPTION $256. GROUPID 8;
-    if _n_=1 then call missing(of _all_);
-    set &libref..groups;
-    drop ordinal_:;
-  run;
-%end;
-
-%mp_abort(
-  iftrue=(&syscc ne 0)
-  ,mac=ms_getgroups.sas
-  ,msg=%str(Issue reading response JSON)
-)
-
-/* reset options */
 options &optval;
 
-%if &mdebug=1 %then %do;
+%if &syscc ne 0 or %superq(SYS_PROCHTTP_STATUS_CODE) ne 200 %then %do;
+  /* a filtered query for an unknown user or uid is not a failure - the output
+    keeps the model with zero rows, matching Viya's unknown-user behaviour */
+  %if (%superq(user) ne 0 or %superq(uid) ne 0)
+    and %superq(SYS_PROCHTTP_STATUS_CODE)=404 %then %do;
+    %put NOTE: MS_GETGROUPS user or uid not found, no groups returned.;
+  %end;
+  %else %do;
+    %put %str(ERR)OR: MS_GETGROUPS HTTP status &SYS_PROCHTTP_STATUS_CODE.;
+    %let syscc=8;
+  %end;
   filename &fref0 clear;
   filename &fref1 clear;
-  libname &libref clear;
+  %return;
 %end;
 
+libname &libref JSON fileref=&fref1;
+%if %superq(user)=0 and %superq(uid)=0 %then %let table=root;
+%else %let table=groups;
+
+/* Empty arrays have no group fields in the JSON engine's table. */
+%let dsid=%sysfunc(open(&libref..&table,i));
+%if &dsid %then %do;
+  %let rc=%sysfunc(varnum(&dsid,uid));
+  %let dsid=%sysfunc(close(&dsid));
+  %if &rc %then %do;
+    data &outds;
+      if 0 then set &schema;
+      set &libref..&table(keep=uid name description);
+      groupuri=uid;
+      groupname=name;
+      groupdesc=description;
+      keep groupuri groupname groupdesc;
+    run;
+  %end;
+%end;
+%else %do;
+  %put %str(ERR)OR: MS_GETGROUPS unable to open JSON table &table.;
+  %let syscc=8;
+%end;
+libname &libref clear;
+filename &fref0 clear;
+filename &fref1 clear;
 %mend ms_getgroups;

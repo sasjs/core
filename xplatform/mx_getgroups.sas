@@ -1,34 +1,28 @@
 /**
   @file
-  @brief Fetches all groups or the groups for a particular member
-  @details  When building applications that run on multiple flavours of SAS, it
-  is convenient to use a single macro (like this one) to fetch the groups
-  regardless of the flavour of SAS being used
+  @brief Fetches groups on SAS 9, Viya or SASjs Server
+  @details Returns the same three-column model on each platform. GROUPURI is
+  the native group identifier, GROUPNAME the group name and GROUPDESC the
+  description. Viya user memberships do not supply a description, so GROUPDESC
+  is blank for those rows. Character lengths are 256 bytes. For Viya user
+  memberships, mv_getusergroups caps ID and NAME at 256 bytes; longer values
+  may be truncated before this wrapper receives them.
 
-  The alternative would be to compile a generic macro in target-specific
-  folders (SASVIYA, SAS9 and SASJS).  This avoids compiling unnecessary macros
-  at the expense of a more complex sasjsconfig.json setup.
-
-
-  @param [in] mdebug= (0) Set to 1 to enable DEBUG messages
-  @param [in] user= (0) Provide the username on which to filter
-  @param [in] uid= (0) Provide the userid on which to filter
-  @param [in] repo= (foundation) SAS9 only, choose the metadata repo to query
-  @param [in] access_token_var= (ACCESS_TOKEN) VIYA only.
-    The global macro variable to contain the access token
-  @param [in] grant_type= (sas_services) VIYA only.
-    Valid values are "password" or "authorization_code" (unquoted).
-  @param [out] outds= (work.mx_getgroups) This output dataset will contain the
-    list of groups. Format:
-|GROUPNAME:$32.|GROUPDESC:$256.|GROUPURI:best.|
-|---|---|---|
-|`SomeGroup `|`A group `|`1`|
-|`Another Group`|`this is a different group`|`2`|
-|`admin`|`Administrators `|`3`|
+  @param [in] mdebug= (0) Enable debug messages where supported
+  @param [in] user= (0) Username to filter on, or 0 for all groups
+  @param [in] uid= (0) SASjs Server user identifier to filter on
+  @param [in] repo= (foundation) SAS 9 metadata repository
+  @param [in] access_token_var= (ACCESS_TOKEN) Viya access token variable
+  @param [in] grant_type= (sas_services) Viya authentication grant
+  @param [out] outds= (work.mx_getgroups) Output groups dataset with character
+    GROUPURI, GROUPNAME and GROUPDESC, each length 256 bytes
 
   <h4> SAS Macros </h4>
+  @li mddl_getgroups.sas
   @li mf_getplatform.sas
+  @li mf_getuniquename.sas
   @li mm_getgroups.sas
+  @li mp_abort.sas
   @li ms_getgroups.sas
   @li mv_getgroups.sas
   @li mv_getusergroups.sas
@@ -43,56 +37,42 @@
   access_token_var=ACCESS_TOKEN,
   grant_type=sas_services,
   outds=work.mx_getgroups
-)/*/STORE SOURCE*/;
-%local platform name shortloc;
+);
+%local platform schema;
 %let platform=%mf_getplatform();
 
 %if &platform=SASJS %then %do;
-  %ms_getgroups(
-    user=&user,
-    uid=&uid,
-    outds=&outds,
-    mdebug=&mdebug
-  )
-  data &outds;
-    length groupuri groupname $32 groupdesc $128 ;
-    set &outds;
-    keep groupuri groupname groupdesc;
-    groupuri=cats(groupid);
-    groupname=name;
-    groupdesc=description;
-  run;
-  proc sort; by groupname; run;
+  %ms_getgroups(user=&user,uid=&uid,outds=&outds,mdebug=&mdebug)
 %end;
 %else %if &platform=SAS9 or &platform=SASMETA %then %do;
   %if &user=0 %then %let user=;
-  %mm_getGroups(
-    user=&user
-    ,outds=&outds
-    ,repo=&repo
-    ,mDebug=&mdebug
-  )
-  proc sort data=&outds; by groupname; run;
+  %mm_getgroups(user=&user,outds=&outds,repo=&repo,mDebug=&mdebug)
 %end;
 %else %if &platform=SASVIYA %then %do;
   %if &user=0 %then %do;
-    %mv_getgroups(access_token_var=&access_token_var
-      ,grant_type=&grant_type
-      ,outds=&outds
-    )
+    %mv_getgroups(access_token_var=&access_token_var,
+      grant_type=&grant_type,outds=&outds)
   %end;
   %else %do;
-    %mv_getusergroups(&user
-      ,outds=&outds
-      ,access_token_var=&access_token_var
-      ,grant_type=&grant_type
-    )
+    %mv_getusergroups(&user,outds=&outds,
+      access_token_var=&access_token_var,grant_type=&grant_type)
+    %let schema=work.%mf_getuniquename(prefix=mx_groups_);
+    %mddl_getgroups(&schema)
+    data &outds;
+      if 0 then set &schema;
+      set &outds;
+      groupuri=id;
+      groupname=name;
+      call missing(groupdesc);
+      keep groupuri groupname groupdesc;
+    run;
   %end;
-  proc sort
-      data=&outds(rename=(id=groupuri name=groupname description=groupdesc))
-      out=&outds (keep=groupuri groupname groupdesc);
-    by groupname;
-  run;
 %end;
-
+%else %do;
+  %mp_abort(iftrue=(1=1),mac=mx_getgroups.sas,
+    msg=%str(Unsupported SAS platform &platform))
+%end;
+proc sort data=&outds;
+  by groupname;
+run;
 %mend mx_getgroups;

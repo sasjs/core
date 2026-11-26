@@ -29566,7 +29566,7 @@ filename &fname1 clear;
     ,outds=work.viyagroups
   );
 %local oauth_bearer base_uri fname1 libref1 dsid rc idpos namepos descpos
-  invalid overflow schema;
+  invalid overflow schema empty;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
   %else %let grant_type=sas_services;
@@ -29620,6 +29620,7 @@ libname &libref1 JSON fileref=&fname1;
     to avoid rejecting padded short values. */
   %let dsid=%sysfunc(open(&libref1..items,i));
   %let invalid=0;
+  %let empty=0;
   %let idpos=0;
   %let namepos=0;
   %let descpos=0;
@@ -29628,7 +29629,9 @@ libname &libref1 JSON fileref=&fname1;
     %let idpos=%sysfunc(varnum(&dsid,id));
     %let namepos=%sysfunc(varnum(&dsid,name));
     %let descpos=%sysfunc(varnum(&dsid,description));
-    %if &idpos=0 or &namepos=0 %then %let invalid=1;
+    /* An empty nested array can have an ordinal-only ITEMS table. */
+    %if &idpos=0 and &namepos=0 and &descpos=0 %then %let empty=1;
+    %else %if &idpos=0 or &namepos=0 %then %let invalid=1;
     %else %if %sysfunc(vartype(&dsid,&idpos)) ne C or
       %sysfunc(vartype(&dsid,&namepos)) ne C %then %let invalid=1;
     %if &descpos>0 %then %do;
@@ -29638,6 +29641,13 @@ libname &libref1 JSON fileref=&fname1;
   %end;
   %mp_abort(iftrue=(&invalid ne 0),mac=mv_getgroups,
     msg=%str(Invalid groups response: expected character ID and NAME))
+  %if &empty %then %do;
+    data &outds;
+      if 0 then set &schema;
+      stop;
+    run;
+  %end;
+  %else %do;
   %let overflow=0;
   data _null_;
     set &libref1..items;
@@ -29659,6 +29669,7 @@ libname &libref1 JSON fileref=&fname1;
     %end;
     keep groupuri groupname groupdesc;
   run;
+  %end;
 %end;
 
 

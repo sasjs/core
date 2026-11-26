@@ -34824,7 +34824,7 @@ filename &webref "&webrefpath";
   grant_type=sas_services,
   outds=work.mx_getgroups
 );
-%local platform libref1 schema;
+%local platform schema;
 %let platform=%mf_getplatform();
 
 %if &platform=SASJS %then %do;

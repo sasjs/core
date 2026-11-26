@@ -5,6 +5,7 @@
   <h4> SAS Macros </h4>
   @li mp_recursivejoin.sas
   @li mp_assert.sas
+  @li mp_assertscope.sas
 
 **/
 
@@ -17,8 +18,13 @@ data work.have;
   p=8;c=9;output;
 run;
 
+%mp_assertscope(SNAPSHOT)
 %mp_recursivejoin(base_ds=work.have,outds=work.want,matchval=1
   ,parentvar=p,childvar=c)
+%mp_assertscope(COMPARE,
+  desc=Checking mp_recursivejoin recursive call does not leak scope,
+  outds=work.test_results
+)
 
 proc sql noprint;
   select count(*) into: n_pairs from work.want

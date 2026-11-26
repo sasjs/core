@@ -22,6 +22,20 @@
 
 **/
 
+/* JSON engine globals depend on the libref allocated in this session. */
+%macro group_scope_compare(desc=);
+  %local json_globals;
+  %let json_globals=;
+  proc sql noprint;
+    select distinct name into :json_globals separated by ' '
+    from dictionary.macros
+    where scope='GLOBAL' and prxmatch(
+      '/^MC(\d{1,6}|LIB\d{1,3})_JAD(P\d+LEN|PNUM|VLEN)$/i',strip(name));
+  quit;
+  %mp_assertscope(COMPARE,ignorelist=&json_globals
+    ,desc=&desc,outds=work.test_results)
+%mend group_scope_compare;
+
 %macro run_group_fixture_test();
 %local fixture_name1 fixture_name2 fixture_desc1 fixture_desc2
   fixture_status1 fixture_status2 fixture_valid1 fixture_valid2 mismatch_all
@@ -69,13 +83,7 @@ run;
 
 %mp_assertscope(SNAPSHOT)
 %ms_getgroups(outds=work.allgroups,mdebug=&sasjs_mdebug)
-%mp_assertscope(COMPARE
-  ,ignorelist=MCLIB2_JADP1LEN MCLIB2_JADPNUM MCLIB2_JADVLEN MC2_JADP1LEN
-    MC2_JADPNUM MC2_JADVLEN MC0_JADP1LEN MC0_JADP2LEN MC0_JADPNUM
-    MC0_JADVLEN
-  ,desc=All groups scope
-  ,outds=work.test_results
-)
+%group_scope_compare(desc=All groups scope)
 %mp_assertmodel(work.allgroups,base=work.groupmodel,key=groupuri
   ,desc=All groups model and key,outds=work.test_results)
 %mp_assertdsobs(work.allgroups,test=ATLEAST 1
@@ -83,21 +91,13 @@ run;
 
 %mp_assertscope(SNAPSHOT)
 %ms_getgroups(user=%mf_getuser(),outds=work.usergroups)
-%mp_assertscope(COMPARE
-  ,ignorelist=MCLIB2_JADP1LEN MCLIB2_JADPNUM MCLIB2_JADVLEN MC2_JADP1LEN
-    MC2_JADPNUM MC2_JADVLEN MC0_JADP1LEN MC0_JADP2LEN MC0_JADPNUM
-    MC0_JADVLEN
-  ,desc=User groups scope,outds=work.test_results)
+%group_scope_compare(desc=User groups scope)
 %mp_assertmodel(work.usergroups,base=work.groupmodel,key=groupuri
   ,desc=User groups model and key,outds=work.test_results)
 
 %mp_assertscope(SNAPSHOT)
 %ms_getgroups(uid=&_sasjs_userid,outds=work.uidgroups)
-%mp_assertscope(COMPARE
-  ,ignorelist=MCLIB2_JADP1LEN MCLIB2_JADPNUM MCLIB2_JADVLEN MC2_JADP1LEN
-    MC2_JADPNUM MC2_JADVLEN MC0_JADP1LEN MC0_JADP2LEN MC0_JADPNUM
-    MC0_JADVLEN
-  ,desc=UID groups scope,outds=work.test_results)
+%group_scope_compare(desc=UID groups scope)
 %mp_assertmodel(work.uidgroups,base=work.groupmodel,key=groupuri
   ,desc=UID groups model and key,outds=work.test_results)
 
@@ -155,11 +155,7 @@ quit;
 %let unknown_user=%substr(%mf_getuniquename(prefix=u),1,16);
 %mp_assertscope(SNAPSHOT)
 %ms_getgroups(user=&unknown_user,outds=work.nogroups)
-%mp_assertscope(COMPARE
-  ,ignorelist=MCLIB2_JADP1LEN MCLIB2_JADPNUM MCLIB2_JADVLEN MC2_JADP1LEN
-    MC2_JADPNUM MC2_JADVLEN MC0_JADP1LEN MC0_JADP2LEN MC0_JADPNUM
-    MC0_JADVLEN
-  ,desc=Unknown user scope,outds=work.test_results)
+%group_scope_compare(desc=Unknown user scope)
 %mp_assertmodel(work.nogroups,base=work.groupmodel,key=groupuri
   ,desc=Unknown user model and key,outds=work.test_results)
 %mp_assertdsobs(work.nogroups,test=EMPTY

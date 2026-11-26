@@ -14,16 +14,25 @@
 
 **/
 
+/* JSON engine globals depend on the libref allocated in this session. */
+%macro group_scope_compare(desc=);
+  %local json_globals;
+  %let json_globals=;
+  proc sql noprint;
+    select distinct name into :json_globals separated by ' '
+    from dictionary.macros
+    where scope='GLOBAL' and prxmatch(
+      '/^MC(\d{1,6}|LIB\d{1,3})_JAD(P\d+LEN|PNUM|VLEN)$/i',strip(name));
+  quit;
+  %mp_assertscope(COMPARE,ignorelist=&json_globals
+    ,desc=&desc,outds=work.test_results)
+%mend group_scope_compare;
+
 %mddl_getgroups(work.groupmodel)
 
 %mp_assertscope(SNAPSHOT)
 %mx_getgroups(outds=work.allgroups)
-%mp_assertscope(COMPARE,
-  desc=All groups does not leak macro variables,
-  ignorelist=MC0_JADP1LEN MC0_JADP2LEN MC0_JADP3LEN MC0_JADPNUM MC0_JADVLEN
-    MC1_JADP1LEN MC1_JADP2LEN MC1_JADP3LEN MC1_JADPNUM MC1_JADVLEN,
-  outds=work.test_results
-)
+%group_scope_compare(desc=All groups does not leak macro variables)
 %mp_assertmodel(work.allgroups,base=work.groupmodel,key=groupuri,
   desc=All groups model and identifiers)
 %mp_assert(iftrue=(%mf_nobs(work.allgroups)>0),
@@ -31,13 +40,7 @@
 
 %mp_assertscope(SNAPSHOT)
 %mx_getgroups(outds=work.usergroups,user=%mf_getuser())
-%mp_assertscope(COMPARE,
-  desc=User groups does not leak macro variables,
-  ignorelist=MC0_JADP1LEN MC0_JADP2LEN MC0_JADP3LEN MC0_JADPNUM MC0_JADVLEN
-    MC1_JADP1LEN MC1_JADP2LEN MC1_JADP3LEN MC1_JADPNUM MC1_JADVLEN
-    MC2_JADP1LEN MC2_JADP2LEN MC2_JADP3LEN MC2_JADPNUM MC2_JADVLEN,
-  outds=work.test_results
-)
+%group_scope_compare(desc=User groups does not leak macro variables)
 %mp_assertmodel(work.usergroups,base=work.groupmodel,key=groupuri,
   desc=User groups model and identifiers)
 %mp_assert(iftrue=(%mf_nobs(work.usergroups)>0),

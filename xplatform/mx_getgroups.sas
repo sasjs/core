@@ -4,7 +4,9 @@
   @details Returns the same three-column model on each platform. GROUPURI is
   the native group identifier, GROUPNAME the group name and GROUPDESC the
   description. Viya user memberships do not supply a description, so GROUPDESC
-  is blank for those rows. Character lengths are 256 bytes.
+  is blank for those rows. Character lengths are 256 bytes. For Viya user
+  memberships, mv_getusergroups caps ID and NAME at 256 bytes; longer values
+  may be truncated before this wrapper receives them.
 
   @param [in] mdebug= (0) Enable debug messages where supported
   @param [in] user= (0) Username to filter on, or 0 for all groups
@@ -36,7 +38,7 @@
   grant_type=sas_services,
   outds=work.mx_getgroups
 );
-%local platform libref1 mx_overlong schema;
+%local platform libref1 schema;
 %let platform=%mf_getplatform();
 
 %if &platform=SASJS %then %do;
@@ -54,14 +56,6 @@
   %else %do;
     %mv_getusergroups(&user,outds=&outds,
       access_token_var=&access_token_var,grant_type=&grant_type)
-    %let mx_overlong=0;
-    data _null_;
-      set &outds;
-      if lengthn(id)>256 or lengthn(name)>256 then
-        call symputx('mx_overlong',1,'L');
-    run;
-    %mp_abort(iftrue=(&mx_overlong=1),mac=mx_getgroups.sas,
-      msg=%str(Viya group identifier or name exceeds 256 bytes))
     %let schema=work.%mf_getuniquename(prefix=mx_groups_);
     %mddl_getgroups(&schema)
     data &outds;

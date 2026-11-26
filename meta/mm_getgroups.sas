@@ -21,6 +21,10 @@
     columns of length 256 bytes. An unknown user or a user with no groups
     returns zero rows.
 
+  <h4> SAS Macros </h4>
+  @li mddl_getgroups.sas
+  @li mf_getuniquename.sas
+
   @version 9.2
   @author Allan Bowe
 
@@ -33,7 +37,7 @@
     ,mDebug=0
 )/*/STORE SOURCE*/;
 
-%local mD oldrepo;
+%local mD oldrepo schema;
 %let oldrepo=%sysfunc(getoption(metarepository));
 %if &mDebug=1 %then %let mD=;
 %else %let mD=%str(*);
@@ -45,10 +49,14 @@
 %if &oldrepo ne &repo %then %do;
   options metarepository=&repo;
 %end;
+%let schema=work.%mf_getuniquename(prefix=mm_groups_);
+%mddl_getgroups(&schema)
 
 %if %length(&user)=0 %then %do;
-  data &outds (keep=groupuri groupname groupdesc);
-    length groupuri groupname groupdesc group_or_role $256;
+  data &outds;
+    if 0 then set &schema;
+    length group_or_role $256;
+    keep groupuri groupname groupdesc;
     call missing(of _all_);
     i+1;
     do while
@@ -59,11 +67,14 @@
       if Group_or_Role = 'UserGroup' then output;
       i+1;
     end;
+    stop;
   run;
 %end;
 %else %do;
-  data &outds (keep=groupuri groupname groupdesc);
-    length uri groupuri groupname groupdesc group_or_role $256;
+  data &outds;
+    if 0 then set &schema;
+    length uri group_or_role $256;
+    keep groupuri groupname groupdesc;
     call missing(of _all_);
     rc=metadata_getnobj("omsobj:Person?@Name='&user'",1,uri);
     if rc<=0 then do;
@@ -84,6 +95,7 @@
       if Group_or_Role = 'UserGroup' then output;
       grpassn=metadata_getnasn(uri,"IdentityGroups",a,groupuri);
     end;
+    stop;
   run;
 %end;
 

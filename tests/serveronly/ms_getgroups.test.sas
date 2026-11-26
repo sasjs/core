@@ -3,6 +3,7 @@
   @brief Read-only regression tests for ms_getgroups
 
   <h4> SAS Macros </h4>
+  @li mddl_getgroups.sas
   @li ms_getgroups.sas
   @li mp_assertmodel.sas
   @li mp_assert.sas
@@ -14,10 +15,7 @@
 
 **/
 
-data work.groupmodel;
-  length groupuri groupname groupdesc $256;
-  stop;
-run;
+%mddl_getgroups(work.groupmodel)
 
 %mp_assertscope(SNAPSHOT)
 %ms_getgroups(outds=work.allgroups,mdebug=&sasjs_mdebug)

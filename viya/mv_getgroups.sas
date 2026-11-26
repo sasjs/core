@@ -29,10 +29,12 @@
   @author Allan Bowe, source: https://github.com/sasjs/core
 
   <h4> SAS Macros </h4>
+  @li mddl_getgroups.sas
   @li mp_abort.sas
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
   @li mf_getuniquelibref.sas
+  @li mf_getuniquename.sas
 
 **/
 
@@ -41,7 +43,7 @@
     ,outds=work.viyagroups
   );
 %local oauth_bearer base_uri fname1 libref1 dsid rc idpos namepos descpos
-  invalid overflow;
+  invalid overflow schema;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
   %else %let grant_type=sas_services;
@@ -80,11 +82,13 @@ run;
   ,msg=%str(&SYS_PROCHTTP_STATUS_CODE &SYS_PROCHTTP_STATUS_PHRASE)
 )
 libname &libref1 JSON fileref=&fname1;
+%let schema=work.%mf_getuniquename(prefix=mv_groups_);
+%mddl_getgroups(&schema)
 
 /* A JSON response without items has no ITEMS table. */
 %if not %sysfunc(exist(&libref1..items)) %then %do;
   data &outds;
-    length groupuri groupname groupdesc $256;
+    if 0 then set &schema;
     stop;
   run;
 %end;
@@ -123,7 +127,7 @@ libname &libref1 JSON fileref=&fname1;
   %mp_abort(iftrue=(&overflow ne 0),mac=mv_getgroups,
     msg=%str(Group ID name or description exceeds 256 bytes))
   data &outds;
-    length groupuri groupname groupdesc $256;
+    if 0 then set &schema;
     set &libref1..items;
     groupuri=id;
     groupname=name;

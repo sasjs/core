@@ -16,7 +16,9 @@
     GROUPURI, GROUPNAME and GROUPDESC, each length 256 bytes
 
   <h4> SAS Macros </h4>
+  @li mddl_getgroups.sas
   @li mf_getplatform.sas
+  @li mf_getuniquename.sas
   @li mm_getgroups.sas
   @li mp_abort.sas
   @li ms_getgroups.sas
@@ -34,7 +36,7 @@
   grant_type=sas_services,
   outds=work.mx_getgroups
 );
-%local platform libref1 mx_overlong;
+%local platform libref1 mx_overlong schema;
 %let platform=%mf_getplatform();
 
 %if &platform=SASJS %then %do;
@@ -60,8 +62,10 @@
     run;
     %mp_abort(iftrue=(&mx_overlong=1),mac=mx_getgroups.sas,
       msg=%str(Viya group identifier or name exceeds 256 bytes))
+    %let schema=work.%mf_getuniquename(prefix=mx_groups_);
+    %mddl_getgroups(&schema)
     data &outds;
-      length groupuri groupname groupdesc $256;
+      if 0 then set &schema;
       set &outds;
       groupuri=id;
       groupname=name;

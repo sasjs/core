@@ -3,6 +3,7 @@
   @brief Testing mv_getgroups macro
 
   <h4> SAS Macros </h4>
+  @li mddl_getgroups.sas
   @li mf_existvar.sas
   @li mf_getplatform.sas
   @li mf_getuniquefileref.sas
@@ -15,10 +16,7 @@
 
 **/
 
-data work.groupmodel;
-  length groupuri groupname groupdesc $256;
-  stop;
-run;
+%mddl_getgroups(work.groupmodel)
 
 /* The JSON engine publishes these globals for the first JSON libref. */
 %mp_assertscope(SNAPSHOT)

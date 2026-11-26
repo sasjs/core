@@ -23,8 +23,10 @@
     GROUPNAME and GROUPDESC, all character length 256.
 
   <h4> SAS Macros </h4>
+  @li mddl_getgroups.sas
   @li mf_getuniquefileref.sas
   @li mf_getuniquelibref.sas
+  @li mf_getuniquename.sas
   @li mp_abort.sas
 
   <h4> Related Files </h4>
@@ -33,20 +35,23 @@
 
 **/
 %macro ms_getgroups(user=0,uid=0,outds=work.ms_getgroups,mdebug=0);
-%local fref0 fref1 libref optval url table dsid rc bad i pos field empty;
+%local fref0 fref1 libref optval url table dsid rc bad i pos field empty schema;
 
 %mp_abort(iftrue=(&syscc ne 0),mac=ms_getgroups.sas
   ,msg=%str(syscc=&syscc on macro entry))
 
+%let schema=work.%mf_getuniquename(prefix=ms_getgroups);
+%mddl_getgroups(&schema)
+
 data &outds;
-  length groupuri groupname groupdesc $256;
+  if 0 then set &schema;
   call missing(groupuri,groupname,groupdesc);
   stop;
 run;
 
 %if %sysget(MODE)=desktop %then %do;
   data &outds;
-    length groupuri groupname groupdesc $256;
+    if 0 then set &schema;
     groupuri='1';
     groupname=symget('sysuserid');
     groupdesc=cats(symget('sysuserid'),' (group - desktop mode)');
@@ -133,7 +138,7 @@ libname &libref JSON fileref=&fref1;
   %end;
   %if &bad=0 and &empty=0 %then %do;
     data &outds;
-      length groupuri groupname groupdesc $256;
+      if 0 then set &schema;
       set &libref..&table(keep=uid name description);
       groupuri=uid;
       groupname=name;

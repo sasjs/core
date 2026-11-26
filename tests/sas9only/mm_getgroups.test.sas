@@ -3,6 +3,7 @@
   @brief Testing the SAS 9 metadata group model
 
   <h4> SAS Macros </h4>
+  @li mddl_getgroups.sas
   @li mf_getuser.sas
   @li mf_nobs.sas
   @li mm_getgroups.sas
@@ -12,10 +13,7 @@
 
 **/
 
-data work.groupmodel;
-  length groupuri groupname groupdesc $256;
-  stop;
-run;
+%mddl_getgroups(work.groupmodel)
 
 %mp_assertscope(SNAPSHOT)
 %mm_getgroups(outds=work.groups)

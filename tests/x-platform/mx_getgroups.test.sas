@@ -3,6 +3,7 @@
   @brief Test the cross-platform group model and memberships
 
   <h4> SAS Macros </h4>
+  @li mddl_getgroups.sas
   @li mf_getplatform.sas
   @li mf_getuser.sas
   @li mf_nobs.sas
@@ -13,10 +14,7 @@
 
 **/
 
-data work.groupmodel;
-  length groupuri groupname groupdesc $256;
-  stop;
-run;
+%mddl_getgroups(work.groupmodel)
 
 %mp_assertscope(SNAPSHOT)
 %mx_getgroups(outds=work.allgroups)

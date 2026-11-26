@@ -24868,9 +24868,10 @@ filename &headref clear;
   uid, not the legacy numeric groupid.  Desktop mode returns a synthetic group
   with GROUPURI=1, GROUPNAME=SYSUSERID and a desktop description.
 
-  A failed HTTP request, invalid response, or value exceeding 256 bytes raises
-  a failure and leaves an empty output dataset.  Values are never truncated to
-  fit the output.  Empty group arrays produce an empty dataset with the model.
+  A failed HTTP request raises a failure and leaves an empty output dataset,
+  except that a missing user returns no groups. Empty group arrays produce an
+  empty dataset with the model. Descriptions longer than 256 bytes are
+  truncated to fit GROUPDESC.
 
   Example:
 
@@ -24897,7 +24898,7 @@ filename &headref clear;
 
 **/
 %macro ms_getgroups(user=0,uid=0,outds=work.ms_getgroups,mdebug=0);
-%local fref0 fref1 libref optval url table dsid rc bad i pos field empty schema;
+%local fref0 fref1 libref optval url table dsid rc schema;
 
 %mp_abort(iftrue=(&syscc ne 0),mac=ms_getgroups.sas
   ,msg=%str(syscc=&syscc on macro entry))
@@ -24969,36 +24970,12 @@ libname &libref JSON fileref=&fref1;
 %if %superq(user)=0 and %superq(uid)=0 %then %let table=root;
 %else %let table=groups;
 
-%let bad=0;
-%let empty=0;
-%if &syscc ne 0 %then %let bad=1;
-%else %if %sysfunc(exist(&libref..&table)) %then %do;
-  %let dsid=%sysfunc(open(&libref..&table,i));
-  %if &dsid=0 %then %let bad=1;
-  %else %do;
-    %let rc=%sysfunc(fetch(&dsid));
-    %if &rc=-1 %then %let empty=1;
-    %else %if &rc ne 0 %then %let bad=1;
-    %else %do;
-      %do i=1 %to 3;
-        %let field=%scan(uid name description,&i);
-        %let pos=%sysfunc(varnum(&dsid,&field));
-        %if &pos=0 %then %do;
-          /* an empty array yields an ordinal-only table with no columns */
-          %if &table=groups and %sysfunc(varnum(&dsid,name))=0 and
-              %sysfunc(varnum(&dsid,description))=0 %then %let empty=1;
-          %else %let bad=1;
-        %end;
-        %else %if %sysfunc(vartype(&dsid,&pos)) ne C or
-            %sysfunc(varlen(&dsid,&pos))>256 %then %let bad=1;
-      %end;
-    %end;
-    %let rc=%sysfunc(close(&dsid));
-  %end;
-  %if &bad=0 and &empty=1 %then %do;
-    %put NOTE: MS_GETGROUPS response contained no groups.;
-  %end;
-  %if &bad=0 and &empty=0 %then %do;
+/* Empty arrays have no group fields in the JSON engine's table. */
+%let dsid=%sysfunc(open(&libref..&table,i));
+%if &dsid %then %do;
+  %let rc=%sysfunc(varnum(&dsid,uid));
+  %let dsid=%sysfunc(close(&dsid));
+  %if &rc %then %do;
     data &outds;
       if 0 then set &schema;
       set &libref..&table(keep=uid name description);
@@ -25009,8 +24986,8 @@ libname &libref JSON fileref=&fref1;
     run;
   %end;
 %end;
-%if &bad=1 %then %do;
-  %put %str(ERR)OR: MS_GETGROUPS invalid response or value exceeds 256 bytes.;
+%else %do;
+  %put %str(ERR)OR: MS_GETGROUPS unable to open JSON table &table.;
   %let syscc=8;
 %end;
 libname &libref clear;

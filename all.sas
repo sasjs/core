@@ -29407,22 +29407,23 @@ libname &libref1 clear;
 
       %mv_getgroupmembers(All Users)
 
-  outputs:
+  The stable member model, declared on every path, is:
 
-      ordinal_root num,
-      ordinal_items num,
-      version num,
+      version num(8),
       id char(256),
       name char(256),
       providerId char(32),
-      implicit num,
+      implicit num(8),
       type char(32)
 
-  `type` is the member type (user or group) and is declared on every path.
-  `implicit` is declared so a caller reading it does not fail with "Variable
-  implicit not found", but the identities API returns no such field, so the
-  column is present and always missing.  A group with no members, and a group
-  id the server does not know, both return the columns above with zero rows.
+  Additional JSON engine or identities API columns may also appear in the
+  output. The macro does not remove them.
+
+  `type` is the member type (user or group). `implicit` is declared so a caller
+  reading it does not fail with "Variable implicit not found", but the
+  identities API returns no such field, so the column is present and always
+  missing. A group with no members, and a group id the server does not know,
+  both return the declared columns with zero rows.
 
   @param [in] group Group id for which to return group members
   @param [in] access_token_var= (ACCESS_TOKEN)

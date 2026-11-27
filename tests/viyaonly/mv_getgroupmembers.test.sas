@@ -39,33 +39,12 @@
     ,desc=&desc,outds=work.test_results)
 %mend groupmember_scope_compare;
 
-/* The independent model covers the six documented member columns. */
+/* Independently define the five guaranteed member columns. */
 data work.membermodel;
-  length version 8 id $256 name $256 providerId $32 implicit 8 type $32;
+  length version 8 id $256 name $256 providerId $32 type $32;
   call missing(of _all_);
   stop;
 run;
-
-/* Compare only documented columns; leave the macro output unchanged. */
-%macro groupmember_model_input(inds,outds);
-  %local col i keepcols;
-  %let keepcols=;
-  %do i=1 %to 6;
-    %let col=%scan(version id name providerId implicit type,&i);
-    %if %mf_existvar(&inds,&col)>0 %then %let keepcols=&keepcols &col;
-  %end;
-  data &outds;
-    set &inds;
-    %if %length(%superq(keepcols))>0 %then %do;
-      keep &keepcols;
-    %end;
-    %else %do;
-      length _member_model_missing 8;
-      _member_model_missing=1;
-      keep _member_model_missing;
-    %end;
-  run;
-%mend groupmember_model_input;
 
 %macro test_groupmembers();
 %local groupmember_libref groupid candidate i
@@ -143,9 +122,13 @@ run;
   desc=The populated group request returns HTTP 200,
   outds=work.test_results
 )
+%mp_assert(iftrue=(%mf_existvar(work.groupmembers,implicit)=0),
+  desc=Populated output excludes implicit,outds=work.test_results)
+%mp_assert(iftrue=(%mf_existvar(work.groupmembers,ordinal_root)=0 and
+    %mf_existvar(work.groupmembers,ordinal_items)=0),
+  desc=Populated output excludes JSON ordinals,outds=work.test_results)
 /* A user and a group may share an ID, so the key includes identity type. */
-%groupmember_model_input(work.groupmembers,work.members_model_input)
-%mp_assertmodel(work.members_model_input,base=work.membermodel,key=id type,
+%mp_assertmodel(work.groupmembers,base=work.membermodel,key=id type,
   desc=Populated members match the model and have unique identity keys,
   outds=work.test_results
 )
@@ -171,10 +154,6 @@ run;
   desc=Check the dataset carries a providerId column
 )
 %mp_assert(
-  iftrue=(%mf_existvar(work.groupmembers,implicit)>0),
-  desc=Check the dataset carries an implicit column
-)
-%mp_assert(
   iftrue=(%mf_existvar(work.groupmembers,type)>0),
   desc=Check the dataset carries a type column
 )
@@ -192,8 +171,7 @@ run;
   desc=The unknown group request returns HTTP 404,
   outds=work.test_results
 )
-%groupmember_model_input(work.unknown,work.unknown_model_input)
-%mp_assertmodel(work.unknown_model_input,base=work.membermodel,
+%mp_assertmodel(work.unknown,base=work.membermodel,
   desc=Unknown group members match the documented model,
   outds=work.test_results
 )

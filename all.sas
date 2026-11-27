@@ -29407,23 +29407,22 @@ libname &libref1 clear;
 
       %mv_getgroupmembers(All Users)
 
-  The stable member model, declared on every path, is:
+  The output contains exactly these member columns on every path:
 
       version num(8),
       id char(256),
       name char(256),
       providerId char(32),
-      implicit num(8),
       type char(32)
 
-  Additional JSON engine or identities API columns may also appear in the
-  output. The macro does not remove them.
+  Other identities API fields and JSON engine ordinal columns are not included.
+  `type` is the member type (user or group). A group with no members, and a
+  group id the server does not know, return these columns with zero rows.
 
-  `type` is the member type (user or group). `implicit` is declared so a caller
-  reading it does not fail with "Variable implicit not found", but the
-  identities API returns no such field, so the column is present and always
-  missing. A group with no members, and a group id the server does not know,
-  both return the declared columns with zero rows.
+  Output schema change: callers that used `implicit`, `ordinal_root`,
+  `ordinal_items`, or other API fields must stop relying on those columns.
+  Obtain needed additional information from the appropriate identities API;
+  JSON ordinals are engine-generated metadata.
 
   @param [in] group Group id for which to return group members
   @param [in] access_token_var= (ACCESS_TOKEN)
@@ -29455,7 +29454,7 @@ libname &libref1 clear;
     ,grant_type=sas_services
     ,outds=work.viyagroupmembers
   );
-%local oauth_bearer;
+%local oauth_bearer libref1;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
   %else %let grant_type=sas_services;
@@ -29494,8 +29493,7 @@ run;
   /* the same documented columns and zero rows as a group with no members -
     call missing alone would output one all-missing observation */
   data &outds;
-    length ordinal_root 8 ordinal_items 8 version 8
-      id $256 name $256 providerId $32 implicit 8 type $32;
+    length version 8 id $256 name $256 providerId $32 type $32;
     call missing(of _all_);
     stop;
   run;
@@ -29510,8 +29508,7 @@ run;
   /* a group with no members returns a collection whose items dataset carries no
     member columns, so a straight SET would raise "Variable id is uninitialized"
     and leave syscc dirty.  Only copy when there is something to copy.  The
-    documented columns are declared on both paths, so an empty group hands the
-    caller the same PDV as a populated one.  The lengths are declared because
+    member columns are declared on both paths. The lengths are declared because
     the JSON engine sizes its columns to the longest value in the payload:
     $256 is the longest an active directory display name or SAM account name
     can hold, and a shorter declaration lets the engine report "Multiple
@@ -29523,8 +29520,8 @@ run;
     %if %mf_existvar(&itemsds,id)>0 %then %let hasvars=1;
   %end;
   data &outds;
-    length ordinal_root 8 ordinal_items 8 version 8
-      id $256 name $256 providerId $32 implicit 8 type $32;
+    length version 8 id $256 name $256 providerId $32 type $32;
+    keep version id name providerId type;
     call missing(of _all_);
     %if &hasvars=1 %then %do;
       set &itemsds;

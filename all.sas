@@ -29490,13 +29490,6 @@ run;
 /*data _null_;infile &fname1;input;putlog _infile_;run;*/
 %if &SYS_PROCHTTP_STATUS_CODE=404 %then %do;
   %put NOTE:  Group &group not found!!;
-  /* the same documented columns and zero rows as a group with no members -
-    call missing alone would output one all-missing observation */
-  data &outds;
-    length version 8 id $256 name $256 providerId $32 type $32;
-    call missing(of _all_);
-    stop;
-  run;
 %end;
 %else %do;
   %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200)
@@ -29508,7 +29501,7 @@ run;
   /* a group with no members returns a collection whose items dataset carries no
     member columns, so a straight SET would raise "Variable id is uninitialized"
     and leave syscc dirty.  Only copy when there is something to copy.  The
-    member columns are declared on both paths. The lengths are declared because
+    member columns are declared on every path. The lengths are declared because
     the JSON engine sizes its columns to the longest value in the payload:
     $256 is the longest an active directory display name or SAM account name
     can hold, and a shorter declaration lets the engine report "Multiple
@@ -29519,19 +29512,25 @@ run;
   %if %sysfunc(exist(&itemsds))=1 %then %do;
     %if %mf_existvar(&itemsds,id)>0 %then %let hasvars=1;
   %end;
-  data &outds;
-    length version 8 id $256 name $256 providerId $32 type $32;
-    keep version id name providerId type;
-    call missing(of _all_);
-    %if &hasvars=1 %then %do;
-      set &itemsds;
-      /* the engine emits one all-missing row for an empty collection */
-      if missing(id) then delete;
-    %end;
-    %else %do;
-      stop;
-    %end;
-  run;
+%end;
+
+data &outds;
+  length version 8 id $256 name $256 providerId $32 type $32;
+  keep version id name providerId type;
+  call missing(of _all_);
+  %if &SYS_PROCHTTP_STATUS_CODE=404 %then %do;
+    stop;
+  %end;
+  %else %if &hasvars=1 %then %do;
+    set &itemsds;
+    /* the engine emits one all-missing row for an empty collection */
+    if missing(id) then delete;
+  %end;
+  %else %do;
+    stop;
+  %end;
+run;
+%if &SYS_PROCHTTP_STATUS_CODE ne 404 %then %do;
   libname &libref1 clear;
 %end;
 

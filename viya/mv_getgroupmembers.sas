@@ -13,22 +13,22 @@
 
       %mv_getgroupmembers(All Users)
 
-  outputs:
+  The output contains exactly these member columns on every path:
 
-      ordinal_root num,
-      ordinal_items num,
-      version num,
+      version num(8),
       id char(256),
       name char(256),
       providerId char(32),
-      implicit num,
       type char(32)
 
-  `type` is the member type (user or group) and is declared on every path.
-  `implicit` is declared so a caller reading it does not fail with "Variable
-  implicit not found", but the identities API returns no such field, so the
-  column is present and always missing.  A group with no members, and a group
-  id the server does not know, both return the columns above with zero rows.
+  Other identities API fields and JSON engine ordinal columns are not included.
+  `type` is the member type (user or group). A group with no members, and a
+  group id the server does not know, return these columns with zero rows.
+
+  Output schema change: callers that used `implicit`, `ordinal_root`,
+  `ordinal_items`, or other API fields must stop relying on those columns.
+  Obtain needed additional information from the appropriate identities API;
+  JSON ordinals are engine-generated metadata.
 
   @param [in] group Group id for which to return group members
   @param [in] access_token_var= (ACCESS_TOKEN)
@@ -60,7 +60,7 @@
     ,grant_type=sas_services
     ,outds=work.viyagroupmembers
   );
-%local oauth_bearer;
+%local oauth_bearer libref1;
 %if &grant_type=detect %then %do;
   %if %symexist(&access_token_var) %then %let grant_type=authorization_code;
   %else %let grant_type=sas_services;
@@ -96,14 +96,6 @@ run;
 /*data _null_;infile &fname1;input;putlog _infile_;run;*/
 %if &SYS_PROCHTTP_STATUS_CODE=404 %then %do;
   %put NOTE:  Group &group not found!!;
-  /* the same documented columns and zero rows as a group with no members -
-    call missing alone would output one all-missing observation */
-  data &outds;
-    length ordinal_root 8 ordinal_items 8 version 8
-      id $256 name $256 providerId $32 implicit 8 type $32;
-    call missing(of _all_);
-    stop;
-  run;
 %end;
 %else %do;
   %mp_abort(iftrue=(&SYS_PROCHTTP_STATUS_CODE ne 200)
@@ -115,8 +107,7 @@ run;
   /* a group with no members returns a collection whose items dataset carries no
     member columns, so a straight SET would raise "Variable id is uninitialized"
     and leave syscc dirty.  Only copy when there is something to copy.  The
-    documented columns are declared on both paths, so an empty group hands the
-    caller the same PDV as a populated one.  The lengths are declared because
+    member columns are declared on every path. The lengths are declared because
     the JSON engine sizes its columns to the longest value in the payload:
     $256 is the longest an active directory display name or SAM account name
     can hold, and a shorter declaration lets the engine report "Multiple
@@ -127,19 +118,25 @@ run;
   %if %sysfunc(exist(&itemsds))=1 %then %do;
     %if %mf_existvar(&itemsds,id)>0 %then %let hasvars=1;
   %end;
-  data &outds;
-    length ordinal_root 8 ordinal_items 8 version 8
-      id $256 name $256 providerId $32 implicit 8 type $32;
-    call missing(of _all_);
-    %if &hasvars=1 %then %do;
-      set &itemsds;
-      /* the engine emits one all-missing row for an empty collection */
-      if missing(id) then delete;
-    %end;
-    %else %do;
-      stop;
-    %end;
-  run;
+%end;
+
+data &outds;
+  length version 8 id $256 name $256 providerId $32 type $32;
+  keep version id name providerId type;
+  call missing(of _all_);
+  %if &SYS_PROCHTTP_STATUS_CODE=404 %then %do;
+    stop;
+  %end;
+  %else %if &hasvars=1 %then %do;
+    set &itemsds;
+    /* the engine emits one all-missing row for an empty collection */
+    if missing(id) then delete;
+  %end;
+  %else %do;
+    stop;
+  %end;
+run;
+%if &SYS_PROCHTTP_STATUS_CODE ne 404 %then %do;
   libname &libref1 clear;
 %end;
 
